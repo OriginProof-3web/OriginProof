@@ -3,13 +3,13 @@
 > OriginProof 2일 MVP를 네 명(M1~M4)이 Codex 또는 Claude Code와 함께
 > **동일한 구조, 동일한 계약, 동일한 환경**에서 개발하기 위한 내부 가이드.
 >
-> 사용법: 자신의 역할(M1~M4) 섹션만 읽어도 "무엇을 만들어야 하는지" 알 수 있도록
-> 역할별로 필요한 정보(Branch, 담당 경로, 금지 경로, 구현 항목, 테스트, 완료 조건, Agent Prompt)를
-> 각 섹션에 모아두었다. 공통 규칙(0~7장, 12~22장)은 전원이 먼저 읽는다.
+> 사용법: 공통 규칙(1~18장)을 전원이 먼저 읽고, 이후 자신의 역할(M1~M4) 섹션(19~22장)만 읽어도
+> "무엇을 만들어야 하는지" 알 수 있도록 역할별 정보(Branch, 담당 경로, 금지 경로, 구현 항목, 테스트, 완료 조건, Agent Prompt)를
+> 각 섹션에 모아두었다.
 
 ---
 
-## 0. 전체 흐름 요약
+## 1. 전체 흐름 요약
 
 ```
 M1 Bootstrap
@@ -55,7 +55,7 @@ VERIFIED 또는 TAMPERED
 
 ---
 
-## 1. 공통 개발 원칙
+## 2. 공통 개발 원칙
 
 1. `main`에서 직접 개발하지 않는다.
 2. 공통 Scaffold는 한 번만 생성한다 (M1 Bootstrap).
@@ -75,7 +75,7 @@ VERIFIED 또는 TAMPERED
 
 ---
 
-## 2. 역할 개요
+## 3. 역할 개요
 
 | 역할 | 담당 | Branch | 핵심 책임 |
 |----|----|----|----|
@@ -89,7 +89,7 @@ Frontend는 MVP 이후 전체 프로젝트 단계에서 다시 역할을 분리�
 
 ---
 
-## 3. 공통 시작 조건 (전원 필수)
+## 4. 공통 시작 조건 (전원 필수)
 
 역할 작업을 시작하기 전 아래를 모두 실행하고 확인한다.
 
@@ -118,7 +118,7 @@ Host OS가 Windows/macOS로 다른 것은 허용된다. 공통 서비스는 Dock
 
 ---
 
-## 4. Bootstrap (M1 최초 1회)
+## 5. Bootstrap (M1 최초 1회)
 
 - Branch: `bootstrap/mvp-v1`
 - Commit 메시지: `chore(repo): bootstrap mvp v1`
@@ -130,7 +130,7 @@ Bootstrap 담당자 Prompt: `prompts/00_bootstrap_integrator.md`
 
 ---
 
-## 5. Git Branch / Commit / PR 규칙
+## 6. Git Branch / Commit / PR 규칙
 
 ### Branch
 
@@ -198,7 +198,273 @@ compare: mvp/backend  (또는 mvp/ai, mvp/chain-core, mvp/chain-integration)
 
 ---
 
-## 6. M1 — Backend / MVP Integration
+## 7. Agent 사용 규칙
+
+각 담당자는 Codex 또는 Claude Code를 자신의 담당 Branch에서 실행한다.
+
+| 역할 | Prompt |
+|----|----|
+| Bootstrap | `prompts/00_bootstrap_integrator.md` |
+| M1 Backend | `prompts/01_mvp_backend.md` |
+| M2 AI | `prompts/02_mvp_ai.md` |
+| M3 Blockchain Core | `prompts/03_mvp_chain_core.md` |
+| M4 Blockchain Integration | `prompts/04_mvp_chain_integration.md` |
+| 교차 검토 | `prompts/90_cross_review.md` |
+
+### Agent가 작업 전 반드시 보고해야 하는 내용
+
+```
+Loaded instruction files:
+Current branch and commit:
+Owned paths:
+Prohibited paths:
+Planned files to change:
+Commands to verify:
+Blocking assumptions:
+```
+
+Branch, Bootstrap SHA, 담당 경로, 금지 경로, 테스트 명령 중 하나라도 틀리면 구현을 시작하지 않는다.
+
+### Agent가 작업 후 반드시 보고해야 하는 내용
+
+```
+Implemented:
+Files changed:
+Commands actually run and results:
+Contract or Schema impact:
+Security and privacy impact:
+Handoff requests:
+Remaining blockers:
+```
+
+실행하지 않은 명령/테스트를 성공했다고 기록하지 않는다.
+
+---
+
+## 8. Handoff 형식
+
+다른 담당자의 수정이 필요하면 임의로 수정하지 않고 아래 형식으로 요청한다.
+
+```
+Requesting role:
+Target owner:
+Blocking issue:
+Exact file or interface:
+Current input and output:
+Expected input and output:
+Required test:
+Deadline:
+Source branch and commit:
+```
+
+예:
+
+```
+Requesting role: M1 Backend
+Target owner: M2 AI
+Blocking issue: Backend에서 merchant nullable 여부 확인 필요
+Exact interface: CardPaymentNoticeCandidate
+Current: merchant: str
+Expected: merchant: str | None
+Required test: missing merchant fixture
+Source branch: mvp/backend
+Commit: abc1234
+```
+
+---
+
+## 9. 교차 검토
+
+자기 PC에서 성공했다고 작업이 완료된 것이 아니다. 가능하면 다른 담당자가 해당 Branch를 받아 다시 검증한다.
+
+| 작성자 | 검토자 | 주요 확인 |
+|----|----|----|
+| M1 Backend | M3 또는 M4 | Chain 결과가 API에 정확히 반영되는지 |
+| M2 AI | M1 | Candidate Schema와 API(Backend) 연결 |
+| M3 Blockchain Core | M4 | ABI와 배포 가능 여부 |
+| M4 Blockchain Integration | M1 | BlockchainReader와 Backend 연결 |
+
+---
+
+## 10. MVP 통합 순서
+
+```
+1. M3 Blockchain Core
+       ↓
+2. M4 Blockchain Integration
+       ↓
+3. M2 AI
+       ↓
+4. M1 Backend
+       ↓
+5. 정상 Text 검증
+       ↓
+6. 정상 Image 검증
+       ↓
+7. 금액 변조 Image 검증
+       ↓
+8. Revoked / 미등록 Case
+       ↓
+9. Demo Smoke
+```
+
+통합 Branch: `mvp/integration` (M1이 관리). **한 번에 하나의 PR만 Merge**한다. 각 Merge 직후 `make mvp-test`를 실행한다.
+
+---
+
+## 11. MVP 필수 결과
+
+### 정상 Case
+
+입력:
+
+```
+Origin Mock Bank
+****1234
+154,000원
+ORIGIN CAFE
+prf_demo_001
+```
+
+결과:
+
+```
+Verification Status: VERIFIED
+Lifecycle Status: ACTIVE
+```
+
+### 금액 변조 Case
+
+실제 Proof: `154,000원`
+입력: `1,540,000원`
+
+결과:
+
+```
+Verification Status: TAMPERED
+Reason: AMOUNT_MISMATCH
+```
+
+---
+
+## 12. 전체 MVP 검증 명령
+
+```
+python scripts/ci/validate_structure.py
+make bootstrap-check
+make mvp-up
+make demo-reset
+make mvp-test
+make lint
+make typecheck
+make smoke
+```
+
+실행하지 않은 명령은 PASS로 기록하지 않는다.
+
+---
+
+## 13. Environment Fingerprint
+
+비교 가능해야 하는 정보:
+
+```
+Git SHA, Python version, uv version, Node version, pnpm version,
+Foundry version, Solidity compiler, lockfile hash, Schema hash, ABI hash
+```
+
+출력: `build/environment_fingerprint.json`
+
+네 명의 `comparable` 영역이 일치해야 한다. Host OS(Windows/macOS)가 다른 것은 허용한다. 공통 서비스는 Docker를 사용한다.
+
+---
+
+## 14. Discord 알림
+
+GitHub와 Discord가 연동되어 있다. 다음 활동은 Discord에서 확인한다: `Push`, `PR 생성`, `PR Close`, `PR Merge`.
+
+PR Merge 시 커스텀 알림 예시:
+
+```
+🟢 PR MERGED
+#12 [M1/Backend] Verification API 구현
+작성자: GitHub ID
+```
+
+향후 CI 구성 후 `🔴 CI FAILED`, `🚀 DEPLOYED` 알림 추가 가능. Discord 알림은 개발 편의를 위한 것이며 Git 기록이나 CI 결과를 대체하지 않는다.
+
+---
+
+## 15. 금지 사항
+
+MVP에서도 다음은 금지한다.
+
+```
+main 직접 Push
+다른 담당자 코드를 이유 없이 수정
+테스트 실패를 Disable해서 해결
+Lint 또는 Type Check 비활성화
+실제 개인정보 사용
+실제 은행 로고 사용
+API Key Commit
+Private Key Commit
+AI 출력만으로 VERIFIED 결정
+Proof Payload 전체를 Blockchain에 저장
+실행하지 않은 테스트를 PASS라고 기록
+```
+
+---
+
+## 16. 문제 발생 시 판단 순서
+
+```
+1. 현재 사용자 요구사항
+2. 루트 AGENTS.md
+3. 담당 경로의 AGENTS.md
+4. Schema / API 계약
+5. ADR
+6. 개발 실행 인스트럭션
+7. 담당자 Handoff
+```
+
+다른 담당자의 영역을 임의로 수정해서 해결하지 않는다.
+
+---
+
+## 17. MVP 완료 체크리스트
+
+- [ ] 네 명이 동일 Bootstrap Commit에서 시작했다.
+- [ ] 구조 검사 결과가 동일하다.
+- [ ] Mock Bank가 Registry에 등록된다.
+- [ ] Active Key가 등록된다.
+- [ ] Analyzer가 카드 알림을 구조화한다.
+- [ ] AI가 진위 판정을 하지 않는다.
+- [ ] Signed Proof를 조회할 수 있다.
+- [ ] Signature를 검증한다.
+- [ ] Payload Hash를 비교한다.
+- [ ] Registry 상태를 확인한다.
+- [ ] 정상 알림이 `VERIFIED + ACTIVE`다.
+- [ ] 금액 변조 알림이 `TAMPERED + AMOUNT_MISMATCH`다.
+- [ ] 실제 개인정보가 없다.
+- [ ] Secret이 Git에 없다.
+- [ ] 다른 개발환경에서 재현된다.
+- [ ] `make mvp-test`가 통과한다.
+- [ ] 3분 안에 시연할 수 있다.
+
+---
+
+## 18. 역할 요약
+
+| 역할 | 핵심 키워드 |
+|----|----|
+| M1 | Backend, Verification, Common Core, MVP Integration |
+| M2 | AI, LLM Adapter, Prompt, Field Extraction, Fixture |
+| M3 | Blockchain Core, Issuer Registry, Key Registry, Foundry Test |
+| M4 | Blockchain Integration, Deploy, ABI, Chain Reader, Indexer |
+
+---
+
+## 19. M1 — Backend / MVP Integration
 
 ### 역할
 
@@ -230,7 +496,7 @@ packages/python/originproof_core
 1. 공유된 Bootstrap SHA 확인
 2. `mvp/backend` Branch 생성
 3. 루트 `AGENTS.md` 확인 → `apps/api/AGENTS.md` 확인 → `packages/python/AGENTS.md` 확인
-4. 환경 검사 실행 (3장 공통 시작 조건)
+4. 환경 검사 실행 (4장 공통 시작 조건)
 5. `prompts/01_mvp_backend.md`를 Codex/Claude Code에 입력
 6. Agent가 보고한 Branch/SHA/수정 경로 확인 후 구현 시작
 
@@ -265,7 +531,7 @@ services/analyzer 내부 Prompt
 services/analyzer Provider 내부 구현
 ```
 
-M3 Contract 변경 필요 시 M3에게, M2 Analyzer 변경 필요 시 M2에게 Handoff (12장 형식 사용).
+M3 Contract 변경 필요 시 M3에게, M2 Analyzer 변경 필요 시 M2에게 Handoff (8장 형식 사용).
 
 ### Agent Prompt
 
@@ -294,7 +560,7 @@ make smoke
 
 ---
 
-## 7. M2 — AI / Analyzer
+## 20. M2 — AI / Analyzer
 
 ### 역할
 
@@ -417,7 +683,7 @@ make smoke
 
 ---
 
-## 8. M3 — Blockchain Core
+## 21. M3 — Blockchain Core
 
 ### 역할
 
@@ -526,7 +792,7 @@ make mvp-test
 
 ---
 
-## 9. M4 — Blockchain Integration
+## 22. M4 — Blockchain Integration
 
 ### 역할
 
@@ -606,273 +872,7 @@ make smoke
 
 ---
 
-## 10. Agent 사용 규칙
-
-각 담당자는 Codex 또는 Claude Code를 자신의 담당 Branch에서 실행한다.
-
-| 역할 | Prompt |
-|----|----|
-| Bootstrap | `prompts/00_bootstrap_integrator.md` |
-| M1 Backend | `prompts/01_mvp_backend.md` |
-| M2 AI | `prompts/02_mvp_ai.md` |
-| M3 Blockchain Core | `prompts/03_mvp_chain_core.md` |
-| M4 Blockchain Integration | `prompts/04_mvp_chain_integration.md` |
-| 교차 검토 | `prompts/90_cross_review.md` |
-
-### Agent가 작업 전 반드시 보고해야 하는 내용
-
-```
-Loaded instruction files:
-Current branch and commit:
-Owned paths:
-Prohibited paths:
-Planned files to change:
-Commands to verify:
-Blocking assumptions:
-```
-
-Branch, Bootstrap SHA, 담당 경로, 금지 경로, 테스트 명령 중 하나라도 틀리면 구현을 시작하지 않는다.
-
-### Agent가 작업 후 반드시 보고해야 하는 내용
-
-```
-Implemented:
-Files changed:
-Commands actually run and results:
-Contract or Schema impact:
-Security and privacy impact:
-Handoff requests:
-Remaining blockers:
-```
-
-실행하지 않은 명령/테스트를 성공했다고 기록하지 않는다.
-
----
-
-## 11. Handoff 형식
-
-다른 담당자의 수정이 필요하면 임의로 수정하지 않고 아래 형식으로 요청한다.
-
-```
-Requesting role:
-Target owner:
-Blocking issue:
-Exact file or interface:
-Current input and output:
-Expected input and output:
-Required test:
-Deadline:
-Source branch and commit:
-```
-
-예:
-
-```
-Requesting role: M1 Backend
-Target owner: M2 AI
-Blocking issue: Backend에서 merchant nullable 여부 확인 필요
-Exact interface: CardPaymentNoticeCandidate
-Current: merchant: str
-Expected: merchant: str | None
-Required test: missing merchant fixture
-Source branch: mvp/backend
-Commit: abc1234
-```
-
----
-
-## 12. 교차 검토
-
-자기 PC에서 성공했다고 작업이 완료된 것이 아니다. 가능하면 다른 담당자가 해당 Branch를 받아 다시 검증한다.
-
-| 작성자 | 검토자 | 주요 확인 |
-|----|----|----|
-| M1 Backend | M3 또는 M4 | Chain 결과가 API에 정확히 반영되는지 |
-| M2 AI | M1 | Candidate Schema와 API(Backend) 연결 |
-| M3 Blockchain Core | M4 | ABI와 배포 가능 여부 |
-| M4 Blockchain Integration | M1 | BlockchainReader와 Backend 연결 |
-
----
-
-## 13. MVP 통합 순서
-
-```
-1. M3 Blockchain Core
-       ↓
-2. M4 Blockchain Integration
-       ↓
-3. M2 AI
-       ↓
-4. M1 Backend
-       ↓
-5. 정상 Text 검증
-       ↓
-6. 정상 Image 검증
-       ↓
-7. 금액 변조 Image 검증
-       ↓
-8. Revoked / 미등록 Case
-       ↓
-9. Demo Smoke
-```
-
-통합 Branch: `mvp/integration` (M1이 관리). **한 번에 하나의 PR만 Merge**한다. 각 Merge 직후 `make mvp-test`를 실행한다.
-
----
-
-## 14. MVP 필수 결과
-
-### 정상 Case
-
-입력:
-
-```
-Origin Mock Bank
-****1234
-154,000원
-ORIGIN CAFE
-prf_demo_001
-```
-
-결과:
-
-```
-Verification Status: VERIFIED
-Lifecycle Status: ACTIVE
-```
-
-### 금액 변조 Case
-
-실제 Proof: `154,000원`
-입력: `1,540,000원`
-
-결과:
-
-```
-Verification Status: TAMPERED
-Reason: AMOUNT_MISMATCH
-```
-
----
-
-## 15. 전체 MVP 검증 명령
-
-```
-python scripts/ci/validate_structure.py
-make bootstrap-check
-make mvp-up
-make demo-reset
-make mvp-test
-make lint
-make typecheck
-make smoke
-```
-
-실행하지 않은 명령은 PASS로 기록하지 않는다.
-
----
-
-## 16. Environment Fingerprint
-
-비교 가능해야 하는 정보:
-
-```
-Git SHA, Python version, uv version, Node version, pnpm version,
-Foundry version, Solidity compiler, lockfile hash, Schema hash, ABI hash
-```
-
-출력: `build/environment_fingerprint.json`
-
-네 명의 `comparable` 영역이 일치해야 한다. Host OS(Windows/macOS)가 다른 것은 허용한다. 공통 서비스는 Docker를 사용한다.
-
----
-
-## 17. Discord 알림
-
-GitHub와 Discord가 연동되어 있다. 다음 활동은 Discord에서 확인한다: `Push`, `PR 생성`, `PR Close`, `PR Merge`.
-
-PR Merge 시 커스텀 알림 예시:
-
-```
-🟢 PR MERGED
-#12 [M1/Backend] Verification API 구현
-작성자: GitHub ID
-```
-
-향후 CI 구성 후 `🔴 CI FAILED`, `🚀 DEPLOYED` 알림 추가 가능. Discord 알림은 개발 편의를 위한 것이며 Git 기록이나 CI 결과를 대체하지 않는다.
-
----
-
-## 18. 금지 사항
-
-MVP에서도 다음은 금지한다.
-
-```
-main 직접 Push
-다른 담당자 코드를 이유 없이 수정
-테스트 실패를 Disable해서 해결
-Lint 또는 Type Check 비활성화
-실제 개인정보 사용
-실제 은행 로고 사용
-API Key Commit
-Private Key Commit
-AI 출력만으로 VERIFIED 결정
-Proof Payload 전체를 Blockchain에 저장
-실행하지 않은 테스트를 PASS라고 기록
-```
-
----
-
-## 19. 문제 발생 시 판단 순서
-
-```
-1. 현재 사용자 요구사항
-2. 루트 AGENTS.md
-3. 담당 경로의 AGENTS.md
-4. Schema / API 계약
-5. ADR
-6. 개발 실행 인스트럭션
-7. 담당자 Handoff
-```
-
-다른 담당자의 영역을 임의로 수정해서 해결하지 않는다.
-
----
-
-## 20. MVP 완료 체크리스트
-
-- [ ] 네 명이 동일 Bootstrap Commit에서 시작했다.
-- [ ] 구조 검사 결과가 동일하다.
-- [ ] Mock Bank가 Registry에 등록된다.
-- [ ] Active Key가 등록된다.
-- [ ] Analyzer가 카드 알림을 구조화한다.
-- [ ] AI가 진위 판정을 하지 않는다.
-- [ ] Signed Proof를 조회할 수 있다.
-- [ ] Signature를 검증한다.
-- [ ] Payload Hash를 비교한다.
-- [ ] Registry 상태를 확인한다.
-- [ ] 정상 알림이 `VERIFIED + ACTIVE`다.
-- [ ] 금액 변조 알림이 `TAMPERED + AMOUNT_MISMATCH`다.
-- [ ] 실제 개인정보가 없다.
-- [ ] Secret이 Git에 없다.
-- [ ] 다른 개발환경에서 재현된다.
-- [ ] `make mvp-test`가 통과한다.
-- [ ] 3분 안에 시연할 수 있다.
-
----
-
-## 21. 역할 요약
-
-| 역할 | 핵심 키워드 |
-|----|----|
-| M1 | Backend, Verification, Common Core, MVP Integration |
-| M2 | AI, LLM Adapter, Prompt, Field Extraction, Fixture |
-| M3 | Blockchain Core, Issuer Registry, Key Registry, Foundry Test |
-| M4 | Blockchain Integration, Deploy, ABI, Chain Reader, Indexer |
-
----
-
-## 22. 최종 원칙
+## 23. 최종 원칙
 
 OriginProof MVP의 목표는 많은 기능을 만드는 것이 아니다. 하나의 흐름을 네 명이 서로 다른 담당 영역에서 구현하고 마지막에 정확하게 연결하는 것이 목표다.
 
