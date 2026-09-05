@@ -60,6 +60,19 @@ class VerificationService:
             )
         checks["payload_hash"] = "PASS"
 
+        if envelope.expires_at is not None and envelope.expires_at <= now:
+            checks["expiry"] = "EXPIRED"
+            return VerificationResult(
+                session_id=self._session_id(),
+                verification_status=VerificationStatus.INCONCLUSIVE,
+                lifecycle_status=LifecycleStatus.EXPIRED,
+                reason_codes=[ReasonCode.PROOF_EXPIRED],
+                checks=checks,
+                verified_at=now,
+                request_id=request.request_id,
+            )
+        checks["expiry"] = "PASS"
+
         mismatch_reason = self._candidate_mismatch(envelope, request.candidate)
         if mismatch_reason is not None:
             checks["candidate_match"] = "FAIL"
@@ -139,6 +152,7 @@ class VerificationService:
             "currency",
             "merchant",
             "approved_at",
+            "transaction_id",
         ):
             candidate_value = getattr(candidate, field)
             is_present_and_different = candidate_value is not None and (

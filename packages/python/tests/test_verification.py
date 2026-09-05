@@ -177,10 +177,24 @@ async def test_malformed_signature_is_tampered_instead_of_raising() -> None:
     assert result.reason_codes == [ReasonCode.INVALID_SIGNATURE]
 
 
+async def test_expired_proof_is_not_reported_as_verified() -> None:
+    envelope, signer = signed_envelope()
+    expired = envelope.model_copy(update={"expires_at": datetime(2026, 9, 3, 3, 15, tzinfo=UTC)})
+    service = VerificationService(
+        InMemoryProofRepository(expired),
+        InMemoryBlockchainReader(signer),
+    )
+
+    result = await service.verify(verification_request(expired))
+
+    assert result.verification_status is VerificationStatus.INCONCLUSIVE
+    assert result.reason_codes == [ReasonCode.PROOF_EXPIRED]
+    assert result.lifecycle_status.value == "EXPIRED"
+
+
 def test_golden_fixture_matches_python_signing_contract() -> None:
     fixture_path = (
-        Path(__file__).resolve().parents[3]
-        / "fixtures/golden/card_payment_notice_signing_v1.json"
+        Path(__file__).resolve().parents[3] / "fixtures/golden/card_payment_notice_signing_v1.json"
     )
     fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
     payload = CardPaymentNotice.model_validate(fixture["payload"])

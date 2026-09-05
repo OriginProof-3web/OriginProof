@@ -46,9 +46,11 @@ def signer_address(envelope: SignedProofEnvelope) -> str | None:
         if signature_bytes[-1] not in (0, 1):
             return None
         message_hash = bytes.fromhex(signing_digest(envelope).removeprefix("0x"))
-        return keys.Signature(signature_bytes=signature_bytes).recover_public_key_from_msg_hash(
-            message_hash
-        ).to_checksum_address()
+        return (
+            keys.Signature(signature_bytes=signature_bytes)
+            .recover_public_key_from_msg_hash(message_hash)
+            .to_checksum_address()
+        )
     except (BadSignature, TypeError, ValidationError, ValueError):
         return None
 

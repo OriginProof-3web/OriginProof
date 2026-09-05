@@ -36,6 +36,7 @@ class ReasonCode(StrEnum):
     PAYLOAD_HASH_MISMATCH = "PAYLOAD_HASH_MISMATCH"
     AMOUNT_MISMATCH = "AMOUNT_MISMATCH"
     FIELD_MISMATCH = "FIELD_MISMATCH"
+    PROOF_EXPIRED = "PROOF_EXPIRED"
     PROOF_NOT_FOUND = "PROOF_NOT_FOUND"
     ISSUER_NOT_FOUND = "ISSUER_NOT_FOUND"
     SCHEMA_UNSUPPORTED = "SCHEMA_UNSUPPORTED"
@@ -75,6 +76,7 @@ class CardPaymentNoticeCandidate(BaseModel):
     currency: str | None = Field(default=None, pattern=r"^[A-Z]{3}$")
     merchant: str | None = None
     approved_at: datetime | None = None
+    transaction_id: str | None = None
     proof_id: str | None = None
     confidence: float = Field(ge=0, le=1)
     missing_fields: list[str] = Field(default_factory=list)
