@@ -43,7 +43,7 @@ def create_app(verification_service: VerificationService | None = None) -> FastA
         return {"status": "ready"}
 
     @app.post(
-        "/v1/verifications/card-payment-notice",
+        "/v1/mvp/card-notices/verify",
         response_model=VerificationResult,
         tags=["verification"],
     )

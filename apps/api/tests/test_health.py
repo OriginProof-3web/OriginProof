@@ -19,7 +19,7 @@ async def test_verification_is_inconclusive_without_configured_adapters() -> Non
     )
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         response = await client.post(
-            "/v1/verifications/card-payment-notice",
+            "/v1/mvp/card-notices/verify",
             json=request.model_dump(mode="json"),
         )
 
