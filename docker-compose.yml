@@ -26,7 +26,7 @@ services:
     image: trufflesuite/ganache:v7.9.2
     command: --server.host 0.0.0.0 --server.port 8545 --chain.chainId 31337 --wallet.deterministic
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:8545 >/dev/null 2>&1 || exit 1"]
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:8545',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'eth_chainId',params:[]})}).then((response)=>process.exit(response.ok ? 0 : 1)).catch(()=>process.exit(1))\""]
       interval: 5s
       timeout: 3s
       retries: 20
