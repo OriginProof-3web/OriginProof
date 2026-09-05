@@ -1,0 +1,38 @@
+[project]
+name = "originproof-blockchain"
+version = "0.1.0"
+description = "OriginProof M3/M4 blockchain core and integration"
+requires-python = ">=3.11"
+dependencies = [
+  "eth-abi>=5.2,<6",
+  "eth-hash[pycryptodome]>=0.8,<1",
+  "eth-utils>=5.3,<6",
+  "httpx>=0.28,<1",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.4,<9",
+  "pytest-asyncio>=1.1,<2",
+  "respx>=0.22,<1",
+  "ruff>=0.12,<1",
+]
+
+[tool.uv]
+package = false
+
+[tool.pytest.ini_options]
+pythonpath = ["apps/api/src", "services/indexer/src"]
+testpaths = ["apps/api/tests", "services/indexer/tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+exclude = [
+  ".venv",
+  "packages/contracts/broadcast",
+  "packages/contracts/cache",
+  "packages/contracts/lib",
+  "packages/contracts/out",
+]

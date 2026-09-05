@@ -1,0 +1,11 @@
+.env
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+build/
+packages/contracts/cache/
+packages/contracts/out/
+packages/contracts/broadcast/
+packages/contracts/lib/
+*.pyc
