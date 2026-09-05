@@ -1,0 +1,34 @@
+{
+  "generated_by": "scripts/generate_golden_fixture.py",
+  "identifier_hashing": "keccak256(utf8(identifier))",
+  "payload": {
+    "amount_minor": 154000,
+    "approved_at": "2026-09-03T03:14:00Z",
+    "currency": "KRW",
+    "issuer_name": "Origin Mock Bank",
+    "masked_card": "1234",
+    "merchant": "ORIGIN CAFE",
+    "transaction_id": "txn_demo_001"
+  },
+  "payload_canonical_json": "{\"amount_minor\":154000,\"approved_at\":\"2026-09-03T03:14:00Z\",\"currency\":\"KRW\",\"issuer_name\":\"Origin Mock Bank\",\"masked_card\":\"1234\",\"merchant\":\"ORIGIN CAFE\",\"transaction_id\":\"txn_demo_001\"}",
+  "payload_hash": "0x014f4ff5f44bc6973ac50fabcff824afe1ba5fad84052d145164264f7844c594",
+  "signing_canonical_json": "{\"app_domain\":\"originproof.mvp\",\"chain_id\":31337,\"expires_at\":null,\"issued_at\":\"2026-09-03T03:14:00Z\",\"issuer_id\":\"iss_origin_mock_bank\",\"key_id\":\"key_origin_mock_bank_1\",\"metadata_hash\":null,\"nonce\":\"nnnnnnnnnnnnnnnn\",\"payload_hash\":\"0x014f4ff5f44bc6973ac50fabcff824afe1ba5fad84052d145164264f7844c594\",\"proof_id\":\"prf_demo_001\",\"proof_type\":\"CARD_PAYMENT_NOTICE\",\"schema_version\":\"1.0.0\",\"signature_scheme\":\"ECDSA_SECP256K1_KECCAK256_V1\",\"single_use\":true,\"subject_binding_hash\":null}",
+  "signing_digest": "0xe72af3ed1dbb7b4b000526636f66bc3b3fe8067a23259a166fd0981066ab9f2d",
+  "signing_payload": {
+    "app_domain": "originproof.mvp",
+    "chain_id": 31337,
+    "expires_at": null,
+    "issued_at": "2026-09-03T03:14:00Z",
+    "issuer_id": "iss_origin_mock_bank",
+    "key_id": "key_origin_mock_bank_1",
+    "metadata_hash": null,
+    "nonce": "nnnnnnnnnnnnnnnn",
+    "payload_hash": "0x014f4ff5f44bc6973ac50fabcff824afe1ba5fad84052d145164264f7844c594",
+    "proof_id": "prf_demo_001",
+    "proof_type": "CARD_PAYMENT_NOTICE",
+    "schema_version": "1.0.0",
+    "signature_scheme": "ECDSA_SECP256K1_KECCAK256_V1",
+    "single_use": true,
+    "subject_binding_hash": null
+  }
+}

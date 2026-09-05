@@ -10,6 +10,10 @@ class ProofType(StrEnum):
     CARD_PAYMENT_NOTICE = "CARD_PAYMENT_NOTICE"
 
 
+class SignatureScheme(StrEnum):
+    ECDSA_SECP256K1_KECCAK256_V1 = "ECDSA_SECP256K1_KECCAK256_V1"
+
+
 class VerificationStatus(StrEnum):
     VERIFIED = "VERIFIED"
     NOT_REGISTERED = "NOT_REGISTERED"
@@ -31,6 +35,7 @@ class ReasonCode(StrEnum):
     INVALID_SIGNATURE = "INVALID_SIGNATURE"
     PAYLOAD_HASH_MISMATCH = "PAYLOAD_HASH_MISMATCH"
     AMOUNT_MISMATCH = "AMOUNT_MISMATCH"
+    FIELD_MISMATCH = "FIELD_MISMATCH"
     PROOF_NOT_FOUND = "PROOF_NOT_FOUND"
     ISSUER_NOT_FOUND = "ISSUER_NOT_FOUND"
     SCHEMA_UNSUPPORTED = "SCHEMA_UNSUPPORTED"
@@ -83,6 +88,9 @@ class SignedProofEnvelope(BaseModel):
     key_id: str = Field(pattern=r"^key_[A-Za-z0-9_-]+$")
     proof_type: ProofType = ProofType.CARD_PAYMENT_NOTICE
     schema_version: str = "1.0.0"
+    signature_scheme: SignatureScheme = SignatureScheme.ECDSA_SECP256K1_KECCAK256_V1
+    chain_id: int = Field(gt=0)
+    app_domain: str = Field(min_length=3, max_length=120)
     payload: CardPaymentNotice
     payload_hash: str = Field(pattern=r"^0x[0-9a-f]{64}$")
     subject_binding_hash: str | None = Field(default=None, pattern=r"^0x[0-9a-f]{64}$")
@@ -103,4 +111,14 @@ class VerificationResult(BaseModel):
     reason_codes: list[ReasonCode] = Field(default_factory=list)
     checks: dict[str, str]
     verified_at: datetime
+    request_id: str = Field(pattern=r"^req_[A-Za-z0-9_-]+$")
+
+
+class VerificationRequest(BaseModel):
+    """Untrusted candidate fields plus an identifier for the server-side signed proof."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    proof_id: str = Field(pattern=r"^prf_[A-Za-z0-9_-]+$")
+    candidate: CardPaymentNoticeCandidate
     request_id: str = Field(pattern=r"^req_[A-Za-z0-9_-]+$")

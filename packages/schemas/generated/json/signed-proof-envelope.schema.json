@@ -60,11 +60,29 @@
       ],
       "title": "ProofType",
       "type": "string"
+    },
+    "SignatureScheme": {
+      "enum": [
+        "ECDSA_SECP256K1_KECCAK256_V1"
+      ],
+      "title": "SignatureScheme",
+      "type": "string"
     }
   },
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "additionalProperties": false,
   "properties": {
+    "app_domain": {
+      "maxLength": 120,
+      "minLength": 3,
+      "title": "App Domain",
+      "type": "string"
+    },
+    "chain_id": {
+      "exclusiveMinimum": 0,
+      "title": "Chain Id",
+      "type": "integer"
+    },
     "expires_at": {
       "anyOf": [
         {
@@ -139,6 +157,10 @@
       "title": "Signature",
       "type": "string"
     },
+    "signature_scheme": {
+      "$ref": "#/$defs/SignatureScheme",
+      "default": "ECDSA_SECP256K1_KECCAK256_V1"
+    },
     "single_use": {
       "default": true,
       "title": "Single Use",
@@ -162,6 +184,8 @@
     "proof_id",
     "issuer_id",
     "key_id",
+    "chain_id",
+    "app_domain",
     "payload",
     "payload_hash",
     "issued_at",

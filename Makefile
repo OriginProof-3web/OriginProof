@@ -68,6 +68,7 @@ smoke:
 
 generate:
 	uv run python scripts/generate_schemas.py
+	uv run python scripts/generate_golden_fixture.py
 
 security:
 	@printf '%s\n' 'Run dependency and secret scans in CI after Bootstrap dependencies are locked.'
