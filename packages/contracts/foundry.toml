@@ -14,4 +14,3 @@ line_length = 100
 
 [fuzz]
 runs = 512
-

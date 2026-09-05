@@ -124,4 +124,3 @@ contract IssuerRegistry is AccessControl, Pausable, IIssuerRegistry {
         if (issuer.status == IssuerStatus.NONE) revert IssuerNotFound(issuerId);
     }
 }
-

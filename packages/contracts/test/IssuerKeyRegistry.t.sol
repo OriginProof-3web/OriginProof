@@ -26,8 +26,7 @@ contract IssuerKeyRegistryTest is Test {
         issuers = new IssuerRegistry(address(this));
         issuers.registerIssuer(ISSUER_ID, issuerAccount, keccak256("synthetic metadata"));
         keys = new IssuerKeyRegistry(address(this), issuers);
-    }
-
+}
     function testIssuerRegistersAndRevokesOwnKey() public {
         vm.expectEmit(true, true, true, true, address(keys));
         emit IssuerKeyRegistered(KEY_ID, ISSUER_ID, signer, 100, 200);

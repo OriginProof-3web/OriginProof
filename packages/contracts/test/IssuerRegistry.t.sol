@@ -20,8 +20,7 @@ contract IssuerRegistryTest is Test {
     function setUp() public {
         registry = new IssuerRegistry(address(this));
         registry.grantRole(registry.ISSUER_MANAGER_ROLE(), manager);
-    }
-
+}
     function testManagerRegistersIssuer() public {
         bytes32 metadataHash = keccak256("synthetic metadata");
         vm.expectEmit(true, true, true, true, address(registry));

@@ -12,4 +12,3 @@ interface IIssuerRegistry {
     function issuerStatus(bytes32 issuerId) external view returns (IssuerStatus);
     function issuerAccount(bytes32 issuerId) external view returns (address);
 }
-

@@ -116,4 +116,3 @@ contract IssuerKeyRegistry is AccessControl, Pausable {
         }
     }
 }
-
