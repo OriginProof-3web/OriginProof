@@ -1,0 +1,51 @@
+name: Quality Gate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - "bootstrap/**"
+      - "feat/**"
+      - "fix/**"
+
+permissions:
+  contents: read
+
+jobs:
+  python-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.8.17"
+          python-version: "3.13"
+      - name: Synchronize locked dependencies
+        run: uv sync --all-packages --all-groups --locked
+      - name: Validate repository structure
+        run: uv run python scripts/ci/validate_structure.py
+      - name: Verify generated schemas are current
+        run: |
+          uv run python scripts/generate_schemas.py
+          git diff --exit-code -- packages/schemas/generated
+      - name: Run Python tests and lint
+        run: |
+          uv run pytest
+          uv run ruff check apps packages services scripts
+          uv run python -m compileall -q apps packages services scripts
+
+  contracts:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/contracts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: foundry-rs/foundry-toolchain@v1
+      - name: Install locked Foundry dependencies
+        run: |
+          forge install OpenZeppelin/openzeppelin-contracts@v5.7.0 \
+            foundry-rs/forge-std@v1.16.2
+      - name: Run Foundry tests
+        run: forge test

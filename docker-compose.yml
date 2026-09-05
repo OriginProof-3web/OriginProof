@@ -1,0 +1,58 @@
+services:
+  postgres:
+    image: postgres:16.4-alpine
+    environment:
+      POSTGRES_DB: originproof
+      POSTGRES_USER: originproof
+      POSTGRES_PASSWORD: originproof
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U originproof -d originproof"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7.4.1-alpine
+    command: redis-server --save '' --appendonly no
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  anvil:
+    image: trufflesuite/ganache:v7.9.2
+    command: --server.host 0.0.0.0 --server.port 8545 --chain.chainId 31337 --wallet.deterministic
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8545 >/dev/null 2>&1 || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+    env_file: .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      anvil:
+        condition: service_started
+
+  analyzer:
+    build:
+      context: .
+      dockerfile: infra/docker/analyzer.Dockerfile
+    env_file: .env
+    ports:
+      - "8001:8001"
+
+volumes:
+  postgres-data:

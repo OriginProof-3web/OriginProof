@@ -1,0 +1,12 @@
+FROM ghcr.io/astral-sh/uv:0.8.17-python3.13-bookworm
+
+WORKDIR /workspace
+COPY pyproject.toml uv.lock ./
+COPY packages/python/pyproject.toml packages/python/pyproject.toml
+COPY apps/api/pyproject.toml apps/api/pyproject.toml
+COPY services/analyzer/pyproject.toml services/analyzer/pyproject.toml
+COPY packages/python packages/python
+COPY services/analyzer services/analyzer
+RUN uv sync --frozen --no-dev --package originproof-analyzer
+
+CMD ["uv", "run", "--package", "originproof-analyzer", "uvicorn", "originproof_analyzer.main:app", "--host", "0.0.0.0", "--port", "8001"]
