@@ -1,20 +1,23 @@
+import re
+from contextlib import asynccontextmanager
 from datetime import datetime
+from uuid import uuid4
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, Response
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from originproof_core import (
     BlockchainReader,
     DependencyUnavailableError,
-    ProofRepository,
     VerificationRequest,
     VerificationResult,
     VerificationService,
 )
 from originproof_core.ports import IssuerRecord, KeyRecord
 
-
-class UnavailableProofRepository(ProofRepository):
-    async def get_proof(self, proof_id: str):
-        raise DependencyUnavailableError("signed-proof repository is not configured")
+from .database import Database
+from .repositories import SqlAlchemyProofRepository
+from .settings import Settings
 
 
 class UnavailableBlockchainReader(BlockchainReader):
@@ -28,11 +31,39 @@ class UnavailableBlockchainReader(BlockchainReader):
         raise DependencyUnavailableError("blockchain reader is not configured")
 
 
-def create_app(verification_service: VerificationService | None = None) -> FastAPI:
-    app = FastAPI(title="OriginProof API", version="0.1.0")
+def _request_id(request: Request) -> str:
+    supplied = request.headers.get("X-Request-ID")
+    if supplied is not None and re.fullmatch(r"req_[A-Za-z0-9_-]+", supplied):
+        return supplied
+    return f"req_{uuid4().hex}"
+
+
+def create_app(
+    verification_service: VerificationService | None = None,
+    database: Database | None = None,
+) -> FastAPI:
+    app_database = database or Database(Settings().database_url)
+
+    @asynccontextmanager
+    async def lifespan(_: FastAPI):
+        yield
+        await app_database.dispose()
+
+    app = FastAPI(title="OriginProof API", version="0.1.0", lifespan=lifespan)
+    app.state.database = app_database
     app.state.verification_service = verification_service or VerificationService(
-        UnavailableProofRepository(), UnavailableBlockchainReader()
+        SqlAlchemyProofRepository(app_database.session_factory),
+        UnavailableBlockchainReader(),
     )
+
+    @app.exception_handler(RequestValidationError)
+    async def invalid_request(request: Request, _: RequestValidationError) -> JSONResponse:
+        request_id = _request_id(request)
+        return JSONResponse(
+            status_code=422,
+            content={"error": "MALFORMED_INPUT", "request_id": request_id},
+            headers={"X-Request-ID": request_id},
+        )
 
     @app.get("/health/live", tags=["health"])
     async def live() -> dict[str, str]:
@@ -40,6 +71,7 @@ def create_app(verification_service: VerificationService | None = None) -> FastA
 
     @app.get("/health/ready", tags=["health"])
     async def ready() -> dict[str, str]:
+        await app.state.database.ping()
         return {"status": "ready"}
 
     @app.post(
@@ -47,7 +79,10 @@ def create_app(verification_service: VerificationService | None = None) -> FastA
         response_model=VerificationResult,
         tags=["verification"],
     )
-    async def verify_card_payment_notice(request: VerificationRequest) -> VerificationResult:
+    async def verify_card_payment_notice(
+        request: VerificationRequest, response: Response
+    ) -> VerificationResult:
+        response.headers["X-Request-ID"] = request.request_id
         return await app.state.verification_service.verify(request)
 
     return app

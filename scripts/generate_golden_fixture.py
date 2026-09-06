@@ -25,7 +25,7 @@ def main() -> None:
     envelope = SignedProofEnvelope(
         proof_id="prf_demo_001",
         issuer_id="iss_origin_mock_bank",
-        key_id="key_origin_mock_bank_1",
+        key_id="key_origin_mock_bank_001",
         chain_id=31337,
         app_domain="originproof.mvp",
         payload=payload,

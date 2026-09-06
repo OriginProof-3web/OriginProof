@@ -37,7 +37,7 @@ class InMemoryBlockchainReader:
             status=IssuerTrustStatus.ACTIVE,
         )
         self.key = KeyRecord(
-            key_id="key_origin_mock_bank_1",
+            key_id="key_origin_mock_bank_001",
             issuer_id=self.issuer.issuer_id,
             signer=signer,
             status=KeyTrustStatus.ACTIVE,
@@ -69,7 +69,7 @@ def signed_envelope() -> tuple[SignedProofEnvelope, str]:
     unsigned = SignedProofEnvelope(
         proof_id="prf_demo_001",
         issuer_id="iss_origin_mock_bank",
-        key_id="key_origin_mock_bank_1",
+        key_id="key_origin_mock_bank_001",
         chain_id=31337,
         app_domain="originproof.mvp",
         payload=payload,

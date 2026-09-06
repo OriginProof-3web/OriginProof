@@ -2,7 +2,8 @@ SHELL := /bin/sh
 
 .DEFAULT_GOAL := help
 
-.PHONY: help bootstrap bootstrap-check env-check env-fingerprint mvp-up stop reset seed demo-reset \
+
+.PHONY: help bootstrap bootstrap-check env-check env-fingerprint mvp-up stop reset db-upgrade seed db-smoke demo-reset \
 	test test-api test-analyzer test-contracts test-integration mvp-test lint typecheck build smoke generate security
 
 help:
@@ -32,8 +33,14 @@ stop:
 reset:
 	docker compose down --volumes --remove-orphans
 
-seed:
-	uv run python scripts/fixtures/seed.py
+db-upgrade:
+	docker compose exec -T api uv run --package originproof-api alembic -c apps/api/alembic.ini upgrade head
+
+seed: db-upgrade
+	SEED_DATABASE_URL=postgresql+asyncpg://originproof:originproof@127.0.0.1:5432/originproof uv run --package originproof-api python scripts/fixtures/seed.py
+
+db-smoke: seed
+	SEED_DATABASE_URL=postgresql+asyncpg://originproof:originproof@127.0.0.1:5432/originproof uv run --package originproof-api python scripts/ci/proof_storage_smoke.py
 
 demo-reset: reset mvp-up seed
 
@@ -55,7 +62,7 @@ test-integration:
 mvp-test: test-api test-analyzer test-contracts test-integration
 
 lint:
-	uv run ruff check apps packages services scripts
+	uv run ruff check apps packages/python services scripts
 
 typecheck:
 	uv run python -m compileall -q apps packages services scripts
