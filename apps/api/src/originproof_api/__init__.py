@@ -1,0 +1,1 @@
+"""OriginProof FastAPI service."""

@@ -1,0 +1,28 @@
+[project]
+name = "originproof-workspace"
+version = "0.1.0"
+description = "OriginProof two-day MVP workspace"
+requires-python = ">=3.13,<3.14"
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "httpx>=0.28,<0.29",
+  "pytest>=8.3,<9",
+  "pytest-asyncio>=0.25,<0.26",
+  "ruff>=0.9,<0.10",
+]
+
+[tool.uv.workspace]
+members = ["apps/api", "services/analyzer", "packages/python"]
+
+[tool.pytest.ini_options]
+testpaths = ["apps/api/tests", "packages/python/tests", "services/analyzer/tests"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]

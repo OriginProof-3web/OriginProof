@@ -79,7 +79,7 @@ VERIFIED 또는 TAMPERED
 
 | 역할 | 담당 | Branch | 핵심 책임 |
 |----|----|----|----|
-| M1 | Backend / MVP Integration | `mvp/backend` | API, Verification, 공통 Core, 최종 통합 |
+| M1 | Backend / Integration Support | `mvp/backend` | API, Verification, 공통 Core, 통합 지원 |
 | M2 | AI | `mvp/ai` | LLM Adapter, Prompt, 입력 구조화 |
 | M3 | Blockchain Core | `mvp/chain-core` | Registry Smart Contract |
 | M4 | Blockchain Integration | `mvp/chain-integration` | Deploy, ABI, Chain Adapter, Indexer |
@@ -95,7 +95,7 @@ Frontend는 MVP 이후 전체 프로젝트 단계에서 다시 역할을 분리�
 
 ```bash
 git rev-parse HEAD
-python scripts/ci/validate_structure.py
+uv run python scripts/ci/validate_structure.py
 make env-check
 make mvp-up
 make seed
@@ -141,7 +141,7 @@ mvp/chain-core
 mvp/chain-integration
 ```
 
-통합 Branch: `mvp/integration` (M1이 관리, 다른 담당자는 직접 Push하지 않음)
+통합 Branch: `mvp/integration` (김형준님이 관리, 다른 담당자는 직접 Push하지 않음)
 
 MVP 이후 일반 개발:
 
@@ -308,7 +308,7 @@ Commit: abc1234
 9. Demo Smoke
 ```
 
-통합 Branch: `mvp/integration` (M1이 관리). **한 번에 하나의 PR만 Merge**한다. 각 Merge 직후 `make mvp-test`를 실행한다.
+통합 Branch: `mvp/integration` (김형준님이 관리). **한 번에 하나의 PR만 Merge**한다. 각 Merge 직후 `make mvp-test`를 실행한다.
 
 ---
 
@@ -350,7 +350,7 @@ Reason: AMOUNT_MISMATCH
 ## 12. 전체 MVP 검증 명령
 
 ```
-python scripts/ci/validate_structure.py
+uv run python scripts/ci/validate_structure.py
 make bootstrap-check
 make mvp-up
 make demo-reset
@@ -457,18 +457,18 @@ Proof Payload 전체를 Blockchain에 저장
 
 | 역할 | 핵심 키워드 |
 |----|----|
-| M1 | Backend, Verification, Common Core, MVP Integration |
+| M1 | Backend, Verification, Common Core, Integration Support |
 | M2 | AI, LLM Adapter, Prompt, Field Extraction, Fixture |
 | M3 | Blockchain Core, Issuer Registry, Key Registry, Foundry Test |
 | M4 | Blockchain Integration, Deploy, ABI, Chain Reader, Indexer |
 
 ---
 
-## 19. M1 — Backend / MVP Integration
+## 19. M1 — Backend / Integration Support
 
 ### 역할
 
-M1은 MVP의 Backend 구현과 최종 통합을 담당한다. 최종 진위 판정은 Backend Verification Core에서 이루어진다. **AI 결과만으로 판정하지 않는다.**
+M1은 MVP의 Backend 구현과 공유 계약을 담당하고 통합을 지원한다. `mvp/integration`의 최종 병합은 김형준님(`@kimhyounjun`)이 담당한다. 최종 진위 판정은 Backend Verification Core에서 이루어진다. **AI 결과만으로 판정하지 않는다.**
 
 전체 흐름을 최종적으로 연결한다:
 
@@ -480,7 +480,7 @@ M1은 MVP의 Backend 구현과 최종 통합을 담당한다. 최종 진위 판�
 ### Branch
 
 - 작업 Branch: `mvp/backend`
-- 통합 Branch: `mvp/integration` (M1이 관리)
+- 통합 Branch: `mvp/integration` (김형준님이 관리)
 
 ### 담당 경로
 

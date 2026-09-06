@@ -1,0 +1,15 @@
+[project]
+name = "originproof-core"
+version = "0.1.0"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+  "pycryptodome>=3.21,<4",
+  "pydantic>=2.10,<3",
+]
+
+[build-system]
+requires = ["setuptools>=75"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["originproof_core"]

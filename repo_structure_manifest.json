@@ -1,0 +1,53 @@
+{
+  "version": "mvp-v1",
+  "required_top_level": [
+    "apps",
+    "services",
+    "packages",
+    "fixtures",
+    "infra",
+    "scripts",
+    "docs",
+    ".github"
+  ],
+  "required_agent_files": [
+    "START_HERE.md",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "apps/api/AGENTS.md",
+    "apps/api/CLAUDE.md",
+    "apps/web/AGENTS.md",
+    "apps/web/CLAUDE.md",
+    "services/analyzer/AGENTS.md",
+    "services/analyzer/CLAUDE.md",
+    "services/indexer/AGENTS.md",
+    "services/indexer/CLAUDE.md",
+    "packages/contracts/AGENTS.md",
+    "packages/contracts/CLAUDE.md",
+    "packages/python/AGENTS.md",
+    "packages/python/CLAUDE.md",
+    "packages/schemas/AGENTS.md",
+    "packages/schemas/CLAUDE.md",
+    "fixtures/AGENTS.md",
+    "fixtures/CLAUDE.md",
+    "infra/AGENTS.md",
+    "infra/CLAUDE.md",
+    "docs/AGENTS.md",
+    "docs/CLAUDE.md",
+    ".github/AGENTS.md",
+    "prompts/00_bootstrap_integrator.md",
+    "prompts/01_mvp_backend.md",
+    "prompts/02_mvp_ai.md",
+    "prompts/03_mvp_chain_core.md",
+    "prompts/04_mvp_chain_integration.md",
+    "prompts/90_cross_review.md",
+    "scripts/ci/environment_fingerprint.py"
+  ],
+  "mvp_branches": [
+    "mvp/backend",
+    "mvp/ai",
+    "mvp/chain-core",
+    "mvp/chain-integration",
+    "mvp/integration"
+  ]
+}

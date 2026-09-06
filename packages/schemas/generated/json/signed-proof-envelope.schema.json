@@ -1,0 +1,173 @@
+{
+  "$defs": {
+    "CardPaymentNotice": {
+      "additionalProperties": false,
+      "properties": {
+        "amount_minor": {
+          "exclusiveMinimum": 0,
+          "title": "Amount Minor",
+          "type": "integer"
+        },
+        "approved_at": {
+          "format": "date-time",
+          "title": "Approved At",
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "issuer_name": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Issuer Name",
+          "type": "string"
+        },
+        "masked_card": {
+          "pattern": "^\\d{4}$",
+          "title": "Masked Card",
+          "type": "string"
+        },
+        "merchant": {
+          "maxLength": 160,
+          "minLength": 1,
+          "title": "Merchant",
+          "type": "string"
+        },
+        "transaction_id": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Transaction Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "issuer_name",
+        "masked_card",
+        "amount_minor",
+        "currency",
+        "merchant",
+        "approved_at",
+        "transaction_id"
+      ],
+      "title": "CardPaymentNotice",
+      "type": "object"
+    },
+    "ProofType": {
+      "enum": [
+        "CARD_PAYMENT_NOTICE"
+      ],
+      "title": "ProofType",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "expires_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Expires At"
+    },
+    "issued_at": {
+      "format": "date-time",
+      "title": "Issued At",
+      "type": "string"
+    },
+    "issuer_id": {
+      "pattern": "^iss_[A-Za-z0-9_-]+$",
+      "title": "Issuer Id",
+      "type": "string"
+    },
+    "key_id": {
+      "pattern": "^key_[A-Za-z0-9_-]+$",
+      "title": "Key Id",
+      "type": "string"
+    },
+    "metadata_hash": {
+      "anyOf": [
+        {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Metadata Hash"
+    },
+    "nonce": {
+      "maxLength": 256,
+      "minLength": 16,
+      "title": "Nonce",
+      "type": "string"
+    },
+    "payload": {
+      "$ref": "#/$defs/CardPaymentNotice"
+    },
+    "payload_hash": {
+      "pattern": "^0x[0-9a-f]{64}$",
+      "title": "Payload Hash",
+      "type": "string"
+    },
+    "proof_id": {
+      "pattern": "^prf_[A-Za-z0-9_-]+$",
+      "title": "Proof Id",
+      "type": "string"
+    },
+    "proof_type": {
+      "$ref": "#/$defs/ProofType",
+      "default": "CARD_PAYMENT_NOTICE"
+    },
+    "schema_version": {
+      "default": "1.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "signature": {
+      "pattern": "^0x[0-9a-f]+$",
+      "title": "Signature",
+      "type": "string"
+    },
+    "single_use": {
+      "default": true,
+      "title": "Single Use",
+      "type": "boolean"
+    },
+    "subject_binding_hash": {
+      "anyOf": [
+        {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Subject Binding Hash"
+    }
+  },
+  "required": [
+    "proof_id",
+    "issuer_id",
+    "key_id",
+    "payload",
+    "payload_hash",
+    "issued_at",
+    "nonce",
+    "signature"
+  ],
+  "title": "SignedProofEnvelope",
+  "type": "object"
+}
