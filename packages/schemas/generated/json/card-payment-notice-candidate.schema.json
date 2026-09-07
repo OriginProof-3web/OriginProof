@@ -103,6 +103,18 @@
       ],
       "default": null,
       "title": "Proof Id"
+    },
+    "transaction_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Transaction Id"
     }
   },
   "required": [

@@ -99,6 +99,7 @@ uv run python scripts/ci/validate_structure.py
 make env-check
 make mvp-up
 make seed
+make db-smoke
 make smoke
 make env-fingerprint
 ```

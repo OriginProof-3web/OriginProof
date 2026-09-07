@@ -17,6 +17,8 @@
         "INVALID_SIGNATURE",
         "PAYLOAD_HASH_MISMATCH",
         "AMOUNT_MISMATCH",
+        "FIELD_MISMATCH",
+        "PROOF_EXPIRED",
         "PROOF_NOT_FOUND",
         "ISSUER_NOT_FOUND",
         "SCHEMA_UNSUPPORTED",
