@@ -29,11 +29,14 @@ Successful responses are typed `VerificationResult` objects and include `verific
 `lifecycle_status`, `reason_codes`, `checks`, `verified_at`, and `request_id`. The API echoes the
 valid request ID in `X-Request-ID`.
 
-At the current integration point PostgreSQL lookup is live, while the production `BlockchainReader`
-is intentionally unavailable until M4 supplies the Web3 adapter. Therefore the HTTP endpoint returns
-`INCONCLUSIVE` with `DEPENDENCY_UNAVAILABLE` after a stored Proof is found. The repeatable
-`make db-smoke` command supplies a test-only trusted chain adapter and verifies the final MVP paths:
-the exact candidate is `VERIFIED`, while an altered amount is `TAMPERED` with `AMOUNT_MISMATCH`.
+At `mvp/integration@a1a671b`, PostgreSQL lookup and M4's runtime `BlockchainReader` are both live.
+`make demo-reset` starts the fixed local Anvil chain, creates the deployment manifest, reloads the API,
+and verifies the final MVP paths through the public HTTP endpoint: the exact candidate is `VERIFIED`
+with `ACTIVE`, while an altered amount is `TAMPERED` with `AMOUNT_MISMATCH`.
+
+If the manifest, RPC, or chain response is unavailable, the endpoint remains fail-closed and returns
+`INCONCLUSIVE` with `DEPENDENCY_UNAVAILABLE`; it does not convert an infrastructure failure into a
+successful verification.
 
 Malformed requests return only the safe form below; validation details and submitted values are not
 echoed.
