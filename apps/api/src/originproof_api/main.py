@@ -6,6 +6,7 @@ from uuid import uuid4
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from infrastructure.blockchain import JsonRpcBlockchainReader
 from originproof_core import (
     BlockchainReader,
     DependencyUnavailableError,
@@ -31,6 +32,20 @@ class UnavailableBlockchainReader(BlockchainReader):
         raise DependencyUnavailableError("blockchain reader is not configured")
 
 
+def configured_blockchain_reader(settings: Settings) -> BlockchainReader:
+    if not settings.blockchain_rpc_url or not settings.blockchain_manifest_path:
+        return UnavailableBlockchainReader()
+    try:
+        return JsonRpcBlockchainReader(
+            settings.blockchain_rpc_url,
+            settings.blockchain_manifest_path,
+            issuer_ids=[settings.blockchain_issuer_id],
+            expected_chain_id=settings.blockchain_chain_id,
+        )
+    except DependencyUnavailableError:
+        return UnavailableBlockchainReader()
+
+
 def _request_id(request: Request) -> str:
     supplied = request.headers.get("X-Request-ID")
     if supplied is not None and re.fullmatch(r"req_[A-Za-z0-9_-]+", supplied):
@@ -41,8 +56,10 @@ def _request_id(request: Request) -> str:
 def create_app(
     verification_service: VerificationService | None = None,
     database: Database | None = None,
+    settings: Settings | None = None,
 ) -> FastAPI:
-    app_database = database or Database(Settings().database_url)
+    app_settings = settings or Settings()
+    app_database = database or Database(app_settings.database_url)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
@@ -53,7 +70,7 @@ def create_app(
     app.state.database = app_database
     app.state.verification_service = verification_service or VerificationService(
         SqlAlchemyProofRepository(app_database.session_factory),
-        UnavailableBlockchainReader(),
+        configured_blockchain_reader(app_settings),
     )
 
     @app.exception_handler(RequestValidationError)

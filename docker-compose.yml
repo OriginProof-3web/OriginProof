@@ -32,6 +32,8 @@ services:
       interval: 5s
       timeout: 3s
       retries: 20
+    ports:
+      - "127.0.0.1:8545:8545"
 
   api:
     build:
@@ -47,6 +49,8 @@ services:
         condition: service_healthy
       anvil:
         condition: service_started
+    volumes:
+      - ./packages/contracts/deployments:/app/packages/contracts/deployments:ro
 
   analyzer:
     build:
