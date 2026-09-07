@@ -61,8 +61,10 @@ Proof 저장소는 테스트 대역이며 PostgreSQL·Docker 전체 E2E 테스�
 
 이벤트는 `(chain_id, block_number, log_index)`로 중복을 방지합니다. 재시작 시 checkpoint를 읽고,
 충돌 시 자동 덮어쓰지 않습니다. 호출자가 안전한 공통 조상을 확인한 뒤 명시적으로 rewind해야 합니다.
-현재 구현은 저장 모듈이며 자동 로그 수집 worker는 아닙니다. 저장 후 checkpoint를 전진시키는
-순서는 호출자가 지켜야 합니다. DB 동작은 SQLite 파일로 검증했고 PostgreSQL 실환경 검증은 남았습니다.
+현재 구현은 저장 모듈이며 자동 로그 수집 worker는 포함하지 않습니다. MVP에서는 Reader가 체인의
+권위 상태를 직접 조회하므로, projection은 이벤트 중복·재시작 안전성을 검증하는 보조 저장 경로입니다.
+저장 후 checkpoint를 전진시키는 순서는 호출자가 지켜야 합니다. 별도 worker와 PostgreSQL 기반
+projection 운영은 MVP 이후 확장 범위입니다.
 
 ## 날짜별 업데이트
 
@@ -70,7 +72,13 @@ Proof 저장소는 테스트 대역이며 PostgreSQL·Docker 전체 E2E 테스�
 
 - M1 문자열 포트에 맞춘 Reader, 로컬 배포·ABI 추출, 이벤트 저장 모듈을 추가했습니다.
 - live 포함 M4 테스트 33개 통과: 정상·변조·중지·폐기·장애와 재시작·reorg 복구를 확인했습니다.
-- M1 기본 앱 연결과 `demo-reset`은 아직 변경하지 않았습니다.
+- 이 시점에는 M1 기본 앱 연결과 `demo-reset`을 아직 변경하지 않았습니다.
 - [날짜별 상세 기록](updates/2026-09-07.md) · [M1 연결 handoff](../handoffs/m4_chain_ready_2026-09-07.md).
+
+### 2026-09-08 — MVP 통합 완료
+
+- M1 runtime Reader 연결, seed → 배포 순서, `demo-reset` 및 HTTP E2E가 완료되었습니다.
+- 고정 Foundry `v1.4.4` Anvil/deployer 컨테이너로 호스트 Foundry 없이 재현합니다.
+- `mvp/integration@a1a671b`에서 두 독립 개발환경의 `make demo-reset`, `make mvp-test`가 통과했습니다.
 
 후속 변경은 새 날짜 제목 아래 변경 이유·실행한 검사·남은 작업을 누적합니다.

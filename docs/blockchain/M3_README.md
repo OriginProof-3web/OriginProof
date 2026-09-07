@@ -15,7 +15,8 @@
 
 ## 검증
 
-저장소 루트에서 Foundry가 PATH에 있는 상태로 실행합니다.
+저장소 루트에서 다음 명령을 실행합니다. 이 명령은 고정 Foundry 컨테이너를 사용하므로
+MVP 재현에는 호스트 Foundry 설치가 필요하지 않습니다.
 
 ```bash
 make test-contracts
@@ -35,3 +36,9 @@ make test-contracts
 - 자세한 결과: [2026-09-07 작업 기록](updates/2026-09-07.md).
 
 다음 작업은 해당 날짜 제목 아래 변경 내용·검증 결과·남은 작업을 추가합니다.
+
+### 2026-09-08 — MVP 통합 완료
+
+- M3 계약은 M4 배포·Reader와 M1 검증 API에 연결되었습니다.
+- `mvp/integration@a1a671b`에서 계약 테스트 10개와 전체 `make mvp-test`가 통과했습니다.
+- 두 독립 개발환경에서 `make demo-reset`과 `make mvp-test` 재현을 확인했습니다.
