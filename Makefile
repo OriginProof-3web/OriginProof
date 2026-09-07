@@ -7,7 +7,8 @@ WORKSPACE_PYTHONPATH := apps/api/src:packages/python:services/analyzer/src
 .DEFAULT_GOAL := help
 
 
-.PHONY: help bootstrap bootstrap-check env-check env-fingerprint mvp-up stop reset db-upgrade seed db-smoke demo-reset \
+
+.PHONY: help bootstrap bootstrap-check env-check env-fingerprint mvp-up stop reset db-upgrade seed deploy-local api-reload mvp-e2e db-smoke demo-reset \
 	test test-api test-analyzer test-contracts test-integration mvp-test lint typecheck build smoke generate security
 
 help:
@@ -43,10 +44,21 @@ db-upgrade:
 seed: db-upgrade
 	SEED_DATABASE_URL=postgresql+asyncpg://originproof:originproof@127.0.0.1:5432/originproof PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run --package originproof-api python scripts/fixtures/seed.py
 
+deploy-local: seed
+	@OP_SIGNER=$$($(UV) run --package originproof-api python -c "import json; print(json.load(open('build/seed_manifest.json'))['signer'])"); \
+	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run --package originproof-api python packages/contracts/script/deploy_local.py --rpc-url http://127.0.0.1:8545 --signer "$$OP_SIGNER"
+
+api-reload:
+	$(COMPOSE) up --detach --force-recreate api
+
+mvp-e2e: mvp-up deploy-local api-reload
+	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run --package originproof-api python scripts/ci/mvp_http_e2e.py
+	$(MAKE) smoke
+
 db-smoke: seed
 	SEED_DATABASE_URL=postgresql+asyncpg://originproof:originproof@127.0.0.1:5432/originproof PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run --package originproof-api python scripts/ci/proof_storage_smoke.py
 
-demo-reset: reset mvp-up seed
+demo-reset: reset mvp-e2e
 
 test:
 	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run pytest
