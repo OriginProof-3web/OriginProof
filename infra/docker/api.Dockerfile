@@ -7,7 +7,6 @@ COPY apps/api/pyproject.toml apps/api/pyproject.toml
 COPY services/analyzer/pyproject.toml services/analyzer/pyproject.toml
 COPY packages/python packages/python
 COPY apps/api apps/api
-COPY apps/web apps/web
 RUN uv sync --frozen --no-dev --package originproof-api
 
 CMD ["uv", "run", "--package", "originproof-api", "uvicorn", "originproof_api.main:app", "--host", "0.0.0.0", "--port", "8000"]
