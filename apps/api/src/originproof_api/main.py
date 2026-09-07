@@ -1,11 +1,12 @@
 import re
 from contextlib import asynccontextmanager
 from datetime import datetime
+from pathlib import Path
 from uuid import uuid4
 
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from originproof_core import (
     BlockchainReader,
     DependencyUnavailableError,
@@ -18,6 +19,9 @@ from originproof_core.ports import IssuerRecord, KeyRecord
 from .database import Database
 from .repositories import SqlAlchemyProofRepository
 from .settings import Settings
+
+ROOT_DIR = Path(__file__).resolve().parents[4]
+WEB_DIR = ROOT_DIR / "apps" / "web"
 
 
 class UnavailableBlockchainReader(BlockchainReader):
@@ -73,6 +77,10 @@ def create_app(
     async def ready() -> dict[str, str]:
         await app.state.database.ping()
         return {"status": "ready"}
+
+    @app.get("/test", include_in_schema=False)
+    async def test_page() -> FileResponse:
+        return FileResponse(WEB_DIR / "test.html")
 
     @app.post(
         "/v1/mvp/card-notices/verify",

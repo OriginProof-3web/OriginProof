@@ -1,0 +1,726 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>OriginProof MVP Test</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #172033;
+        --muted: #626c7c;
+        --line: #d8dee8;
+        --paper: #ffffff;
+        --page: #f4f6f9;
+        --blue: #155eef;
+        --green: #087443;
+        --amber: #a15c00;
+        --red: #b42318;
+        --violet: #6840c6;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--page);
+        color: var(--ink);
+        font-family:
+          ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .shell {
+        width: min(1180px, calc(100% - 28px));
+        margin: 0 auto;
+        padding: 28px 0;
+      }
+
+      .topbar,
+      .grid,
+      .split {
+        display: grid;
+        gap: 16px;
+      }
+
+      .topbar {
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: end;
+        margin-bottom: 18px;
+      }
+
+      .grid {
+        grid-template-columns: minmax(320px, 0.82fr) minmax(0, 1.18fr);
+        align-items: start;
+      }
+
+      .split {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        margin-bottom: 8px;
+        font-size: 30px;
+        line-height: 1.15;
+        letter-spacing: 0;
+      }
+
+      h2 {
+        margin-bottom: 0;
+        font-size: 18px;
+      }
+
+      h3 {
+        margin: 18px 0 10px;
+        font-size: 14px;
+      }
+
+      .subcopy {
+        max-width: 760px;
+        margin-bottom: 0;
+        color: var(--muted);
+        line-height: 1.55;
+      }
+
+      .panel {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--paper);
+        padding: 18px;
+      }
+
+      .panel + .panel {
+        margin-top: 16px;
+      }
+
+      .panel-header {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 14px;
+      }
+
+      label {
+        display: grid;
+        gap: 7px;
+        margin-bottom: 13px;
+        color: #303846;
+        font-size: 13px;
+        font-weight: 760;
+      }
+
+      input,
+      select,
+      textarea {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: white;
+        color: var(--ink);
+        font: inherit;
+      }
+
+      input,
+      select {
+        min-height: 42px;
+        padding: 9px 11px;
+      }
+
+      textarea {
+        min-height: 260px;
+        padding: 11px 12px;
+        resize: vertical;
+        line-height: 1.5;
+      }
+
+      button {
+        min-height: 38px;
+        border: 0;
+        border-radius: 6px;
+        padding: 9px 12px;
+        cursor: pointer;
+        font: inherit;
+        font-weight: 800;
+      }
+
+      .primary {
+        background: var(--blue);
+        color: white;
+      }
+
+      .secondary {
+        border: 1px solid var(--line);
+        background: white;
+        color: var(--ink);
+      }
+
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .row button {
+        flex: 1 1 120px;
+      }
+
+      .case-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .case-button {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px;
+        align-items: center;
+        border: 1px solid var(--line);
+        background: white;
+        color: var(--ink);
+        text-align: left;
+      }
+
+      .case-button.active {
+        border-color: var(--blue);
+        box-shadow: inset 0 0 0 1px var(--blue);
+      }
+
+      .case-button span {
+        overflow-wrap: anywhere;
+      }
+
+      .tag {
+        border-radius: 999px;
+        padding: 5px 8px;
+        background: #eef4ff;
+        color: var(--blue);
+        font-size: 11px;
+        font-weight: 900;
+        white-space: nowrap;
+      }
+
+      .status {
+        display: inline-flex;
+        min-width: 150px;
+        min-height: 44px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        background: #4b5563;
+        color: white;
+        font-size: 16px;
+        font-weight: 900;
+      }
+
+      .status.verified,
+      .status.all-passed,
+      .status.ok {
+        background: var(--green);
+      }
+
+      .status.tampered,
+      .status.error,
+      .status.check-failed {
+        background: var(--red);
+      }
+
+      .status.not-registered,
+      .status.inconclusive {
+        background: var(--amber);
+      }
+
+      .status.running,
+      .status.checking {
+        background: var(--violet);
+      }
+
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+
+      .meta span,
+      .reason {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 6px 9px;
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 800;
+      }
+
+      pre {
+        min-height: 190px;
+        max-height: 390px;
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #101828;
+        color: #e5e7eb;
+        padding: 13px;
+        font-size: 12px;
+        line-height: 1.5;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid var(--line);
+        padding: 9px 8px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .pass {
+        color: var(--green);
+        font-weight: 850;
+      }
+
+      .fail {
+        color: var(--red);
+        font-weight: 850;
+      }
+
+      .muted {
+        color: var(--muted);
+      }
+
+      @media (max-width: 860px) {
+        .topbar,
+        .grid,
+        .split {
+          grid-template-columns: 1fr;
+        }
+
+        .topbar {
+          align-items: start;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <h1>OriginProof 테스트 페이지</h1>
+          <p class="subcopy">
+            현재 MVP API 계약에 맞춘 요청을 보내고, 검증 상태와 reason code를 한 화면에서 확인합니다.
+          </p>
+        </div>
+        <button id="health-button" class="secondary" type="button">API 상태 확인</button>
+      </header>
+
+      <div class="grid">
+        <section>
+          <div class="panel">
+            <div class="panel-header">
+              <h2>테스트 입력</h2>
+              <button id="run-all-button" class="secondary" type="button">전체 실행</button>
+            </div>
+
+            <label>
+              API 주소
+              <input id="api-base" autocomplete="off" />
+            </label>
+
+            <label>
+              시나리오
+              <select id="scenario-select"></select>
+            </label>
+
+            <div id="case-list" class="case-list" aria-label="테스트 시나리오 목록"></div>
+
+            <h3>요청 JSON</h3>
+            <textarea id="request-editor" spellcheck="false"></textarea>
+
+            <div class="row">
+              <button id="run-button" class="primary" type="button">선택 케이스 실행</button>
+              <button id="copy-curl-button" class="secondary" type="button">요청 복사</button>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <div class="panel">
+            <div class="panel-header">
+              <h2>결과</h2>
+              <span id="status" class="status">READY</span>
+            </div>
+            <div class="meta">
+              <span id="lifecycle">Lifecycle: -</span>
+              <span id="duration">Time: -</span>
+              <span id="endpoint">Endpoint: -</span>
+            </div>
+            <div id="reasons" class="meta"></div>
+
+            <h3>Checks</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>항목</th>
+                  <th>결과</th>
+                </tr>
+              </thead>
+              <tbody id="checks-table">
+                <tr>
+                  <td colspan="2" class="muted">아직 실행된 결과가 없습니다.</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <h3>전체 실행 요약</h3>
+            <table>
+              <thead>
+                <tr>
+                  <th>시나리오</th>
+                  <th>예상</th>
+                  <th>실제</th>
+                </tr>
+              </thead>
+              <tbody id="batch-table">
+                <tr>
+                  <td colspan="3" class="muted">전체 실행 전입니다.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <h2>응답 JSON</h2>
+              <button id="clear-button" class="secondary" type="button">비우기</button>
+            </div>
+            <div class="split">
+              <pre id="request-json">{}</pre>
+              <pre id="response-json">{}</pre>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      const baseCandidate = {
+        issuer_name: "Origin Mock Bank",
+        masked_card: "1234",
+        amount_minor: 154000,
+        currency: "KRW",
+        merchant: "ORIGIN CAFE",
+        approved_at: "2026-09-03T03:14:00Z",
+        transaction_id: "txn_demo_001",
+        proof_id: "prf_demo_001",
+        confidence: 0.99,
+        missing_fields: [],
+      };
+
+      const scenarios = [
+        {
+          id: "registered-without-chain",
+          name: "등록 Proof, 체인 어댑터 미연결",
+          expected: "INCONCLUSIVE",
+          payload: request({ candidate: baseCandidate }),
+        },
+        {
+          id: "tampered-amount",
+          name: "금액 변조",
+          expected: "TAMPERED",
+          payload: request({
+            candidate: { ...baseCandidate, amount_minor: 1540000 },
+            request_id: "req_test_amount_tampered",
+          }),
+        },
+        {
+          id: "not-registered",
+          name: "등록되지 않은 Proof",
+          expected: "NOT_REGISTERED",
+          payload: request({
+            proof_id: "prf_missing_999",
+            candidate: { ...baseCandidate, proof_id: "prf_missing_999" },
+            request_id: "req_test_not_registered",
+          }),
+        },
+        {
+          id: "malformed",
+          name: "잘못된 요청 형식",
+          expected: "MALFORMED_INPUT",
+          payload: {
+            proof_id: "bad-id",
+            request_id: "req_test_malformed",
+            candidate: { confidence: 0.99 },
+          },
+        },
+      ];
+
+      const apiBaseInput = document.querySelector("#api-base");
+      const scenarioSelect = document.querySelector("#scenario-select");
+      const caseList = document.querySelector("#case-list");
+      const requestEditor = document.querySelector("#request-editor");
+      const runButton = document.querySelector("#run-button");
+      const runAllButton = document.querySelector("#run-all-button");
+      const healthButton = document.querySelector("#health-button");
+      const copyCurlButton = document.querySelector("#copy-curl-button");
+      const clearButton = document.querySelector("#clear-button");
+      const statusEl = document.querySelector("#status");
+      const lifecycleEl = document.querySelector("#lifecycle");
+      const durationEl = document.querySelector("#duration");
+      const endpointEl = document.querySelector("#endpoint");
+      const reasonsEl = document.querySelector("#reasons");
+      const checksTable = document.querySelector("#checks-table");
+      const batchTable = document.querySelector("#batch-table");
+      const requestJson = document.querySelector("#request-json");
+      const responseJson = document.querySelector("#response-json");
+
+      let activeScenarioId = scenarios[0].id;
+
+      apiBaseInput.value =
+        window.location.protocol.startsWith("http") && window.location.origin
+          ? window.location.origin
+          : "http://127.0.0.1:8000";
+
+      scenarios.forEach((scenario) => {
+        const option = document.createElement("option");
+        option.value = scenario.id;
+        option.textContent = `${scenario.name} (${scenario.expected})`;
+        scenarioSelect.append(option);
+
+        const button = document.createElement("button");
+        button.className = "case-button";
+        button.type = "button";
+        button.dataset.scenarioId = scenario.id;
+        button.innerHTML = `<span>${scenario.name}</span><span class="tag">${scenario.expected}</span>`;
+        button.addEventListener("click", () => selectScenario(scenario.id));
+        caseList.append(button);
+      });
+
+      scenarioSelect.addEventListener("change", () => selectScenario(scenarioSelect.value));
+      requestEditor.addEventListener("input", () => {
+        activeScenarioId = "";
+        document.querySelectorAll(".case-button").forEach((button) => {
+          button.classList.remove("active");
+        });
+      });
+      runButton.addEventListener("click", () => runCurrentRequest());
+      runAllButton.addEventListener("click", () => runAllScenarios());
+      healthButton.addEventListener("click", () => checkHealth());
+      clearButton.addEventListener("click", clearOutput);
+      copyCurlButton.addEventListener("click", copyCurl);
+
+      selectScenario(activeScenarioId);
+
+      function request(overrides = {}) {
+        return {
+          proof_id: "prf_demo_001",
+          candidate: baseCandidate,
+          request_id: "req_test_registered_without_chain",
+          ...overrides,
+        };
+      }
+
+      function selectScenario(id) {
+        const scenario = scenarios.find((item) => item.id === id) || scenarios[0];
+        activeScenarioId = scenario.id;
+        scenarioSelect.value = scenario.id;
+        requestEditor.value = JSON.stringify(scenario.payload, null, 2);
+
+        document.querySelectorAll(".case-button").forEach((button) => {
+          button.classList.toggle("active", button.dataset.scenarioId === scenario.id);
+        });
+      }
+
+      function apiBase() {
+        return apiBaseInput.value.trim().replace(/\/+$/, "");
+      }
+
+      function readPayload() {
+        return JSON.parse(requestEditor.value);
+      }
+
+      async function checkHealth() {
+        const endpoint = `${apiBase()}/health/live`;
+        const startedAt = performance.now();
+        setStatus("CHECKING");
+        endpointEl.textContent = `Endpoint: GET ${endpoint}`;
+        requestJson.textContent = "GET /health/live";
+
+        try {
+          const response = await fetch(endpoint);
+          const data = await response.json();
+          responseJson.textContent = JSON.stringify(data, null, 2);
+          durationEl.textContent = `Time: ${Math.round(performance.now() - startedAt)}ms`;
+          setStatus(response.ok ? "OK" : `HTTP ${response.status}`);
+        } catch (error) {
+          responseJson.textContent = JSON.stringify({ error: error.message }, null, 2);
+          setStatus("ERROR");
+        }
+      }
+
+      async function runCurrentRequest() {
+        let payload;
+        try {
+          payload = readPayload();
+        } catch (error) {
+          const data = { error: "INVALID_JSON", detail: error.message };
+          responseJson.textContent = JSON.stringify(data, null, 2);
+          setStatus("ERROR");
+          return { ok: false, data };
+        }
+        return runPayload(payload);
+      }
+
+      async function runPayload(payload) {
+        const endpoint = `${apiBase()}/v1/mvp/card-notices/verify`;
+        const startedAt = performance.now();
+        endpointEl.textContent = `Endpoint: POST ${endpoint}`;
+        requestJson.textContent = JSON.stringify(payload, null, 2);
+        setStatus("RUNNING");
+
+        try {
+          const response = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const data = await response.json();
+          responseJson.textContent = JSON.stringify(data, null, 2);
+          durationEl.textContent = `Time: ${Math.round(performance.now() - startedAt)}ms`;
+          renderResult(data);
+          return { ok: response.ok, data };
+        } catch (error) {
+          const data = { verification_status: "ERROR", reason_codes: ["REQUEST_FAILED"], detail: error.message };
+          responseJson.textContent = JSON.stringify(data, null, 2);
+          renderResult(data);
+          return { ok: false, data };
+        }
+      }
+
+      async function runAllScenarios() {
+        const results = [];
+        for (const scenario of scenarios) {
+          selectScenario(scenario.id);
+          const result = await runPayload(scenario.payload);
+          const actual = result.data.verification_status || result.data.error || `HTTP_ERROR`;
+          results.push({
+            scenario: scenario.name,
+            expected: scenario.expected,
+            actual,
+            passed: actual === scenario.expected,
+          });
+        }
+
+        batchTable.replaceChildren(
+          ...results.map((item) =>
+            tableRow([
+              item.scenario,
+              item.expected,
+              cell(item.actual, item.passed ? "pass" : "fail"),
+            ]),
+          ),
+        );
+        responseJson.textContent = JSON.stringify(results, null, 2);
+        setStatus(results.every((item) => item.passed) ? "ALL PASSED" : "CHECK FAILED");
+      }
+
+      function renderResult(data) {
+        const status = data.verification_status || data.error || "UNKNOWN";
+        setStatus(status);
+        lifecycleEl.textContent = `Lifecycle: ${data.lifecycle_status || "-"}`;
+
+        reasonsEl.replaceChildren(
+          ...(data.reason_codes || []).map((reasonCode) => {
+            const reason = document.createElement("span");
+            reason.className = "reason";
+            reason.textContent = reasonCode;
+            return reason;
+          }),
+        );
+
+        const checks = data.checks || {};
+        const checkRows = Object.entries(checks).map(([key, value]) => tableRow([key, value]));
+        checksTable.replaceChildren(
+          ...(checkRows.length ? checkRows : [messageRow("표시할 checks가 없습니다.", 2)]),
+        );
+      }
+
+      function tableRow(values) {
+        const tr = document.createElement("tr");
+        values.forEach((value) => {
+          const td = value instanceof HTMLElement ? value : document.createElement("td");
+          if (!(value instanceof HTMLElement)) {
+            td.textContent = value;
+          }
+          tr.append(td);
+        });
+        return tr;
+      }
+
+      function messageRow(message, colspan) {
+        const td = document.createElement("td");
+        td.colSpan = colspan;
+        td.className = "muted";
+        td.textContent = message;
+        const tr = document.createElement("tr");
+        tr.append(td);
+        return tr;
+      }
+
+      function cell(text, className) {
+        const td = document.createElement("td");
+        td.textContent = text;
+        td.className = className;
+        return td;
+      }
+
+      function setStatus(text) {
+        const className = String(text).toLowerCase().replaceAll("_", "-").replaceAll(" ", "-");
+        statusEl.textContent = text;
+        statusEl.className = `status ${className}`;
+      }
+
+      async function copyCurl() {
+        const endpoint = `${apiBase()}/v1/mvp/card-notices/verify`;
+        const payload = JSON.stringify(readPayload()).replaceAll("'", "'\\''");
+        const command = `curl -s -X POST '${endpoint}' -H 'Content-Type: application/json' -d '${payload}'`;
+        await navigator.clipboard.writeText(command);
+        copyCurlButton.textContent = "복사됨";
+        setTimeout(() => {
+          copyCurlButton.textContent = "요청 복사";
+        }, 1200);
+      }
+
+      function clearOutput() {
+        requestJson.textContent = "{}";
+        responseJson.textContent = "{}";
+        lifecycleEl.textContent = "Lifecycle: -";
+        durationEl.textContent = "Time: -";
+        endpointEl.textContent = "Endpoint: -";
+        reasonsEl.replaceChildren();
+        checksTable.replaceChildren(messageRow("아직 실행된 결과가 없습니다.", 2));
+        batchTable.replaceChildren(messageRow("전체 실행 전입니다.", 3));
+        setStatus("READY");
+      }
+    </script>
+  </body>
+</html>

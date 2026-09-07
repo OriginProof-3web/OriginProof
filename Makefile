@@ -1,4 +1,8 @@
 SHELL := /bin/sh
+COMPOSE := COMPOSE_PROJECT_NAME=originproof docker compose
+UV_ENV := .uv-venv
+UV := UV_PROJECT_ENVIRONMENT=$(UV_ENV) uv
+WORKSPACE_PYTHONPATH := apps/api/src:packages/python:services/analyzer/src
 
 .DEFAULT_GOAL := help
 
@@ -11,71 +15,71 @@ help:
 
 bootstrap:
 	@test -f .env || cp .env.example .env
-	uv sync --all-packages --all-groups
+	$(UV) sync --all-packages --all-groups
 	pnpm install --lockfile-only
 
 bootstrap-check:
-	uv run python scripts/ci/validate_structure.py
-	uv run python scripts/ci/env_check.py
+	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run python scripts/ci/validate_structure.py
+	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run python scripts/ci/env_check.py
 
 env-check:
-	uv run python scripts/ci/env_check.py
+	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run python scripts/ci/env_check.py
 
 env-fingerprint:
-	uv run python scripts/ci/environment_fingerprint.py
+	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run python scripts/ci/environment_fingerprint.py
 
 mvp-up:
-	docker compose up --build --detach postgres redis anvil api analyzer
+	$(COMPOSE) up --build --detach postgres redis anvil api analyzer
 
 stop:
-	docker compose stop
+	$(COMPOSE) stop
 
 reset:
-	docker compose down --volumes --remove-orphans
+	$(COMPOSE) down --volumes --remove-orphans
 
 db-upgrade:
-	docker compose exec -T api uv run --package originproof-api alembic -c apps/api/alembic.ini upgrade head
+	$(COMPOSE) exec -T api uv run --package originproof-api alembic -c apps/api/alembic.ini upgrade head
 
 seed: db-upgrade
-	SEED_DATABASE_URL=postgresql+asyncpg://originproof:originproof@127.0.0.1:5432/originproof uv run --package originproof-api python scripts/fixtures/seed.py
+	SEED_DATABASE_URL=postgresql+asyncpg://originproof:originproof@127.0.0.1:5432/originproof PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run --package originproof-api python scripts/fixtures/seed.py
 
 db-smoke: seed
-	SEED_DATABASE_URL=postgresql+asyncpg://originproof:originproof@127.0.0.1:5432/originproof uv run --package originproof-api python scripts/ci/proof_storage_smoke.py
+	SEED_DATABASE_URL=postgresql+asyncpg://originproof:originproof@127.0.0.1:5432/originproof PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run --package originproof-api python scripts/ci/proof_storage_smoke.py
 
 demo-reset: reset mvp-up seed
 
 test:
-	uv run pytest
+	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run pytest
 
 test-api:
-	uv run --package originproof-api pytest apps/api/tests
+	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run --package originproof-api pytest apps/api/tests
 
 test-analyzer:
-	uv run --package originproof-analyzer pytest services/analyzer/tests
+	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run --package originproof-analyzer pytest services/analyzer/tests
 
 test-contracts:
 	cd packages/contracts && forge test
 
 test-integration:
-	uv run pytest apps/api/tests services/analyzer/tests
+	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run pytest apps/api/tests services/analyzer/tests
 
 mvp-test: test-api test-analyzer test-contracts test-integration
 
 lint:
-	uv run ruff check apps packages/python services scripts
+	$(UV) run ruff check apps packages/python services scripts
 
 typecheck:
-	uv run python -m compileall -q apps packages services scripts
+	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run python -m compileall -q apps packages services scripts
 
 build:
-	docker compose build api analyzer
+	$(COMPOSE) build api analyzer
 
 smoke:
 	sh scripts/ci/smoke.sh
 
 generate:
-	uv run python scripts/generate_schemas.py
-	uv run python scripts/generate_golden_fixture.py
+	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run python scripts/generate_schemas.py
+	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run python scripts/generate_golden_fixture.py
 
 security:
 	@printf '%s\n' 'Run dependency and secret scans in CI after Bootstrap dependencies are locked.'
