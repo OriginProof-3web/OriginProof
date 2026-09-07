@@ -8,11 +8,11 @@ WORKSPACE_PYTHONPATH := apps/api/src:packages/python:services/analyzer/src
 
 
 
-.PHONY: help bootstrap bootstrap-check env-check env-fingerprint mvp-up stop reset db-upgrade seed deploy-local api-reload mvp-e2e db-smoke demo-reset \
+.PHONY: help bootstrap bootstrap-check env-check env-fingerprint mvp-up stop reset db-upgrade seed deploy-local api-reload mvp-e2e db-smoke demo demo-reset demo-stop \
 	test test-api test-analyzer test-contracts test-integration mvp-test lint typecheck build smoke generate security
 
 help:
-	@printf '%s\n' 'OriginProof MVP commands: bootstrap env-check mvp-up seed smoke mvp-test lint typecheck'
+	@printf '%s\n' 'OriginProof MVP commands: demo demo-stop bootstrap env-check mvp-up seed smoke mvp-test lint typecheck'
 
 bootstrap:
 	@test -f .env || cp .env.example .env
@@ -60,6 +60,11 @@ db-smoke: seed
 	SEED_DATABASE_URL=postgresql+asyncpg://originproof:originproof@127.0.0.1:5432/originproof PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run --package originproof-api python scripts/ci/proof_storage_smoke.py
 
 demo-reset: reset mvp-e2e
+
+# One-command demo: starts, seeds, deploys, and verifies all services without deleting local data.
+demo: mvp-e2e
+
+demo-stop: stop
 
 test:
 	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run pytest

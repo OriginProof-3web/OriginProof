@@ -8,7 +8,7 @@
 > 각 섹션에 모아두었다.
 
 > **MVP 완료 상태 (2026-09-08):** `mvp/integration@a1a671b`에 M1~M4 구현과 통합이
-> 완료되었습니다. `make demo-reset`과 `make mvp-test`는 호스트 Foundry 없이 두 독립 개발
+> 완료되었습니다. `make demo`와 `make mvp-test`는 호스트 Foundry 없이 두 독립 개발
 > 환경에서 재현 검증을 통과했습니다. 아래 체크리스트와 통합 순서는 MVP 진행 당시의 기준 기록입니다.
 
 ---
