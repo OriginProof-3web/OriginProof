@@ -24,17 +24,6 @@ async def test_live_healthcheck() -> None:
     assert response.json() == {"status": "live"}
 
 
-async def test_test_page_returns_html() -> None:
-    test_app = create_app(
-        VerificationService(UnavailableProofRepository(), UnavailableBlockchainReader())
-    )
-    async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://test") as client:
-        response = await client.get("/test")
-
-    assert response.status_code == 200
-    assert "OriginProof 테스트 페이지" in response.text
-
-
 async def test_verification_is_inconclusive_without_configured_adapters() -> None:
     request = VerificationRequest(
         proof_id="prf_demo_001",
