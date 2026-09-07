@@ -4,15 +4,14 @@
 최종 목표는 합성 `Origin Mock Bank` 카드 알림의 정상 입력이 `VERIFIED + ACTIVE`, 금액 변조 입력이
 `TAMPERED + AMOUNT_MISMATCH`를 반환하는 것입니다.
 
-김형준님만 `mvp/integration` 및 `main`으로 병합합니다. 다른 역할은 자기 브랜치에 push하고 PR을
-생성하며, `main`에 직접 push하지 않습니다.
+M1만 `mvp/integration` 및 `main`으로 병합합니다. 김형준님은 리뷰와 통합 조율을 지원합니다. 다른 역할은 자기 브랜치에 push하고 PR을 생성하며, `main`에 직접 push하지 않습니다.
 
 ## 현재 상태와 우선순위
 
 | 우선순위 | 상태 | 담당 | 해야 할 일 |
 | --- | --- | --- | --- |
 | 0 | 차단 | M3/M4 | 현재 `mvp/chain-core`를 그대로 통합하지 않고 최신 기준에서 체인 변경을 다시 준비합니다. |
-| 1 | 준비됨 | 김형준 | `main` 기준으로 `mvp/integration`을 생성합니다. |
+| 1 | 준비됨 | M1 | `main` 기준으로 `mvp/integration`을 생성하고 관리합니다. |
 | 2 | 준비됨 | M1 | `mvp/backend`을 `mvp/integration`에 PR로 통합합니다. |
 | 3 | M1 통합 뒤 시작 | M2 | 최신 `mvp/integration`을 기준으로 후보 필드 추출을 구현하고 `mvp/ai`에 push합니다. |
 | 4 | 우선순위 0 해결 뒤 | M3/M4 | 정리된 체인 작업을 `mvp/integration`에 PR로 통합합니다. |
@@ -29,7 +28,7 @@
 
 M3/M4는 다음 방식으로 정리합니다.
 
-1. 김형준님이 `mvp/integration`을 만든 뒤, M3/M4는 그 최신 SHA에서 새 정리 브랜치를 만듭니다.
+1. M1이 `mvp/integration`을 만든 뒤, M3/M4는 그 최신 SHA에서 새 정리 브랜치를 만듭니다.
 2. Contract, ABI, deployment manifest, indexer, `apps/api/src/infrastructure/blockchain/`처럼 자기 소유인 변경만 옮깁니다.
 3. 루트 설정, M1 API, Python shared model, fixture, scaffold를 삭제하거나 이전 버전으로 되돌리지 않습니다.
 4. API 의존성 또는 공유 Python 계약 변경이 필요하면 M1에게 handoff를 요청합니다. 임의 수정하지 않습니다.
@@ -38,9 +37,9 @@ M3/M4는 다음 방식으로 정리합니다.
 새 정리 브랜치는 예를 들어 `mvp/chain-ready`로 만들 수 있습니다. 기존 `mvp/chain-core`와
 `mvp/chain-integration`은 기록 보존용으로 두고 force push하지 않습니다.
 
-## 1. 김형준님: 통합 브랜치 생성
+## 1. M1: 통합 브랜치 생성 및 관리
 
-김형준님은 최신 `main`에서 한 번만 아래 작업을 합니다.
+M1은 최신 `main`에서 통합 브랜치를 생성하고 관리합니다.
 
 ```bash
 git switch main
@@ -61,7 +60,7 @@ M1 작업은 `mvp/backend`의 `bbaa4f9`에 있습니다. 이 브랜치에는 다
 - PostgreSQL Proof 저장소, Alembic migration, 합성 seed
 - 정상/금액 변조 검증용 test-only chain adapter smoke test
 
-김형준님은 GitHub에서 다음 PR을 생성하거나 M1에게 생성을 요청합니다.
+M1은 GitHub에서 다음 PR을 생성하거나 담당자에게 생성을 요청합니다.
 
 | 항목 | 값 |
 | --- | --- |
@@ -70,7 +69,7 @@ M1 작업은 `mvp/backend`의 `bbaa4f9`에 있습니다. 이 브랜치에는 다
 | 제목 | `[M1/Backend] MVP verification API and proof storage` |
 | 최소 검증 | `make test`, `make mvp-test`, `make db-smoke` |
 
-승인 후 김형준님이 병합합니다. 이 병합이 끝나기 전에는 M2가 예전 계약을 기준으로 구현을 시작하지
+해당 계약 소유자의 승인 후 M1이 병합합니다. 이 병합이 끝나기 전에는 M2가 예전 계약을 기준으로 구현을 시작하지
 않는 것이 안전합니다.
 
 ## 3. M2: M1 계약을 기준으로 AI 작업 시작
@@ -132,7 +131,7 @@ M2와 M3/M4 PR이 `mvp/integration`에 병합되면 M1은 Backend와 실제 `Blo
 2. **base**는 항상 `mvp/integration`, **compare**는 자기 작업 브랜치를 선택합니다.
 3. 변경 파일에 다른 역할의 파일 삭제나 대량 되돌림이 없는지 먼저 확인합니다.
 4. 제목에 역할을 붙이고, 실제 실행한 명령과 결과를 PR 설명에 적습니다.
-5. 김형준님과 해당 계약 소유자의 승인을 받은 뒤 김형준님이 병합합니다.
+5. 해당 계약 소유자의 승인을 받은 뒤 M1이 병합합니다. 김형준님은 리뷰와 통합 조율을 지원합니다.
 6. 모든 E2E가 통과한 마지막 단계에서만 `mvp/integration`에서 `main`으로 PR을 생성합니다.
 
 ## 팀 채널에 공유할 완료 보고 형식
