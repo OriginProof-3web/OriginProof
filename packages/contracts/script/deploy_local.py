@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 from datetime import datetime
@@ -26,11 +27,11 @@ def export_abi(forge: str) -> None:
         target.write_text(json.dumps(artifact["abi"], indent=2) + "\n")
 
 
-def deploy(rpc_url: str, signer: str) -> Path:
+def deploy(rpc_url: str, signer: str, source_commit_sha: str | None = None) -> Path:
     from infrastructure.blockchain.reader import address
 
-    if urlparse(rpc_url).hostname not in ("127.0.0.1", "localhost", "::1"):
-        raise ValueError("only loopback RPC is supported")
+    if urlparse(rpc_url).hostname not in ("127.0.0.1", "localhost", "::1", "anvil"):
+        raise ValueError("only local RPC is supported")
     address(signer)
     forge = shutil.which("forge")
     if forge is None:
@@ -112,7 +113,11 @@ def deploy(rpc_url: str, signer: str) -> Path:
             admin,
             contracts["IssuerRegistry"]["address"],
         ]
-        sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+        sha = source_commit_sha or subprocess.check_output(
+            ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
+        ).strip()
+        if not re.fullmatch(r"[0-9a-f]{40}", sha):
+            raise ValueError("invalid source commit SHA")
         manifest = {
             "chain_id": 31337,
             "deployment_block": min(blocks),
@@ -129,5 +134,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--rpc-url", default="http://127.0.0.1:8545")
     parser.add_argument("--signer", required=True, help="Public signer address from the M1 seed")
+    parser.add_argument("--source-commit-sha")
     args = parser.parse_args()
-    print(deploy(args.rpc_url, args.signer).relative_to(ROOT))
+    print(deploy(args.rpc_url, args.signer, args.source_commit_sha).relative_to(ROOT))

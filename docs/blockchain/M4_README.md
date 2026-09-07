@@ -22,21 +22,18 @@ Reader의 공개 메서드는 `get_issuer`, `get_key`, `is_key_valid`입니다.
 
 ## 로컬 실행
 
-Python 의존성과 고정 버전 Foundry 계약 의존성을 설치하고, `forge`·`anvil`을 PATH에 넣습니다.
-저장소 루트에서 다음 순서로 실행합니다.
+MVP 재현에는 호스트의 `forge`·`anvil` 설치가 필요하지 않습니다. `make demo-reset`은
+Docker Compose의 고정 Foundry `v1.4.4` 컨테이너에서 Anvil과 배포 스크립트를 실행합니다.
+
+`make mvp-test`의 Contract 테스트도 같은 컨테이너를 사용합니다. 호스트 Foundry는 M3/M4가
+계약을 직접 개발·디버깅할 때만 선택적으로 필요합니다.
 
 ```bash
-uv sync --all-packages --all-groups --locked
-anvil --chain-id 31337
+make demo-reset
 ```
 
-Anvil은 개발용 계정을 출력하므로 로그를 공유하지 마세요. 별도 터미널에서 M1 seed가 생성한
-`build/seed_manifest.json`의 공개 signer 주소를 아래 자리표시자 대신 넣습니다.
-
-```bash
-PYTHONPATH=apps/api/src uv run python packages/contracts/script/deploy_local.py \
-  --rpc-url http://127.0.0.1:8545 --signer <공개_signer_주소>
-```
+배포 컨테이너는 M1 seed가 생성한 `build/seed_manifest.json`의 **공개 signer 주소**만 사용합니다.
+개발용 Anvil 계정·로그는 공유하지 마세요.
 
 Golden fixture에는 고정 개인키·서명이 없습니다. 실제 증명을 서명한 공개 signer와 등록 주소가
 같아야 합니다. 키 시작일은 Golden fixture의 issued_at이며 종료일은 그로부터 365일 뒤입니다.
@@ -49,7 +46,7 @@ Golden fixture에는 고정 개인키·서명이 없습니다. 실제 증명을 
   로컬 manifest는 Git에서 제외됩니다. 미커밋 작업 중 SHA는 작업 내용 전체가 아닌 HEAD를 가리킵니다.
 
 배포 명령은 매번 새 계약을 만듭니다. 체인을 재시작하거나 재배포하면 manifest를 다시 생성하고
-Reader도 새 manifest로 생성해야 합니다. 로컬 loopback RPC와 chain ID 31337만 지원합니다.
+Reader도 새 manifest로 생성해야 합니다. Compose 내부의 `anvil` RPC와 chain ID 31337만 지원합니다.
 
 ## 테스트와 해석
 
