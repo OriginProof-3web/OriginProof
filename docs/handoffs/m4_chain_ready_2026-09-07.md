@@ -21,6 +21,14 @@ Reader 생성 시 잘못된 manifest도 `DependencyUnavailableError`가 발생�
 
 ## M1 소유 변경 요청
 
+- **PR #8 CI blocker — `Makefile`의 `generate` 대상:** 깨끗한 GitHub Actions 환경에서
+  `make generate`가 `ModuleNotFoundError: No module named 'Crypto'`로 실패합니다. 현재
+  `$(UV) run python scripts/generate_schemas.py`는 workspace member 의존성을 설치하지 않기
+  때문입니다. 두 생성 명령을 `$(UV) run --package originproof-core python ...`로 실행하거나,
+  동등하게 core 의존성을 포함하도록 수정해주세요. 로컬에서 해당 `--package` 명령으로 schema와
+  Golden fixture를 생성한 뒤 생성 파일 diff가 없음을 확인했습니다. 깨끗한 clone에서
+  `make generate && git diff --exit-code -- packages/schemas/generated fixtures/golden`을
+  재검증해야 합니다.
 - `demo-reset`의 seed 이후 signer 기반 배포를 연결하고 RPC 접근·manifest 전달 경로를 정해주세요.
   현재 Compose의 anvil 이름 서비스와 실제 EVM 이미지·포트 구성을 확인해야 합니다.
 - `httpx`는 현재 루트 dev 의존성입니다. dev 그룹 없는 API 배포를 위해 API 런타임 의존성에 선언해야 합니다.
