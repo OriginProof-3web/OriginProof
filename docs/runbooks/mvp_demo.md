@@ -1,6 +1,6 @@
 # MVP 3-minute demo
 
-This demo uses only the synthetic Origin Mock Bank fixture and a local Ganache chain.
+This demo uses only the synthetic Origin Mock Bank fixture and a fixed local Anvil chain.
 It must not be used with real credentials, transactions, or production infrastructure.
 
 ## Reset and verify
@@ -12,9 +12,10 @@ make demo-reset
 ```
 
 The command removes only this project's Docker Compose volumes, starts PostgreSQL, Redis, local
-Ganache, API, and Analyzer, applies the migration, seeds the synthetic Signed Proof, deploys and
-registers the synthetic issuer/key, reloads the API with the generated manifest, and verifies both
-HTTP cases.
+Anvil, API, and Analyzer, applies the migration, seeds the synthetic Signed Proof, deploys and
+registers the synthetic issuer/key through the pinned Foundry container, reloads the API with the
+generated manifest, and verifies both HTTP cases. Host installation of `forge` or `anvil` is not
+required.
 
 Expected final output:
 

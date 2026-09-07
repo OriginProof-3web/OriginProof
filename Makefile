@@ -46,7 +46,8 @@ seed: db-upgrade
 
 deploy-local: seed
 	@OP_SIGNER=$$($(UV) run --package originproof-api python -c "import json; print(json.load(open('build/seed_manifest.json'))['signer'])"); \
-	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run --package originproof-api python packages/contracts/script/deploy_local.py --rpc-url http://127.0.0.1:8545 --signer "$$OP_SIGNER"
+	OP_SHA=$$(git rev-parse HEAD); \
+	$(COMPOSE) run --rm --build deployer uv run --package originproof-api python packages/contracts/script/deploy_local.py --rpc-url http://anvil:8545 --signer "$$OP_SIGNER" --source-commit-sha "$$OP_SHA"
 
 api-reload:
 	$(COMPOSE) up --detach --force-recreate api
@@ -70,7 +71,7 @@ test-analyzer:
 	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run --package originproof-analyzer pytest services/analyzer/tests
 
 test-contracts:
-	cd packages/contracts && forge test
+	$(COMPOSE) run --rm --no-deps --build deployer sh -lc 'cd packages/contracts && forge test'
 
 test-integration:
 	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run pytest apps/api/tests services/analyzer/tests
