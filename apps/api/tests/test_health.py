@@ -1,5 +1,11 @@
 from httpx import ASGITransport, AsyncClient
-from originproof_api.main import UnavailableBlockchainReader, create_app
+from infrastructure.blockchain import JsonRpcBlockchainReader
+from originproof_api.main import (
+    UnavailableBlockchainReader,
+    configured_blockchain_reader,
+    create_app,
+)
+from originproof_api.settings import Settings
 from originproof_core import (
     CardPaymentNoticeCandidate,
     DependencyUnavailableError,
@@ -22,6 +28,33 @@ async def test_live_healthcheck() -> None:
 
     assert response.status_code == 200
     assert response.json() == {"status": "live"}
+
+
+def test_incomplete_chain_configuration_is_unavailable() -> None:
+    reader = configured_blockchain_reader(
+        Settings(database_url="sqlite+aiosqlite://", blockchain_rpc_url="http://127.0.0.1:8545")
+    )
+
+    assert isinstance(reader, UnavailableBlockchainReader)
+
+
+def test_complete_chain_configuration_selects_reader(tmp_path) -> None:
+    manifest = tmp_path / "31337.local.json"
+    manifest.write_text(
+        '{"chain_id":31337,"deployment_block":1,"contracts":'
+        '{"IssuerRegistry":{"address":"0x1111111111111111111111111111111111111111"},'
+        '"IssuerKeyRegistry":{"address":"0x2222222222222222222222222222222222222222"}}}'
+    )
+
+    reader = configured_blockchain_reader(
+        Settings(
+            database_url="sqlite+aiosqlite://",
+            blockchain_rpc_url="http://127.0.0.1:8545",
+            blockchain_manifest_path=str(manifest),
+        )
+    )
+
+    assert isinstance(reader, JsonRpcBlockchainReader)
 
 
 async def test_verification_is_inconclusive_without_configured_adapters() -> None:
