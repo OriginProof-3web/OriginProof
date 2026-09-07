@@ -17,6 +17,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.18.0"
+          cache: pnpm
       - uses: astral-sh/setup-uv@v6
         with:
           version: "0.8.17"
@@ -34,6 +38,16 @@ jobs:
           uv run pytest
           uv run ruff check apps packages services scripts
           uv run python -m compileall -q apps packages services scripts
+      - name: Run web demo checks
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm --filter originproof-demo-web lint
+          pnpm --filter originproof-demo-web typecheck
+          pnpm --filter originproof-demo-web test
+          pnpm --filter originproof-demo-web build
+          pnpm --filter originproof-demo-web exec playwright install --with-deps chromium
+          pnpm --filter originproof-demo-web test:e2e
 
   contracts:
     runs-on: ubuntu-latest

@@ -15,6 +15,9 @@ coverage.xml
 htmlcov/
 node_modules/
 .next/
+test-results/
+playwright-report/
+*.tsbuildinfo
 packages/contracts/lib/
 packages/contracts/out/
 packages/contracts/cache/

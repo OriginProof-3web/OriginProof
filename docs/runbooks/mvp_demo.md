@@ -12,7 +12,7 @@ make demo-reset
 ```
 
 The command removes only this project's Docker Compose volumes, starts PostgreSQL, Redis, local
-Anvil, API, and Analyzer, applies the migration, seeds the synthetic Signed Proof, deploys and
+Anvil, API, Analyzer, and the web demo, applies the migration, seeds the synthetic Signed Proof, deploys and
 registers the synthetic issuer/key through the pinned Foundry container, reloads the API with the
 generated manifest, and verifies both HTTP cases. Host installation of `forge` or `anvil` is not
 required.
@@ -30,5 +30,7 @@ MVP HTTP E2E passed: VERIFIED + ACTIVE; TAMPERED + AMOUNT_MISMATCH
 2. `fixtures/mvp/card_notice_amount_tampered.json` changes only the amount. The API returns
    `TAMPERED + AMOUNT_MISMATCH`; the analyzer does not make that authenticity decision.
 
-For an interactive view, open `http://127.0.0.1:8000/docs` after the reset. Do not paste real
-personal or payment data into the local Swagger UI.
+For the presentation demo, open `http://127.0.0.1:3000` after the reset. It offers normal and
+amount-tampered presets as well as editable synthetic candidate fields, then calls the live Verify
+API and displays its evidence. Swagger UI remains available at `http://127.0.0.1:8000/docs`.
+Do not paste real credentials, transactions, or personal data.

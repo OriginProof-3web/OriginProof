@@ -30,7 +30,7 @@ env-fingerprint:
 	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run python scripts/ci/environment_fingerprint.py
 
 mvp-up:
-	$(COMPOSE) up --build --detach postgres redis anvil api analyzer
+	$(COMPOSE) up --build --detach postgres redis anvil api analyzer web
 
 stop:
 	$(COMPOSE) stop
@@ -80,12 +80,14 @@ mvp-test: test-api test-analyzer test-contracts test-integration
 
 lint:
 	$(UV) run ruff check apps packages/python services scripts
+	pnpm --filter originproof-demo-web lint
 
 typecheck:
 	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run python -m compileall -q apps packages services scripts
+	pnpm --filter originproof-demo-web typecheck
 
 build:
-	$(COMPOSE) build api analyzer
+	$(COMPOSE) build api analyzer web
 
 smoke:
 	sh scripts/ci/smoke.sh
