@@ -1,6 +1,7 @@
 # M1 handoff — 2026-09-07 M4 chain-ready
 
-기준 `3bbaba0`, 작업 브랜치 `mvp/chain-ready`. 계약 코어 변경 없음.
+최초 기준은 `3bbaba0`이며, 최신 `mvp/integration`의 `f029e76`을 병합해 재검증했습니다.
+작업 브랜치는 `mvp/chain-ready`이고 계약 코어 변경은 없습니다.
 검증 결과는 [날짜별 기록](../blockchain/updates/2026-09-07.md)을 참고합니다.
 
 ## 연결 순서
@@ -33,7 +34,8 @@ Reader 생성 시 잘못된 manifest도 `DependencyUnavailableError`가 발생�
 ## 검증 범위와 제한
 
 M4 33개 테스트에는 실제 임시 Anvil 배포·ABI 생성·M1 ASGI 경로의 정상/변조/중지/폐기/RPC 종료가
-포함됩니다. Proof 저장소는 대역이며 SQLAlchemy 저장 검사는 SQLite 파일을 사용했습니다.
+포함됩니다. 최신 통합 기준 `make mvp-test`, `make lint`, `make typecheck`, `make bootstrap-check`도
+통과했습니다. Proof 저장소는 대역이며 SQLAlchemy 저장 검사는 SQLite 파일을 사용했습니다.
 PostgreSQL 및 Docker 전체 E2E, 다중 개발 환경 재현은 아직 수행하지 않았습니다.
 Golden fixture는 고정 signer가 없는 digest fixture이므로 실제 seed의 공개 signer를 반드시 사용해야 합니다.
 개인키·RPC token·증명 원문은 manifest에 넣지 않습니다.
