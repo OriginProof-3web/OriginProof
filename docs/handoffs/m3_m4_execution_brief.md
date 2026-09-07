@@ -2,7 +2,8 @@
 
 ## 시작 기준과 병합 규칙
 
-작업 기준은 M1 병합 뒤의 `mvp/integration@c2e4be5`입니다.
+작업 기준은 최신 `origin/mvp/integration`입니다. M1 Backend PR은 `c2e4be5`에 병합됐으며,
+이후의 통합 문서도 함께 받아야 합니다.
 
 ```bash
 git fetch origin

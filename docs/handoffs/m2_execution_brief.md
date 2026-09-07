@@ -2,8 +2,9 @@
 
 ## 시작 기준
 
-이 작업은 M1 Backend PR이 병합된 통합 기준 `mvp/integration@c2e4be5`에서 시작합니다.
-다른 브랜치의 예전 Schema나 임시 API를 기준으로 구현하지 않습니다.
+이 작업은 최신 `origin/mvp/integration`에서 시작합니다. M1 Backend PR은
+`c2e4be5`에 병합됐으며, 이후의 통합 문서도 함께 받아야 합니다. 다른 브랜치의 예전 Schema나
+임시 API를 기준으로 구현하지 않습니다.
 
 ```bash
 git fetch origin
