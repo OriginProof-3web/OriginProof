@@ -73,5 +73,19 @@ services:
     ports:
       - "8001:8001"
 
+  web:
+    build:
+      context: .
+      dockerfile: infra/docker/web.Dockerfile
+      args:
+        ORIGINPROOF_API_ORIGIN: http://api:8000
+    environment:
+      ORIGINPROOF_API_ORIGIN: http://api:8000
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      api:
+        condition: service_started
+
 volumes:
   postgres-data:
