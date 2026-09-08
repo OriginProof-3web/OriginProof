@@ -12,7 +12,12 @@ test("amount-tampered preset calls the API and shows its deterministic result", 
         verification_status: "TAMPERED",
         lifecycle_status: "ACTIVE",
         reason_codes: ["AMOUNT_MISMATCH"],
-        checks: { payload: "MATCH", amount: "MISMATCH" },
+        checks: {
+          proof_repository: "FOUND",
+          payload_hash: "PASS",
+          expiry: "PASS",
+          candidate_match: "FAIL",
+        },
         verified_at: "2026-09-03T03:14:00Z",
         request_id: "req_demo_amount_tampered",
       }),
@@ -28,5 +33,6 @@ test("amount-tampered preset calls the API and shows its deterministic result", 
 
   await expect(page.getByText("TAMPERED", { exact: true })).toBeVisible();
   await expect(page.getByText("AMOUNT_MISMATCH", { exact: true })).toBeVisible();
-  await expect(page.getByText("MISMATCH", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "실제 검증 파이프라인" })).toBeVisible();
+  await expect(page.locator(".pipeline-panel").getByText("FAIL", { exact: true })).toBeVisible();
 });
