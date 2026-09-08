@@ -170,6 +170,31 @@ export default function DemoPage() {
       </section>
 
       <section className="workspace" aria-label="검증 데모">
+        <section className="baseline-card" aria-labelledby="baseline-title">
+          <div>
+            <p className="eyebrow">SEEDED SYNTHETIC BASELINE</p>
+            <h3 id="baseline-title">정상 프리셋의 신뢰 기준</h3>
+          </div>
+          <p>
+            정상 프리셋은 아래 합성 은행 카드 거래를 그대로 입력한 편의값입니다. 이 정보는 로컬
+            서버에 Signed Proof로 저장되고, 발행기관과 키는 로컬 체인에 등록됩니다.
+          </p>
+          <dl>
+            <div><dt>발행기관</dt><dd>Origin Mock Bank (합성)</dd></div>
+            <div><dt>카드</dt><dd>{baselineProof.card}</dd></div>
+            <div><dt>기준 거래</dt><dd>{baselineProof.transaction}</dd></div>
+            <div><dt>Proof ID</dt><dd>prf_demo_001</dd></div>
+            <div><dt>발행기관 ID</dt><dd>{baselineProof.issuerId}</dd></div>
+            <div><dt>등록 키 ID</dt><dd>{baselineProof.keyId}</dd></div>
+            <div><dt>신뢰 체인</dt><dd>{baselineProof.chainId}</dd></div>
+          </dl>
+          <p className="baseline-note">
+            실제 계좌번호·카드번호·은행 정보는 사용하지 않습니다. 이 프리셋이 “정상”인 이유는
+            위 기준값을 로컬 Signed Proof와 일치하도록 시드했기 때문이며, 최종 정상 판정은
+            브라우저가 아니라 Verify API가 합니다.
+          </p>
+        </section>
+
         <form className="candidate-form" onSubmit={submit}>
           <div className="form-heading">
             <div>
@@ -190,31 +215,6 @@ export default function DemoPage() {
             프리셋을 고르거나 필드를 직접 수정한 뒤 검증을 실행하세요. 이 값은 신뢰 근거가 아니라
             비교 대상입니다.
           </p>
-
-          <section className="baseline-card" aria-labelledby="baseline-title">
-            <div>
-              <p className="eyebrow">SEEDED SYNTHETIC BASELINE</p>
-              <h3 id="baseline-title">정상 프리셋의 신뢰 기준</h3>
-            </div>
-            <p>
-              정상 프리셋은 아래 합성 은행 카드 거래를 그대로 입력한 편의값입니다. 이 정보는 로컬
-              서버에 Signed Proof로 저장되고, 발행기관과 키는 로컬 체인에 등록됩니다.
-            </p>
-            <dl>
-              <div><dt>발행기관</dt><dd>Origin Mock Bank (합성)</dd></div>
-              <div><dt>카드</dt><dd>{baselineProof.card}</dd></div>
-              <div><dt>기준 거래</dt><dd>{baselineProof.transaction}</dd></div>
-              <div><dt>Proof ID</dt><dd>prf_demo_001</dd></div>
-              <div><dt>발행기관 ID</dt><dd>{baselineProof.issuerId}</dd></div>
-              <div><dt>등록 키 ID</dt><dd>{baselineProof.keyId}</dd></div>
-              <div><dt>신뢰 체인</dt><dd>{baselineProof.chainId}</dd></div>
-            </dl>
-            <p className="baseline-note">
-              실제 계좌번호·카드번호·은행 정보는 사용하지 않습니다. 이 프리셋이 “정상”인 이유는
-              위 기준값을 로컬 Signed Proof와 일치하도록 시드했기 때문이며, 최종 정상 판정은
-              브라우저가 아니라 Verify API가 합니다.
-            </p>
-          </section>
 
           <div className="fields">
             <label>
