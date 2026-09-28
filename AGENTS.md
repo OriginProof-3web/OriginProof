@@ -159,6 +159,12 @@ mvp/integration
 
 Only M1 merges into `mvp/integration` and `main`; Kim Hyeongjun (`@kimhyounjun`) supports review and integration coordination. Do not force push shared branches, reset user changes, rewrite unrelated files, or mix formatting-only changes with feature work. A newly created integration branch with no dependent PRs may be corrected to the verified `main` SHA only with M1's explicit authorization and a team notice.
 
+### GitHub CLI and Network Access
+
+1. Use `gh` for GitHub pull request, issue, branch, and workflow operations. Use the browser only when the CLI and available GitHub connectors cannot complete the task or the task requires the UI.
+2. A network error from a sandboxed shell does not establish that GitHub CLI authentication is invalid. Retry the same `gh` command with network access enabled before diagnosing the login or switching to the browser.
+3. Each teammate authenticates on their own machine and checks `gh auth status` with network access available. Never copy or commit tokens, and never ask teammates to share credentials.
+
 ## 12. Required Commands
 
 The stable root interface is:
