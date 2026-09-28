@@ -1,5 +1,19 @@
 # OriginProof Start Here
 
+## Finals development
+
+Read the [development plan](docs/development_plan.md) before planning or implementing finals work.
+It is the repository's canonical plan for seven development weeks followed by two presentation days.
+Check its roles and permissions (section 3), weekly deliverables (15), acceptance criteria (16),
+and mandatory scope (17), then read the current models, API, ABI, and path-specific instructions.
+The plan defines future work; it does not replace approved runtime contracts or mark features complete.
+
+The initial MVP gate is complete. The startup sequence below is retained as the original bootstrap
+record. Use the current agreed integration base for new work rather than restarting from the old
+bootstrap commit. Finals work includes the user verification app, issuer console, and operator views.
+
+## Original MVP bootstrap
+
 This repository must be bootstrapped once before four people work in parallel.
 
 ## Team startup order
