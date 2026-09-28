@@ -102,7 +102,7 @@ The two-day MVP freezes:
 5. Reason Codes
 6. Contract events and ABI
 
-M1 owns changes to frozen shared contracts during the MVP. Other owners must write a handoff request, and final integration requires Kim Hyeongjun's review and merge.
+M1 owns changes to frozen shared contracts during the MVP. Other owners must write a handoff request, and final integration requires M1's review and merge. Kim Hyeongjun supports review and integration coordination.
 
 ## 8. LLM Rules
 
@@ -134,7 +134,7 @@ M1 owns changes to frozen shared contracts during the MVP. Other owners must wri
 3. M3 Blockchain Core: `packages/contracts/src`, `packages/contracts/test`
 4. M4 Blockchain Integration: `services/indexer`, deployment and ABI outputs, `apps/api/src/infrastructure/blockchain`
 
-M1 owns Backend and shared Python contracts. Kim Hyeongjun (`@kimhyounjun`) is the final integration and merge owner. M3 owns Contract interfaces. M4 owns deployment manifests and Python chain adapters. Do not edit another owner's path without a written handoff and acknowledgement.
+M1 owns Backend, shared Python contracts, and final integration and merge decisions. Kim Hyeongjun (`@kimhyounjun`) supports review and integration coordination. M3 owns Contract interfaces. M4 owns deployment manifests and Python chain adapters. Do not edit another owner's path without a written handoff and acknowledgement.
 
 ## 11. Git and Merge Safety
 
@@ -148,7 +148,7 @@ mvp/chain-integration
 mvp/integration
 ```
 
-Only Kim Hyeongjun (`@kimhyounjun`) merges into `mvp/integration`; M1 supports integration by reviewing Backend and shared-contract compatibility. Do not force push shared branches, reset user changes, rewrite unrelated files, or mix formatting-only changes with feature work.
+Only M1 merges into `mvp/integration` and `main`; Kim Hyeongjun (`@kimhyounjun`) supports review and integration coordination. Do not force push shared branches, reset user changes, rewrite unrelated files, or mix formatting-only changes with feature work. A newly created integration branch with no dependent PRs may be corrected to the verified `main` SHA only with M1's explicit authorization and a team notice.
 
 ## 12. Required Commands
 

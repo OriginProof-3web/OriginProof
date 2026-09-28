@@ -17,6 +17,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: "11.19.0"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.18.0"
+          cache: pnpm
       - uses: astral-sh/setup-uv@v6
         with:
           version: "0.8.17"
@@ -25,15 +32,25 @@ jobs:
         run: uv sync --all-packages --all-groups --locked
       - name: Validate repository structure
         run: uv run python scripts/ci/validate_structure.py
-      - name: Verify generated schemas are current
+      - name: Verify generated contracts are current
         run: |
-          uv run python scripts/generate_schemas.py
-          git diff --exit-code -- packages/schemas/generated
+          make generate
+          git diff --exit-code -- packages/schemas/generated fixtures/golden
       - name: Run Python tests and lint
         run: |
           uv run pytest
           uv run ruff check apps packages services scripts
           uv run python -m compileall -q apps packages services scripts
+      - name: Run web demo checks
+        run: |
+          corepack enable
+          pnpm install --frozen-lockfile
+          pnpm --filter originproof-demo-web lint
+          pnpm --filter originproof-demo-web typecheck
+          pnpm --filter originproof-demo-web test
+          pnpm --filter originproof-demo-web build
+          pnpm --filter originproof-demo-web exec playwright install --with-deps chromium
+          pnpm --filter originproof-demo-web test:e2e
 
   contracts:
     runs-on: ubuntu-latest
@@ -43,6 +60,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.4.4
       - name: Install locked Foundry dependencies
         run: |
           forge install OpenZeppelin/openzeppelin-contracts@v5.7.0 \
