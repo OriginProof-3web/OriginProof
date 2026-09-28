@@ -63,6 +63,8 @@ demo-reset: reset mvp-e2e
 
 # One-command demo: starts, seeds, deploys, and verifies all services without deleting local data.
 demo: mvp-e2e
+	@curl --fail --silent --show-error --retry 15 --retry-all-errors --max-time 3 http://127.0.0.1:3000/ >/dev/null
+	@printf '\nDemo ready — open: http://127.0.0.1:3000\n'
 
 demo-stop: stop
 

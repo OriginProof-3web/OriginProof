@@ -32,7 +32,16 @@ Required results:
 2. Changed amount: `TAMPERED` and `AMOUNT_MISMATCH`.
 3. AI never returns authenticity status.
 4. No real bank, customer, card, or transaction data is used.
-5. The MVP has no interactive frontend. Use Swagger, CLI, and JSON reports.
+5. The original two-day MVP gate used Swagger, CLI, and JSON reports; this restriction does not apply to post-MVP web development.
+
+## 3A. Finals Development Scope
+
+The initial MVP gate is complete. Read `docs/development_plan.md` for finals work: seven development
+weeks followed by two presentation days. The required product includes user verification, an issuer
+console, and operator views for issuer approval, public key management, and Proof issuance/revocation.
+The plan describes target behavior, not completed implementation. Preserve approved model, Schema,
+signing, and ABI contracts until their owners review a change. The plan is the canonical planning
+document; do not maintain a competing copy outside the repository.
 
 ## 4. Fixed Stack
 
@@ -53,7 +62,7 @@ Do not replace a fixed technology or add an equivalent framework without an acce
 Before editing:
 
 1. Current issue and acceptance criteria
-2. This root file and `START_HERE.md`
+2. This root file, `START_HERE.md`, and the relevant scope, weekly deliverables, and acceptance criteria in `docs/development_plan.md`
 3. Every deeper `AGENTS.md` between root and the target file
 4. Relevant Schema, OpenAPI, ABI, ADR, test and fixture
 5. `git status` and existing user changes
