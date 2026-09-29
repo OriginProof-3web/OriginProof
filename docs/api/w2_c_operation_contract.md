@@ -6,3 +6,5 @@ This branch stacks on the local W1 C implementation. Rebase it on the completed 
 - A repeated request returns the existing operation, including an uncertain one. A caller must inspect chain state before any retransmission; this helper never submits or reports success.
 - `GET /v1/operations/{operation_id}` is available to the initiating account or an operator. `GET /v1/audit-events` shows all events to operators and only the caller's institution to issuer accounts. Neither endpoint exposes password hashes, session tokens, or private keys.
 - W2-C2/C3 must add the actual state transitions, tx hash, receipt/requery evidence, and restart recovery after B's Adapter contract and implementation are reviewed.
+
+For a real PostgreSQL check, migrate a disposable database and run `TEST_DATABASE_URL=<asyncpg URL> pytest apps/api/tests/test_live_w1_w2.py`. The test creates only synthetic accounts and applications in that database; it does not submit a chain transaction.
