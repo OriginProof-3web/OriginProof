@@ -72,10 +72,10 @@ test:
 	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run pytest
 
 test-api:
-	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run --package originproof-api pytest apps/api/tests
+	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run --all-packages --all-groups pytest apps/api/tests
 
 test-analyzer:
-	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run --package originproof-analyzer pytest services/analyzer/tests
+	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run --all-packages --all-groups pytest services/analyzer/tests
 
 test-contracts:
 	$(COMPOSE) run --rm --no-deps --build deployer sh -lc 'cd packages/contracts && forge test'

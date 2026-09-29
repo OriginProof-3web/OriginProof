@@ -82,7 +82,7 @@ OpenAI provider는 검증된 이미지 bytes를 Responses API의 이미지 입�
 | 환경변수 | 기본값 |
 | --- | --- |
 | `LLM_PROVIDER` | `mock` |
-| `OPENAI_MODEL` | `gpt-5.6-luna` |
+| `OPENAI_MODEL` | `gpt-6-luna` |
 | `OPENAI_REASONING_EFFORT` | `low` |
 | `OPENAI_API_KEY` | 없음, OpenAI 호출에만 필요 |
 | `LLM_TIMEOUT_SECONDS` | `20` (각 SDK 요청의 timeout) |
