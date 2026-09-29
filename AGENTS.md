@@ -37,7 +37,9 @@ Required results:
 ## 3A. Finals Development Scope
 
 The initial MVP gate is complete. Read `docs/development_plan.md` for finals work: seven development
-weeks followed by two presentation days. The required product includes user verification, an issuer
+stages (W1–W7), not fixed calendar weeks, followed by presentation preparation. Use prepared test
+accounts, a local web demo, and local EVM; public signup, external login, hosting, and testnet are
+optional extensions requiring a later team decision. The required product includes user verification, an issuer
 console, and operator views for issuer approval, public key management, and Proof issuance/revocation.
 The plan describes target behavior, not completed implementation. Preserve approved model, Schema,
 signing, and ABI contracts until their owners review a change. The plan is the canonical planning
@@ -51,7 +53,7 @@ document; do not maintain a competing copy outside the repository.
 4. Redis, Celery
 5. OpenAI Responses API through `LLMProvider`
 6. Default model from `OPENAI_MODEL`, default value `gpt-5.6-luna`
-7. Solidity, Foundry, OpenZeppelin, local EVM and one testnet
+7. Solidity, Foundry, OpenZeppelin, local EVM; testnet is an optional finals extension
 8. Next.js and TypeScript only after the two-day MVP
 9. Docker Compose, Makefile, GitHub Actions
 
@@ -157,7 +159,9 @@ mvp/chain-integration
 mvp/integration
 ```
 
-Only M1 merged into `mvp/integration` and `main` during the MVP; Kim Hyeongjun (`@kimhyounjun`) supported review and integration coordination. For finals, create task branches from `integration` and target PRs to `integration`. Promote `integration` to `main` only after Jordi2801K explicitly requests the integration verification; one assigned person or agent coordinates that promotion. The current private-repository plan does not support GitHub branch protection, so PR/review and no-direct-push rules are manual team policy. Only push directly to `main` when Jordi2801K explicitly requests that specific change. Do not force push shared branches, reset user changes, rewrite unrelated files, or mix formatting-only changes with feature work.
+Only M1 merged into `mvp/integration` and `main` during the MVP; Kim Hyeongjun (`@kimhyounjun`) supported review and integration coordination. For finals implementation, follow sections 14 and 15.1 of `docs/development_plan.md`: task branches target the active `phase/W1`–`phase/W7` branch; completed stages promote to `integration` through reviewed PRs. Preserve each completed phase branch at its final SHA as a portfolio snapshot; never delete, reuse, or advance it. Multi-stage bundles still require separate phase PRs and task acceptance evidence. Fetch dependencies at task start, after prerequisite merge notification, and before submitting a PR; this policy does not configure background automation. Independent early work and its synchronization follow section 15.1. Planning and workflow documentation that prepares the stages may target `integration` directly through a PR.
+
+Promote `integration` to `main` only after Jordi2801K explicitly requests the integration verification; one assigned person or agent coordinates that promotion. The current private-repository plan does not support GitHub branch protection, so PR/review and no-direct-push rules are manual team policy. Only push directly to `main` when Jordi2801K explicitly requests that specific change. Do not force push shared branches, reset user changes, rewrite unrelated files, or mix formatting-only changes with feature work.
 
 ### GitHub CLI and Network Access
 
