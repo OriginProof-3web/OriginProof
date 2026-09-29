@@ -20,6 +20,10 @@ PR #19 is merged. The long-lived `integration` branch starts from the resulting 
 
 Run integration verification and open an `integration` → `main` PR only when Jordi2801K explicitly requests it; coordinate each promotion through one assigned person or agent. The current private-repository plan does not support GitHub branch protection, so follow the PR, review, and no-direct-push rules as team policy. Preserve `mvp/integration` as an MVP-era snapshot and use the `mvp-final` tag for the verified MVP completion commit.
 
+## Contribution records
+
+Use the [portfolio recording guide](docs/portfolio/README.md) and [PR template](.github/pull_request_template.md) during development. Task PRs preserve detailed contribution and verification evidence; each member links those PRs in a separate record for each completed stage. Keep personal, collaborative, and AI-assisted work distinguishable, and include the records in the phase completion review.
+
 ## Original MVP bootstrap
 
 This repository must be bootstrapped once before four people work in parallel.

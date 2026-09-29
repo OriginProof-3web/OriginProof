@@ -207,6 +207,12 @@ Before creating files, state which `AGENTS.md` files apply. Ask before destructi
 6. Another team member can reproduce the result.
 7. The final report lists changed files, executed commands, actual results and remaining risks.
 
+## 14A. Contribution Evidence
+
+Read `docs/portfolio/README.md` and `.github/pull_request_template.md` for every task PR, whether or not the UI inserts the template. Record the actual owner, phase/task IDs, personal versus reused/collaborative work, decisions, significant failure/root-cause/fix evidence, AI assistance and human judgment, tested SHA/environment/results, and remaining limits. Use the same fields with CLI PR bodies. Never invent measurements, contribution percentages, another person's approval, or Git author identity.
+
+Before finishing an assigned phase, update that person's `docs/portfolio/Wn-ROLE.md` with links to the source PRs and evidence. Create only records for actual work. The phase coordinator links all four personal records and actual reviewer confirmation in the phase completion PR before freezing the phase branch. Record-only additions after freezing target `integration`; preserve the original snapshot. Follow the guide for redaction and durable evidence; recording work does not authorize external publication or messaging teammates.
+
 ## 15. Handoff Format
 
 When another owner must change something, create a short handoff with:
