@@ -20,7 +20,10 @@ Expected final output:
 
 ```text
 MVP HTTP E2E passed: VERIFIED + ACTIVE; TAMPERED + AMOUNT_MISMATCH
+Demo ready — open: http://127.0.0.1:3000
 ```
+
+The displayed URL is clickable in modern terminals, including the Codex terminal.
 
 ## Explain the two results
 

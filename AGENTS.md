@@ -32,7 +32,16 @@ Required results:
 2. Changed amount: `TAMPERED` and `AMOUNT_MISMATCH`.
 3. AI never returns authenticity status.
 4. No real bank, customer, card, or transaction data is used.
-5. The MVP has no interactive frontend. Use Swagger, CLI, and JSON reports.
+5. The original two-day MVP gate used Swagger, CLI, and JSON reports; this restriction does not apply to post-MVP web development.
+
+## 3A. Finals Development Scope
+
+The initial MVP gate is complete. Read `docs/development_plan.md` for finals work: seven development
+weeks followed by two presentation days. The required product includes user verification, an issuer
+console, and operator views for issuer approval, public key management, and Proof issuance/revocation.
+The plan describes target behavior, not completed implementation. Preserve approved model, Schema,
+signing, and ABI contracts until their owners review a change. The plan is the canonical planning
+document; do not maintain a competing copy outside the repository.
 
 ## 4. Fixed Stack
 
@@ -53,7 +62,7 @@ Do not replace a fixed technology or add an equivalent framework without an acce
 Before editing:
 
 1. Current issue and acceptance criteria
-2. This root file and `START_HERE.md`
+2. This root file, `START_HERE.md`, and the relevant scope, weekly deliverables, and acceptance criteria in `docs/development_plan.md`
 3. Every deeper `AGENTS.md` between root and the target file
 4. Relevant Schema, OpenAPI, ABI, ADR, test and fixture
 5. `git status` and existing user changes
@@ -149,6 +158,12 @@ mvp/integration
 ```
 
 Only M1 merges into `mvp/integration` and `main`; Kim Hyeongjun (`@kimhyounjun`) supports review and integration coordination. Do not force push shared branches, reset user changes, rewrite unrelated files, or mix formatting-only changes with feature work. A newly created integration branch with no dependent PRs may be corrected to the verified `main` SHA only with M1's explicit authorization and a team notice.
+
+### GitHub CLI and Network Access
+
+1. Use `gh` for GitHub pull request, issue, branch, and workflow operations. Use the browser only when the CLI and available GitHub connectors cannot complete the task or the task requires the UI.
+2. A network error from a sandboxed shell does not establish that GitHub CLI authentication is invalid. Retry the same `gh` command with network access enabled before diagnosing the login or switching to the browser.
+3. Each teammate authenticates on their own machine and checks `gh auth status` with network access available. Never copy or commit tokens, and never ask teammates to share credentials.
 
 ## 12. Required Commands
 
