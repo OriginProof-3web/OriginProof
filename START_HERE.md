@@ -12,6 +12,10 @@ The initial MVP gate is complete. The startup sequence below is retained as the 
 record. Use the current agreed integration base for new work rather than restarting from the old
 bootstrap commit. Finals work includes the user verification app, issuer console, and operator views.
 
+## Finals branch flow
+
+PR #19 is merged. The long-lived `integration` branch starts from the resulting `main`. Create task branches from the latest `integration` and target their PRs to `integration`. Run integration verification and open an `integration` → `main` PR only when Jordi2801K explicitly requests it; coordinate each promotion through one assigned person or agent. The current private-repository plan does not support GitHub branch protection, so follow the PR, review, and no-direct-push rules as team policy. Preserve `mvp/integration` as an MVP-era snapshot and use the `mvp-final` tag for the verified MVP completion commit.
+
 ## Original MVP bootstrap
 
 This repository must be bootstrapped once before four people work in parallel.
@@ -39,7 +43,7 @@ make env-fingerprint
 
 Do not start feature work when the SHA, lockfile hashes, Schema hash, ABI hash, or smoke result differs.
 
-## Branches
+## Historical MVP branches
 
 ```text
 mvp/backend

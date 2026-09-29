@@ -147,7 +147,7 @@ M1 owns Backend, shared Python contracts, and final integration and merge decisi
 
 ## 11. Git and Merge Safety
 
-All four branches start from the same bootstrap commit SHA.
+The following branch scheme is the historical MVP workflow; do not use it for finals work.
 
 ```text
 mvp/backend
@@ -157,7 +157,7 @@ mvp/chain-integration
 mvp/integration
 ```
 
-Only M1 merges into `mvp/integration` and `main`; Kim Hyeongjun (`@kimhyounjun`) supports review and integration coordination. Do not force push shared branches, reset user changes, rewrite unrelated files, or mix formatting-only changes with feature work. A newly created integration branch with no dependent PRs may be corrected to the verified `main` SHA only with M1's explicit authorization and a team notice.
+Only M1 merged into `mvp/integration` and `main` during the MVP; Kim Hyeongjun (`@kimhyounjun`) supported review and integration coordination. For finals, create task branches from `integration` and target PRs to `integration`. Promote `integration` to `main` only after Jordi2801K explicitly requests the integration verification; one assigned person or agent coordinates that promotion. The current private-repository plan does not support GitHub branch protection, so PR/review and no-direct-push rules are manual team policy. Only push directly to `main` when Jordi2801K explicitly requests that specific change. Do not force push shared branches, reset user changes, rewrite unrelated files, or mix formatting-only changes with feature work.
 
 ### GitHub CLI and Network Access
 
