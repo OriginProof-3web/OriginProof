@@ -18,7 +18,7 @@ Required flow:
 
 ```text
 Synthetic card notice image or text
--> GPT-5.6 Luna field extraction
+-> GPT-6 Luna field extraction
 -> Pydantic validation
 -> Signed Proof lookup
 -> signature and canonical payload comparison
@@ -52,7 +52,7 @@ document; do not maintain a competing copy outside the repository.
 3. SQLAlchemy 2, Alembic, PostgreSQL
 4. Redis, Celery
 5. OpenAI Responses API through `LLMProvider`
-6. Default model from `OPENAI_MODEL`, default value `gpt-5.6-luna`
+6. Default model from `OPENAI_MODEL`, default value `gpt-6-luna`
 7. Solidity, Foundry, OpenZeppelin, local EVM; testnet is an optional finals extension
 8. Next.js and TypeScript only after the two-day MVP
 9. Docker Compose, Makefile, GitHub Actions

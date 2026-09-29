@@ -13,7 +13,7 @@ Edit analyzer code, prompts and synthetic MVP fixtures. Request shared model cha
 Never decide authenticity, query the Registry as an AI step, expose raw provider output, log API keys or use real bank and card data.
 
 ## 5. Contracts
-Return `CardPaymentNoticeCandidate` only. Read `OPENAI_MODEL` with default `gpt-5.6-luna`. Keep Provider-specific objects inside the adapter. Use null for absent input fields.
+Return `CardPaymentNoticeCandidate` only. Read `OPENAI_MODEL` with default `gpt-6-luna`. Keep Provider-specific objects inside the adapter. Use null for absent input fields.
 
 ## 6. Required Tests
 Run Mock Provider unit tests, normal and changed notice extraction tests, refusal, timeout, incomplete and schema-mismatch tests. Live OpenAI tests are opt-in.
