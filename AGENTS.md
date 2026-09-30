@@ -45,6 +45,14 @@ The plan describes target behavior, not completed implementation. Preserve appro
 signing, and ABI contracts until their owners review a change. The plan is the canonical planning
 document; do not maintain a competing copy outside the repository.
 
+When Jordi asks about his development plan for any W1–W7 stage or multi-stage bundle, include a
+task-by-task dependency split without waiting for a separate request: work he can implement without
+teammates' code, and work that needs a teammate's implementation to connect or finish. Name the C
+task IDs and exact prerequisite owner/task IDs; distinguish an approved contract or design decision
+from merged implementation, and distinguish work that can start from work that can be marked complete.
+Mention phase-wide UI/review/test dependencies separately from dependencies of Jordi's own tasks.
+Check current branch/PR evidence before describing a planned dependency as already available.
+
 ## 4. Fixed Stack
 
 1. Python, uv workspace
@@ -160,6 +168,8 @@ mvp/integration
 ```
 
 Only M1 merged into `mvp/integration` and `main` during the MVP; Kim Hyeongjun (`@kimhyounjun`) supported review and integration coordination. For finals implementation, follow sections 14 and 15.1 of `docs/development_plan.md`: task branches target the active `phase/W1`–`phase/W7` branch; completed stages promote to `integration` through reviewed PRs. Preserve each completed phase branch at its final SHA as a portfolio snapshot; never delete, reuse, or advance it. Multi-stage bundles still require separate phase PRs and task acceptance evidence. Fetch dependencies at task start, after prerequisite merge notification, and before submitting a PR; this policy does not configure background automation. Independent early work and its synchronization follow section 15.1. Planning and workflow documentation that prepares the stages may target `integration` directly through a PR.
+
+After checking a prerequisite contract or implementation that teammates need, push the owned work branch and hand off its URL, SHA, verified scope, and unresolved decisions before ending the task. A shared preparation branch is not an approved contract or a completed phase PR.
 
 Promote `integration` to `main` only after Jordi2801K explicitly requests the integration verification; one assigned person or agent coordinates that promotion. The current private-repository plan does not support GitHub branch protection, so PR/review and no-direct-push rules are manual team policy. Only push directly to `main` when Jordi2801K explicitly requests that specific change. Do not force push shared branches, reset user changes, rewrite unrelated files, or mix formatting-only changes with feature work.
 
