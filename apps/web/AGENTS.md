@@ -1,25 +1,21 @@
 # Web Agent Instructions
 
-## 1. Scope
-Applies to `apps/web`. Read the root `AGENTS.md` first.
+## 1. 적용 범위와 담당
 
-## 2. Responsibility
-This path owns the post-MVP Next.js User App, Issuer Console, Admin views, accessibility and result language.
+`apps/web/`에 적용하며 루트 `AGENTS.md`를 먼저 읽습니다.
 
-## 3. Allowed Changes
-Use generated TypeScript SDK and feature directories. Begin implementation only after the two-day backend-first MVP Gate.
+A가 사용자·발행기관·운영자 화면, UX·접근성·브라우저 동선을 담당합니다. MVP Gate는 완료되었으므로 화면 착수의 대기 조건으로 사용하지 않습니다.
 
-## 4. Prohibited Changes
-Do not duplicate verification rules, call OpenAI directly, store secrets in browser code or label `NOT_REGISTERED` as fake.
+## 2. 구현·계약 규칙
 
-## 5. Contracts
-Use OpenAPI-generated types. Display Verification Status and Lifecycle Status separately. Keep loading, empty, partial and error states.
+승인된 모델/API의 생성 타입을 사용하고 API가 없으면 합의된 예시·mock으로 화면 검사를 진행합니다. UI에서 진위·권한을 독자 판정하거나 브라우저에 비밀키를 저장하지 않습니다. API 연결 전 화면 성공을 실제 발행/폐기/consume 성공으로 기록하지 않습니다.
 
-## 6. Required Tests
-Run TypeScript typecheck, component tests, accessibility checks and Playwright E2E for supported flows.
+검증 상태와 lifecycle, ID 조회와 내용 비교를 구분합니다. VERIFIED라도 만료·폐기·소비 상태이면 사용 가능이라고 표시하지 않습니다. 로그인 만료·권한 거부·대기·실패·재시도·빈 결과를 제공하고 조회가 consume을 호출하지 않게 합니다. QR/링크에는 공개 Proof ID만 넣습니다.
 
-## 7. Completion
-Mobile and desktop flows show accurate evidence and safe next actions without overstating legal or security guarantees.
+## 3. 검증과 완료
 
-## 8. Handoff
-API contract issues go to the Backend owner with route, request, response and failing generated type.
+기존 package scripts의 lint·typecheck·component·build와 관련 Playwright E2E를 실행합니다. 키보드·모바일/데스크톱·오류 문구를 검사하고 실제 API·새 사용자 세션에서 핵심 흐름을 확인합니다. 휴대폰 QR는 실제 LAN 환경에서 검증한 경우만 성공으로 기록합니다.
+
+## 4. 인계
+
+C에게 route·입력·응답·필드 오류·생성 타입 불일치를 전달하고 D와 실패·접근성을 확인합니다. 각 작업의 실제 API 연결 전까지는 독립 화면 검사의 완료만 보고합니다.
