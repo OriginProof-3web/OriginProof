@@ -5,7 +5,7 @@
 - 상태: 독립 산출물 검증 완료 / C 연결·작성자 외 리뷰 대기
 - 작업 ID·작업 묶음: `W1-B1`, `W1-B2` / 신뢰 기반
 - 단계 브랜치 / 시작 기준 SHA / 검증한 코드 SHA: `phase/W1` 예정 / `3295a71c10a1a99c523d3cfefde91b5737b737ac` / 동일 SHA
-- 단계 완료 PR: 생성 전; 작업 PR 생성 후 갱신
+- 단계 완료 PR: 미생성; B 작업 PR [#26](https://github.com/OriginProof-3web/OriginProof/pull/26)
 
 ## 목표와 실제 결과
 
@@ -21,8 +21,8 @@ write Adapter와 강화된 manifest는 W2 입력이다.
 
 | 작업 ID | 본인이 수행한 일 | 재사용·다른 담당자 기여 | 근거 | 상태 |
 | --- | --- | --- | --- | --- |
-| W1-B1 | 실제 Issuer/Key ABI·권한·Reader·배포 조사, Adapter 명령/반환/오류/확정/조회 계약 작성 | 기존 MVP Registry/Reader와 C PR #23의 신청 상태 초안 재사용 | `docs/blockchain/w1_registry_adapter_contract.md` | 독립 완료 |
-| W1-B2 | 권한·키 분리, 상태 전이, ProofStatusRegistry ABI, gateway/binding, receipt·복구·재배포 명세 작성 | 승인된 ADR 0001 정책 재사용; W1-C3 검토 대기 | 같은 문서 4~10절 | 독립 완료, 연결 대기 |
+| W1-B1 | 실제 Issuer/Key ABI·권한·Reader·배포 조사, Adapter 명령/반환/오류/확정/조회 계약 작성 | 기존 MVP Registry/Reader와 C PR #23의 신청 상태 초안 재사용 | 작업 PR [#26](https://github.com/OriginProof-3web/OriginProof/pull/26) | 독립 완료 |
+| W1-B2 | 권한·키 분리, 상태 전이, ProofStatusRegistry ABI, gateway/binding, receipt·복구·재배포 명세 작성 | 승인된 ADR 0001 정책 재사용; W1-C3 검토 대기 | 작업 PR [#26](https://github.com/OriginProof-3web/OriginProof/pull/26) | 독립 완료, 연결 대기 |
 
 ## 주요 결정과 문제 해결
 
