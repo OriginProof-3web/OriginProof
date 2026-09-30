@@ -1,25 +1,21 @@
 # Documentation Agent Instructions
 
-## 1. Scope
-Applies to `docs`. Read the root `AGENTS.md` first.
+## 1. 적용 범위와 담당
 
-## 2. Responsibility
-This path records accepted architecture, API, Schema, security, runbooks, demo instructions and ADRs.
+`docs/`에 적용하며 루트 `AGENTS.md`를 먼저 읽습니다.
 
-## 3. Allowed Changes
-Update documentation in the same PR as behavior. Preserve superseded decisions through ADR status.
+C가 공통 개발 계획·기술 결정 문서를 조율하고 각 담당자가 자기 API·Schema·보안·재현 문서와 기여 근거를 유지합니다.
 
-## 4. Prohibited Changes
-Do not describe unimplemented behavior as complete or include secrets, real data and private endpoints.
+## 2. 구현·계약 규칙
 
-## 5. Contracts
-Commands, paths, statuses and examples must match the current source and generated artifacts.
+개발 계획서는 docs/development_plan.md 하나를 기준본으로 유지합니다. 확정 정책은 ADR과 연결하고 구현 전/독립 구현/연결 검증 상태를 명확히 씁니다. 문서 승인과 소유자 코드 리뷰를 구분합니다.
 
-## 6. Required Tests
-Run link, command, path and example validation where available.
+현재 실행 안내의 명령·경로·상태·예시는 소스와 일치해야 합니다. 구현 예정 계약은 목표 버전·영향 작업·전환 정책을 명시하며 현재 API로 소개하지 않습니다. 과거 MVP 기록은 과거 기록으로 보존하고 현재 착수 기준으로 재사용하지 않습니다. 비밀값·실데이터·사설 endpoint를 기록하지 않습니다.
 
-## 7. Completion
-Another team member can reproduce the documented flow from a clean clone.
+## 3. 검증과 완료
 
-## 8. Handoff
-Documentation-only gaps cite the owning code path, observed behavior and desired correction.
+링크·경로·명령과 역할/권한/상태/버전의 문서 간 일관성을 확인합니다. 문서만 바꾼 경우 기능 테스트나 다른 사람의 승인을 만들어내지 않습니다. 생성물 변경을 요구하는 정책에는 후속 구현·검사를 연결합니다.
+
+## 4. 인계
+
+변경한 결정·근거·담당·영향 작업 ID·현재 구현 차이·검증/미실행 이유를 기록합니다. 결정이 대체되면 ADR의 상태와 대체 문서를 연결하고 이전 결정 근거를 보존합니다.
