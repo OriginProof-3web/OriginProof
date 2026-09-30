@@ -5,7 +5,10 @@ on:
   push:
     branches:
       - main
-      - "bootstrap/**"
+      - integration
+      - "phase/**"
+      - "docs/**"
+      - "chore/**"
       - "feat/**"
       - "fix/**"
 
