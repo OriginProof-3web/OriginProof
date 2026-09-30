@@ -9,6 +9,9 @@ from originproof_core.ports import DependencyUnavailableError
 ISSUER = "iss_origin_mock_bank"
 KEY = "key_origin_mock_bank_001"
 SIGNER = "0x" + "11" * 20
+GENESIS_HASH = "0x" + "aa" * 32
+DEPLOYMENT_HASH = "0x" + "bb" * 32
+DEPLOYMENT_ID = "dep_" + "cc" * 32
 
 
 def word(value):
@@ -22,10 +25,28 @@ def manifest(tmp_path):
         json.dumps(
             {
                 "chain_id": 31337,
+                "genesis_block_hash": GENESIS_HASH,
+                "deployment_id": DEPLOYMENT_ID,
                 "deployment_block": 1,
+                "deployment_block_hash": DEPLOYMENT_HASH,
+                "source_commit_sha": "d" * 40,
                 "contracts": {
-                    "IssuerRegistry": {"address": "0x" + "22" * 20},
-                    "IssuerKeyRegistry": {"address": "0x" + "33" * 20},
+                    "IssuerRegistry": {
+                        "address": "0x" + "22" * 20,
+                        "constructor_arguments": ["0x" + "44" * 20],
+                        "abi_sha256": "1" * 64,
+                    },
+                    "IssuerKeyRegistry": {
+                        "address": "0x" + "33" * 20,
+                        "constructor_arguments": ["0x" + "44" * 20, "0x" + "22" * 20],
+                        "abi_sha256": "2" * 64,
+                    },
+                },
+                "roles": {
+                    "registry_admin": "0x" + "44" * 20,
+                    "issuer_manager": "0x" + "55" * 20,
+                    "key_manager": "0x" + "66" * 20,
+                    "issuer_account": "0x" + "77" * 20,
                 },
             }
         )
@@ -52,6 +73,11 @@ def transport(issuer=1, key=1, fault=None, calls=None):
             result = "0x0" if fault == "stale" else "0x8"
         elif method == "eth_getCode":
             result = "0x" if fault == "code" else "0x6000"
+        elif method == "eth_getBlockByNumber":
+            expected = GENESIS_HASH if params[0] == "0x0" else DEPLOYMENT_HASH
+            if fault == "deployment" and params[0] != "0x0":
+                expected = "0x" + "ff" * 32
+            result = {"hash": expected}
         else:
             selector = params[0]["data"][2:10]
             if selector == digest("issuerStatus(bytes32)")[:4].hex():
@@ -142,6 +168,7 @@ async def test_validity_and_snapshot(manifest, at, issuer, key, valid):
         "chain",
         "stale",
         "code",
+        "deployment",
         "unknown_issuer",
         "address",
         "timestamp",
@@ -178,7 +205,10 @@ def test_invalid_manifest(tmp_path):
         JsonRpcBlockchainReader("http://test", tmp_path / "missing", issuer_ids=[ISSUER])
 
 
-@pytest.mark.parametrize("change", ["chain", "address", "block", "same_address"])
+@pytest.mark.parametrize(
+    "change",
+    ["chain", "address", "block", "same_address", "deployment_id", "abi", "roles"],
+)
 def test_manifest_validation(manifest, change):
     data = json.loads(manifest.read_text())
     if change == "chain":
@@ -187,8 +217,14 @@ def test_manifest_validation(manifest, change):
         data["deployment_block"] = -1
     elif change == "address":
         data["contracts"]["IssuerRegistry"]["address"] = "0x" + "00" * 20
-    else:
+    elif change == "same_address":
         data["contracts"]["IssuerRegistry"] = data["contracts"]["IssuerKeyRegistry"]
+    elif change == "deployment_id":
+        data["deployment_id"] = "old-deployment"
+    elif change == "abi":
+        data["contracts"]["IssuerRegistry"]["abi_sha256"] = "not-a-hash"
+    else:
+        data["roles"]["issuer_manager"] = data["roles"]["registry_admin"]
     manifest.write_text(json.dumps(data))
     with pytest.raises(DependencyUnavailableError):
         JsonRpcBlockchainReader("http://test", manifest, issuer_ids=[ISSUER])

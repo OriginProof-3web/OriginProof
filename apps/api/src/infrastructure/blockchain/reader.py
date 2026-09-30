@@ -2,11 +2,9 @@
 
 from __future__ import annotations
 
-import json
 import re
 from datetime import UTC, datetime
 from itertools import count
-from pathlib import Path
 
 import httpx
 from Crypto.Hash import keccak
@@ -18,17 +16,15 @@ from originproof_core.ports import (
     KeyTrustStatus,
 )
 
+from .manifest import load_manifest, validate_address
+
 
 def digest(text: str) -> bytes:
     return keccak.new(digest_bits=256, data=text.encode("utf-8")).digest()
 
 
 def address(value):
-    if not isinstance(value, str) or not re.fullmatch(r"0x[0-9a-fA-F]{40}", value):
-        raise ValueError("invalid address")
-    if int(value, 16) == 0:
-        raise ValueError("zero address")
-    return value
+    return validate_address(value)
 
 
 def uint(word, bits):
@@ -50,16 +46,13 @@ class JsonRpcBlockchainReader:
         client=None,
     ):
         try:
-            manifest = json.loads(Path(manifest_path).read_text())
-            if type(manifest["chain_id"]) is not int or manifest["chain_id"] != expected_chain_id:
-                raise ValueError("wrong manifest chain")
-            self._deployment_block = manifest["deployment_block"]
-            if type(self._deployment_block) is not int or self._deployment_block < 0:
-                raise ValueError("invalid deployment block")
-            self._issuer = address(manifest["contracts"]["IssuerRegistry"]["address"])
-            self._key = address(manifest["contracts"]["IssuerKeyRegistry"]["address"])
-            if self._issuer.lower() == self._key.lower():
-                raise ValueError("duplicate contract address")
+            manifest = load_manifest(manifest_path, expected_chain_id)
+            self._deployment_block = manifest.deployment_block
+            self._deployment_block_hash = manifest.deployment_block_hash
+            self._genesis_block_hash = manifest.genesis_block_hash
+            self.deployment_id = manifest.deployment_id
+            self._issuer = manifest.contract("IssuerRegistry").address
+            self._key = manifest.contract("IssuerKeyRegistry").address
             self._issuers = {}
             for identifier in issuer_ids:
                 self._id(identifier, "iss_")
@@ -165,6 +158,17 @@ class JsonRpcBlockchainReader:
             block = await self._rpc(client, "eth_blockNumber", [])
             if not isinstance(block, str) or int(block, 16) < self._deployment_block:
                 raise ValueError("stale manifest")
+            genesis = await self._rpc(client, "eth_getBlockByNumber", ["0x0", False])
+            deployed = await self._rpc(
+                client, "eth_getBlockByNumber", [hex(self._deployment_block), False]
+            )
+            if (
+                not isinstance(genesis, dict)
+                or not isinstance(deployed, dict)
+                or genesis.get("hash", "").lower() != self._genesis_block_hash
+                or deployed.get("hash", "").lower() != self._deployment_block_hash
+            ):
+                raise ValueError("deployment identity mismatch")
             for contract in (self._issuer, self._key):
                 code = await self._rpc(client, "eth_getCode", [contract, block])
                 if not isinstance(code, str) or not re.fullmatch(r"0x(?:[0-9a-fA-F]{2})+", code):

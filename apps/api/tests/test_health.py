@@ -1,3 +1,5 @@
+import json
+
 from httpx import ASGITransport, AsyncClient
 from infrastructure.blockchain import JsonRpcBlockchainReader
 from originproof_api.main import (
@@ -41,9 +43,34 @@ def test_incomplete_chain_configuration_is_unavailable() -> None:
 def test_complete_chain_configuration_selects_reader(tmp_path) -> None:
     manifest = tmp_path / "31337.local.json"
     manifest.write_text(
-        '{"chain_id":31337,"deployment_block":1,"contracts":'
-        '{"IssuerRegistry":{"address":"0x1111111111111111111111111111111111111111"},'
-        '"IssuerKeyRegistry":{"address":"0x2222222222222222222222222222222222222222"}}}'
+        json.dumps(
+            {
+                "chain_id": 31337,
+                "genesis_block_hash": "0x" + "a" * 64,
+                "deployment_id": "dep_" + "b" * 64,
+                "deployment_block": 1,
+                "deployment_block_hash": "0x" + "c" * 64,
+                "source_commit_sha": "d" * 40,
+                "contracts": {
+                    "IssuerRegistry": {
+                        "address": "0x" + "11" * 20,
+                        "constructor_arguments": ["0x" + "33" * 20],
+                        "abi_sha256": "1" * 64,
+                    },
+                    "IssuerKeyRegistry": {
+                        "address": "0x" + "22" * 20,
+                        "constructor_arguments": ["0x" + "33" * 20, "0x" + "11" * 20],
+                        "abi_sha256": "2" * 64,
+                    },
+                },
+                "roles": {
+                    "registry_admin": "0x" + "33" * 20,
+                    "issuer_manager": "0x" + "44" * 20,
+                    "key_manager": "0x" + "55" * 20,
+                    "issuer_account": "0x" + "66" * 20,
+                },
+            }
+        )
     )
 
     reader = configured_blockchain_reader(
