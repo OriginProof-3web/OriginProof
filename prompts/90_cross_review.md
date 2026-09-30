@@ -1,12 +1,12 @@
-# Cross Review Prompt
+# 본선 교차 리뷰 프롬프트
 
-Review the assigned teammate PR from a clean worktree or clone. Read root and applicable `AGENTS.md` before inspecting the diff.
+지정된 PR을 clean worktree/clone에서 검토하세요. 루트·해당 경로 AGENTS, 개발 계획서의 작업 ID·ADR, PR 기여 기록을 읽으세요.
 
-1. Confirm the PR starts from the agreed bootstrap or integration SHA.
-2. Run `python scripts/ci/validate_structure.py`, `make env-check`, and `make env-fingerprint`.
-3. Compare lockfile, Schema, ABI, and Git hashes with the expected environment fingerprint.
-4. Run the owner's narrow tests and the relevant integration or E2E test.
-5. Check path ownership, generated-file policy, secret/privacy rules, AI decision boundaries, and undocumented public-contract changes.
-6. Do not edit the PR merely to hide a failure. Report a minimal reproducible failure and target owner.
+1. 작업 PR은 해당 phase/Wn, 계획·운영 문서는 integration 대상인지 확인하세요. 준비 branch의 독립 구현과 실제 연결 조건을 구분하고 완료 phase를 수정하지 마세요.
+2. 기준·검증 SHA와 원격 선행 PR을 확인하고 변경 영역에 맞는 구조·환경·생성물·코드 검사를 실행하세요. 문서만 바뀌면 링크·규칙·경로·diff를 검사하며 서비스 기동을 강제하지 마세요.
+3. 실제 통합/재현은 같은 SHA·lockfile·Schema·ABI·배포 기준으로 비교하세요. 호스트 forge는 컨테이너 경로의 필수 조건이 아닙니다.
+4. 권한·개인정보·AI 판정 금지·v1 회귀·v2 정책·생성물과 소비자 계약을 확인하세요. mock 성공을 실제 체인/브라우저 완료로 인정하지 마세요.
+5. PR 작성자 외 리뷰와 기여·실패 해결·검증 근거를 확인하세요. 실행하지 않은 검사는 미실행으로 보고하세요.
+6. 실패를 숨기기 위한 수정 대신 재현 입력·SHA·담당자·최소 수정안을 보고하세요. 승인되지 않은 다른 팀원 branch 병합이나 main 승격은 하지 마세요.
 
-Return: verdict, commands actually run, results, contract changes, security/privacy findings, reproducibility result, and required fixes.
+결과: 판정, 실제 검사·환경·SHA, 정책/계약 영향, 독립·연결 완료 범위, 필요한 수정과 담당자.

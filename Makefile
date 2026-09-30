@@ -12,7 +12,7 @@ WORKSPACE_PYTHONPATH := apps/api/src:packages/python:services/analyzer/src
 	test test-api test-analyzer test-contracts test-integration mvp-test lint typecheck build smoke generate security
 
 help:
-	@printf '%s\n' 'OriginProof MVP commands: demo demo-stop bootstrap env-check mvp-up seed smoke mvp-test lint typecheck'
+	@printf '%s\n' 'OriginProof commands (MVP regression retained): demo demo-stop bootstrap env-check mvp-up seed smoke mvp-test lint typecheck'
 
 bootstrap:
 	@test -f .env || cp .env.example .env

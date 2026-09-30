@@ -1,7 +1,7 @@
 [project]
 name = "originproof-workspace"
 version = "0.1.0"
-description = "OriginProof two-day MVP workspace"
+description = "OriginProof verification platform workspace"
 requires-python = ">=3.13,<3.14"
 dependencies = []
 
@@ -17,7 +17,7 @@ dev = [
 members = ["apps/api", "services/analyzer", "packages/python"]
 
 [tool.pytest.ini_options]
-testpaths = ["apps/api/tests", "packages/python/tests", "services/analyzer/tests"]
+testpaths = ["apps/api/tests", "packages/python/tests", "services/analyzer/tests", "scripts/ci"]
 asyncio_mode = "auto"
 
 [tool.ruff]
