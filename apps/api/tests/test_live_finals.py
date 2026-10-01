@@ -2,11 +2,13 @@
 
 import asyncio
 import os
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from infrastructure.blockchain.writer import ChainOperationState
 from originproof_api.accounts import password_hash
 from originproof_api.database import AccountRow, Database, FinalsProofRow
 from originproof_api.main import create_app
@@ -161,5 +163,108 @@ async def test_live_two_types_signing_storage_and_comparison(tmp_path):
                         )
                     )
                     assert len(rows) == 1
+
+                old_key_id = envelope.key_id
+                rotation = {
+                    "request_id": f"req_rotate_{kind}_{suffix}",
+                    "reason": "normal rotation",
+                    "valid_from": (now - timedelta(minutes=1)).isoformat(),
+                    "valid_until": (now + timedelta(days=1)).isoformat(),
+                }
+                rotated = await client.post("/v1/issuer/keys/rotate", json=rotation)
+                assert rotated.json()["status"] == "CONFIRMED", rotated.text
+                assert rotated.json()["action"] == "rotate_key"
+                again = await client.post("/v1/issuer/keys/rotate", json=rotation)
+                assert again.json()["operation_id"] == rotated.json()["operation_id"]
+                subsequent = await client.post(
+                    "/v2/issuer/proofs",
+                    json=body | {"request_id": f"req_after_rotation_{kind}_{suffix}"},
+                )
+                assert subsequent.json()["key_id"] == rotated.json()["target_id"]
+                assert subsequent.json()["key_id"] != old_key_id
+                historical = await anonymous.post(f"/v2/proofs/{proof_id}/verify", json=query)
+                assert historical.json()["verification_status"] == "VERIFIED"
+                assert not historical.json()["reason_codes"]
+                # A future registration must not take the current issuing selection.
+                future = await client.post(
+                    "/v1/issuer/keys",
+                    json=rotation
+                    | {
+                        "request_id": f"req_future_key_{kind}_{suffix}",
+                        "valid_from": (now + timedelta(hours=1)).isoformat(),
+                        "valid_until": (now + timedelta(hours=2)).isoformat(),
+                    },
+                )
+                assert future.json()["status"] == "CONFIRMED", future.text
+                key_list = (await client.get("/v1/issuer/keys")).json()
+                assert [k["key_id"] for k in key_list if k["selected"]] == [
+                    rotated.json()["target_id"]
+                ]
+                # A real unauthorized contract submission must not switch selected key.
+                writer = app.state.chain_management.writer
+                original_prepare = writer.prepare_register_key
+
+                async def unauthorized_prepare(*args, _prepare=original_prepare, **kwargs):
+                    return await _prepare(
+                        app.state.chain_management.manifest.roles["registry_admin"],
+                        *args[1:],
+                        **kwargs,
+                    )
+
+                writer.prepare_register_key = unauthorized_prepare
+                try:
+                    failed = await client.post(
+                        "/v1/issuer/keys/rotate",
+                        json=rotation | {"request_id": f"req_failed_rotate_{kind}_{suffix}"},
+                    )
+                    assert failed.json()["status"] == "FAILED", failed.text
+                finally:
+                    writer.prepare_register_key = original_prepare
+                selected_keys = (await client.get("/v1/issuer/keys")).json()
+                assert [k["key_id"] for k in selected_keys if k["selected"]] == [
+                    rotated.json()["target_id"]
+                ]
+                original_confirm = writer.confirm_prepared
+
+                async def defer_confirmation(prepared, tx_hash, _confirm=original_confirm):
+                    result = await _confirm(prepared, tx_hash)
+                    assert result.state == ChainOperationState.CONFIRMED
+                    return replace(
+                        result, state=ChainOperationState.UNKNOWN, error_code="STATE_NOT_CONFIRMED"
+                    )
+
+                writer.confirm_prepared = defer_confirmation
+                try:
+                    older = await client.post(
+                        "/v1/issuer/keys/rotate",
+                        json=rotation | {"request_id": f"req_older_unknown_{kind}_{suffix}"},
+                    )
+                    assert older.json()["status"] == "UNKNOWN", older.text
+                finally:
+                    writer.confirm_prepared = original_confirm
+                newer = await client.post(
+                    "/v1/issuer/keys/rotate",
+                    json=rotation | {"request_id": f"req_newer_confirmed_{kind}_{suffix}"},
+                )
+                assert newer.json()["status"] == "CONFIRMED", newer.text
+                recovered = await client.post(
+                    f"/v1/operations/{older.json()['operation_id']}/recover"
+                )
+                assert recovered.json()["status"] == "CONFIRMED", recovered.text
+                key_list = (await client.get("/v1/issuer/keys")).json()
+                assert [k["key_id"] for k in key_list if k["selected"]] == [
+                    newer.json()["target_id"]
+                ]
+                revoked = await client.post(
+                    f"/v1/issuer/keys/{old_key_id}/revoke",
+                    json={
+                        "request_id": f"req_old_compromise_{kind}_{suffix}",
+                        "reason": "synthetic compromise",
+                    },
+                )
+                assert revoked.json()["status"] == "CONFIRMED", revoked.text
+                historical = await anonymous.post(f"/v2/proofs/{proof_id}/verify", json=query)
+                assert historical.json()["verification_status"] == "VERIFIED"
+                assert "ISSUER_KEY_REVOKED" in historical.json()["reason_codes"]
     finally:
         await database.dispose()
