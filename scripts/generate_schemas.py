@@ -10,11 +10,21 @@ from originproof_core import (
     VerificationRequest,
     VerificationResult,
 )
+from originproof_core.finals import (
+    FinalsSignedProofEnvelope,
+    FinalsVerificationResult,
+    OfficialDocument,
+    PaymentRequest,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_DIR = ROOT / "packages" / "schemas" / "generated" / "json"
 TYPES_OUTPUT = ROOT / "packages" / "schemas" / "generated" / "types" / "originproof.ts"
 SCHEMAS = {
+    "payment-request-v2.schema.json": PaymentRequest,
+    "official-document-v2.schema.json": OfficialDocument,
+    "signed-proof-envelope-v2.schema.json": FinalsSignedProofEnvelope,
+    "verification-result-v2.schema.json": FinalsVerificationResult,
     "card-payment-notice.schema.json": CardPaymentNotice,
     "card-payment-notice-candidate.schema.json": CardPaymentNoticeCandidate,
     "signed-proof-envelope.schema.json": SignedProofEnvelope,
@@ -26,6 +36,8 @@ SCHEMAS = {
 def typescript_type(schema: dict) -> str:
     if "$ref" in schema:
         return schema["$ref"].rsplit("/", 1)[-1]
+    if "const" in schema:
+        return json.dumps(schema["const"])
     if "anyOf" in schema:
         return " | ".join(typescript_type(item) for item in schema["anyOf"])
     if "enum" in schema:
