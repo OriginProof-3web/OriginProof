@@ -203,6 +203,10 @@ class JsonRpcBlockchainWriter:
         client = self._client or httpx.AsyncClient()
         try:
             await self._verify_deployment(client)
+            latest = await self._rpc(client, "eth_blockNumber", [])
+            if not isinstance(latest, str):
+                raise ValueError("invalid latest block")
+            scan_from_block = int(latest, 16)
             if nonce is None:
                 lock = self._nonce_locks.setdefault(sender, asyncio.Lock())
                 async with lock:
@@ -218,10 +222,6 @@ class JsonRpcBlockchainWriter:
                     reserved.add(nonce)
             if type(nonce) is not int or nonce < 0:
                 raise ValueError("invalid nonce")
-            latest = await self._rpc(client, "eth_blockNumber", [])
-            if not isinstance(latest, str):
-                raise ValueError("invalid latest block")
-            scan_from_block = int(latest, 16)
             fingerprint = "|".join(
                 (
                     self._manifest.deployment_id,

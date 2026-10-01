@@ -288,6 +288,32 @@ async def test_persistence_failure_prevents_submission(manifest):
     assert sends == []
 
 
+@pytest.mark.parametrize("fault", ["transport", "invalid_block"])
+async def test_failed_prepare_does_not_reserve_nonce(manifest, fault):
+    base = transport()
+    fail_once = True
+
+    def handle(request):
+        nonlocal fail_once
+        body = json.loads(request.content)
+        if body["method"] == "eth_blockNumber" and fail_once:
+            fail_once = False
+            if fault == "transport":
+                raise httpx.ConnectError("temporary block RPC outage", request=request)
+            return httpx.Response(
+                200,
+                json={"jsonrpc": "2.0", "id": body["id"], "result": "invalid"},
+            )
+        return base.handle_request(request)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+        adapter = JsonRpcBlockchainWriter("http://test", manifest, client=client)
+        with pytest.raises((httpx.ConnectError, ValueError)):
+            await adapter.prepare_suspend_issuer("0x" + "55" * 20, ISSUER)
+        prepared = await adapter.prepare_suspend_issuer("0x" + "55" * 20, ISSUER)
+    assert prepared.nonce == 5
+
+
 async def test_concurrent_prepare_reserves_distinct_local_nonces(manifest):
     adapter, client = await writer(manifest)
     async with client:
