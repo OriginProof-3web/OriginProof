@@ -92,11 +92,8 @@ class IssuerView(BaseModel):
 async def chain_lock(database):
     # ponytail: serialize local P0 writes across workers; per-sender locks if throughput matters.
     async with database.engine.connect() as connection:
-        await connection.execute(text("SELECT pg_advisory_lock(741031337)"))
-        try:
-            yield
-        finally:
-            await connection.execute(text("SELECT pg_advisory_unlock(741031337)"))
+        await connection.execute(text("SELECT pg_advisory_xact_lock(741031337)"))
+        yield  # Connection rollback also releases the lock after cancellation.
 
 
 class ChainManagement:

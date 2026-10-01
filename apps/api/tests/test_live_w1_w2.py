@@ -126,3 +126,33 @@ async def test_postgres_login_application_and_operation_flow() -> None:
             assert (await a.get("/v1/auth/me")).status_code == 401
     finally:
         await database.dispose()
+
+
+async def test_postgres_chain_lock_releases_on_cancellation():
+    import asyncio
+
+    from originproof_api.chain_management import chain_lock
+    from sqlalchemy import text
+
+    database = Database(os.environ["TEST_DATABASE_URL"])
+    acquired = asyncio.Event()
+
+    async def holding():
+        async with chain_lock(database):
+            acquired.set()
+            await asyncio.Event().wait()
+
+    task = asyncio.create_task(holding())
+    try:
+        await acquired.wait()
+        async with database.engine.connect() as connection:
+            assert not await connection.scalar(text("SELECT pg_try_advisory_xact_lock(741031337)"))
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+        async with database.engine.connect() as connection:
+            assert await connection.scalar(text("SELECT pg_try_advisory_xact_lock(741031337)"))
+    finally:
+        if not task.done():
+            task.cancel()
+        await database.dispose()

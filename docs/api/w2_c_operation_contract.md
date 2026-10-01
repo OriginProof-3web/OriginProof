@@ -74,7 +74,7 @@ issuer ID, signer, 정수 초 기간, status, selected, deployment ID만 포함�
 
 ## 실제 검사와 다음 담당자
 
-- 전체 Python 171 passed, live opt-in 2 skipped; Indexer 60 passed / live opt-in 1 skipped.
+- 전체 Python 171 passed, live opt-in 3 skipped; Indexer 60 passed / live opt-in 1 skipped.
 - 별도 실제 PostgreSQL+Anvil: live W1/W2 2 passed. DB migration upgrade/downgrade/upgrade와
   alembic check 통과. 기존 실행 중인 데모 DB·체인은 변경하지 않았습니다.
 - 동시 같은 ID, 변경 입력 충돌, 권한/CSRF, 실제 응답 유실 후 재시작 복구, 키 교체/폐기,
@@ -84,3 +84,6 @@ issuer ID, signer, 정수 초 기간, status, selected, deployment ID만 포함�
 - B: persistence callback·복구·nonce/체인 권한 경계 소비자 리뷰.
 - D: 실제 브라우저·별도 환경·RPC 실패 주입과 독립 단계 검증.
 - C: 리뷰 수정·주차별 PR 반영·개인 기록·단계 통합 조율. W3 발행과 W4 consume은 이번 구현 범위 밖입니다.
+
+최종 잠금 보완: PostgreSQL transaction advisory lock으로 취소/예외 시 자동 해제하며,
+실제 PG의 교차 연결 배제·취소 후 해제 검사도 통과했습니다.

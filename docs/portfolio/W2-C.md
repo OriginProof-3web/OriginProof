@@ -36,7 +36,7 @@ B/A/D의 작성자 외 리뷰나 독립 실행을 대신 수행했다고 기록�
 
 | 검사 | 결과·범위 |
 | --- | --- |
-| 전체 Python | 171 passed, live opt-in 2 skipped; 기존 외부 라이브러리 deprecation warning 1 |
+| 전체 Python | 171 passed, live opt-in 3 skipped; 기존 외부 라이브러리 deprecation warning 1 |
 | Indexer | 60 passed, live opt-in 1 skipped |
 | 실제 PostgreSQL+Anvil | 2 passed; 실제 로그인·신청·승인·기관 상태·키 교체/폐기·권한·응답 유실 후 재시작 |
 | 합성 Adapter HTTP+SQLite | 7 passed; concurrent request·ID 충돌·DB 마지막 저장 실패·전송 전 저장 실패·nonce 예약·서명기 보호 |
@@ -54,3 +54,6 @@ B/A/D의 작성자 외 리뷰나 독립 실행을 대신 수행했다고 기록�
 D 독립 브라우저/다른 환경/RPC 실패 검증, C 리뷰 수정·주차 PR 반영이 남았습니다.
 W3 발행/현재 키 재검사와 W4 Proof lifecycle/consume은 다음 단계입니다.
 작성자 외 확인은 아직 없습니다. 단계 전체 완료는 선언하지 않습니다.
+
+최종 잠금 보완: PostgreSQL transaction advisory lock으로 취소/예외 시 자동 해제하며,
+실제 PG의 교차 연결 배제·취소 후 해제 검사도 통과했습니다.
