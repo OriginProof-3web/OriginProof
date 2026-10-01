@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -56,7 +57,10 @@ def deploy(rpc_url: str, signer: str, source_commit_sha: str | None = None) -> P
 
         if int(rpc("eth_chainId", []), 16) != 31337:
             raise ValueError("chain ID must be 31337")
-        admin = address(rpc("eth_accounts", [])[0])
+        accounts = [address(value) for value in rpc("eth_accounts", [])]
+        if len(accounts) < 4 or len({value.lower() for value in accounts[:4]}) != 4:
+            raise ValueError("four distinct unlocked local accounts are required")
+        admin, issuer_manager, key_manager, issuer_account = accounts[:4]
         golden = json.loads(
             (ROOT / "fixtures/golden/card_payment_notice_signing_v1.json").read_text()
         )
@@ -67,6 +71,9 @@ def deploy(rpc_url: str, signer: str, source_commit_sha: str | None = None) -> P
         )
         env = os.environ | {
             "CHAIN_DEPLOYER_ADDRESS": admin,
+            "CHAIN_ISSUER_MANAGER_ADDRESS": issuer_manager,
+            "CHAIN_KEY_MANAGER_ADDRESS": key_manager,
+            "CHAIN_ISSUER_ACCOUNT_ADDRESS": issuer_account,
             "CHAIN_MOCK_SIGNER_ADDRESS": signer,
             "CHAIN_KEY_VALID_FROM": str(start),
             "CHAIN_KEY_VALID_UNTIL": str(start + 365 * 86400),
@@ -113,16 +120,46 @@ def deploy(rpc_url: str, signer: str, source_commit_sha: str | None = None) -> P
             admin,
             contracts["IssuerRegistry"]["address"],
         ]
-        sha = source_commit_sha or subprocess.check_output(
-            ["git", "rev-parse", "HEAD"], cwd=ROOT, text=True
-        ).strip()
+        for name in contracts:
+            abi = (CONTRACTS / f"abi/{name}.json").read_bytes()
+            contracts[name]["abi_sha256"] = hashlib.sha256(abi).hexdigest()
+        sha = (
+            source_commit_sha
+            or subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+        )
         if not re.fullmatch(r"[0-9a-f]{40}", sha):
             raise ValueError("invalid source commit SHA")
-        manifest = {
+        deployment_block = min(blocks)
+        genesis = rpc("eth_getBlockByNumber", ["0x0", False])
+        deployed = rpc("eth_getBlockByNumber", [hex(deployment_block), False])
+        for block in (genesis, deployed):
+            if not isinstance(block, dict) or not re.fullmatch(
+                r"0x[0-9a-fA-F]{64}", block.get("hash", "")
+            ):
+                raise ValueError("invalid deployment block identity")
+        identity = {
             "chain_id": 31337,
-            "deployment_block": min(blocks),
+            "genesis_block_hash": genesis["hash"].lower(),
+            "deployment_block": deployment_block,
+            "deployment_block_hash": deployed["hash"].lower(),
             "source_commit_sha": sha,
             "contracts": contracts,
+        }
+        deployment_id = (
+            "dep_"
+            + hashlib.sha256(
+                json.dumps(identity, sort_keys=True, separators=(",", ":")).encode()
+            ).hexdigest()
+        )
+        manifest = {
+            **identity,
+            "deployment_id": deployment_id,
+            "roles": {
+                "registry_admin": admin,
+                "issuer_manager": issuer_manager,
+                "key_manager": key_manager,
+                "issuer_account": issuer_account,
+            },
         }
         target = CONTRACTS / "deployments/31337.local.json"
         target.parent.mkdir(parents=True, exist_ok=True)

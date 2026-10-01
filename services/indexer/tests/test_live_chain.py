@@ -13,7 +13,8 @@ import httpx
 import pytest
 from deploy_local import deploy
 from eth_keys import keys
-from infrastructure.blockchain.reader import JsonRpcBlockchainReader, digest
+from infrastructure.blockchain.reader import JsonRpcBlockchainReader
+from infrastructure.blockchain.writer import ChainOperationState, JsonRpcBlockchainWriter
 from originproof_api.main import create_app
 from originproof_core import (
     CardPaymentNoticeCandidate,
@@ -27,17 +28,20 @@ pytestmark = pytest.mark.skipif(os.environ.get("M4_LIVE_TEST") != "1", reason="l
 
 
 async def test_live_reader_and_m1_api():
-    anvil = shutil.which("anvil")
-    assert anvil, "anvil is required for the opt-in test"
-    with socket.socket() as sock:
-        sock.bind(("127.0.0.1", 0))
-        port = sock.getsockname()[1]
-    rpc_url = f"http://127.0.0.1:{port}"
-    process = subprocess.Popen(
-        [anvil, "--chain-id", "31337", "--port", str(port), "--silent"],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
+    rpc_url = os.environ.get("M4_RPC_URL")
+    process = None
+    if rpc_url is None:
+        anvil = shutil.which("anvil")
+        assert anvil, "anvil is required for the opt-in test"
+        with socket.socket() as sock:
+            sock.bind(("127.0.0.1", 0))
+            port = sock.getsockname()[1]
+        rpc_url = f"http://127.0.0.1:{port}"
+        process = subprocess.Popen(
+            [anvil, "--chain-id", "31337", "--port", str(port), "--silent"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
     try:
         async with httpx.AsyncClient(timeout=2, trust_env=False) as rpc_client:
 
@@ -67,7 +71,10 @@ async def test_live_reader_and_m1_api():
 
             private_key = keys.PrivateKey(os.urandom(32))
             public_signer = private_key.public_key.to_checksum_address()
-            manifest_path = await asyncio.to_thread(deploy, rpc_url, public_signer)
+            source_sha = os.environ.get("M4_SOURCE_COMMIT_SHA", "0" * 40)
+            manifest_path = await asyncio.to_thread(
+                deploy, rpc_url, public_signer, source_commit_sha=source_sha
+            )
             manifest = json.loads(manifest_path.read_text())
             golden = json.loads(
                 (ROOT / "fixtures/golden/card_payment_notice_signing_v1.json").read_text()
@@ -124,44 +131,39 @@ async def test_live_reader_and_m1_api():
                 assert tampered["verification_status"] == "TAMPERED"
                 assert "AMOUNT_MISMATCH" in tampered["reason_codes"]
 
-                admin = (await rpc("eth_accounts", []))[0]
+                writer = JsonRpcBlockchainWriter(rpc_url, manifest_path, client=rpc_client)
+                rejected = await writer.suspend_issuer(
+                    manifest["roles"]["registry_admin"], envelope.issuer_id
+                )
+                assert rejected.state == ChainOperationState.FAILED
+                assert rejected.error_code == "CHAIN_REVERTED"
 
-                async def send(contract, function, identifier):
-                    tx = await rpc(
-                        "eth_sendTransaction",
-                        [
-                            {
-                                "from": admin,
-                                "to": manifest["contracts"][contract]["address"],
-                                "gas": "0x50000",
-                                "data": "0x" + (digest(function)[:4] + digest(identifier)).hex(),
-                            }
-                        ],
-                    )
-                    for _ in range(100):
-                        receipt = await rpc("eth_getTransactionReceipt", [tx])
-                        if receipt:
-                            assert int(receipt["status"], 16) == 1
-                            return
-                        await asyncio.sleep(0.05)
-                    pytest.fail("transaction not mined")
-
-                await send("IssuerRegistry", "suspendIssuer(bytes32)", envelope.issuer_id)
+                suspended = await writer.suspend_issuer(
+                    manifest["roles"]["issuer_manager"], envelope.issuer_id
+                )
+                assert suspended.state == ChainOperationState.CONFIRMED
                 assert not await reader.is_key_valid(envelope.key_id, key.valid_from)
                 assert (await verify(request))["lifecycle_status"] == "ISSUER_SUSPENDED"
-                await send("IssuerRegistry", "reactivateIssuer(bytes32)", envelope.issuer_id)
-                await send("IssuerKeyRegistry", "revokeKey(bytes32)", envelope.key_id)
+                reactivated = await writer.reactivate_issuer(
+                    manifest["roles"]["issuer_manager"], envelope.issuer_id
+                )
+                assert reactivated.state == ChainOperationState.CONFIRMED
+                revoked = await writer.revoke_key(
+                    manifest["roles"]["issuer_account"], envelope.key_id
+                )
+                assert revoked.state == ChainOperationState.CONFIRMED
                 assert (await reader.get_key(envelope.key_id)).status == "REVOKED"
                 assert not await reader.is_key_valid(envelope.key_id, key.valid_from)
                 assert (await verify(request))["lifecycle_status"] == "ISSUER_KEY_REVOKED"
-                process.terminate()
-                await asyncio.to_thread(process.wait, 5)
-                unavailable = await verify(request)
-                assert unavailable["verification_status"] == "INCONCLUSIVE"
-                assert unavailable["reason_codes"] == ["DEPENDENCY_UNAVAILABLE"]
+                if process is not None:
+                    process.terminate()
+                    await asyncio.to_thread(process.wait, 5)
+                    unavailable = await verify(request)
+                    assert unavailable["verification_status"] == "INCONCLUSIVE"
+                    assert unavailable["reason_codes"] == ["DEPENDENCY_UNAVAILABLE"]
             await app.state.database.dispose()
     finally:
-        if process.poll() is None:
+        if process is not None and process.poll() is None:
             process.terminate()
             try:
                 process.wait(timeout=5)
