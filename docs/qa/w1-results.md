@@ -59,3 +59,28 @@ C가 제공할 계정·v2 생성 계약에 QA profile을 대응시킨 뒤 각 ca
 로컬 Docker·합성 DB·Anvil에서 기존 MVP E2E를 완료했다. W1 선행 변경이 phase에 들어오면 새 기능의 실제 API·브라우저 E2E를 별도 수행한다.
 D 소유자 검토와 지정 리뷰어 확인 후 작업 PR을 phase/W1 대상으로 제출한다.
 P1 추출 확장·유료 모델·다른 담당 기능 구현·단계 완료 판정은 수행하지 않았다.
+
+## 후속 합동 검증 — 2026-10-01
+
+위 기록 이후 A/B/C/D 작업 브랜치의 현재 PR 내용을 임시 통합 트리에서 함께 적용하고,
+W1-C3의 v2 모델/생성 스키마 준비 작업을 별도 추가한 기준
+`31ddda0ca63defd0a4df10d5c8511a6e5859e18f`에서 재검증했다. 이 SHA는 로컬 합동 검증
+기준이며 `phase/W1` 또는 `integration`에 병합된 SHA를 뜻하지 않는다.
+
+| 명령/검사 | 결과와 범위 |
+| --- | --- |
+| `LLM_PROVIDER=mock make test` | **163 passed**, deprecation warning 1개. v1 회귀 및 W1-C3 v2 계약 모델 포함 |
+| `make lint` | Python Ruff 및 웹 ESLint 통과 |
+| `make typecheck` | Python compileall 및 TypeScript 검사 통과 |
+| `make mvp-test` | API 10, Analyzer 130, Foundry 컨테이너 Contract 10, 통합 Python 140 통과; deprecation warning 1개 |
+| `make mvp-e2e` | 합성 DB migration/seed, Foundry 컨테이너 기반 로컬 배포, HTTP 정상 VERIFIED + ACTIVE 및 변조 TAMPERED + AMOUNT_MISMATCH, smoke 모두 통과 |
+| 실제 API·DB 흐름 | 로그인·역할 권한·CSRF·발행자 신청·운영자 조회/승인·자기 승인 차단·중복 결정 거부·로그아웃 세션 폐기를 합성 계정으로 확인; 테스트 행 정리 완료 |
+| 실제 Chromium 브라우저 흐름 | Next rewrite와 실제 API/DB를 거쳐 발행자 신청, 운영자 승인, 발행자 재조회에서 체인 활성화 대기 상태 표시까지 통과; 합성 테스트 행 정리 완료 |
+| 웹 Playwright 기존 테스트 | 4개 통과; 웹 컴포넌트 테스트 6개 통과 |
+| Indexer | `UV_PROJECT_ENVIRONMENT=.uv-venv uv run pytest -q services/indexer/tests`: 48 passed, live-chain opt-in 1 skipped |
+
+실제 연결 검사는 로컬 합성 계정·DB·Anvil로만 진행했으며 외부 기관·실결제·실제 체인/RPC는
+사용하지 않았다. W1-C3의 새 v2 모델과 JSON Schema/TypeScript 생성물은 준비됐지만, v2 API
+경로 및 실제 v2 발급·검증·상태 수명주기 구현은 후속 계획 작업이다. 보안/리뷰 승인, A/B/C/D
+각 PR의 `phase/W1` 병합, 단계 독립 QA·전체 수용 기준과 `phase/W1` → `integration` 승격은
+여전히 남아 있으므로 이 합동 검사만으로 W1 완료를 선언하지 않는다.
