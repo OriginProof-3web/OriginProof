@@ -157,3 +157,50 @@ test("logout sends the in-memory CSRF token and returns to login", async () => {
   const logoutCall = fetchMock.mock.calls.find(([url]) => String(url) === "/api/v1/auth/logout");
   expect(new Headers(logoutCall?.[1]?.headers).get("X-CSRF-Token")).toBe("csrf_test_token");
 });
+
+test("operator can inspect a chain operation and its audit trail without triggering a write", async () => {
+  const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url === "/api/v1/auth/me") return jsonResponse({ detail: "AUTH_REQUIRED" }, 401);
+    if (url === "/api/v1/auth/login") return jsonResponse(account("operator"));
+    if (url === "/api/v1/operator/issuer-applications") return jsonResponse([]);
+    if (url === "/api/v1/operations/op_demo_001") return jsonResponse({
+      operation_id: "op_demo_001",
+      issuer_id: "iss_demo_a",
+      action: "ACTIVATE_ISSUER",
+      request_id: "req_demo_001",
+      status: "UNKNOWN",
+      tx_hash: null,
+      error_code: "SUBMISSION_UNKNOWN",
+      created_at: "2026-09-30T00:00:00Z",
+    });
+    if (url === "/api/v1/audit-events") return jsonResponse([{
+      event_id: "evt_demo_001",
+      actor_account_id: "acct_operator",
+      issuer_id: "iss_demo_a",
+      action: "ISSUER_APPLICATION_DECISION",
+      target_id: "app_demo_001",
+      before_status: "PENDING_REVIEW",
+      after_status: "APPROVED_PENDING_CHAIN",
+      created_at: "2026-09-30T00:00:00Z",
+    }]);
+    throw new Error(`Unexpected request: ${url}`);
+  });
+  vi.stubGlobal("fetch", fetchMock);
+
+  render(<FinalsPage />);
+  await screen.findByRole("heading", { name: "테스트 계정 로그인" });
+  fireEvent.change(screen.getByLabelText("계정 이름"), { target: { value: "demo-operator" } });
+  fireEvent.change(screen.getByLabelText("비밀번호"), { target: { value: "synthetic-password" } });
+  fireEvent.click(screen.getByRole("button", { name: "로그인" }));
+  await screen.findByRole("heading", { name: "기관 신청 검토" });
+
+  fireEvent.change(screen.getByLabelText("작업 ID"), { target: { value: "op_demo_001" } });
+  fireEvent.click(screen.getByRole("button", { name: "작업 상태 조회" }));
+  expect(await screen.findByText("결과 확인 필요")).toBeVisible();
+  expect(screen.getByText("아직 없음")).toBeVisible();
+
+  fireEvent.click(screen.getByRole("button", { name: "감사 이력 새로고침" }));
+  expect(await screen.findByText("PENDING_REVIEW → APPROVED_PENDING_CHAIN")).toBeVisible();
+  expect(fetchMock.mock.calls.map(([url]) => String(url))).not.toContain("/api/v1/operator/issuers/iss_demo_a/suspend");
+});

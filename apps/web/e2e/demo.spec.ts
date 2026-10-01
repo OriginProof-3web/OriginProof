@@ -182,3 +182,66 @@ test("operator review remains pending on chain and issuer can re-query the decis
   await issuerContext.close();
   await operatorContext.close();
 });
+
+test("operator sees uncertain chain work and audit history without a false success", async ({ page }) => {
+  await page.route("**/api/v1/auth/me", (route) => route.fulfill({
+    status: 401,
+    contentType: "application/json",
+    body: JSON.stringify({ detail: "AUTH_REQUIRED" }),
+  }));
+  await page.route("**/api/v1/auth/login", (route) => route.fulfill({
+    contentType: "application/json",
+    body: JSON.stringify({
+      account_id: "acct_operator",
+      username: "demo-operator",
+      role: "operator",
+      issuer_id: null,
+      csrf_token: "operator_csrf",
+    }),
+  }));
+  await page.route("**/api/v1/operator/issuer-applications", (route) => route.fulfill({
+    contentType: "application/json",
+    body: "[]",
+  }));
+  await page.route("**/api/v1/operations/op_demo_unknown", (route) => route.fulfill({
+    contentType: "application/json",
+    body: JSON.stringify({
+      operation_id: "op_demo_unknown",
+      issuer_id: "iss_demo_a",
+      action: "ACTIVATE_ISSUER",
+      request_id: "req_demo_unknown",
+      status: "UNKNOWN",
+      tx_hash: null,
+      error_code: "SUBMISSION_UNKNOWN",
+      created_at: "2026-09-30T00:00:00Z",
+    }),
+  }));
+  await page.route("**/api/v1/audit-events", (route) => route.fulfill({
+    contentType: "application/json",
+    body: JSON.stringify([{
+      event_id: "evt_demo_unknown",
+      actor_account_id: "acct_operator",
+      issuer_id: "iss_demo_a",
+      action: "ISSUER_APPLICATION_DECISION",
+      target_id: "app_demo_001",
+      before_status: "PENDING_REVIEW",
+      after_status: "APPROVED_PENDING_CHAIN",
+      created_at: "2026-09-30T00:00:00Z",
+    }]),
+  }));
+
+  await page.goto("/finals");
+  await page.getByLabel("계정 이름").fill("demo-operator");
+  await page.getByLabel("비밀번호").fill("synthetic-password");
+  await page.getByRole("button", { name: "로그인" }).click();
+  await expect(page.getByRole("heading", { name: "기관 신청 검토" })).toBeVisible();
+  await page.getByLabel("작업 ID").fill("op_demo_unknown");
+  await page.getByRole("button", { name: "작업 상태 조회" }).click();
+  await expect(page.getByText("결과 확인 필요")).toBeVisible();
+  await expect(page.getByText("아직 없음")).toBeVisible();
+  await page.getByRole("button", { name: "감사 이력 새로고침" }).click();
+  await expect(page.getByText("PENDING_REVIEW → APPROVED_PENDING_CHAIN")).toBeVisible();
+  await expect(page.getByText("체인 활성화 완료")).toHaveCount(0);
+  const accessibility = await new AxeBuilder({ page }).analyze();
+  expect(accessibility.violations).toEqual([]);
+});

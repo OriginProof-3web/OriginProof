@@ -23,6 +23,28 @@ type Application = {
   created_at: string;
 };
 
+type Operation = {
+  operation_id: string;
+  issuer_id: string | null;
+  action: string;
+  request_id: string;
+  status: string;
+  tx_hash: string | null;
+  error_code: string | null;
+  created_at: string;
+};
+
+type AuditEvent = {
+  event_id: string;
+  actor_account_id: string;
+  issuer_id: string | null;
+  action: string;
+  target_id: string;
+  before_status: string | null;
+  after_status: string;
+  created_at: string;
+};
+
 type ApiFailure = { error?: string; detail?: string };
 
 const roleLabels: Record<Role, string> = {
@@ -35,6 +57,14 @@ const statusLabels: Record<string, string> = {
   PENDING_REVIEW: "검토 대기",
   APPROVED_PENDING_CHAIN: "승인됨 · 체인 활성화 대기",
   REJECTED: "반려됨",
+};
+
+const operationLabels: Record<string, string> = {
+  PENDING_SUBMISSION: "제출 대기",
+  SUBMITTED: "체인 확인 대기",
+  CONFIRMED: "체인 확인 완료",
+  FAILED: "체인 작업 실패",
+  UNKNOWN: "결과 확인 필요",
 };
 
 function apiMessage(code: string): string {
@@ -250,7 +280,7 @@ export default function FinalsPage() {
     <main className="finals-page">
       <header className="finals-header">
         <div>
-          <p className="eyebrow">ORIGINPROOF · FINALS W1</p>
+          <p className="eyebrow">ORIGINPROOF · FINALS W1/W2</p>
           <h1>계정과 기관 신청</h1>
           <p className="subtitle">준비된 테스트 계정으로 로그인하고, 서버가 확인한 역할에 맞는 화면을 사용합니다.</p>
         </div>
@@ -290,6 +320,7 @@ export default function FinalsPage() {
               <button type="submit" disabled={isSubmitting}>{isSubmitting ? "제출 중…" : "신청 제출"}</button>
             </form>
           )}
+          <OperationMonitor />
         </section>
       ) : account.role === "operator" ? (
         <section className="finals-card" aria-labelledby="operator-heading">
@@ -311,6 +342,7 @@ export default function FinalsPage() {
               ))}
             </ul>
           )}
+          <OperationMonitor />
         </section>
       ) : (
         <section className="finals-card" aria-labelledby="recipient-heading">
@@ -319,6 +351,74 @@ export default function FinalsPage() {
         </section>
       )}
     </main>
+  );
+}
+
+function OperationMonitor() {
+  const [operationId, setOperationId] = useState("");
+  const [operation, setOperation] = useState<Operation | null>(null);
+  const [events, setEvents] = useState<AuditEvent[] | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function loadOperation(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setBusy(true);
+    setMessage(null);
+    setOperation(null);
+    try {
+      const result = await request<Operation>(`/v1/operations/${encodeURIComponent(operationId.trim())}`);
+      setOperation(result);
+    } catch (reason) {
+      const code = reason instanceof Error ? reason.message : "REQUEST_FAILED";
+      setMessage(code === "OPERATION_NOT_FOUND" ? "작업을 찾을 수 없거나 조회 권한이 없습니다." : "작업 상태를 조회하지 못했습니다. 다시 시도해 주세요.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function loadEvents() {
+    setBusy(true);
+    setMessage(null);
+    try {
+      setEvents(await request<AuditEvent[]>("/v1/audit-events"));
+    } catch {
+      setMessage("감사 이력을 조회하지 못했습니다. 현재 계정의 권한과 연결 상태를 확인해 주세요.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className="operation-monitor" aria-labelledby="operation-heading">
+      <h3 id="operation-heading">체인 작업과 감사 이력</h3>
+      <p>확정 receipt와 체인 상태 재조회가 확인되기 전까지 신청 승인을 체인 활성으로 표시하지 않습니다.</p>
+      <form className="operation-lookup" onSubmit={loadOperation}>
+        <label>작업 ID<input value={operationId} onChange={(event) => setOperationId(event.target.value)} placeholder="op_…" required /></label>
+        <button type="submit" disabled={busy || !operationId.trim()}>{busy ? "조회 중…" : "작업 상태 조회"}</button>
+      </form>
+      {operation && (
+        <dl className="operation-summary" aria-live="polite">
+          <div><dt>상태</dt><dd>{operationLabels[operation.status] ?? "상태 확인 필요"}</dd></div>
+          <div><dt>작업 종류</dt><dd>{operation.action}</dd></div>
+          <div><dt>트랜잭션</dt><dd>{operation.tx_hash ?? "아직 없음"}</dd></div>
+          {operation.error_code && <div><dt>오류 코드</dt><dd>{operation.error_code}</dd></div>}
+        </dl>
+      )}
+      <button className="refresh-button" type="button" onClick={loadEvents} disabled={busy}>감사 이력 새로고침</button>
+      {events && (events.length ? (
+        <ul className="audit-list">
+          {events.map((event) => (
+            <li key={event.event_id}>
+              <strong>{event.action}</strong>
+              <span>{event.before_status ?? "시작"} → {event.after_status}</span>
+              <small>{event.target_id} · {new Date(event.created_at).toLocaleString("ko-KR")}</small>
+            </li>
+          ))}
+        </ul>
+      ) : <p role="status">표시할 감사 이력이 없습니다.</p>)}
+      {message && <p className="finals-inline-error" role="alert">{message}</p>}
+    </section>
   );
 }
 
