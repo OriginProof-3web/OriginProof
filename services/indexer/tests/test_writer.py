@@ -1,3 +1,4 @@
+import asyncio
 import json
 
 import httpx
@@ -57,7 +58,7 @@ def manifest(tmp_path):
     return path
 
 
-def transport(fault=None, sends=None):
+def transport(fault=None, sends=None, timeline=None):
     state = {"selector": None}
 
     def handle(request):
@@ -68,10 +69,38 @@ def transport(fault=None, sends=None):
         if method == "eth_chainId":
             result = hex(31337)
         elif method == "eth_getBlockByNumber":
-            result = {"hash": GENESIS_HASH if params[0] == "0x0" else DEPLOYMENT_HASH}
+            if fault == "canonical_rpc" and params[0] == "0x9":
+                raise httpx.ConnectError("canonical lookup failed", request=request)
+            hashes = {"0x0": GENESIS_HASH, "0x1": DEPLOYMENT_HASH, "0x9": RECEIPT_HASH}
+            transactions = []
+            if fault == "recover_without_hash" and params == ["0x9", True]:
+                transactions = [
+                    {
+                        "hash": TX_HASH,
+                        "from": "0x" + "55" * 20,
+                        "to": "0x" + "22" * 20,
+                        "input": (
+                            "0x"
+                            + digest("registerIssuer(bytes32,address,bytes32)")[:4].hex()
+                            + digest(ISSUER).hex()
+                            + "00" * 12
+                            + ACCOUNT[2:]
+                            + METADATA[2:]
+                        ),
+                        "nonce": "0x5",
+                    }
+                ]
+            result = {
+                "hash": hashes.get(params[0], RECEIPT_HASH),
+                "transactions": transactions,
+            }
         elif method == "eth_getCode":
             result = "0x6000"
+        elif method == "eth_getTransactionCount":
+            result = "0x5"
         elif method == "eth_sendTransaction":
+            if timeline is not None:
+                timeline.append("send")
             if sends is not None:
                 sends.append(params[0])
             state["selector"] = params[0]["data"][2:10]
@@ -86,14 +115,16 @@ def transport(fault=None, sends=None):
                 )
             result = TX_HASH
         elif method == "eth_getTransactionReceipt":
+            if timeline is not None:
+                timeline.append("receipt")
             if fault == "receipt_missing":
                 result = None
             else:
                 result = {
-                    "transactionHash": TX_HASH,
+                    "transactionHash": "0x" + "11" * 32 if fault == "transaction_hash" else TX_HASH,
                     "status": "0x0" if fault == "receipt_failed" else "0x1",
                     "blockNumber": "0x9",
-                    "blockHash": RECEIPT_HASH,
+                    "blockHash": "0x" + "12" * 32 if fault == "block_hash" else RECEIPT_HASH,
                 }
         elif method == "eth_blockNumber":
             result = "0x9"
@@ -135,8 +166,33 @@ def transport(fault=None, sends=None):
     return httpx.MockTransport(handle)
 
 
-async def writer(manifest, fault=None, sends=None, receipt_attempts=2):
-    client = httpx.AsyncClient(transport=transport(fault, sends))
+class FakePersistence:
+    def __init__(self, fail=None, timeline=None):
+        self.fail = fail
+        self.timeline = timeline
+        self.events = []
+        self.prepared = None
+        self.tx_hash = None
+
+    async def save_prepared(self, recovery_reference):
+        if self.timeline is not None:
+            self.timeline.append("persist_prepared")
+        self.events.append("prepared")
+        if self.fail == "prepared":
+            raise RuntimeError("database unavailable")
+        self.prepared = recovery_reference
+
+    async def save_submitted(self, recovery_id, tx_hash):
+        if self.timeline is not None:
+            self.timeline.append("persist_submitted")
+        self.events.append("submitted")
+        if self.fail == "submitted":
+            raise RuntimeError("database unavailable")
+        self.tx_hash = tx_hash
+
+
+async def writer(manifest, fault=None, sends=None, receipt_attempts=2, timeline=None):
+    client = httpx.AsyncClient(transport=transport(fault, sends, timeline))
     return (
         JsonRpcBlockchainWriter(
             "http://test",
@@ -190,8 +246,11 @@ async def test_key_register_and_revoke_confirm(manifest):
         ("rejected", ChainOperationState.FAILED, "CHAIN_REVERTED"),
         ("receipt_failed", ChainOperationState.FAILED, "CHAIN_REVERTED"),
         ("receipt_missing", ChainOperationState.UNKNOWN, "RECEIPT_UNKNOWN"),
-        ("transport", ChainOperationState.UNKNOWN, "DEPENDENCY_UNAVAILABLE"),
+        ("transport", ChainOperationState.UNKNOWN, "SUBMISSION_UNKNOWN"),
         ("reread", ChainOperationState.UNKNOWN, "STATE_NOT_CONFIRMED"),
+        ("transaction_hash", ChainOperationState.UNKNOWN, "RECEIPT_NOT_CANONICAL"),
+        ("block_hash", ChainOperationState.UNKNOWN, "RECEIPT_NOT_CANONICAL"),
+        ("canonical_rpc", ChainOperationState.UNKNOWN, "DEPENDENCY_UNAVAILABLE"),
     ],
 )
 async def test_failure_and_ambiguous_results_are_not_confirmed(manifest, fault, state, error):
@@ -212,4 +271,126 @@ async def test_invalid_input_does_not_submit(manifest):
             await adapter.register_key(ACCOUNT, KEY, ISSUER, SIGNER, 200, 100)
         with pytest.raises(ValueError, match="identifier"):
             await adapter.suspend_issuer(ACCOUNT, "wrong_issuer")
+    assert sends == []
+
+
+async def test_persistence_failure_prevents_submission(manifest):
+    sends = []
+    adapter, client = await writer(manifest, sends=sends)
+    store = FakePersistence(fail="prepared")
+    async with client:
+        prepared = await adapter.prepare_register_issuer(
+            "0x" + "55" * 20, ISSUER, ACCOUNT, METADATA
+        )
+        with pytest.raises(RuntimeError, match="database unavailable"):
+            await adapter.execute_prepared(prepared, store)
+    assert store.events == ["prepared"]
+    assert sends == []
+
+
+async def test_concurrent_prepare_reserves_distinct_local_nonces(manifest):
+    adapter, client = await writer(manifest)
+    async with client:
+        first, second = await asyncio.gather(
+            adapter.prepare_suspend_issuer("0x" + "55" * 20, ISSUER),
+            adapter.prepare_reactivate_issuer("0x" + "55" * 20, ISSUER),
+        )
+    assert {first.nonce, second.nonce} == {5, 6}
+
+
+async def test_submission_is_persisted_before_receipt_polling(manifest):
+    sends = []
+    timeline = []
+    adapter, client = await writer(
+        manifest,
+        fault="receipt_missing",
+        sends=sends,
+        receipt_attempts=1,
+        timeline=timeline,
+    )
+    store = FakePersistence(timeline=timeline)
+    async with client:
+        prepared = await adapter.prepare_register_issuer(
+            "0x" + "55" * 20, ISSUER, ACCOUNT, METADATA
+        )
+        result = await adapter.execute_prepared(prepared, store)
+    assert store.events == ["prepared", "submitted"]
+    assert store.tx_hash == TX_HASH
+    assert result.state == ChainOperationState.UNKNOWN
+    assert result.error_code == "RECEIPT_UNKNOWN"
+    assert result.recovery_id == prepared.recovery_id
+    assert len(sends) == 1
+    assert timeline == ["persist_prepared", "send", "persist_submitted", "receipt"]
+
+
+async def test_ambiguous_send_keeps_fixed_nonce_recovery_reference(manifest):
+    sends = []
+    adapter, client = await writer(manifest, fault="transport", sends=sends)
+    store = FakePersistence()
+    async with client:
+        prepared = await adapter.prepare_register_issuer(
+            "0x" + "55" * 20, ISSUER, ACCOUNT, METADATA
+        )
+        result = await adapter.execute_prepared(prepared, store)
+    assert store.prepared == prepared.recovery_reference
+    assert prepared.transaction["nonce"] == "0x5"
+    assert result.state == ChainOperationState.UNKNOWN
+    assert result.error_code == "SUBMISSION_UNKNOWN"
+    assert result.recovery_id == prepared.recovery_id
+    assert result.nonce == prepared.nonce
+    assert store.tx_hash is None
+
+
+async def test_submitted_hash_persistence_failure_is_unknown(manifest):
+    sends = []
+    adapter, client = await writer(manifest, sends=sends)
+    store = FakePersistence(fail="submitted")
+    async with client:
+        prepared = await adapter.prepare_register_issuer(
+            "0x" + "55" * 20, ISSUER, ACCOUNT, METADATA
+        )
+        result = await adapter.execute_prepared(prepared, store)
+    assert result.state == ChainOperationState.UNKNOWN
+    assert result.error_code == "SUBMISSION_PERSISTENCE_FAILED"
+    assert result.tx_hash == TX_HASH
+    assert len(sends) == 1
+
+
+async def test_retry_recovers_same_submission_without_resending(manifest):
+    sends = []
+    adapter, client = await writer(manifest, sends=sends)
+    store = FakePersistence()
+    async with client:
+        prepared = await adapter.prepare_register_issuer(
+            "0x" + "55" * 20, ISSUER, ACCOUNT, METADATA
+        )
+        first = await adapter.execute_prepared(prepared, store)
+        recovered = await adapter.recover_prepared(prepared, store.tx_hash)
+    assert first.state == ChainOperationState.CONFIRMED
+    assert recovered.state == ChainOperationState.CONFIRMED
+    assert recovered.tx_hash == first.tx_hash
+    assert recovered.nonce == first.nonce
+    assert len(sends) == 1
+
+
+async def test_restart_recovers_by_persisted_nonce_without_resending(manifest):
+    sends = []
+    adapter, client = await writer(manifest, fault="recover_without_hash", sends=sends)
+    async with client:
+        original = await adapter.prepare_register_issuer(
+            "0x" + "55" * 20, ISSUER, ACCOUNT, METADATA
+        )
+        reference = original.recovery_reference
+        rebuilt = await adapter.prepare_register_issuer(
+            "0x" + "55" * 20,
+            ISSUER,
+            ACCOUNT,
+            METADATA,
+            nonce=reference["nonce"],
+        )
+        restored = adapter.restore_prepared(rebuilt, reference)
+        recovered = await adapter.recover_prepared(restored)
+    assert recovered.state == ChainOperationState.CONFIRMED
+    assert recovered.tx_hash == TX_HASH
+    assert recovered.recovery_id == reference["recovery_id"]
     assert sends == []

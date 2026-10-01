@@ -17,8 +17,11 @@
 - 같은 deployment의 명시적 block에서 최종 상태 재조회
 - `CONFIRMED`, 확실한 revert인 `FAILED`, 결과가 불명확한 `UNKNOWN` 구분
 
-Writer는 한 호출에서 transaction을 한 번만 제출한다. C는 transaction 전 Operation을
-영속 예약하고 `UNKNOWN`을 즉시 재전송하지 않으며 tx hash와 상태를 먼저 복구한다.
+Writer는 한 호출에서 transaction을 한 번만 제출한다. receipt의
+`transactionHash`가 제출 hash와 같고, receipt block 높이의 현재 canonical block
+hash가 receipt `blockHash`와 같을 때만 confirmation과 상태 재조회를 진행한다.
+불일치·reorg·canonical 조회 오류는 `UNKNOWN/RECEIPT_NOT_CANONICAL` 또는
+`UNKNOWN/DEPENDENCY_UNAVAILABLE`이며 새 transaction을 자동 제출하지 않는다.
 
 ```python
 result = await writer.register_issuer(
@@ -35,16 +38,70 @@ confirmation count, 재조회 block과 안정된 `error_code`를 포함한다. p
 
 ## C Operation 연결
 
+### 안전한 호출 순서
+
+C 연결은 기존 편의 메서드가 아니라 아래 단계형 경계를 사용한다.
+
+```python
+prepared = await writer.prepare_register_issuer(
+    sender=issuer_manager_address,
+    issuer_id="iss_origin_mock_office",
+    issuer_account=issuer_account_address,
+    metadata_hash="0x...",
+)
+await operation_store.save_prepared(prepared.recovery_reference)  # 전송 전에 commit
+
+submitted = await writer.submit_prepared(prepared)
+if submitted.tx_hash is not None:
+    await operation_store.save_submitted(prepared.recovery_id, submitted.tx_hash)  # polling 전에 commit
+
+result = await writer.confirm_prepared(prepared, submitted.tx_hash)
+```
+
+`execute_prepared(prepared, operation_store)`는 이 순서를 수행하는 최소 orchestration
+helper다. `save_prepared` 실패 시 RPC 전송을 호출하지 않는다. tx hash 저장 실패 시
+`UNKNOWN/SUBMISSION_PERSISTENCE_FAILED`를 반환하고 성공으로 진행하지 않는다.
+프로세스 재시작 시 원래 Operation 입력과 저장 nonce로 같은 `prepare_*`를 다시
+구성하고 `restore_prepared(prepared, recovery_reference)`로 원래 검색 시작 block과
+지문 일치를 검증한 뒤 `recover_prepared(prepared, tx_hash)`를 호출한다. tx hash가
+저장되지 않은 모호한
+전송은 `recover_prepared(prepared)`가 준비 시점 이후 canonical/pending transaction에서
+고정 sender·nonce·to·calldata가 같은 제출을 찾는다. 찾기 전에는 재전송하지 않는다.
+
+### 준비·반환 계약
+
+`prepare_*`는 chain/deployment/code를 확인하고 다음 복구 참조를 반환한다.
+
+```text
+action, deployment_id, chain_id, sender, contract, data,
+nonce, recovery_id, scan_from_block
+```
+
+`recovery_id`는 위 deployment/chain/sender/nonce/contract/calldata의 SHA-256 지문이다.
+현재 로컬 unlocked-account 방식은 `eth_sendTransaction`을 사용하므로 전송 전 예상
+tx hash를 계산하지 못한다. 이 차이는 ADR의 이상적인 `계산된 tx hash`와 다르며,
+C는 `(deployment_id, sender, nonce)`를 DB unique constraint로 예약하고 전체 복구
+참조를 Operation에 저장해야 한다. Writer의 프로세스 내부 lock/nonce 예약은 같은
+인스턴스의 동시 prepare 충돌만 줄이며 다중 프로세스의 내구성 경계가 아니다.
+동일 요청 재시도는 새 prepare를 호출하지 않고 저장된 참조로 recover한다.
+
+`submit_prepared`는 receipt를 기다리지 않고 `SUBMITTED + tx_hash`를 반환한다. 명시적
+RPC reject는 `FAILED`, 전송 timeout처럼 제출 여부가 불명확하면 tx hash 없이
+`UNKNOWN/SUBMISSION_UNKNOWN`이다. `confirm_prepared`만 receipt·canonical block·
+confirmation·최종 상태를 확인해 `CONFIRMED`를 반환한다.
+
 | Writer 결과 | C Operation 전이 | 처리 |
 | --- | --- | --- |
-| submit 전 예약 | `PENDING_SUBMISSION` | `(account_id, action, request_id)`와 입력 hash 저장 |
-| tx hash 수신 | `SUBMITTED` | tx hash·deployment ID·sender/nonce 복구 정보 저장 |
+| `prepare_*` 후, submit 전 | `PENDING_SUBMISSION` | 요청/입력 hash와 전체 `recovery_reference` 저장; `(deployment_id, sender, nonce)` 유일 예약 |
+| `submit_prepared`의 tx hash 수신 | `SUBMITTED` | receipt 대기 전 tx hash 저장 |
 | `CONFIRMED` | `CONFIRMED` | receipt와 Writer 재조회 증거 저장, API 성공 반영 |
 | `FAILED` | `FAILED` | 확실한 revert/실패 receipt; 성공 상태로 바꾸지 않음 |
 | `UNKNOWN` | `UNKNOWN` | receipt/상태를 조회하기 전 같은 작업 재전송 금지 |
 
 현재 C 준비 branch의 `reserve_operation`은 PENDING 예약과 입력 충돌 방지를 제공한다.
-C2/C3는 Writer 결과 필드를 OperationRow에 연결하고 재시작 복구를 추가해야 한다.
+C2/C3는 nonce 유일 예약, `recovery_reference`/tx hash 저장 commit, 재시작 시
+`recover_prepared` 호출, Adapter 결과를 OperationRow/API 상태로 매핑해야 한다.
+이 PR은 C의 API·DB migration을 구현하지 않는다.
 
 ## 권한 분리와 로컬 배포
 
@@ -105,6 +162,7 @@ projection은 이력·표시 용도일 뿐 현재 Registry 상태의 권위가 �
 - 잘못된 ID, 주소, bytes32, 기간은 제출 전에 `ValueError`로 거부한다.
 - JSON-RPC가 명시적으로 transaction을 거부하면 `FAILED/CHAIN_REVERTED`다.
 - 전송 중 연결 단절, receipt 미확인, 재조회 불일치는 `UNKNOWN`이다.
+- receipt transaction hash나 canonical block hash 불일치/reorg는 `UNKNOWN`이다.
 - manifest/chain/deployment/bytecode 불일치는 `UNKNOWN/DEPENDENCY_UNAVAILABLE`다.
 - receipt status 1이어도 상태 재조회가 일치하지 않으면 CONFIRMED가 아니다.
 - 미등록과 RPC/ABI/manifest 실패를 같은 결과로 축소하지 않는다.
@@ -113,8 +171,9 @@ projection은 이력·표시 용도일 뿐 현재 Registry 상태의 권위가 �
 
 | 검사 | 실제 결과 |
 | --- | --- |
-| Writer/Reader/projection 단위 검사 | 48개 통과 |
-| 전체 Python/API/analyzer/indexer 회귀 | 161개 통과, opt-in 1개 skip |
+| Writer 확정·영속/복구 경계 단위 검사 | 21개 통과 |
+| Writer/Reader/projection/API health 회귀 | 62개 통과, opt-in 1개 skip |
+| 전체 Python/API/analyzer/indexer 회귀 | 171개 통과, opt-in 1개 skip |
 | Foundry Registry 검사 | 10개 통과 |
 | 실제 Anvil opt-in 통합 | 1개 통과; 배포·role 분리·비인가 거부·중지/재활성화·키 폐기·MVP 검증 포함 |
 | Ruff | 통과 |
