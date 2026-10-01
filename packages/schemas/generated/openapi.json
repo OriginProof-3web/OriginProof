@@ -1527,6 +1527,12 @@
               }
             },
             "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
           }
         },
         "summary": "Live",
@@ -1552,6 +1558,12 @@
               }
             },
             "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
           }
         },
         "summary": "Ready",
@@ -1577,6 +1589,12 @@
               }
             },
             "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
           }
         },
         "summary": "Audit Events",
@@ -1609,6 +1627,9 @@
             },
             "description": "Successful Response"
           },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -1618,6 +1639,9 @@
               }
             },
             "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
           }
         },
         "summary": "Login",
@@ -1639,6 +1663,12 @@
               }
             },
             "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
           }
         },
         "summary": "Logout",
@@ -1660,6 +1690,12 @@
               }
             },
             "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
           }
         },
         "summary": "Me",
@@ -1692,6 +1728,9 @@
             },
             "description": "Successful Response"
           },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -1701,6 +1740,9 @@
               }
             },
             "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
           }
         },
         "summary": "Apply",
@@ -1730,6 +1772,12 @@
               }
             },
             "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
           }
         },
         "summary": "My Application",
@@ -1755,6 +1803,12 @@
               }
             },
             "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
           }
         },
         "summary": "List Keys",
@@ -1785,6 +1839,9 @@
             },
             "description": "Successful Response"
           },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -1794,6 +1851,9 @@
               }
             },
             "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
           }
         },
         "summary": "Register Key",
@@ -1826,6 +1886,9 @@
             },
             "description": "Successful Response"
           },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -1835,6 +1898,9 @@
               }
             },
             "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
           }
         },
         "summary": "Register Key",
@@ -1868,6 +1934,9 @@
             },
             "description": "Successful Response"
           },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -1877,6 +1946,9 @@
               }
             },
             "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
           }
         },
         "summary": "Get Key",
@@ -1920,6 +1992,9 @@
             },
             "description": "Successful Response"
           },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -1929,6 +2004,9 @@
               }
             },
             "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
           }
         },
         "summary": "Revoke Key",
@@ -1950,6 +2028,12 @@
               }
             },
             "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
           }
         },
         "summary": "Issuer Status",
@@ -1982,6 +2066,9 @@
             },
             "description": "Successful Response"
           },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -1991,6 +2078,9 @@
               }
             },
             "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
           }
         },
         "summary": "Verify Card Payment Notice",
@@ -2024,6 +2114,9 @@
             },
             "description": "Successful Response"
           },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -2033,6 +2126,9 @@
               }
             },
             "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
           }
         },
         "summary": "Operation",
@@ -2066,6 +2162,9 @@
             },
             "description": "Successful Response"
           },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -2075,6 +2174,9 @@
               }
             },
             "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
           }
         },
         "summary": "Recover",
@@ -2100,6 +2202,12 @@
               }
             },
             "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
           }
         },
         "summary": "Applications",
@@ -2143,6 +2251,9 @@
             },
             "description": "Successful Response"
           },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -2152,6 +2263,9 @@
               }
             },
             "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
           }
         },
         "summary": "Activate",
@@ -2195,6 +2309,9 @@
             },
             "description": "Successful Response"
           },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -2204,6 +2321,9 @@
               }
             },
             "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
           }
         },
         "summary": "Decide",
@@ -2261,6 +2381,9 @@
             },
             "description": "Successful Response"
           },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -2270,6 +2393,9 @@
               }
             },
             "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
           }
         },
         "summary": "Change Issuer",
@@ -2295,6 +2421,12 @@
               }
             },
             "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
           }
         },
         "summary": "Issuer Proofs",
@@ -2325,6 +2457,9 @@
             },
             "description": "Successful Response"
           },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -2334,6 +2469,9 @@
               }
             },
             "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
           }
         },
         "summary": "Issue",
@@ -2463,6 +2601,12 @@
               }
             },
             "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
           }
         },
         "summary": "Recipients",
@@ -2496,6 +2640,9 @@
             },
             "description": "Successful Response"
           },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -2505,6 +2652,9 @@
               }
             },
             "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
           }
         },
         "summary": "Public Proof",
@@ -2590,6 +2740,9 @@
             },
             "description": "Successful Response"
           },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -2599,6 +2752,9 @@
               }
             },
             "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
           }
         },
         "summary": "Content",
@@ -2642,6 +2798,9 @@
             },
             "description": "Successful Response"
           },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -2651,6 +2810,9 @@
               }
             },
             "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
           }
         },
         "summary": "Verify",

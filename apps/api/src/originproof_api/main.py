@@ -23,6 +23,7 @@ from .database import Database
 from .finals_proofs import router as finals_router
 from .operations import router as operations_router
 from .repositories import SqlAlchemyProofRepository
+from .security import RequestSecurity
 from .settings import Settings
 
 
@@ -53,7 +54,7 @@ def configured_blockchain_reader(settings: Settings) -> BlockchainReader:
 
 def _request_id(request: Request) -> str:
     supplied = request.headers.get("X-Request-ID")
-    if supplied is not None and re.fullmatch(r"req_[A-Za-z0-9_-]+", supplied):
+    if supplied is not None and re.fullmatch(r"req_[A-Za-z0-9_-]{1,124}", supplied):
         return supplied
     return f"req_{uuid4().hex}"
 
@@ -71,7 +72,16 @@ def create_app(
         yield
         await app_database.dispose()
 
-    app = FastAPI(title="OriginProof API", version="0.1.0", lifespan=lifespan)
+    app = FastAPI(
+        title="OriginProof API",
+        version="0.1.0",
+        lifespan=lifespan,
+        responses={
+            413: {"description": "REQUEST_TOO_LARGE: request body exceeds configured limit"},
+            429: {"description": "RATE_LIMITED: retry after Retry-After seconds"},
+        },
+    )
+    app.add_middleware(RequestSecurity, settings=app_settings)
     app.state.database = app_database
     app.state.settings = app_settings
     app.include_router(auth_router)

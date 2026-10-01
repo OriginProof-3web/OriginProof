@@ -9,4 +9,4 @@ COPY packages/python packages/python
 COPY apps/api apps/api
 RUN uv sync --frozen --no-dev --package originproof-api
 
-CMD ["uv", "run", "--package", "originproof-api", "uvicorn", "originproof_api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uv", "run", "--package", "originproof-api", "uvicorn", "originproof_api.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "1", "--no-proxy-headers"]
