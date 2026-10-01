@@ -159,7 +159,9 @@ class AuditEventRow(Base):
 
 class Database:
     def __init__(self, database_url: str) -> None:
-        self.engine: AsyncEngine = create_async_engine(database_url, pool_pre_ping=True)
+        self.engine: AsyncEngine = create_async_engine(
+            database_url, pool_pre_ping=True, hide_parameters=True
+        )
         self.session_factory = async_sessionmaker(self.engine, expire_on_commit=False)
 
     async def sessions(self) -> AsyncIterator[AsyncSession]:

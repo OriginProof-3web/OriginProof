@@ -17,36 +17,45 @@ def signer_key(directory: str, reference: str, *, create: bool = False) -> keys.
     root = Path(directory)
     if create:
         root.mkdir(mode=0o700, parents=True, exist_ok=True)
-    info = root.lstat()
-    if not stat.S_ISDIR(info.st_mode) or info.st_mode & 0o077 or info.st_uid != os.getuid():
-        raise ValueError("signer directory must be owned and private")
-    path = root / reference
-    if create:
-        try:
-            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
-        except FileExistsError:
-            pass
-        else:
-            with os.fdopen(fd, "wb") as stream:
-                while True:
-                    raw = secrets.token_bytes(32)
-                    if 0 < int.from_bytes(raw, "big") < SECPK1_N:
-                        key = keys.PrivateKey(raw)
-                        break
-                stream.write(key.to_bytes())
-                stream.flush()
-                os.fsync(stream.fileno())
-            parent_fd = os.open(root, os.O_RDONLY)
+    root_fd = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        info = os.fstat(root_fd)
+        if info.st_mode & 0o077 or info.st_uid != os.getuid():
+            raise ValueError("signer directory must be owned and private")
+        if create:
             try:
-                os.fsync(parent_fd)
-            finally:
-                os.close(parent_fd)
-    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
-    with os.fdopen(fd, "rb") as stream:
-        info = os.fstat(stream.fileno())
-        if not stat.S_ISREG(info.st_mode) or info.st_mode & 0o077 or info.st_uid != os.getuid():
-            raise ValueError("signer file must be owned and private")
-        raw = stream.read(33)
+                fd = os.open(
+                    reference,
+                    os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                    0o600,
+                    dir_fd=root_fd,
+                )
+            except FileExistsError:
+                pass
+            else:
+                with os.fdopen(fd, "wb") as stream:
+                    while True:
+                        raw = secrets.token_bytes(32)
+                        if 0 < int.from_bytes(raw, "big") < SECPK1_N:
+                            key = keys.PrivateKey(raw)
+                            break
+                    stream.write(key.to_bytes())
+                    stream.flush()
+                    os.fsync(stream.fileno())
+                os.fsync(root_fd)
+        fd = os.open(reference, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=root_fd)
+        with os.fdopen(fd, "rb") as stream:
+            info = os.fstat(stream.fileno())
+            if (
+                not stat.S_ISREG(info.st_mode)
+                or info.st_mode & 0o077
+                or info.st_uid != os.getuid()
+                or info.st_nlink != 1
+            ):
+                raise ValueError("signer file must be owned, private and unlinked")
+            raw = stream.read(33)
+    finally:
+        os.close(root_fd)
     if len(raw) != 32 or not 0 < int.from_bytes(raw, "big") < SECPK1_N:
         raise ValueError("invalid signer material")
     return keys.PrivateKey(raw)
