@@ -245,3 +245,24 @@ test("operator sees uncertain chain work and audit history without a false succe
   const accessibility = await new AxeBuilder({ page }).analyze();
   expect(accessibility.violations).toEqual([]);
 });
+
+test("W2 key screen checks the date range but never submits without an API contract", async ({ page }) => {
+  const requests: string[] = [];
+  await page.route("**/api/v1/auth/me", (route) => {
+    requests.push(route.request().url());
+    return route.fulfill({
+      contentType: "application/json",
+      body: JSON.stringify({ role: "issuer", username: "demo-issuer-a" }),
+    });
+  });
+
+  await page.goto("/finals/keys");
+  await expect(page.getByRole("heading", { name: "발행 키 관리" })).toBeVisible();
+  await page.getByLabel("유효 시작 시각").fill("2026-10-01T10:00");
+  await page.getByLabel("유효 종료 시각").fill("2026-10-02T10:00");
+  await page.getByRole("button", { name: "입력 조건 확인" }).click();
+  await expect(page.getByText(/요청은 전송하지 않았습니다/)).toBeVisible();
+  expect(requests).toHaveLength(1);
+  const accessibility = await new AxeBuilder({ page }).analyze();
+  expect(accessibility.violations).toEqual([]);
+});
