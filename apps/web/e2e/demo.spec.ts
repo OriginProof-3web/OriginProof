@@ -266,3 +266,24 @@ test("W2 key screen checks the date range but never submits without an API contr
   const accessibility = await new AxeBuilder({ page }).analyze();
   expect(accessibility.violations).toEqual([]);
 });
+
+test("W3 issuer form validates ADR fields but does not claim to issue a proof", async ({ page }) => {
+  const requests: string[] = [];
+  await page.route("**/api/v1/auth/me", (route) => {
+    requests.push(route.request().url());
+    return route.fulfill({ contentType: "application/json", body: JSON.stringify({ role: "issuer", username: "demo-issuer-a" }) });
+  });
+  await page.goto("/finals/proofs");
+  await expect(page.getByRole("heading", { name: "새 Proof 입력" })).toBeVisible();
+  const issueSection = page.getByRole("region", { name: "새 Proof 입력" });
+  await issueSection.getByLabel("금액 (최소 화폐 단위)").fill("12000");
+  await issueSection.getByLabel("통화 코드").fill("KRW");
+  await issueSection.getByLabel("합성 요청 참조").fill("synthetic-invoice-01");
+  await issueSection.getByLabel("만료 시각").fill("2030-10-01T12:00");
+  await issueSection.getByRole("button", { name: "입력 조건 확인" }).click();
+  await expect(page.getByText(/요청은 전송하지 않았습니다/)).toBeVisible();
+  await expect(page.getByText("조회 미실행 · 현재 상태 미확인")).toBeVisible();
+  expect(requests).toHaveLength(1);
+  const accessibility = await new AxeBuilder({ page }).analyze();
+  expect(accessibility.violations).toEqual([]);
+});

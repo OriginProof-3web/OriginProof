@@ -321,6 +321,7 @@ export default function FinalsPage() {
             </form>
           )}
           <p><a className="finals-link" href="/finals/keys">키 관리 화면</a></p>
+          <p><a className="finals-link" href="/finals/proofs">Proof 발행·검증 화면</a></p>
           <OperationMonitor />
         </section>
       ) : account.role === "operator" ? (
@@ -348,7 +349,7 @@ export default function FinalsPage() {
       ) : (
         <section className="finals-card" aria-labelledby="recipient-heading">
           <h2 id="recipient-heading">수신자 계정</h2>
-          <p>로그인된 수신자 계정을 확인했습니다. 공개 Proof ID 조회는 로그인과 별도 흐름이며, 제한 내용 비교는 지정된 Proof에 대해서만 요청할 수 있습니다.</p>
+          <p>로그인된 수신자 계정을 확인했습니다. 공개 Proof ID 조회는 로그인과 별도 흐름이며, 제한 내용 비교는 지정된 Proof에 대해서만 요청할 수 있습니다. <a className="finals-link" href="/finals/proofs">Proof 조회 화면</a></p>
         </section>
       )}
     </main>
