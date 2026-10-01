@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import re
 import secrets
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
+from starlette.concurrency import run_in_threadpool
 
 from .database import AccountRow, SessionRow
 
@@ -55,9 +57,12 @@ def _token_hash(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
+_DUMMY_PASSWORD_HASH = password_hash(secrets.token_urlsafe(32))
+
+
 async def current_session(request: Request) -> tuple[AccountRow, SessionRow]:
     token = request.cookies.get(COOKIE)
-    if not token:
+    if not token or not re.fullmatch(r"[A-Za-z0-9_-]{43}", token):
         raise HTTPException(401, "AUTH_REQUIRED")
     async with request.app.state.database.session_factory() as db:
         session = await db.get(SessionRow, _token_hash(token))
@@ -74,7 +79,7 @@ async def current_session(request: Request) -> tuple[AccountRow, SessionRow]:
 
 def require_csrf(request: Request, session: SessionRow) -> None:
     supplied = request.headers.get("X-CSRF-Token", "")
-    if not supplied or not hmac.compare_digest(supplied, session.csrf_token):
+    if not supplied or not hmac.compare_digest(supplied.encode(), session.csrf_token.encode()):
         raise HTTPException(403, "CSRF_REQUIRED")
 
 
@@ -84,7 +89,12 @@ async def login(body: LoginInput, request: Request, response: Response) -> Accou
         account = await db.scalar(
             select(AccountRow).where(AccountRow.username == body.username.strip().casefold())
         )
-        if account is None or not password_matches(body.password, account.password_hash):
+        matches = await run_in_threadpool(
+            password_matches,
+            body.password,
+            account.password_hash if account else _DUMMY_PASSWORD_HASH,
+        )
+        if account is None or not matches:
             raise HTTPException(401, "INVALID_CREDENTIALS")
         token = secrets.token_urlsafe(32)
         csrf_token = secrets.token_urlsafe(32)
@@ -103,7 +113,7 @@ async def login(body: LoginInput, request: Request, response: Response) -> Accou
         max_age=SESSION_HOURS * 3600,
         httponly=True,
         samesite="lax",
-        secure=request.app.state.settings.session_cookie_secure,
+        secure=request.app.state.settings.session_cookie_secure or request.url.scheme == "https",
     )
     return AccountView(
         account_id=account.account_id,
