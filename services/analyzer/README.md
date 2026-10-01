@@ -1,11 +1,8 @@
-# OriginProof M2 Analyzer
+# OriginProof Analyzer
 
-M2는 합성 카드 알림을 `originproof_core.CardPaymentNoticeCandidate`로 구조화한다.
-진위 판정, Signed Proof 조회, 서명 검증, Registry 접근은 하지 않는다.
-개발 시작 기준은 `origin/mvp/integration@3bbaba025acd9d692ab484232f778a12a7579702`와
-`docs/handoffs/m2_execution_brief.md`였다. 현재 병합 기준은
-`origin/mvp/integration@f029e76b310de30cb27731be08c18a4360dc281c`이다.
-[통합 handoff](HANDOFF.md)에 검증 결과와 남은 조건을 기록한다.
+현재 담당은 D이며 기존 카드 알림을 `originproof_core.CardPaymentNoticeCandidate`로 구조화합니다. 진위 판정·Proof 조회·Registry 접근은 검증 코어/API가 담당합니다. 본선 P0는 AI 없이 동작하고 새 유형 OCR·추출은 P1입니다.
+
+현재 작업 기준은 [개발 계획서](../../docs/development_plan.md)와 [해당 경로 지침](AGENTS.md)입니다. [MVP handoff](HANDOFF.md)는 당시 개발·검사 기록이며 현재 병합 기준이나 남은 작업 목록이 아닙니다. 아래는 지금 존재하는 카드 추출 endpoint의 사용 안내입니다.
 
 ## 빠른 실행 (저장소 루트에서)
 
@@ -136,4 +133,4 @@ uv run --package originproof-analyzer python -m originproof_analyzer.evaluation 
 
 SDK 테스트는 실제 OpenAI 클라이언트와 `httpx.MockTransport`를 사용한다.
 Analyzer 테스트에서는 socket 연결을 차단하여 외부 네트워크/개인 API Key에 의존하지 않는다.
-`make mvp-test`에는 다른 역할의 Foundry 테스트가 포함되므로 Foundry 설치도 필요하다.
+`make mvp-test`의 Contract 검사는 Docker Compose의 고정 Foundry 컨테이너를 사용합니다. 호스트 Foundry 설치는 필수가 아니며 Docker 실행 환경이 필요합니다.

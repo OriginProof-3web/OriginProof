@@ -1,25 +1,21 @@
 # Blockchain Integration Agent Instructions
 
-## 1. Scope
-Applies to `services/indexer` and coordinates with the API blockchain adapter. Read the root `AGENTS.md` first.
+## 1. 적용 범위와 담당
 
-## 2. Responsibility
-M4 owns local-chain deployment, ABI export, deployment manifests, Python Web3 adapter, event projection and integration tests.
+`services/indexer/`에 적용하며 루트 `AGENTS.md`를 먼저 읽습니다.
 
-## 3. Allowed Changes
-Edit indexer, approved deploy and ABI paths, and `apps/api/src/infrastructure/blockchain` through the M4-owned boundary.
+B가 이벤트 projection·checkpoint·로컬 배포·manifest와 API blockchain Adapter를 담당합니다. API orchestration·공통 Python 모델은 C 소유입니다.
 
-## 4. Prohibited Changes
-Do not change Contract core logic or frozen API and Pydantic contracts without handoff. Do not treat a DB projection as chain authority.
+## 2. 구현·계약 규칙
 
-## 5. Contracts
-Use block number and log index for idempotency. Store chain ID, address, commit SHA and deployment arguments in the manifest. Support local-chain reset.
+공개된 ports/ABI에 맞춰 읽기·쓰기·receipt·재조회·오류를 연결합니다. 미등록만 absent로 반환하고 RPC/ABI/network 실패는 dependency 오류로 구분합니다. projection을 현재 체인 상태의 권위로 사용하지 않습니다.
 
-## 6. Required Tests
-Run deploy smoke, ABI generation, issuer and key reads, duplicate event replay and restart checkpoint tests.
+chain ID·주소·배포 SHA·배포 인자·배포 구분 정보를 manifest로 관리합니다. block/log identity와 checkpoint로 중복·재시작을 처리하고 체인 재배포 시 이전 projection과 Proof를 새 환경에 섞지 않습니다. 제출 결과가 불명확하면 Operation 복구 계약을 따라 재전송을 보류합니다.
 
-## 7. Completion
-`make demo-reset` deploys and seeds the Mock Bank. The API can read active and revoked key states through the port.
+## 3. 검증과 완료
 
-## 8. Handoff
-Contract interface issues go to M3 with the failing call, ABI item, chain state and expected behavior.
+배포/ABI·기관/키/Proof 상태 읽기·쓰기·실패 receipt·RPC 단절·중복 event·checkpoint 재시작·체인 재배포를 검사합니다. 실제 로컬 EVM 검사를 mock과 구분하고 새 배포 manifest와 최종 상태 재조회 근거를 남깁니다.
+
+## 4. 인계
+
+C에게 Adapter 입력/출력/오류·확정/복구 방법·사용 SHA를 전달합니다. Contract 변경은 같은 B 담당이어도 ABI·배포 소비자 영향을 별도 검토합니다.

@@ -30,11 +30,7 @@ def digest(path: Path) -> str:
 def tree_digest(paths: list[Path]) -> str:
     hasher = hashlib.sha256()
     existing = sorted(
-        path
-        for root in paths
-        if root.exists()
-        for path in root.rglob("*")
-        if path.is_file()
+        path for root in paths if root.exists() for path in root.rglob("*") if path.is_file()
     )
     if not existing:
         return "MISSING"
@@ -54,7 +50,15 @@ def main() -> int:
             "uv": command("uv", "--version"),
             "node": command("node", "--version"),
             "pnpm": command("pnpm", "--version"),
-            "forge": command("forge", "--version"),
+            "container_config": {
+                name: digest(ROOT / name)
+                for name in (
+                    ".tool-versions",
+                    "docker-compose.yml",
+                    "infra/docker/deployer.Dockerfile",
+                    "packages/contracts/foundry.toml",
+                )
+            },
             "lockfiles": {
                 "uv.lock": digest(ROOT / "uv.lock"),
                 "pnpm-lock.yaml": digest(ROOT / "pnpm-lock.yaml"),
@@ -65,7 +69,10 @@ def main() -> int:
             ),
             "abi_tree": tree_digest([ROOT / "packages/contracts/abi"]),
         },
-        "informational": {"host_platform": platform.platform()},
+        "informational": {
+            "host_platform": platform.platform(),
+            "host_forge": command("forge", "--version"),
+        },
     }
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT.write_text(

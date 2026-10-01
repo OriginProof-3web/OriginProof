@@ -1,8 +1,8 @@
 # MVP signing specification v1
 
-This specification is the source of truth for the M1 verifier, M3/M4 registry integration, and
-the synthetic issuer. It signs a domain-separated digest; it never signs an AI decision or raw
-user input.
+This specification remains the v1 source of truth for the verifier, registry integration, and
+the synthetic issuer. C owns the Python/signing source and B reviews the chain boundary.
+It signs a domain-separated digest; it never signs an AI decision or raw user input.
 
 ## Algorithm
 
@@ -27,14 +27,22 @@ NFC after trimming, and serializes timestamps in UTC RFC 3339 form with `Z`.
 
 ## Registry identifier encoding
 
-M3 contract tests encode issuer and key IDs as `keccak256(utf8(identifier))`. M4 must use exactly
-that encoding when translating the string `issuer_id` and `key_id` from the envelope to `bytes32`
+Contract tests encode issuer and key IDs as `keccak256(utf8(identifier))`. The B-owned Adapter
+must use exactly that encoding when translating the string `issuer_id` and `key_id` from the envelope to `bytes32`
 contract arguments. The original strings remain in the off-chain proof; only their hash is queried
 on chain.
 
 ## Golden fixture
 
 Run `make generate` to regenerate
-`fixtures/golden/card_payment_notice_signing_v1.json`. M4 must add a matching Solidity test before
-the end-to-end demo. A change to this fixture, the canonicalization code, or the signing payload is
-a shared-contract change and requires review from M1 and M4.
+`fixtures/golden/card_payment_notice_signing_v1.json`. B maintains the matching Solidity test
+for the end-to-end regression. A change to this fixture, the canonicalization code, or the signing payload is
+a shared-contract change and requires review from C and B.
+
+## Finals v2 extension (approved policy, implementation pending)
+
+[ADR 0001](adr/0001-finals-contracts.md) fixes the two new proof types, schema version 2.0.0,
+`originproof.finals` domain, recipient binding, status semantics and migration checks. It reuses
+the algorithm and envelope signing fields above. It does not change the current card v1 endpoint,
+canonicalization or Golden Fixture. C adds separate models/generated fixtures and B cross-checks
+them during W1-C3/W3-B2; documentation approval alone does not claim runtime support.

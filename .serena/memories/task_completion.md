@@ -1,9 +1,8 @@
 # Task Completion Checks
 
-- Required root interface: `make mvp-test`, `make lint`, `make typecheck`, `make smoke`; choose checks for the owned area, then run broader checks when needed.
-- API/shared Python changes: API and core tests, migration smoke, normal and amount-mismatch flows; lint/typecheck; ensure OpenAPI current.
-- Analyzer changes: Mock provider tests, normal/changed notice, refusal, timeout, incomplete and schema-mismatch paths; live API checks are opt-in.
-- Contract/indexer changes: Foundry authorization/boundary/state tests; deploy smoke and ABI generation; event replay/idempotency and restart checkpoint for indexer.
-- Web changes: TypeScript typecheck, component/accessibility checks, and Playwright E2E for supported flows.
-- Generated schema/ABI changes: regenerate from approved source and verify clean regeneration; update fixtures and compatibility artifacts.
-- Do not report tests as passed unless they were run; PR author runs owned-area tests and reviewer reproduces from a clean worktree/clone.
+- 검사 명령과 한계는 Makefile 및 개발 계획서 15.9절이 원본입니다. 수정 영역부터 검사하고 필요한 통합 범위로 확장합니다.
+- 문서 변경은 링크·경로·명령·정책 일관성·diff를 확인합니다. 기능 테스트를 실행했다고 보고하지 않습니다.
+- API/코어·Analyzer·Contract/Adapter·웹은 각각 정상·거부·실패·경계값을 검사합니다. 생성물은 원본에서 갱신합니다.
+- mock 통과·독립 구현·실제 연결·단계 완료를 구분합니다. make mvp-test는 기존 회귀이며 본선 전체 성공의 증거가 아닙니다.
+- 실제 SHA·환경·결과·미실행 이유를 기록합니다. 작성자 외 리뷰와 필요한 clean 재현을 받았다고 가정하지 않습니다.
+- PR 템플릿 및 docs/portfolio/README.md에 따라 실제 기여·AI 활용·한계를 기록합니다.

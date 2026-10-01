@@ -1,5 +1,7 @@
 # M2 → M1: 카드 알림 후보 추출 구현 Handoff
 
+> **MVP 과거 기록 — 현재 작업 지시로 사용하지 마세요.** 당시 역할·브랜치·미완료 상태·설정값을 보존한 문서입니다. 현재 개발은 [시작 안내](../../START_HERE.md)와 [개발 계획서](../../docs/development_plan.md)를 따르며, 아래의 실행/병합 지시는 자동으로 적용하지 않습니다.
+
 개발 시작 기준: `origin/mvp/integration@3bbaba025acd9d692ab484232f778a12a7579702`
 현재 병합 기준: `origin/mvp/integration@f029e76b310de30cb27731be08c18a4360dc281c`
 작업 브랜치: `mvp/ai` · 작성일: 2026-09-07
