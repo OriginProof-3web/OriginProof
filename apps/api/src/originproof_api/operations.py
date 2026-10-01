@@ -4,6 +4,7 @@ import hashlib
 import json
 import re
 from datetime import datetime
+from enum import StrEnum
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -17,13 +18,24 @@ from .database import AccountRow, AuditEventRow, OperationRow, SessionRow
 router = APIRouter(tags=["operations"])
 
 
+class OperationStatus(StrEnum):
+    PENDING_SUBMISSION = "PENDING_SUBMISSION"
+    SUBMITTED = "SUBMITTED"
+    CONFIRMED = "CONFIRMED"
+    FAILED = "FAILED"
+    UNKNOWN = "UNKNOWN"
+
+
 class OperationView(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     operation_id: str
     issuer_id: str | None
+    target_id: str | None = None
     action: str
     request_id: str
-    status: str
+    status: OperationStatus
+    deployment_id: str | None = None
+    chain_evidence: dict | None = None
     tx_hash: str | None
     error_code: str | None
     created_at: datetime
@@ -36,6 +48,7 @@ class AuditView(BaseModel):
     issuer_id: str | None
     action: str
     target_id: str
+    reason: str | None = None
     before_status: str | None
     after_status: str
     created_at: datetime
@@ -52,16 +65,22 @@ async def reserve_operation(
     action: str,
     request_id: str,
     body: dict[str, object],
+    *,
+    issuer_id: str | None = None,
+    target_id: str | None = None,
 ) -> OperationRow:
     """Commit a reservation before any external write; ambiguous submission stays pending."""
     if not re.fullmatch(r"req_[A-Za-z0-9_-]{1,124}", request_id):
         raise HTTPException(422, "INVALID_REQUEST_ID")
     fingerprint = input_fingerprint(body)
+    institution = issuer_id if issuer_id is not None else account.issuer_id
     async with session_factory() as db:
         row = OperationRow(
             operation_id=f"op_{uuid4().hex}",
             account_id=account.account_id,
-            issuer_id=account.issuer_id,
+            issuer_id=institution,
+            input_body=body,
+            target_id=target_id,
             action=action,
             request_id=request_id,
             input_hash=fingerprint,
@@ -83,7 +102,7 @@ async def reserve_operation(
             )
             if existing is None:
                 raise
-            if existing.input_hash != fingerprint or existing.issuer_id != account.issuer_id:
+            if existing.input_hash != fingerprint or existing.issuer_id != institution:
                 raise HTTPException(409, "REQUEST_ID_CONFLICT") from error
             return existing
 

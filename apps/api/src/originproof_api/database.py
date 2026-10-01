@@ -5,7 +5,17 @@ from datetime import datetime
 from typing import Any
 
 from originproof_core import DependencyUnavailableError
-from sqlalchemy import JSON, DateTime, ForeignKey, String, UniqueConstraint, func, text
+from sqlalchemy import (
+    JSON,
+    BigInteger,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    String,
+    UniqueConstraint,
+    func,
+    text,
+)
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -87,7 +97,25 @@ class OperationRow(Base):
     status: Mapped[str] = mapped_column(String(32), nullable=False)
     tx_hash: Mapped[str | None] = mapped_column(String(66))
     error_code: Mapped[str | None] = mapped_column(String(64))
+    target_id: Mapped[str | None] = mapped_column(String(128))
+    input_body: Mapped[dict | None] = mapped_column(JSON)
+    recovery_reference: Mapped[dict | None] = mapped_column(JSON)
+    chain_evidence: Mapped[dict | None] = mapped_column(JSON)
+    deployment_id: Mapped[str | None] = mapped_column(String(68))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class IssuerKeyRow(Base):
+    __tablename__ = "issuer_keys"
+    key_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    issuer_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    signer: Mapped[str] = mapped_column(String(42), nullable=False)
+    valid_from: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    valid_until: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    selected: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    secret_ref: Mapped[str] = mapped_column(String(128), nullable=False)
+    deployment_id: Mapped[str] = mapped_column(String(68), nullable=False)
 
 
 class AuditEventRow(Base):
@@ -98,6 +126,7 @@ class AuditEventRow(Base):
     issuer_id: Mapped[str | None] = mapped_column(String(128))
     action: Mapped[str] = mapped_column(String(64), nullable=False)
     target_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    reason: Mapped[str | None] = mapped_column(String(500))
     before_status: Mapped[str | None] = mapped_column(String(32))
     after_status: Mapped[str] = mapped_column(String(32), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
