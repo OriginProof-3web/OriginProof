@@ -1,12 +1,25 @@
 # W2-D 검증 준비 — 기관 승인과 공개키 관리
 
-기준: `integration` `3295a71c10a1a99c523d3cfefde91b5737b737ac`  
-담당: D / 여인준님 (`@yijun0330`)  
-상태: 독립 검증 준비. 아래 W2 API·체인·브라우저 사례는 실제 실행 전이며 모두 `NOT_RUN`입니다.
+기준: `phase/W2` `e40191f405763666c11fc42058ccf6ac516473ae` (부모 `phase/W1` `322416e8556cea42de0016b6bb1461f56b69b4e5`)
 
-W2는 계획서 §15.3의 개발 단계입니다. 현재 `phase/W2`는 없고 W1도 아직 `integration`에 승격되지 않았습니다. 이에 이 자료는 최신 integration에서 시작한 D 작업 branch의 독립 준비이며, 단계 완료·실제 연결 검증을 뜻하지 않습니다.
+담당: D / 여인준님 (`@yijun0330`)
+
+상태: 독립 검증 준비. 아래 W2-C API·연결 브라우저 사례는 실제 실행 전이며 모두 `NOT_RUN`입니다.
+
+W2는 계획서 §15.3의 개발 단계입니다. `phase/W2`는 생성되어 W1 작업 PR #23/#26/#27/#30과 기준 동기화 #31, W2-A2 PR #28을 포함합니다. W1-C3 PR #32는 아직 열려 있고 `integration`은 여전히 `3295a71c10a1a99c523d3cfefde91b5737b737ac`이므로 W1 단계가 `integration`으로 승격된 상태는 아닙니다. 이번 W2 D 브랜치는 이제 `phase/W2` 최신 SHA에서 시작해 독립 검증 준비를 진행하며 단계 완료를 뜻하지 않습니다.
 
 ## D1 — API·체인 경계 실패 사례
+
+### 현재 phase/W2의 B 회귀 스모크
+
+검사 대상 SHA `e40191f405763666c11fc42058ccf6ac516473ae`에서 계획서 15.9의 Indexer 검사를 시도했습니다.
+
+| 명령/환경 | 결과와 범위 |
+| --- | --- |
+| `UV_PROJECT_ENVIRONMENT=.uv-venv uv run pytest -q services/indexer/tests` | 실행 전 uv가 macOS `system-configuration` 경로에서 `Attempted to create a NULL object`로 panic하여 pytest 미실행 |
+| `PYTHONPATH=services/indexer/src:packages/python:apps/api/src /private/tmp/originproof-w1-completion/.uv-venv/bin/python -m pytest -q services/indexer/tests` | Python 3.13.7의 기존 locked dependency 환경에서 **60 passed, 1 skipped**. 현재 phase/W2 소스의 Reader/Writer/projection 테스트; skipped 사례는 opt-in live chain |
+
+이 스모크는 현재 B 코드의 단위 회귀 확인이며, D1 API·DB·chain 경계 또는 실제 RPC 연결 검증을 대신하지 않습니다. live-chain 검사는 실행하지 않았습니다.
 
 | 사례 | F 기준 | 합성 사전조건과 입력 | 기대 불변조건 | 실행 증거 |
 | --- | --- | --- | --- | --- |
@@ -41,11 +54,12 @@ W2는 계획서 §15.3의 개발 단계입니다. 현재 `phase/W2`는 없고 W1
 | 신청 → 승인 → 키 등록 → 폐기 → 재조회 | `NOT_RUN` — W2-A1/A2 및 B/C 연결 필요 |
 | 새로고침·새 세션·권한 경계 | `NOT_RUN` — 실제 연결 필요 |
 | clean 환경 재현 | `NOT_RUN` — 재현 가능한 W2 배포/기동 절차 필요 |
-| blockers / 담당 PR | W1 PR #23/#26/#27/#30 및 기준 동기화 PR #31의 phase 반영 대기; W2-B2/C1-C3 연결 결과 대기 |
+| blockers / 담당 PR | W1-C3 PR #32 및 W1 `phase/W1` → `integration` 승격 대기; W2-C API PR #33 미병합. W2-B1/B2·W2-A2 구현은 현재 `phase/W2`에 있으나 D 독립 검증 전 |
 
 ## 진행 경계
 
-- 현재 확인된 W2 C 준비 브랜치는 `origin/feat/w2-c-operations-prep` (`89bb658a0cf40254eff00b147c19bd8851589f2c`), W2 B Adapter 브랜치는 `origin/codex/w2-b-chain-operations` (`78411462db6b1882bba7d53d430cbbe065677a77`)입니다. C 문서 자체가 B/C가 제출·receipt·재시작 상태를 합의하기 전 W2-C1 완료 표시를 금지합니다.
-- W2-A2 PR #28은 `codex/w1-a1`을 base로 둔 열린 PR이며, W2-D2에 필요한 A/B/C 실제 키 상태 흐름이 `phase/W2` 또는 integration에 아직 합쳐진 것은 아닙니다.
+- W2-B1/B2의 Writer·배포·projection과 그 상태·복구 계약은 B의 PR #26으로 `phase/W2`에 들어왔습니다. B의 보고는 자체 Anvil 검사이며 D의 독립 검사로 대체하지 않습니다.
+- W2-A2 PR #28은 `phase/W2`에 병합됐습니다. W2-C API/Operation 복구 PR #33은 `feat/w2-c-chain-keys`에서 `phase/W2`로 열린 상태이며 아직 병합 전입니다. 그 결과 W2-D1의 API·DB·체인 교차 확인과 W2-D2 전체 브라우저 흐름은 아직 실행할 수 없습니다.
+- W1-C3 PR #32는 `phase/W1` 대상으로 열려 있습니다. 현재 `phase/W2`는 W1-C3를 포함하지 않으므로 그 모델에 직접 의존하는 연결 검사는 PR #32 반영 후 다시 확인해야 합니다.
 - W2-D는 준비된 API·Adapter·화면을 독립 검증합니다. D 자료에서 API/Contract 구현, 타 담당 브랜치 merge/cherry-pick, 미구현 경로의 성공 판정은 하지 않습니다.
 - 이번 커밋에서는 application source, 개인 `.env`, Golden Fixture를 변경하지 않았고 DB 초기화·운영 배포·유료 모델 호출도 하지 않았습니다.
