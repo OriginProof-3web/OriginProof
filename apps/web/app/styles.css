@@ -106,3 +106,40 @@ dd { font-weight: 700; text-align: right; }
   .preset-buttons { width: 100%; }
   .preset-buttons button { flex: 1; }
 }
+
+.finals-page { max-width: 900px; }
+.finals-header { align-items: flex-end; display: flex; flex-wrap: wrap; gap: 20px; justify-content: space-between; margin-bottom: 24px; }
+.finals-header h1 { line-height: 1.1; }
+.account-strip { align-items: center; background: #fff; border: 1px solid #dbe1ed; border-radius: 12px; display: flex; flex-wrap: wrap; gap: 12px; padding: 10px 12px; }
+.account-strip span { color: #3d4860; font-size: 13px; font-weight: 700; }
+.account-strip button, .finals-form button, .decision-form button { background: #3730a3; border: 0; border-radius: 8px; color: #fff; cursor: pointer; font-size: 13px; font-weight: 700; padding: 10px 14px; }
+.account-strip button:focus-visible, .finals-form button:focus-visible, .decision-form button:focus-visible { outline: 3px solid #b8b4ff; outline-offset: 2px; }
+.account-strip button:disabled, .finals-form button:disabled, .decision-form button:disabled { cursor: wait; opacity: .65; }
+.finals-card { background: #fff; border: 1px solid #dbe1ed; border-radius: 16px; padding: 24px; }
+.finals-card h2 { font-size: 21px; }
+.finals-card > p { color: #52607a; font-size: 14px; line-height: 1.5; }
+.finals-form { display: grid; gap: 16px; margin-top: 20px; max-width: 440px; }
+.finals-form label, .decision-form label { color: #3d4860; display: grid; font-size: 13px; font-weight: 700; gap: 6px; }
+.finals-form button { justify-self: start; min-width: 120px; }
+.refresh-button { background: #f0f1fb; border: 1px solid #cdd1f2; border-radius: 8px; color: #292272; cursor: pointer; font-size: 12px; font-weight: 700; margin: 8px 0; padding: 8px 10px; }
+.refresh-button:focus-visible { outline: 3px solid #b8b4ff; outline-offset: 2px; }
+.refresh-button:disabled { cursor: wait; opacity: .65; }
+.finals-message { background: #eef1f7; border-radius: 9px; color: #40506c; margin: 12px 0; padding: 12px 14px; }
+.finals-error { background: #fff1f1; color: #862d2d; }
+.finals-info { background: #e7f7ed; color: #12633b; }
+.application-summary { margin-top: 16px; }
+.application-summary > div { border-top: 1px solid #e2e6ef; display: flex; gap: 16px; justify-content: space-between; padding: 12px 0; }
+.application-summary dt { color: #52607a; flex: 0 0 auto; }
+.application-summary dd { overflow-wrap: anywhere; }
+.chain-pending { background: #fff8e4; border-radius: 8px; color: #805a0a; font-size: 13px; line-height: 1.45; margin: 12px 0 0; padding: 12px; }
+.application-list { display: grid; gap: 16px; list-style: none; margin: 0; padding: 0; }
+.application-item { border: 1px solid #e2e6ef; border-radius: 12px; padding: 16px; }
+.application-item .application-summary { margin-top: 0; }
+.decision-form { border-top: 1px solid #e2e6ef; display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; padding-top: 14px; }
+.decision-form label { flex: 1 1 100%; }
+.decision-form button:last-child { background: #8d3030; }
+
+@media (max-width: 540px) {
+  .finals-card { border-radius: 14px; padding: 18px; }
+  .decision-form button { flex: 1; }
+}
