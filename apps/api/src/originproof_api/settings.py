@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     blockchain_manifest_path: str | None = None
     blockchain_issuer_id: str = "iss_origin_mock_bank"
     blockchain_chain_id: int = 31337
+    session_cookie_secure: bool = False
 
     model_config = SettingsConfigDict(
         env_file=".env",
