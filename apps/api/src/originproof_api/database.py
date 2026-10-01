@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Any
 
 from originproof_core import DependencyUnavailableError
-from sqlalchemy import JSON, DateTime, ForeignKey, String, func, text
+from sqlalchemy import JSON, DateTime, ForeignKey, String, UniqueConstraint, func, text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -71,6 +71,22 @@ class IssuerApplicationRow(Base):
     status: Mapped[str] = mapped_column(String(32), nullable=False)
     decision_reason: Mapped[str | None] = mapped_column(String(500))
     decided_by_account_id: Mapped[str | None] = mapped_column(ForeignKey("accounts.account_id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class OperationRow(Base):
+    __tablename__ = "operations"
+    __table_args__ = (UniqueConstraint("account_id", "action", "request_id"),)
+
+    operation_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    account_id: Mapped[str] = mapped_column(ForeignKey("accounts.account_id"), nullable=False)
+    issuer_id: Mapped[str | None] = mapped_column(String(128))
+    action: Mapped[str] = mapped_column(String(64), nullable=False)
+    request_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    input_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    tx_hash: Mapped[str | None] = mapped_column(String(66))
+    error_code: Mapped[str | None] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
