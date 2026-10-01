@@ -320,6 +320,7 @@ export default function FinalsPage() {
               <button type="submit" disabled={isSubmitting}>{isSubmitting ? "제출 중…" : "신청 제출"}</button>
             </form>
           )}
+          <p><a className="finals-link" href="/finals/keys">키 관리 화면</a></p>
           <OperationMonitor />
         </section>
       ) : account.role === "operator" ? (
