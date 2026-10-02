@@ -88,7 +88,10 @@ class ChainWritePersistence(Protocol):
 
 
 class RpcRejected(RuntimeError):
-    pass
+    def __init__(self, code=None, category="other"):
+        super().__init__("RPC rejected request")
+        self.code = code
+        self.category = category
 
 
 def _word(value: int) -> bytes:
@@ -157,7 +160,18 @@ class JsonRpcBlockchainWriter:
         ):
             raise ValueError("invalid RPC response")
         if "error" in body:
-            raise RpcRejected("RPC rejected transaction")
+            error = body["error"]
+            code = error.get("code") if isinstance(error, dict) else None
+            message = error.get("message") if isinstance(error, dict) else None
+            message = message.casefold() if isinstance(message, str) else ""
+            category = (
+                "already_known"
+                if "already known" in message
+                else "nonce_too_low"
+                if "nonce too low" in message
+                else "other"
+            )
+            raise RpcRejected(code if type(code) is int else None, category)
         if "result" not in body:
             raise ValueError("missing RPC result")
         return body["result"]
@@ -253,13 +267,7 @@ class JsonRpcBlockchainWriter:
         client = self._client or httpx.AsyncClient()
         try:
             await self._verify_deployment(client)
-            try:
-                tx_hash = await self._rpc(client, "eth_sendTransaction", [prepared.transaction])
-            except RpcRejected:
-                self._release_nonce(prepared)
-                return self._prepared_result(
-                    prepared, ChainOperationState.FAILED, error_code="CHAIN_REVERTED"
-                )
+            tx_hash = await self._rpc(client, "eth_sendTransaction", [prepared.transaction])
             tx_hash = validate_hash(tx_hash)
             return self._prepared_result(prepared, ChainOperationState.SUBMITTED, tx_hash=tx_hash)
         except (httpx.HTTPError, ValueError, RpcRejected):
@@ -326,7 +334,39 @@ class JsonRpcBlockchainWriter:
                     block_hash=block_hash,
                     error_code="RECEIPT_NOT_CANONICAL",
                 )
-            if int(status, 16) != 1:
+            transaction = await self._rpc(client, "eth_getTransactionByHash", [tx_hash])
+            try:
+                transaction_hash = validate_hash(transaction.get("hash"))
+            except (AttributeError, ValueError):
+                transaction_hash = None
+            if transaction_hash != tx_hash or not self._matches_prepared(transaction, prepared):
+                return self._prepared_result(
+                    prepared,
+                    ChainOperationState.UNKNOWN,
+                    tx_hash=tx_hash,
+                    block_number=block_number,
+                    block_hash=block_hash,
+                    error_code="TRANSACTION_NOT_MATCHED",
+                )
+            receipt_status = int(status, 16)
+            if receipt_status not in (0, 1):
+                raise ValueError("invalid receipt status")
+            if receipt_status == 0:
+                failed_block = await self._rpc(
+                    client, "eth_getBlockByNumber", [hex(block_number), False]
+                )
+                if (
+                    not isinstance(failed_block, dict)
+                    or failed_block.get("hash", "").lower() != block_hash
+                ):
+                    return self._prepared_result(
+                        prepared,
+                        ChainOperationState.UNKNOWN,
+                        tx_hash=tx_hash,
+                        block_number=block_number,
+                        block_hash=block_hash,
+                        error_code="RECEIPT_NOT_CANONICAL",
+                    )
                 self._release_nonce(prepared)
                 return self._prepared_result(
                     prepared,
@@ -350,7 +390,44 @@ class JsonRpcBlockchainWriter:
                     block_hash=block_hash,
                     error_code="CONFIRMATION_PENDING",
                 )
-            if not await prepared._verify(client, hex(latest_number)):
+            reread_block = await self._rpc(
+                client, "eth_getBlockByNumber", [hex(latest_number), False]
+            )
+            if not isinstance(reread_block, dict):
+                raise ValueError("reread block unavailable")
+            reread_hash = validate_hash(reread_block.get("hash"))
+            state_matches = await prepared._verify(client, hex(latest_number))
+            receipt_again = await self._rpc(
+                client, "eth_getBlockByNumber", [hex(block_number), False]
+            )
+            reread_again = await self._rpc(
+                client, "eth_getBlockByNumber", [hex(latest_number), False]
+            )
+            if (
+                not isinstance(receipt_again, dict)
+                or receipt_again.get("hash", "").lower() != block_hash
+            ):
+                return self._prepared_result(
+                    prepared,
+                    ChainOperationState.UNKNOWN,
+                    tx_hash=tx_hash,
+                    block_number=block_number,
+                    block_hash=block_hash,
+                    error_code="RECEIPT_NOT_CANONICAL",
+                )
+            if (
+                not isinstance(reread_again, dict)
+                or reread_again.get("hash", "").lower() != reread_hash
+            ):
+                return self._prepared_result(
+                    prepared,
+                    ChainOperationState.UNKNOWN,
+                    tx_hash=tx_hash,
+                    block_number=block_number,
+                    block_hash=block_hash,
+                    error_code="STATE_NOT_CONFIRMED",
+                )
+            if not state_matches:
                 self._release_nonce(prepared)
                 return self._prepared_result(
                     prepared,
@@ -478,6 +555,8 @@ class JsonRpcBlockchainWriter:
     @staticmethod
     def _matches_prepared(transaction, prepared):
         if not isinstance(transaction, dict):
+            return False
+        if any(type(transaction.get(key)) is not str for key in ("from", "to", "input", "nonce")):
             return False
         try:
             nonce = int(transaction.get("nonce", ""), 16)
