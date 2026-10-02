@@ -1,5 +1,35 @@
 # W3 A 검사 기록
 
+## 2026-10-03 PR #44 CI 보완 재현
+
+- 검사 소스: `f875958` (최신 `phase/W3@9047163`을 반영한 `de9432d` + CI 보완).
+- 사용자 요청에 따라 C 계정의 Codex가 기존 웹 PR의 머지 준비를 보완했습니다.
+- 최초 CI 실패는 `#quick-nav summary`의 click 30초 timeout입니다. 현재 로컬에서는
+  보완 전 같은 테스트도 1 passed/12.3초로 통과하여, 제품 메뉴 오류나 GPU 성능 문제로
+  원인을 확정하지 않았습니다.
+- 기존 실제 QA의 production/reduced motion 조건을 CI 기능 검사에도 적용했습니다.
+  CI는 사전 build의 `pnpm start`, 로컬 기본은 기존 dev를 사용합니다. timeout 증가,
+  force click, 검사 skip, 제품 WebGL/원본 디자인 변경은 하지 않았습니다.
+- 390px 메뉴의 Enter 열기, Escape 닫기·summary 포커스 복귀, 실제 로그인 링크 이동을
+  추가 검사합니다. 마우스 클릭·익명 조회·사이드바·MVP 접근성 회귀도 유지합니다.
+- 환경: macOS, Node 22.14.0, pnpm 11.25.0, 기존 lockfile/Next 15.5.3/Playwright 1.55.0.
+  GitHub CI의 Node 22.18.0/pnpm 11.19.0 결과는 PR check에서 별도로 확인합니다.
+
+| 이번 실행 | 결과 |
+| --- | --- |
+| 웹 lint/typecheck/build | 통과 |
+| component | 15 passed |
+| production E2E 전체 | 9 passed/2 live skipped, 6.4초 |
+| `f875958` clean git archive + frozen offline install + 새 production build/E2E | build 통과, E2E 9 passed/2 live skipped |
+| Python API/core/analyzer/indexer | 318 passed/5 opt-in skipped |
+| 현재 W3 생성 원본과 웹 생성 타입 snapshot 2개 비교 | byte 일치 |
+| lockfile/원본 디자인·WebGL/diff | lockfile·제품 디자인 변경 없음, diff check 통과 |
+
+기본 E2E에서 제외한 2개는 합성 계정 파일을 명시해야 실행하는 실제 API 검사입니다.
+이번에는 현재 통합 SHA의 실제 DB/RPC/API 브라우저, 휴대폰 LAN/QR, D 독립 실제 재현과
+W4 화면을 실행·완료했다고 기록하지 않습니다. 기능 E2E는 reduced motion 조건이며
+일반 애니메이션 성능 검사를 대체하지 않습니다. 아래는 최초 제출 당시 증거입니다.
+
 - 기록 시각: 2026-10-02T21:32:29+09:00
 - 기준 SHA: `1f8ed632ea9c74091abaf2fe2ec32882038f731f` (`phase/W3`). 검사 대상은 이 SHA에 미커밋 웹 변경을 더한 작업 트리입니다.
 - 브랜치: `codex/w3-a-official-web`; push/PR 미실행.
