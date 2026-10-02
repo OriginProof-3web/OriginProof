@@ -80,19 +80,54 @@ def load_manifest(path: str | Path, expected_chain_id: int) -> DeploymentManifes
             constructor_arguments=tuple(arguments),
             abi_sha256=abi_sha256,
         )
-    if (
-        contracts["IssuerRegistry"].address.lower()
-        == contracts["IssuerKeyRegistry"].address.lower()
-    ):
+    if "ProofStatusRegistry" in raw["contracts"]:
+        entry = raw["contracts"]["ProofStatusRegistry"]
+        if not isinstance(entry.get("abi_sha256"), str) or not SHA256.fullmatch(
+            entry["abi_sha256"]
+        ):
+            raise ValueError("invalid ProofStatusRegistry ABI hash")
+        if not isinstance(entry.get("constructor_arguments"), list):
+            raise ValueError("invalid ProofStatusRegistry constructor arguments")
+        contracts["ProofStatusRegistry"] = ContractDeployment(
+            address=validate_address(entry["address"]),
+            constructor_arguments=tuple(entry["constructor_arguments"]),
+            abi_sha256=entry["abi_sha256"],
+        )
+    if len({entry.address.lower() for entry in contracts.values()}) != len(contracts):
         raise ValueError("duplicate contract address")
 
     roles = raw["roles"]
     required_roles = ("registry_admin", "issuer_manager", "key_manager", "issuer_account")
+    if "ProofStatusRegistry" in contracts:
+        required_roles += ("gateway",)
     if not isinstance(roles, dict) or any(name not in roles for name in required_roles):
         raise ValueError("missing role addresses")
     validated_roles = {name: validate_address(roles[name]) for name in required_roles}
     if len({value.lower() for value in validated_roles.values()}) != len(validated_roles):
         raise ValueError("role addresses must be distinct")
+    admin = validated_roles["registry_admin"].lower()
+    issuer = contracts["IssuerRegistry"].address.lower()
+    key = contracts["IssuerKeyRegistry"].address.lower()
+    expected_arguments = {
+        "IssuerRegistry": (admin,),
+        "IssuerKeyRegistry": (admin, issuer),
+    }
+    if "ProofStatusRegistry" in contracts:
+        expected_arguments["ProofStatusRegistry"] = (
+            admin,
+            validated_roles["gateway"].lower(),
+            issuer,
+            key,
+        )
+    for name, expected in expected_arguments.items():
+        try:
+            actual = tuple(
+                validate_address(value).lower() for value in contracts[name].constructor_arguments
+            )
+        except ValueError:
+            raise ValueError(f"invalid {name} constructor address") from None
+        if actual != expected:
+            raise ValueError(f"{name} constructor does not match manifest roles and addresses")
 
     return DeploymentManifest(
         chain_id=chain_id,

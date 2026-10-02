@@ -21,7 +21,7 @@ CONTRACTS = ROOT / "packages/contracts"
 
 def export_abi(forge: str) -> None:
     subprocess.run([forge, "build"], cwd=CONTRACTS, check=True, capture_output=True)
-    for name in ("IssuerRegistry", "IssuerKeyRegistry"):
+    for name in ("IssuerRegistry", "IssuerKeyRegistry", "ProofStatusRegistry"):
         artifact = json.loads((CONTRACTS / f"out/{name}.sol/{name}.json").read_text())
         target = CONTRACTS / f"abi/{name}.json"
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -58,9 +58,9 @@ def deploy(rpc_url: str, signer: str, source_commit_sha: str | None = None) -> P
         if int(rpc("eth_chainId", []), 16) != 31337:
             raise ValueError("chain ID must be 31337")
         accounts = [address(value) for value in rpc("eth_accounts", [])]
-        if len(accounts) < 4 or len({value.lower() for value in accounts[:4]}) != 4:
-            raise ValueError("four distinct unlocked local accounts are required")
-        admin, issuer_manager, key_manager, issuer_account = accounts[:4]
+        if len(accounts) < 5 or len({value.lower() for value in accounts[:5]}) != 5:
+            raise ValueError("five distinct unlocked local accounts are required")
+        admin, issuer_manager, key_manager, issuer_account, gateway = accounts[:5]
         golden = json.loads(
             (ROOT / "fixtures/golden/card_payment_notice_signing_v1.json").read_text()
         )
@@ -74,6 +74,7 @@ def deploy(rpc_url: str, signer: str, source_commit_sha: str | None = None) -> P
             "CHAIN_ISSUER_MANAGER_ADDRESS": issuer_manager,
             "CHAIN_KEY_MANAGER_ADDRESS": key_manager,
             "CHAIN_ISSUER_ACCOUNT_ADDRESS": issuer_account,
+            "CHAIN_GATEWAY_ADDRESS": gateway,
             "CHAIN_MOCK_SIGNER_ADDRESS": signer,
             "CHAIN_KEY_VALID_FROM": str(start),
             "CHAIN_KEY_VALID_UNTIL": str(start + 365 * 86400),
@@ -105,6 +106,7 @@ def deploy(rpc_url: str, signer: str, source_commit_sha: str | None = None) -> P
             if tx.get("transactionType") != "CREATE" or name not in (
                 "IssuerRegistry",
                 "IssuerKeyRegistry",
+                "ProofStatusRegistry",
             ):
                 continue
             contract_address = address(tx["contractAddress"])
@@ -113,12 +115,18 @@ def deploy(rpc_url: str, signer: str, source_commit_sha: str | None = None) -> P
                 raise ValueError("deployment transaction failed")
             blocks.append(int(receipt["blockNumber"], 16))
             contracts[name] = {"address": contract_address}
-        if len(contracts) != 2:
+        if len(contracts) != 3:
             raise ValueError("missing deployed registry")
         contracts["IssuerRegistry"]["constructor_arguments"] = [admin]
         contracts["IssuerKeyRegistry"]["constructor_arguments"] = [
             admin,
             contracts["IssuerRegistry"]["address"],
+        ]
+        contracts["ProofStatusRegistry"]["constructor_arguments"] = [
+            admin,
+            gateway,
+            contracts["IssuerRegistry"]["address"],
+            contracts["IssuerKeyRegistry"]["address"],
         ]
         for name in contracts:
             abi = (CONTRACTS / f"abi/{name}.json").read_bytes()
@@ -159,6 +167,7 @@ def deploy(rpc_url: str, signer: str, source_commit_sha: str | None = None) -> P
                 "issuer_manager": issuer_manager,
                 "key_manager": key_manager,
                 "issuer_account": issuer_account,
+                "gateway": gateway,
             },
         }
         target = CONTRACTS / "deployments/31337.local.json"

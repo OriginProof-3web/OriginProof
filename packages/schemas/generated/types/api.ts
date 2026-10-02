@@ -151,6 +151,8 @@ export interface OperationView {
   tx_hash: string | null;
   error_code: string | null;
   created_at: string;
+  recovery_required: boolean;
+  next_action: string;
 }
 
 export interface AuditView {
@@ -163,6 +165,16 @@ export interface AuditView {
   before_status: string | null;
   after_status: string;
   created_at: string;
+}
+
+export interface SyncView {
+  status?: string;
+  deployment_id?: string | null;
+  checkpoint_block?: number | null;
+  checkpoint_hash?: string | null;
+  checked_at?: string | null;
+  error_code?: string | null;
+  authority?: string;
 }
 
 export interface IssueInput {
@@ -180,12 +192,18 @@ export interface ProofView {
   schema_version: "2.0.0";
   issued_at: string;
   expires_at: string;
+  registration_status?: OperationStatus | "NOT_REGISTERED";
+  registration_operation_id?: string | null;
   verification_path: string;
 }
 
 export interface ProofContent {
   envelope: FinalsSignedProofEnvelope;
   target_ref?: string | null;
+}
+
+export interface ProofMutation {
+  request_id: string;
 }
 
 export interface RecipientView {

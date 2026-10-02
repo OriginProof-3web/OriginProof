@@ -17,6 +17,8 @@ permissions:
 
 jobs:
   python-quality:
+    env:
+      PYTHONPATH: apps/api/src:packages/python:services/analyzer/src:services/indexer/src
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

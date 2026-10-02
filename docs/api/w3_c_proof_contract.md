@@ -46,7 +46,7 @@ Proof는 발행 당시 deployment_id를 저장합니다. 재배포 mismatch 또�
 INCONCLUSIVE/DEPENDENCY_UNAVAILABLE이며 과거 DB 기록을 현재 체인 성공 근거로 쓰지 않습니다.
 기관/유형·문서 코드·수신자·CSRF·엄격 정수·시간 입력을 검사합니다.
 
-## W3와 W4 경계
+## W3 최초 산출물과 W4 후속 경계
 
 W3는 실제 기관/키 조회·서명·내용 비교를 제공합니다. ProofStatusRegistry는 아직 없으므로
 `proof_status=NOT_RUN`, `lifecycle_status=null`입니다. VERIFIED만으로 현재 사용 가능을 주장하지 않습니다.
@@ -64,3 +64,12 @@ Proof 폐기·consume·원자적 경쟁은 W4-B1/B2/B3와 W4-C2/C3에서 별도 
 - A: 위 경로/생성 타입으로 W3 발행·목록·공개 조회·권한 있는 비교 화면 연결.
 - B: 기존 Reader 소비 경계와 v2 Golden digest/domain 교차 확인, W3-B3 Proof 상태 계약 제공.
 - D: 독립 새 세션/브라우저·별도 환경·실패 주입 검증. 이번 검사는 실제 브라우저 성공 증거가 아닙니다.
+
+
+## W4 후속 변경
+
+`feat/w4-c-proof-lifecycle` / C `596f313`에서는 B W3-B1의 동일 블록 기관/키 snapshot과
+W4-B의 실제 ProofStatusRegistry를 연결했습니다. 위 NOT_RUN/null은 최초 W3 branch의 범위입니다.
+후속 branch는 등록 Operation·현재 lifecycle·폐기/consume을 제공하며 Registry/RPC가 없으면
+W3 성공으로 우회하지 않습니다. ProofView의 등록 상태·Operation ID와 신규 API/오류는
+[W4 lifecycle 인계](w4_c_proof_lifecycle_contract.md) 및 재생성 OpenAPI/타입을 사용합니다.

@@ -5,6 +5,7 @@ import {Script} from "forge-std/Script.sol";
 import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {IssuerRegistry} from "../src/IssuerRegistry.sol";
 import {IssuerKeyRegistry} from "../src/IssuerKeyRegistry.sol";
+import {ProofStatusRegistry} from "../src/ProofStatusRegistry.sol";
 
 contract DeployLocal is Script {
     function run() external {
@@ -13,12 +14,14 @@ contract DeployLocal is Script {
         address issuerManager = vm.envAddress("CHAIN_ISSUER_MANAGER_ADDRESS");
         address keyManager = vm.envAddress("CHAIN_KEY_MANAGER_ADDRESS");
         address issuerAccount = vm.envAddress("CHAIN_ISSUER_ACCOUNT_ADDRESS");
+        address gateway = vm.envAddress("CHAIN_GATEWAY_ADDRESS");
         address signer = vm.envAddress("CHAIN_MOCK_SIGNER_ADDRESS");
         uint64 start = SafeCast.toUint64(vm.envUint("CHAIN_KEY_VALID_FROM"));
         uint64 end = SafeCast.toUint64(vm.envUint("CHAIN_KEY_VALID_UNTIL"));
         vm.startBroadcast(admin);
         IssuerRegistry issuers = new IssuerRegistry(admin);
         IssuerKeyRegistry keys = new IssuerKeyRegistry(admin, issuers);
+        new ProofStatusRegistry(admin, gateway, issuers, keys);
         issuers.grantRole(issuers.ISSUER_MANAGER_ROLE(), issuerManager);
         issuers.revokeRole(issuers.ISSUER_MANAGER_ROLE(), admin);
         keys.grantRole(keys.KEY_MANAGER_ROLE(), keyManager);
