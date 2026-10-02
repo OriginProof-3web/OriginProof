@@ -105,6 +105,29 @@ def load_manifest(path: str | Path, expected_chain_id: int) -> DeploymentManifes
     validated_roles = {name: validate_address(roles[name]) for name in required_roles}
     if len({value.lower() for value in validated_roles.values()}) != len(validated_roles):
         raise ValueError("role addresses must be distinct")
+    admin = validated_roles["registry_admin"].lower()
+    issuer = contracts["IssuerRegistry"].address.lower()
+    key = contracts["IssuerKeyRegistry"].address.lower()
+    expected_arguments = {
+        "IssuerRegistry": (admin,),
+        "IssuerKeyRegistry": (admin, issuer),
+    }
+    if "ProofStatusRegistry" in contracts:
+        expected_arguments["ProofStatusRegistry"] = (
+            admin,
+            validated_roles["gateway"].lower(),
+            issuer,
+            key,
+        )
+    for name, expected in expected_arguments.items():
+        try:
+            actual = tuple(
+                validate_address(value).lower() for value in contracts[name].constructor_arguments
+            )
+        except ValueError:
+            raise ValueError(f"invalid {name} constructor address") from None
+        if actual != expected:
+            raise ValueError(f"{name} constructor does not match manifest roles and addresses")
 
     return DeploymentManifest(
         chain_id=chain_id,
