@@ -118,6 +118,31 @@ class IssuerKeyRow(Base):
     deployment_id: Mapped[str] = mapped_column(String(68), nullable=False)
 
 
+class RecipientTokenRow(Base):
+    __tablename__ = "recipient_tokens"
+    account_id: Mapped[str] = mapped_column(ForeignKey("accounts.account_id"), primary_key=True)
+    token: Mapped[str] = mapped_column(String(64), nullable=False)
+
+
+class FinalsProofRow(Base):
+    __tablename__ = "finals_proofs"
+    __table_args__ = (UniqueConstraint("account_id", "request_id"),)
+    proof_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    account_id: Mapped[str] = mapped_column(ForeignKey("accounts.account_id"), nullable=False)
+    issuer_id: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    key_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    request_id: Mapped[str] = mapped_column(String(128), nullable=False)
+    input_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+    recipient_account_id: Mapped[str] = mapped_column(
+        ForeignKey("accounts.account_id"), nullable=False
+    )
+    recipient_salt: Mapped[str] = mapped_column(String(64), nullable=False)
+    target_ref: Mapped[str | None] = mapped_column(String(500))
+    deployment_id: Mapped[str] = mapped_column(String(68), nullable=False)
+    envelope: Mapped[dict] = mapped_column(JSON, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class AuditEventRow(Base):
     __tablename__ = "audit_events"
 

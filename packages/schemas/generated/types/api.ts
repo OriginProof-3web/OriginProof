@@ -7,6 +7,71 @@ export type IssuerTrustStatus = "ACTIVE" | "SUSPENDED" | "REVOKED";
 
 export type OperationStatus = "PENDING_SUBMISSION" | "SUBMITTED" | "CONFIRMED" | "FAILED" | "UNKNOWN";
 
+export interface DocumentIssue {
+  proof_type: "OFFICIAL_DOCUMENT";
+  institution_code: string;
+  document_type: string;
+  document_number: string;
+  version: number;
+}
+
+export interface PaymentIssue {
+  proof_type: "PAYMENT_REQUEST";
+  amount_minor: number;
+  currency: string;
+  target_ref: string;
+}
+
+export type FinalsProofType = "PAYMENT_REQUEST" | "OFFICIAL_DOCUMENT";
+
+export interface FinalsSignedProofEnvelope {
+  proof_id: string;
+  issuer_id: string;
+  key_id: string;
+  proof_type: FinalsProofType;
+  schema_version: "2.0.0";
+  signature_scheme: SignatureScheme;
+  chain_id: number;
+  app_domain: "originproof.finals";
+  payload: PaymentRequest | OfficialDocument;
+  payload_hash: string;
+  subject_binding_hash: string;
+  issued_at: string;
+  expires_at: string;
+  nonce: string;
+  single_use: boolean;
+  metadata_hash?: string | null;
+  signature: string;
+}
+
+export interface OfficialDocument {
+  institution_code: string;
+  document_type: string;
+  document_number: string;
+  subject_token: string;
+  version: number;
+}
+
+export interface PaymentRequest {
+  amount_minor: number;
+  currency: string;
+  payer_binding: string;
+  beneficiary_binding: string;
+  target_hash: string;
+}
+
+export type SignatureScheme = "ECDSA_SECP256K1_KECCAK256_V1";
+
+export interface ComparisonInput {
+  amount_minor?: number | null;
+  currency?: string | null;
+  target_ref?: string | null;
+  institution_code?: string | null;
+  document_type?: string | null;
+  document_number?: string | null;
+  version?: number | null;
+}
+
 export interface AccountView {
   account_id: string;
   username: string;
@@ -98,4 +163,37 @@ export interface AuditView {
   before_status: string | null;
   after_status: string;
   created_at: string;
+}
+
+export interface IssueInput {
+  request_id: string;
+  recipient_id: string;
+  expires_at: string;
+  content: unknown;
+}
+
+export interface ProofView {
+  proof_id: string;
+  issuer_id: string;
+  key_id: string;
+  proof_type: FinalsProofType;
+  schema_version: "2.0.0";
+  issued_at: string;
+  expires_at: string;
+  verification_path: string;
+}
+
+export interface ProofContent {
+  envelope: FinalsSignedProofEnvelope;
+  target_ref?: string | null;
+}
+
+export interface RecipientView {
+  recipient_id: string;
+  label: string;
+}
+
+export interface VerifyInput {
+  request_id: string;
+  candidate?: ComparisonInput | null;
 }

@@ -6,6 +6,16 @@ from generate_schemas import ROOT, write_types
 from originproof_api.accounts import AccountView, LoginInput, LogoutView
 from originproof_api.applications import ApplicationInput, ApplicationView, DecisionInput
 from originproof_api.chain_management import IssuerView, KeyInput, KeyView, MutationInput
+from originproof_api.finals_proofs import (
+    ComparisonInput,
+    DocumentIssue,
+    IssueInput,
+    PaymentIssue,
+    ProofContent,
+    ProofView,
+    RecipientView,
+    VerifyInput,
+)
 from originproof_api.main import create_app
 from originproof_api.operations import AuditView, OperationView
 
@@ -32,6 +42,14 @@ def main():
             IssuerView,
             OperationView,
             AuditView,
+            PaymentIssue,
+            DocumentIssue,
+            IssueInput,
+            ProofView,
+            ProofContent,
+            RecipientView,
+            ComparisonInput,
+            VerifyInput,
         )
     }
     write_types(schemas, OUTPUT / "types/api.ts")
