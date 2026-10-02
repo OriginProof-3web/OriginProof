@@ -5,6 +5,26 @@
 - 상태: B Adapter/indexer의 장애 주입·임시 로컬 EVM 재현과 보안 점검 실행.
   공유 Python 의존성 취약점 수정, C의 보존 DB/서비스 연결과 작성자 외 리뷰는 남았다.
 
+## Writer 우선순위 1 수정 (2026-10-02)
+
+검토 기준 `3d7c4e7`, 수정 코드 SHA `65b041e`. 전에는 제출 JSON-RPC 오류를
+`FAILED/CHAIN_REVERTED`로 단정하고 nonce 예약을 풀었다. 이제 응답 유실·노드 오류·
+`already known`·`nonce too low`를 `UNKNOWN/SUBMISSION_UNKNOWN`으로 보류한다.
+전송 전 저장 실패는 전송 0회이고, 불명확한 제출은 기존 복구 참조로 찾는다.
+
+전에는 무관한 성공 tx hash도 기대 상태가 이미 맞으면 `CONFIRMED`가 될 수 있었다.
+이제 receipt의 tx hash와 canonical block을 확인한 뒤 실제 거래의 hash·sender·nonce·
+to·input을 준비한 요청과 비교한다. 불일치는 `UNKNOWN/TRANSACTION_NOT_MATCHED`,
+거래 RPC 오류는 `UNKNOWN/DEPENDENCY_UNAVAILABLE`다. `recover_prepared(tx_hash=...)`도
+같은 경로를 쓴다. canonical 실패 receipt만 `FAILED/CHAIN_REVERTED`이며 성공 시 기존
+확인 수·상태 재조회 전후 블록 hash 검사를 유지한다. 오류 code/category는 내부에
+제한해 보존하고 노드 원문·calldata를 공개하지 않는다.
+
+검증: Writer mock `54 passed`; API/Core/Indexer/Analyzer/CI Python
+`293 passed, 5 skipped`; Ruff 및 `git diff --check` 통과; 폐기 가능한 새 Anvil의
+정상 확정·원래 tx 복구 `2 passed`. mock의 노드 오류·응답 유실은 실제 Anvil 장애가
+아니다. C Operation DB의 실제 재시작 연결과 작성자 외 리뷰는 남았다.
+
 ## W6-B1 장애 주입
 
 | 주입 | 기대/실제 근거 |
