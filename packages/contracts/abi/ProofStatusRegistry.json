@@ -564,6 +564,11 @@
   },
   {
     "type": "error",
+    "name": "InvalidBlockTime",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "InvalidCommitment",
     "inputs": []
   },

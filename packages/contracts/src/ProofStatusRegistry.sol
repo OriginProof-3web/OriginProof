@@ -28,6 +28,7 @@ contract ProofStatusRegistry is AccessControl {
     error ZeroAddress();
     error InvalidCommitment();
     error InvalidProofWindow();
+    error InvalidBlockTime();
     error ProofAlreadyExists();
     error ProofNotFound();
     error IssuerNotActive();
@@ -109,6 +110,7 @@ contract ProofStatusRegistry is AccessControl {
             revert UnauthorizedIssuerOperator();
         }
         if (proof.revokedAt != 0) return false;
+        if (block.timestamp == 0 || block.timestamp > type(uint64).max) revert InvalidBlockTime();
         proof.revokedAt = uint64(block.timestamp);
         emit ProofRevoked(proofId, proof.revokedAt);
         return true;
@@ -144,6 +146,7 @@ contract ProofStatusRegistry is AccessControl {
         if (proof.issuedAt < key.validFrom || proof.issuedAt >= key.validUntil) {
             revert IssuedOutsideKeyWindow();
         }
+        if (block.timestamp == 0 || block.timestamp > type(uint64).max) revert InvalidBlockTime();
         proof.consumedAt = uint64(block.timestamp);
         emit ProofConsumed(proofId, actorKind, proof.consumedAt);
     }

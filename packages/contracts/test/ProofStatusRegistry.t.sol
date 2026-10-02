@@ -158,6 +158,22 @@ contract ProofStatusRegistryTest is Test {
         assertFalse(proofs.isConsumable(PROOF, 150));
     }
 
+    function testZeroBlockTimestampCannotMasqueradeAsUnchangedState() public {
+        bytes32 earlyKey = keccak256("key_epoch_synthetic");
+        vm.prank(issuer);
+        keys.registerKey(earlyKey, ISSUER, makeAddr("early-signer"), 0, 300);
+        vm.prank(gateway);
+        proofs.registerProof(PROOF, ISSUER, earlyKey, DIGEST, SUBJECT, 0, 250, true);
+        vm.warp(0);
+        vm.prank(issuer);
+        vm.expectRevert(ProofStatusRegistry.InvalidBlockTime.selector);
+        proofs.revokeProof(PROOF);
+        vm.prank(gateway);
+        vm.expectRevert(ProofStatusRegistry.InvalidBlockTime.selector);
+        proofs.consumeProof(PROOF, ProofStatusRegistry.ConsumeActorKind.RECIPIENT, SUBJECT);
+        assertEq(proofs.proofStatus(PROOF), 1);
+    }
+
     function testFuzzWrongRecipientBindingNeverConsumes(bytes32 binding) public {
         vm.assume(binding != SUBJECT);
         _register(true);

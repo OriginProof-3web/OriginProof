@@ -237,7 +237,7 @@ class JsonRpcBlockchainReader:
                     single_use = uint(words[6], 8)
                     if (
                         single_use not in (0, 1)
-                        or not 0 < issued < expires
+                        or not 0 <= issued < expires
                         or (status != (2 if revoked else 3 if consumed else 1))
                     ):
                         raise ValueError("invalid proof commitment")

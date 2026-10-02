@@ -116,7 +116,7 @@ def transport(issuer=1, key=1, fault=None, calls=None):
                     + digest(KEY).hex()
                     + "11" * 32
                     + "22" * 32
-                    + word(100)
+                    + word(0 if fault == "proof_epoch" else 100)
                     + word(200)
                     + word(1)
                     + word(0)
@@ -229,7 +229,9 @@ async def test_snapshot_failure_is_not_absent(manifest, fault):
             await reader.get_issuer_key_snapshot(ISSUER, KEY, datetime.fromtimestamp(150, UTC))
 
 
-@pytest.mark.parametrize("fault", [None, "proof_absent", "snapshot_reorg", "chain", "rpc"])
+@pytest.mark.parametrize(
+    "fault", [None, "proof_absent", "proof_epoch", "snapshot_reorg", "chain", "rpc"]
+)
 async def test_proof_state_distinguishes_absent_and_dependency(manifest, fault):
     data = json.loads(manifest.read_text())
     data["contracts"]["ProofStatusRegistry"] = {

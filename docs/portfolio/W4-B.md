@@ -29,7 +29,7 @@
 
 | 검사 | 실제 결과 |
 | --- | --- |
-| Foundry 전체 | 21 passed, 0 failed; 신규 Proof 권한·반복·경쟁·기간·binding 포함 |
+| Foundry 전체 | 22 passed, 0 failed; 신규 Proof 권한·반복·경쟁·기간·binding·시각 0 경계 포함 |
 | Reader/Writer/projection 단위 | 75 passed; 미등록·network·RPC·reorg와 replay 포함 |
 | 임시 Anvil 통합 | 1 passed; 새 배포 → 등록 → 상태 재조회 → consume → 실패 receipt → 폐기 → 실제 event projection |
 | Python 전체 관련 회귀 | 255 passed, opt-in 4 skipped |

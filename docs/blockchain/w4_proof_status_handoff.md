@@ -29,6 +29,9 @@ Keccak-256 bytes32이며 signing digest와 subject binding hash는 이미 32바�
 `ProofConsumed(bytes32,uint8,uint64)`이다. 생성 ABI가 기준이다. 권한 오류는 OZ
 `AccessControlUnauthorizedAccount` 또는 `UnauthorizedIssuerOperator`, 상태·binding·기간
 오류는 Contract custom error로 revert된다. revert receipt는 성공이 아니다.
+상태 시각은 `uint64`로 저장한다. 발행 시각 0은 commitment로 표현할 수 있지만,
+폐기·소비를 실행하는 블록 시각이 0이거나 `uint64` 범위를 벗어나면
+`InvalidBlockTime`으로 거부해 미처리 상태의 0 표식과 섞이지 않게 한다.
 
 ## C 호출·복구 순서
 
