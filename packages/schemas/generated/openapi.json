@@ -310,6 +310,111 @@
         "title": "CardPaymentNoticeCandidate",
         "type": "object"
       },
+      "CheckState": {
+        "enum": [
+          "PASS",
+          "FAIL",
+          "NOT_RUN",
+          "UNAVAILABLE"
+        ],
+        "title": "CheckState",
+        "type": "string"
+      },
+      "ComparisonInput": {
+        "additionalProperties": false,
+        "properties": {
+          "amount_minor": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount Minor"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "pattern": "^[A-Z]{3}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "document_number": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Number"
+          },
+          "document_type": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Type"
+          },
+          "institution_code": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Institution Code"
+          },
+          "target_ref": {
+            "anyOf": [
+              {
+                "maxLength": 500,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Ref"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "exclusiveMinimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "title": "ComparisonInput",
+        "type": "object"
+      },
       "DecisionInput": {
         "additionalProperties": false,
         "properties": {
@@ -335,6 +440,260 @@
         "title": "DecisionInput",
         "type": "object"
       },
+      "DocumentIssue": {
+        "additionalProperties": false,
+        "properties": {
+          "document_number": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Document Number",
+            "type": "string"
+          },
+          "document_type": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Document Type",
+            "type": "string"
+          },
+          "institution_code": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Institution Code",
+            "type": "string"
+          },
+          "proof_type": {
+            "const": "OFFICIAL_DOCUMENT",
+            "title": "Proof Type",
+            "type": "string"
+          },
+          "version": {
+            "exclusiveMinimum": 0.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "proof_type",
+          "institution_code",
+          "document_type",
+          "document_number",
+          "version"
+        ],
+        "title": "DocumentIssue",
+        "type": "object"
+      },
+      "FinalsProofType": {
+        "enum": [
+          "PAYMENT_REQUEST",
+          "OFFICIAL_DOCUMENT"
+        ],
+        "title": "FinalsProofType",
+        "type": "string"
+      },
+      "FinalsReasonCode": {
+        "enum": [
+          "INVALID_SIGNATURE",
+          "PAYLOAD_HASH_MISMATCH",
+          "AMOUNT_MISMATCH",
+          "FIELD_MISMATCH",
+          "PROOF_EXPIRED",
+          "PROOF_NOT_FOUND",
+          "ISSUER_NOT_FOUND",
+          "SCHEMA_UNSUPPORTED",
+          "DEPENDENCY_UNAVAILABLE",
+          "REPLAY_DETECTED",
+          "DOMAIN_MISMATCH",
+          "NETWORK_MISMATCH",
+          "KEY_NOT_FOUND",
+          "KEY_TIME_INVALID",
+          "INPUT_INCOMPLETE",
+          "SUBJECT_BINDING_MISMATCH",
+          "PROOF_REVOKED",
+          "ISSUER_KEY_REVOKED",
+          "ISSUER_SUSPENDED"
+        ],
+        "title": "FinalsReasonCode",
+        "type": "string"
+      },
+      "FinalsSignedProofEnvelope": {
+        "additionalProperties": false,
+        "properties": {
+          "app_domain": {
+            "const": "originproof.finals",
+            "title": "App Domain",
+            "type": "string"
+          },
+          "chain_id": {
+            "exclusiveMinimum": 0.0,
+            "title": "Chain Id",
+            "type": "integer"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "issued_at": {
+            "format": "date-time",
+            "title": "Issued At",
+            "type": "string"
+          },
+          "issuer_id": {
+            "pattern": "^iss_[A-Za-z0-9_-]+$",
+            "title": "Issuer Id",
+            "type": "string"
+          },
+          "key_id": {
+            "pattern": "^key_[A-Za-z0-9_-]+$",
+            "title": "Key Id",
+            "type": "string"
+          },
+          "metadata_hash": {
+            "anyOf": [
+              {
+                "pattern": "^0x[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata Hash"
+          },
+          "nonce": {
+            "pattern": "^[0-9a-f]{32,64}$",
+            "title": "Nonce",
+            "type": "string"
+          },
+          "payload": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PaymentRequest"
+              },
+              {
+                "$ref": "#/components/schemas/OfficialDocument"
+              }
+            ],
+            "title": "Payload"
+          },
+          "payload_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Payload Hash",
+            "type": "string"
+          },
+          "proof_id": {
+            "pattern": "^prf_[A-Za-z0-9_-]+$",
+            "title": "Proof Id",
+            "type": "string"
+          },
+          "proof_type": {
+            "$ref": "#/components/schemas/FinalsProofType"
+          },
+          "schema_version": {
+            "const": "2.0.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "signature": {
+            "pattern": "^0x[0-9a-f]{130}$",
+            "title": "Signature",
+            "type": "string"
+          },
+          "signature_scheme": {
+            "$ref": "#/components/schemas/SignatureScheme"
+          },
+          "single_use": {
+            "title": "Single Use",
+            "type": "boolean"
+          },
+          "subject_binding_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Subject Binding Hash",
+            "type": "string"
+          }
+        },
+        "required": [
+          "proof_id",
+          "issuer_id",
+          "key_id",
+          "proof_type",
+          "schema_version",
+          "signature_scheme",
+          "chain_id",
+          "app_domain",
+          "payload",
+          "payload_hash",
+          "subject_binding_hash",
+          "issued_at",
+          "expires_at",
+          "nonce",
+          "single_use",
+          "signature"
+        ],
+        "title": "FinalsSignedProofEnvelope",
+        "type": "object"
+      },
+      "FinalsVerificationResult": {
+        "additionalProperties": false,
+        "properties": {
+          "checks": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/CheckState"
+            },
+            "title": "Checks",
+            "type": "object"
+          },
+          "lifecycle_status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/LifecycleStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "reason_codes": {
+            "items": {
+              "$ref": "#/components/schemas/FinalsReasonCode"
+            },
+            "title": "Reason Codes",
+            "type": "array"
+          },
+          "request_id": {
+            "pattern": "^req_[A-Za-z0-9_-]+$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "scope": {
+            "$ref": "#/components/schemas/VerificationScope"
+          },
+          "session_id": {
+            "pattern": "^vsn_[A-Za-z0-9_-]+$",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "verification_status": {
+            "$ref": "#/components/schemas/VerificationStatus"
+          },
+          "verified_at": {
+            "format": "date-time",
+            "title": "Verified At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "verification_status",
+          "lifecycle_status",
+          "scope",
+          "checks",
+          "verified_at",
+          "request_id"
+        ],
+        "title": "FinalsVerificationResult",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -346,6 +705,53 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "IssueInput": {
+        "additionalProperties": false,
+        "properties": {
+          "content": {
+            "discriminator": {
+              "mapping": {
+                "OFFICIAL_DOCUMENT": "#/components/schemas/DocumentIssue",
+                "PAYMENT_REQUEST": "#/components/schemas/PaymentIssue"
+              },
+              "propertyName": "proof_type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PaymentIssue"
+              },
+              {
+                "$ref": "#/components/schemas/DocumentIssue"
+              }
+            ],
+            "title": "Content"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "recipient_id": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Recipient Id",
+            "type": "string"
+          },
+          "request_id": {
+            "pattern": "^req_[A-Za-z0-9_-]{1,124}$",
+            "title": "Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "recipient_id",
+          "expires_at",
+          "content"
+        ],
+        "title": "IssueInput",
         "type": "object"
       },
       "IssuerTrustStatus": {
@@ -550,6 +956,48 @@
         "title": "MutationInput",
         "type": "object"
       },
+      "OfficialDocument": {
+        "additionalProperties": false,
+        "properties": {
+          "document_number": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Document Number",
+            "type": "string"
+          },
+          "document_type": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Document Type",
+            "type": "string"
+          },
+          "institution_code": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Institution Code",
+            "type": "string"
+          },
+          "subject_token": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Subject Token",
+            "type": "string"
+          },
+          "version": {
+            "exclusiveMinimum": 0.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "institution_code",
+          "document_type",
+          "document_number",
+          "subject_token",
+          "version"
+        ],
+        "title": "OfficialDocument",
+        "type": "object"
+      },
       "OperationStatus": {
         "enum": [
           "PENDING_SUBMISSION",
@@ -664,6 +1112,152 @@
         "title": "OperationView",
         "type": "object"
       },
+      "PaymentIssue": {
+        "additionalProperties": false,
+        "properties": {
+          "amount_minor": {
+            "exclusiveMinimum": 0.0,
+            "title": "Amount Minor",
+            "type": "integer"
+          },
+          "currency": {
+            "pattern": "^[A-Z]{3}$",
+            "title": "Currency",
+            "type": "string"
+          },
+          "proof_type": {
+            "const": "PAYMENT_REQUEST",
+            "title": "Proof Type",
+            "type": "string"
+          },
+          "target_ref": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Target Ref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "proof_type",
+          "amount_minor",
+          "currency",
+          "target_ref"
+        ],
+        "title": "PaymentIssue",
+        "type": "object"
+      },
+      "PaymentRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "amount_minor": {
+            "exclusiveMinimum": 0.0,
+            "title": "Amount Minor",
+            "type": "integer"
+          },
+          "beneficiary_binding": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Beneficiary Binding",
+            "type": "string"
+          },
+          "currency": {
+            "pattern": "^[A-Z]{3}$",
+            "title": "Currency",
+            "type": "string"
+          },
+          "payer_binding": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Payer Binding",
+            "type": "string"
+          },
+          "target_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Target Hash",
+            "type": "string"
+          }
+        },
+        "required": [
+          "amount_minor",
+          "currency",
+          "payer_binding",
+          "beneficiary_binding",
+          "target_hash"
+        ],
+        "title": "PaymentRequest",
+        "type": "object"
+      },
+      "ProofContent": {
+        "properties": {
+          "envelope": {
+            "$ref": "#/components/schemas/FinalsSignedProofEnvelope"
+          },
+          "target_ref": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Ref"
+          }
+        },
+        "required": [
+          "envelope"
+        ],
+        "title": "ProofContent",
+        "type": "object"
+      },
+      "ProofView": {
+        "properties": {
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "issued_at": {
+            "format": "date-time",
+            "title": "Issued At",
+            "type": "string"
+          },
+          "issuer_id": {
+            "title": "Issuer Id",
+            "type": "string"
+          },
+          "key_id": {
+            "title": "Key Id",
+            "type": "string"
+          },
+          "proof_id": {
+            "title": "Proof Id",
+            "type": "string"
+          },
+          "proof_type": {
+            "$ref": "#/components/schemas/FinalsProofType"
+          },
+          "schema_version": {
+            "const": "2.0.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "verification_path": {
+            "title": "Verification Path",
+            "type": "string"
+          }
+        },
+        "required": [
+          "proof_id",
+          "issuer_id",
+          "key_id",
+          "proof_type",
+          "schema_version",
+          "issued_at",
+          "expires_at",
+          "verification_path"
+        ],
+        "title": "ProofView",
+        "type": "object"
+      },
       "ReasonCode": {
         "enum": [
           "INVALID_SIGNATURE",
@@ -680,6 +1274,31 @@
           "MALFORMED_INPUT"
         ],
         "title": "ReasonCode",
+        "type": "string"
+      },
+      "RecipientView": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "recipient_id": {
+            "title": "Recipient Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "recipient_id",
+          "label"
+        ],
+        "title": "RecipientView",
+        "type": "object"
+      },
+      "SignatureScheme": {
+        "enum": [
+          "ECDSA_SECP256K1_KECCAK256_V1"
+        ],
+        "title": "SignatureScheme",
         "type": "string"
       },
       "ValidationError": {
@@ -797,6 +1416,15 @@
         "title": "VerificationResult",
         "type": "object"
       },
+      "VerificationScope": {
+        "enum": [
+          "PROOF_ONLY",
+          "FULL_COMPARISON",
+          "PARTIAL_COMPARISON"
+        ],
+        "title": "VerificationScope",
+        "type": "string"
+      },
       "VerificationStatus": {
         "enum": [
           "VERIFIED",
@@ -807,6 +1435,31 @@
         ],
         "title": "VerificationStatus",
         "type": "string"
+      },
+      "VerifyInput": {
+        "additionalProperties": false,
+        "properties": {
+          "candidate": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ComparisonInput"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "request_id": {
+            "pattern": "^req_[A-Za-z0-9_-]{1,124}$",
+            "title": "Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id"
+        ],
+        "title": "VerifyInput",
+        "type": "object"
       }
     }
   },
@@ -1540,6 +2193,231 @@
         "summary": "Change Issuer",
         "tags": [
           "issuer and key management"
+        ]
+      }
+    },
+    "/v2/issuer/proofs": {
+      "get": {
+        "operationId": "issuer_proofs_v2_issuer_proofs_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProofView"
+                  },
+                  "title": "Response Issuer Proofs V2 Issuer Proofs Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Issuer Proofs",
+        "tags": [
+          "finals-proofs"
+        ]
+      },
+      "post": {
+        "operationId": "issue_v2_issuer_proofs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssueInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProofView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Issue",
+        "tags": [
+          "finals-proofs"
+        ]
+      }
+    },
+    "/v2/issuer/recipients": {
+      "get": {
+        "operationId": "recipients_v2_issuer_recipients_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/RecipientView"
+                  },
+                  "title": "Response Recipients V2 Issuer Recipients Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Recipients",
+        "tags": [
+          "finals-proofs"
+        ]
+      }
+    },
+    "/v2/proofs/{proof_id}": {
+      "get": {
+        "operationId": "public_proof_v2_proofs__proof_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proof_id",
+            "required": true,
+            "schema": {
+              "title": "Proof Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProofView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Public Proof",
+        "tags": [
+          "finals-proofs"
+        ]
+      }
+    },
+    "/v2/proofs/{proof_id}/content": {
+      "get": {
+        "operationId": "content_v2_proofs__proof_id__content_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proof_id",
+            "required": true,
+            "schema": {
+              "title": "Proof Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProofContent"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Content",
+        "tags": [
+          "finals-proofs"
+        ]
+      }
+    },
+    "/v2/proofs/{proof_id}/verify": {
+      "post": {
+        "operationId": "verify_v2_proofs__proof_id__verify_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proof_id",
+            "required": true,
+            "schema": {
+              "title": "Proof Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FinalsVerificationResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Verify",
+        "tags": [
+          "finals-proofs"
         ]
       }
     }

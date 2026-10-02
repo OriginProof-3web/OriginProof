@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from itertools import count
 
@@ -16,7 +17,18 @@ from originproof_core.ports import (
     KeyTrustStatus,
 )
 
-from .manifest import load_manifest, validate_address
+from .manifest import load_manifest, validate_address, validate_hash
+
+
+@dataclass(frozen=True)
+class RegistryTrustSnapshot:
+    deployment_id: str
+    chain_id: int
+    block_number: int
+    block_hash: str
+    issuer: IssuerRecord | None
+    key: KeyRecord | None
+    key_valid_at: bool
 
 
 def digest(text: str) -> bytes:
@@ -175,6 +187,39 @@ class JsonRpcBlockchainReader:
                     raise ValueError("registry code missing")
             if operation == "issuer":
                 return await self._read_issuer(client, identifier, block)
+            if operation == "snapshot":
+                issuer_id, key_id = identifier
+                if not isinstance(at, datetime) or at.tzinfo is None or at.utcoffset() is None:
+                    raise ValueError("timezone required")
+                current = await self._rpc(client, "eth_getBlockByNumber", [block, False])
+                if not isinstance(current, dict):
+                    raise ValueError("current block unavailable")
+                block_hash = validate_hash(current.get("hash"))
+                issuer = await self._read_issuer(client, issuer_id, block)
+                key = await self._read_key(client, key_id, block)
+                canonical = await self._rpc(client, "eth_getBlockByNumber", [block, False])
+                if (
+                    not isinstance(canonical, dict)
+                    or validate_hash(canonical.get("hash")) != block_hash
+                ):
+                    raise ValueError("snapshot block changed")
+                key_valid = (
+                    issuer is not None
+                    and key is not None
+                    and key.issuer_id == issuer_id
+                    and issuer.status == IssuerTrustStatus.ACTIVE
+                    and key.status == KeyTrustStatus.ACTIVE
+                    and key.valid_from <= at < key.valid_until
+                )
+                return RegistryTrustSnapshot(
+                    deployment_id=self.deployment_id,
+                    chain_id=self._chain_id,
+                    block_number=int(block, 16),
+                    block_hash=block_hash,
+                    issuer=issuer,
+                    key=key,
+                    key_valid_at=key_valid,
+                )
             key = await self._read_key(client, identifier, block)
             if operation == "key":
                 return key
@@ -203,3 +248,10 @@ class JsonRpcBlockchainReader:
 
     async def is_key_valid(self, key_id: str, at: datetime) -> bool:
         return await self._run("valid", key_id, at)
+
+    async def get_issuer_key_snapshot(
+        self, issuer_id: str, key_id: str, at: datetime
+    ) -> RegistryTrustSnapshot:
+        self._id(issuer_id, "iss_")
+        self._id(key_id, "key_")
+        return await self._run("snapshot", (issuer_id, key_id), at)

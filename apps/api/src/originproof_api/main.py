@@ -20,6 +20,7 @@ from .accounts import router as auth_router
 from .applications import router as applications_router
 from .chain_management import router as chain_router
 from .database import Database
+from .finals_proofs import router as finals_router
 from .operations import router as operations_router
 from .repositories import SqlAlchemyProofRepository
 from .settings import Settings
@@ -77,6 +78,7 @@ def create_app(
     app.include_router(applications_router)
     app.include_router(operations_router)
     app.include_router(chain_router)
+    app.include_router(finals_router)
     app.state.verification_service = verification_service or VerificationService(
         SqlAlchemyProofRepository(app_database.session_factory),
         configured_blockchain_reader(app_settings),

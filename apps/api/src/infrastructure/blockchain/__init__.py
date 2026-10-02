@@ -1,4 +1,4 @@
-from .reader import JsonRpcBlockchainReader
+from .reader import JsonRpcBlockchainReader, RegistryTrustSnapshot
 from .writer import (
     ChainOperationState,
     ChainWritePersistence,
@@ -14,4 +14,5 @@ __all__ = [
     "JsonRpcBlockchainReader",
     "JsonRpcBlockchainWriter",
     "PreparedChainWrite",
+    "RegistryTrustSnapshot",
 ]

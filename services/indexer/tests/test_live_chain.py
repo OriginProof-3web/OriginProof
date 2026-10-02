@@ -95,6 +95,16 @@ async def test_live_reader_and_m1_api():
             assert key.issuer_id == envelope.issuer_id
             assert key.signer.lower() == public_signer.lower()
             assert key.valid_from == envelope.issued_at
+            snapshot = await reader.get_issuer_key_snapshot(
+                envelope.issuer_id, envelope.key_id, envelope.issued_at
+            )
+            assert snapshot.issuer == issuer
+            assert snapshot.key == key
+            assert snapshot.key_valid_at
+            assert snapshot.deployment_id == manifest["deployment_id"]
+            assert snapshot.chain_id == manifest["chain_id"]
+            assert snapshot.block_number >= manifest["deployment_block"]
+            assert snapshot.block_hash.startswith("0x") and len(snapshot.block_hash) == 66
             assert await reader.is_key_valid(envelope.key_id, key.valid_from)
             assert not await reader.is_key_valid(
                 envelope.key_id, key.valid_from - timedelta(seconds=1)
