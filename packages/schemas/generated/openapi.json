@@ -507,6 +507,8 @@
           "KEY_NOT_FOUND",
           "KEY_TIME_INVALID",
           "INPUT_INCOMPLETE",
+          "REGISTRATION_PENDING",
+          "CHAIN_COMMITMENT_MISMATCH",
           "SUBJECT_BINDING_MISMATCH",
           "PROOF_REVOKED",
           "ISSUER_KEY_REVOKED",
@@ -1208,6 +1210,21 @@
         "title": "ProofContent",
         "type": "object"
       },
+      "ProofMutation": {
+        "additionalProperties": false,
+        "properties": {
+          "request_id": {
+            "pattern": "^req_[A-Za-z0-9_-]{1,124}$",
+            "title": "Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id"
+        ],
+        "title": "ProofMutation",
+        "type": "object"
+      },
       "ProofView": {
         "properties": {
           "expires_at": {
@@ -1234,6 +1251,30 @@
           },
           "proof_type": {
             "$ref": "#/components/schemas/FinalsProofType"
+          },
+          "registration_operation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Registration Operation Id"
+          },
+          "registration_status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/OperationStatus"
+              },
+              {
+                "const": "NOT_REGISTERED",
+                "type": "string"
+              }
+            ],
+            "default": "NOT_REGISTERED",
+            "title": "Registration Status"
           },
           "schema_version": {
             "const": "2.0.0",
@@ -2301,6 +2342,110 @@
         ]
       }
     },
+    "/v2/issuer/proofs/{proof_id}/register": {
+      "post": {
+        "operationId": "register_v2_issuer_proofs__proof_id__register_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proof_id",
+            "required": true,
+            "schema": {
+              "title": "Proof Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProofMutation"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Register",
+        "tags": [
+          "finals-proofs"
+        ]
+      }
+    },
+    "/v2/issuer/proofs/{proof_id}/revoke": {
+      "post": {
+        "operationId": "revoke_v2_issuer_proofs__proof_id__revoke_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proof_id",
+            "required": true,
+            "schema": {
+              "title": "Proof Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MutationInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Revoke",
+        "tags": [
+          "finals-proofs"
+        ]
+      }
+    },
     "/v2/issuer/recipients": {
       "get": {
         "operationId": "recipients_v2_issuer_recipients_get",
@@ -2363,6 +2508,58 @@
           }
         },
         "summary": "Public Proof",
+        "tags": [
+          "finals-proofs"
+        ]
+      }
+    },
+    "/v2/proofs/{proof_id}/consume": {
+      "post": {
+        "operationId": "consume_v2_proofs__proof_id__consume_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proof_id",
+            "required": true,
+            "schema": {
+              "title": "Proof Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProofMutation"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Consume",
         "tags": [
           "finals-proofs"
         ]

@@ -180,12 +180,18 @@ export interface ProofView {
   schema_version: "2.0.0";
   issued_at: string;
   expires_at: string;
+  registration_status?: OperationStatus | "NOT_REGISTERED";
+  registration_operation_id?: string | null;
   verification_path: string;
 }
 
 export interface ProofContent {
   envelope: FinalsSignedProofEnvelope;
   target_ref?: string | null;
+}
+
+export interface ProofMutation {
+  request_id: string;
 }
 
 export interface RecipientView {
