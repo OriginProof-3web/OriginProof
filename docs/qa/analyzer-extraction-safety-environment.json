@@ -1,0 +1,28 @@
+{
+  "comparable": {
+    "git_sha": "5dd7e701b8ba7e3261b30c583feb616b91390097",
+    "docker": "Docker version 29.7.2, build a7dcaa6",
+    "compose": "Docker Compose version v5.5.1",
+    "python": "Python 3.13.7",
+    "uv": "uv 0.8.17 (10960bc13 2025-09-10)",
+    "node": "v22.18.0",
+    "pnpm": "11.19.0",
+    "container_config": {
+      ".tool-versions": "9e238d2a904c0fe8d489505fbe1e6a51185ba327ada08d34db8cf8d7bd9f94e2",
+      "docker-compose.yml": "84df3ab57a31667cf29a106a90dda933f0d490c5aa9862c0bbb17d9a378fd785",
+      "infra/docker/deployer.Dockerfile": "b34edd32f46ea1cb2f05dc0fcbe42d3c7202a2f8c8c71b2f2e5867be53d5e5c7",
+      "packages/contracts/foundry.toml": "296fc0438fa08cf77a324b12b64850d5b12a1edd88d81cbb4ee7c82477b57d89"
+    },
+    "lockfiles": {
+      "uv.lock": "10ad0e9c32643eaba3405234ccf7fead6ef120f7f7626e3b69b1b2589760fa75",
+      "pnpm-lock.yaml": "25a2e4a6ddb95d4a22bee0c1d530aeb8efb0f1fce26856926c35477fa6af8110",
+      "contract_dependencies": "d602f87fe5dbb7bc482a851adf729d02249bc2774bd58cbe613c0a61d7d4d154"
+    },
+    "schema_tree": "29db11135a33051442d218ad8ed43d59c30face2fec6c33f54c1fe5205590056",
+    "abi_tree": "e5300b490b5b701b13615c51587ef54f1cbbceb8e5b206671f1153823b281b38"
+  },
+  "informational": {
+    "host_platform": "macOS-27.0-arm64-arm-64bit-Mach-O",
+    "host_forge": "NOT_INSTALLED"
+  }
+}

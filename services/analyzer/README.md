@@ -89,7 +89,8 @@ OpenAI provider는 검증된 이미지 bytes를 Responses API의 이미지 입�
 SDK만 재시도를 수행한다. 재시도/백오프 때문에 전체 경과 시간은 timeout보다 길 수 있다.
 OpenAI 실패나 키 누락 시 Mock로 자동 대체하지 않는다.
 
-Prompt 버전은 `card_payment_notice_v3`이며 wheel에 포함한다.
+Prompt 버전은 `card_payment_notice_v4`이며 wheel에 포함한다. 이전 v3 파일은 보존합니다.
+v4는 모호한 날짜·상충하는 값의 null 처리와 고신뢰 후보도 원문 확인이 필요함을 명시합니다.
 `originproof_analyzer.service` logger는 INFO 수준의 `analyzer.extraction` 이벤트에
 provider/model/prompt_version/input_kind/duration_ms/error_code만 전달한다.
 배포 로깅에서 이 logger의 INFO 레벨과 `record.analyzer` 필드를 수집하도록 설정한다.
@@ -116,6 +117,31 @@ message는 고정된 안전한 문자열이다.
 시간대 없는 합성 한국 알림의 승인시각만 문서화된 KST 규칙을 적용한다.
 모든 응답에서 승인시각은 UTC로 정규화한다.
 
+## 추출 결과와 확인 경계
+
+성공 응답의 JSON은 기존 10개 필드로 유지합니다. 다음 헤더를 추가하며 Analyzer OpenAPI에도
+명시합니다. 오류 코드·HTTP 상태, 공통 Python 모델, 생성 Schema, v1 검증 API와 Golden은
+변경하지 않습니다.
+
+| 응답 헤더 | 의미 |
+| --- | --- |
+| `X-OriginProof-Candidate-Source` | `ai` 또는 `mock`; 사용자 확인값이 아닙니다. |
+| `X-OriginProof-Confirmation-Required` | 항상 `true`. confidence나 모든 필드의 존재로 해제되지 않습니다. |
+| `X-OriginProof-Artifact-Comparison` | 항상 `not-performed`. 진위·자료 내용·lifecycle·체인을 검사하지 않았습니다. |
+| `X-OriginProof-Missing-Comparison-Fields` | `CardPaymentNotice` 원본 모델의 null payload 필드 목록 또는 `none`. Proof ID는 별도 조회용입니다. |
+
+`none`은 값이 모두 있다는 뜻이며 올바른 추출이나 원문 일치를 증명하지 않습니다.
+null 값은 계속 반환합니다. confidence는 기존 임계값 검사에만 사용하고 올바른 추출 확률이나
+인증 근거로 표시하지 않습니다. 모델이 생성한 evidence 문자열도 독립 검증 근거가 아닙니다.
+이번 변경은 텍스트/이미지 grounding을 구현하지 않습니다. 스키마를 통과한 오추출은 여전히
+후보로 반환될 수 있습니다. 프롬프트 수정이 실제 모델 성능 개선을 입증하지는 않습니다.
+
+헤더는 안내 계약이며 비교를 강제 차단하는 보안 기능이 아닙니다. Python 호출 소비자도
+반환값을 미확인 후보로 취급해야 합니다. 현재 웹/API는 확인 계약과 연결되어 있지 않습니다.
+A/C의 서버 확인·정정·비교 범위 처리가 구현·검사되기 전 전체 AI 흐름 완료로 표시하지 않습니다.
+필요한 연결과 예시는 [확인 계약 인계안](../../docs/handoffs/analyzer-confirmation-contract.md),
+재현 결과는 [안전성 검사 기록](../../docs/qa/analyzer-extraction-safety.md)을 참고해 주세요.
+
 ## 재현 가능한 테스트와 평가
 
 ```bash
@@ -130,6 +156,9 @@ uv run --package originproof-analyzer python -m originproof_analyzer.evaluation 
 평가는 합성 Text 8건과 메모리 이미지 replay 2건이다. 예상 후보는 별도 Fixture 값과 비교하며,
 기존 두 Golden JSON은 변경하지 않는다. null 포함 전체 필드 비교와 실제 값이 있는 필드 비교의
 분모를 별도로 기록한다. `live_model_evaluated=false`, `confidence_is_calibrated=false`다.
+평가 출력은 `candidate_outputs_are_unconfirmed=true`, `artifact_comparison_performed=false`도
+명시합니다. 별도 `fixtures/mvp/analyzer_safety_cases.json`의 6개 오추출은 테스트에서 provider에
+주입하며 실제 모델 오추출률을 측정한 자료가 아닙니다.
 
 SDK 테스트는 실제 OpenAI 클라이언트와 `httpx.MockTransport`를 사용한다.
 Analyzer 테스트에서는 socket 연결을 차단하여 외부 네트워크/개인 API Key에 의존하지 않는다.
