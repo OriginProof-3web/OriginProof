@@ -63,7 +63,7 @@ async def test_rotation_old_proof_survives_new_issue_and_revocation(finals, monk
     )
     assert historical.json()["verification_status"] == "VERIFIED"
     assert "ISSUER_KEY_REVOKED" in historical.json()["reason_codes"]
-    assert historical.json()["checks"]["proof_status"] == "NOT_RUN"
+    assert historical.json()["checks"]["proof_status"] == "PASS"
     manager.settings.signer_directory = "/nonexistent-synthetic-signer-directory"
     assert (
         await client.post("/v2/issuer/proofs", json=w3_tests.body(request_id="req_missing_signer"))

@@ -19,6 +19,7 @@ from .accounts import current_session, require_csrf
 from .database import (
     AccountRow,
     AuditEventRow,
+    FinalsProofRow,
     IssuerApplicationRow,
     IssuerKeyRow,
     OperationRow,
@@ -229,6 +230,43 @@ class ChainManagement:
                 operation.target_id,
                 nonce=nonce,
             )
+        elif operation.action in ("register_proof", "revoke_proof", "consume_proof"):
+            from originproof_core.signatures import signing_digest
+
+            from .finals_proofs import checked_envelope
+
+            async with self.database.session_factory() as db:
+                proof = await db.get(FinalsProofRow, operation.target_id)
+            if proof is None or proof.deployment_id != self.manifest.deployment_id:
+                raise ValueError("proof deployment mismatch")
+            envelope = checked_envelope(proof)
+            if operation.action == "register_proof":
+                prepared = await self.writer.prepare_register_proof(
+                    roles["gateway"],
+                    proof.proof_id,
+                    proof.issuer_id,
+                    proof.key_id,
+                    signing_digest(envelope),
+                    envelope.subject_binding_hash,
+                    int(envelope.issued_at.timestamp()),
+                    int(envelope.expires_at.timestamp()),
+                    envelope.single_use,
+                    nonce=nonce,
+                )
+            elif operation.action == "revoke_proof":
+                prepared = await self.writer.prepare_revoke_proof(
+                    roles["issuer_account"],
+                    proof.proof_id,
+                    nonce=nonce,
+                )
+            else:
+                prepared = await self.writer.prepare_consume_proof(
+                    roles["gateway"],
+                    proof.proof_id,
+                    body["actor_kind"],
+                    body["actor_binding"],
+                    nonce=nonce,
+                )
         else:
             raise ValueError("unsupported chain action")
         if not operation.recovery_reference and nonce_override is None:

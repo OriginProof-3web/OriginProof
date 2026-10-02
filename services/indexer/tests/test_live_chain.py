@@ -6,7 +6,7 @@ import os
 import shutil
 import socket
 import subprocess
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import httpx
@@ -14,6 +14,7 @@ import pytest
 from deploy_local import deploy
 from eth_keys import keys
 from infrastructure.blockchain.reader import JsonRpcBlockchainReader
+from infrastructure.blockchain.reader import digest as chain_digest
 from infrastructure.blockchain.writer import ChainOperationState, JsonRpcBlockchainWriter
 from originproof_api.main import create_app
 from originproof_core import (
@@ -22,6 +23,9 @@ from originproof_core import (
     VerificationService,
     signing_digest,
 )
+from originproof_indexer import ProjectionStore, decode_proof_log
+from originproof_indexer.projection import PROOF_CONSUMED, PROOF_REGISTERED, PROOF_REVOKED
+from sqlalchemy import create_engine
 
 ROOT = Path(__file__).resolve().parents[3]
 pytestmark = pytest.mark.skipif(os.environ.get("M4_LIVE_TEST") != "1", reason="local EVM opt-in")
@@ -142,6 +146,91 @@ async def test_live_reader_and_m1_api():
                 assert "AMOUNT_MISMATCH" in tampered["reason_codes"]
 
                 writer = JsonRpcBlockchainWriter(rpc_url, manifest_path, client=rpc_client)
+                latest_block = await rpc("eth_getBlockByNumber", ["latest", False])
+                now = int(latest_block["timestamp"], 16)
+                proof_id = "prf_w4_live_synthetic"
+                subject = "0x" + chain_digest("synthetic subject").hex()
+                register = await writer.prepare_register_proof(
+                    manifest["roles"]["gateway"],
+                    proof_id,
+                    envelope.issuer_id,
+                    envelope.key_id,
+                    golden["signing_digest"],
+                    subject,
+                    int(key.valid_from.timestamp()),
+                    now + 1000,
+                    True,
+                )
+                submitted = await writer.submit_prepared(register)
+                assert submitted.state == ChainOperationState.SUBMITTED
+                confirmed = await writer.confirm_prepared(register, submitted.tx_hash)
+                assert confirmed.state == ChainOperationState.CONFIRMED
+                state = await reader.get_proof_state(proof_id, datetime.fromtimestamp(now, UTC))
+                assert state.status == "ACTIVE" and state.consumable_at
+                assert state.signing_digest == golden["signing_digest"]
+                consume = await writer.prepare_consume_proof(
+                    manifest["roles"]["gateway"], proof_id, 1, subject
+                )
+                submitted = await writer.submit_prepared(consume)
+                assert submitted.state == ChainOperationState.SUBMITTED
+                assert (await writer.confirm_prepared(consume, submitted.tx_hash)).state == (
+                    ChainOperationState.CONFIRMED
+                )
+                state = await reader.get_proof_state(proof_id, datetime.fromtimestamp(now, UTC))
+                assert state.status == "CONSUMED" and not state.consumable_at
+                replay = await writer.prepare_consume_proof(
+                    manifest["roles"]["gateway"], proof_id, 1, subject
+                )
+                replay_submitted = await writer.submit_prepared(replay)
+                assert replay_submitted.state == ChainOperationState.SUBMITTED
+                assert (await writer.confirm_prepared(replay, replay_submitted.tx_hash)).state == (
+                    ChainOperationState.FAILED
+                )
+                revoke = await writer.prepare_revoke_proof(
+                    manifest["roles"]["issuer_account"], proof_id
+                )
+                submitted = await writer.submit_prepared(revoke)
+                assert submitted.state == ChainOperationState.SUBMITTED
+                assert (await writer.confirm_prepared(revoke, submitted.tx_hash)).state == (
+                    ChainOperationState.CONFIRMED
+                )
+                state = await reader.get_proof_state(proof_id, datetime.fromtimestamp(now, UTC))
+                assert state.status == "REVOKED" and state.consumed_at is not None
+                raw_logs = await rpc(
+                    "eth_getLogs",
+                    [
+                        {
+                            "address": manifest["contracts"]["ProofStatusRegistry"]["address"],
+                            "fromBlock": hex(manifest["deployment_block"]),
+                            "toBlock": "latest",
+                            "topics": [[PROOF_REGISTERED, PROOF_CONSUMED, PROOF_REVOKED]],
+                        }
+                    ],
+                )
+                projection_engine = create_engine("sqlite://")
+                try:
+                    projection = ProjectionStore(projection_engine)
+                    projection.initialize()
+                    proof_logs = [
+                        decode_proof_log(raw, 31337, manifest["deployment_id"]) for raw in raw_logs
+                    ]
+                    assert [log.event_type for log in proof_logs] == [
+                        "REGISTERED",
+                        "CONSUMED",
+                        "REVOKED",
+                    ]
+                    for log in proof_logs:
+                        assert projection.apply_proof_log(log)
+                        assert not projection.apply_proof_log(log)
+                    proof_hash = "0x" + chain_digest(proof_id).hex()
+                    assert (
+                        projection.projected_proof_status(
+                            31337, manifest["deployment_id"], proof_hash
+                        )
+                        == "REVOKED"
+                    )
+                finally:
+                    projection_engine.dispose()
                 rejected = await writer.suspend_issuer(
                     manifest["roles"]["registry_admin"], envelope.issuer_id
                 )

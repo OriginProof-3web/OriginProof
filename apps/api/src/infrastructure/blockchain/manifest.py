@@ -80,14 +80,26 @@ def load_manifest(path: str | Path, expected_chain_id: int) -> DeploymentManifes
             constructor_arguments=tuple(arguments),
             abi_sha256=abi_sha256,
         )
-    if (
-        contracts["IssuerRegistry"].address.lower()
-        == contracts["IssuerKeyRegistry"].address.lower()
-    ):
+    if "ProofStatusRegistry" in raw["contracts"]:
+        entry = raw["contracts"]["ProofStatusRegistry"]
+        if not isinstance(entry.get("abi_sha256"), str) or not SHA256.fullmatch(
+            entry["abi_sha256"]
+        ):
+            raise ValueError("invalid ProofStatusRegistry ABI hash")
+        if not isinstance(entry.get("constructor_arguments"), list):
+            raise ValueError("invalid ProofStatusRegistry constructor arguments")
+        contracts["ProofStatusRegistry"] = ContractDeployment(
+            address=validate_address(entry["address"]),
+            constructor_arguments=tuple(entry["constructor_arguments"]),
+            abi_sha256=entry["abi_sha256"],
+        )
+    if len({entry.address.lower() for entry in contracts.values()}) != len(contracts):
         raise ValueError("duplicate contract address")
 
     roles = raw["roles"]
     required_roles = ("registry_admin", "issuer_manager", "key_manager", "issuer_account")
+    if "ProofStatusRegistry" in contracts:
+        required_roles += ("gateway",)
     if not isinstance(roles, dict) or any(name not in roles for name in required_roles):
         raise ValueError("missing role addresses")
     validated_roles = {name: validate_address(roles[name]) for name in required_roles}
