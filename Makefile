@@ -1,5 +1,6 @@
 SHELL := /bin/sh
 COMPOSE := COMPOSE_PROJECT_NAME=originproof docker compose
+SEED_DATABASE_URL ?= postgresql+asyncpg://originproof:originproof@127.0.0.1:5432/originproof
 UV_ENV := .uv-venv
 UV := UV_PROJECT_ENVIRONMENT=$(UV_ENV) uv
 WORKSPACE_PYTHONPATH := apps/api/src:packages/python:services/analyzer/src:services/indexer/src
@@ -42,7 +43,7 @@ db-upgrade:
 	$(COMPOSE) exec -T api uv run --package originproof-api alembic -c apps/api/alembic.ini upgrade head
 
 seed: db-upgrade
-	SEED_DATABASE_URL=postgresql+asyncpg://originproof:originproof@127.0.0.1:5432/originproof PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run --package originproof-api python scripts/fixtures/seed.py
+	SEED_DATABASE_URL=$(SEED_DATABASE_URL) PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run --package originproof-api python scripts/fixtures/seed.py
 
 deploy-local: seed
 	@OP_SIGNER=$$($(UV) run --package originproof-api python -c "import json; print(json.load(open('build/seed_manifest.json'))['signer'])"); \
@@ -57,7 +58,7 @@ mvp-e2e: mvp-up deploy-local api-reload
 	$(MAKE) smoke
 
 db-smoke: seed
-	SEED_DATABASE_URL=postgresql+asyncpg://originproof:originproof@127.0.0.1:5432/originproof PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run --package originproof-api python scripts/ci/proof_storage_smoke.py
+	SEED_DATABASE_URL=$(SEED_DATABASE_URL) PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run --package originproof-api python scripts/ci/proof_storage_smoke.py
 
 demo-reset: reset mvp-e2e
 
