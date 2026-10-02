@@ -8,6 +8,7 @@ from originproof_core.ports import DependencyUnavailableError
 
 ISSUER = "iss_origin_mock_bank"
 KEY = "key_origin_mock_bank_001"
+PROOF = "prf_synthetic_w4"
 SIGNER = "0x" + "11" * 20
 GENESIS_HASH = "0x" + "aa" * 32
 DEPLOYMENT_HASH = "0x" + "bb" * 32
@@ -107,6 +108,22 @@ def transport(issuer=1, key=1, fault=None, calls=None):
                     result = "0x1234"
                 if fault == "key_enum":
                     result = result[:-64] + word(9)
+            elif selector == digest("proofStatus(bytes32)")[:4].hex():
+                result = "0x" + word(0 if fault == "proof_absent" else 1)
+            elif selector == digest("getProof(bytes32)")[:4].hex():
+                result = "0x" + (
+                    digest(ISSUER).hex()
+                    + digest(KEY).hex()
+                    + "11" * 32
+                    + "22" * 32
+                    + word(100)
+                    + word(200)
+                    + word(1)
+                    + word(0)
+                    + word(0)
+                )
+            elif selector == digest("isConsumable(bytes32,uint64)")[:4].hex():
+                result = "0x" + word(1)
             else:
                 raise AssertionError("unexpected selector")
         return httpx.Response(200, json={"jsonrpc": "2.0", "id": body["id"], "result": result})
@@ -210,6 +227,32 @@ async def test_snapshot_failure_is_not_absent(manifest, fault):
         )
         with pytest.raises(DependencyUnavailableError, match="blockchain state unavailable"):
             await reader.get_issuer_key_snapshot(ISSUER, KEY, datetime.fromtimestamp(150, UTC))
+
+
+@pytest.mark.parametrize("fault", [None, "proof_absent", "snapshot_reorg", "chain", "rpc"])
+async def test_proof_state_distinguishes_absent_and_dependency(manifest, fault):
+    data = json.loads(manifest.read_text())
+    data["contracts"]["ProofStatusRegistry"] = {
+        "address": "0x" + "55" * 20,
+        "constructor_arguments": [],
+        "abi_sha256": "3" * 64,
+    }
+    data["roles"]["gateway"] = "0x" + "88" * 20
+    manifest.write_text(json.dumps(data))
+    async with httpx.AsyncClient(transport=transport(fault=fault)) as client:
+        reader = JsonRpcBlockchainReader(
+            "http://test", manifest, issuer_ids=[ISSUER], client=client
+        )
+        if fault in ("snapshot_reorg", "chain", "rpc"):
+            with pytest.raises(DependencyUnavailableError):
+                await reader.get_proof_state(PROOF, datetime.fromtimestamp(150, UTC))
+        else:
+            state = await reader.get_proof_state(PROOF, datetime.fromtimestamp(150, UTC))
+            if fault == "proof_absent":
+                assert state is None
+            else:
+                assert state.status == "ACTIVE" and state.consumable_at
+                assert state.proof_id == PROOF and state.block_hash == CURRENT_HASH
 
 
 @pytest.mark.parametrize(

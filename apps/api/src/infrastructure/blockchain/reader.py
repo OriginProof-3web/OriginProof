@@ -31,6 +31,26 @@ class RegistryTrustSnapshot:
     key_valid_at: bool
 
 
+@dataclass(frozen=True)
+class ProofChainState:
+    deployment_id: str
+    chain_id: int
+    block_number: int
+    block_hash: str
+    proof_id: str
+    issuer_id_hash: str
+    key_id_hash: str
+    signing_digest: str
+    subject_binding_hash: str
+    issued_at: datetime
+    expires_at: datetime
+    single_use: bool
+    revoked_at: datetime | None
+    consumed_at: datetime | None
+    status: str
+    consumable_at: bool
+
+
 def digest(text: str) -> bytes:
     return keccak.new(digest_bits=256, data=text.encode("utf-8")).digest()
 
@@ -65,6 +85,11 @@ class JsonRpcBlockchainReader:
             self.deployment_id = manifest.deployment_id
             self._issuer = manifest.contract("IssuerRegistry").address
             self._key = manifest.contract("IssuerKeyRegistry").address
+            self._proof = (
+                manifest.contract("ProofStatusRegistry").address
+                if "ProofStatusRegistry" in manifest.contracts
+                else None
+            )
             self._issuers = {}
             for identifier in issuer_ids:
                 self._id(identifier, "iss_")
@@ -181,12 +206,75 @@ class JsonRpcBlockchainReader:
                 or deployed.get("hash", "").lower() != self._deployment_block_hash
             ):
                 raise ValueError("deployment identity mismatch")
-            for contract in (self._issuer, self._key):
+            for contract in (self._issuer, self._key, self._proof):
+                if contract is None:
+                    continue
                 code = await self._rpc(client, "eth_getCode", [contract, block])
                 if not isinstance(code, str) or not re.fullmatch(r"0x(?:[0-9a-fA-F]{2})+", code):
                     raise ValueError("registry code missing")
             if operation == "issuer":
                 return await self._read_issuer(client, identifier, block)
+            if operation == "proof":
+                if self._proof is None or not isinstance(at, datetime) or at.tzinfo is None:
+                    raise ValueError("proof registry or timezone unavailable")
+                current = await self._rpc(client, "eth_getBlockByNumber", [block, False])
+                block_hash = validate_hash(current.get("hash"))
+                proof_hash = digest(identifier)
+                (status_word,) = await self._call(
+                    client, self._proof, "proofStatus(bytes32)", identifier, block, 1
+                )
+                status = uint(status_word, 8)
+                if status not in (0, 1, 2, 3):
+                    raise ValueError("invalid proof status")
+                if status == 0:
+                    result = None
+                else:
+                    words = await self._call(
+                        client, self._proof, "getProof(bytes32)", identifier, block, 9
+                    )
+                    issued, expires = uint(words[4], 64), uint(words[5], 64)
+                    revoked, consumed = uint(words[7], 64), uint(words[8], 64)
+                    single_use = uint(words[6], 8)
+                    if (
+                        single_use not in (0, 1)
+                        or not 0 < issued < expires
+                        or (status != (2 if revoked else 3 if consumed else 1))
+                    ):
+                        raise ValueError("invalid proof commitment")
+                    data = (
+                        digest("isConsumable(bytes32,uint64)")[:4]
+                        + proof_hash
+                        + int(at.timestamp()).to_bytes(32, "big")
+                    )
+                    response = await self._rpc(
+                        client, "eth_call", [{"to": self._proof, "data": "0x" + data.hex()}, block]
+                    )
+                    if not isinstance(response, str) or not re.fullmatch(
+                        r"0x[0-9a-fA-F]{64}", response
+                    ):
+                        raise ValueError("invalid consumable response")
+                    consumable = int(response, 16)
+                    if consumable not in (0, 1):
+                        raise ValueError("invalid consumable flag")
+                    result = ProofChainState(
+                        self.deployment_id,
+                        self._chain_id,
+                        int(block, 16),
+                        block_hash,
+                        identifier,
+                        *["0x" + word.hex() for word in words[:4]],
+                        datetime.fromtimestamp(issued, UTC),
+                        datetime.fromtimestamp(expires, UTC),
+                        bool(single_use),
+                        datetime.fromtimestamp(revoked, UTC) if revoked else None,
+                        datetime.fromtimestamp(consumed, UTC) if consumed else None,
+                        {1: "ACTIVE", 2: "REVOKED", 3: "CONSUMED"}[status],
+                        bool(consumable),
+                    )
+                canonical = await self._rpc(client, "eth_getBlockByNumber", [block, False])
+                if validate_hash(canonical.get("hash")) != block_hash:
+                    raise ValueError("proof snapshot block changed")
+                return result
             if operation == "snapshot":
                 issuer_id, key_id = identifier
                 if not isinstance(at, datetime) or at.tzinfo is None or at.utcoffset() is None:
@@ -255,3 +343,7 @@ class JsonRpcBlockchainReader:
         self._id(issuer_id, "iss_")
         self._id(key_id, "key_")
         return await self._run("snapshot", (issuer_id, key_id), at)
+
+    async def get_proof_state(self, proof_id: str, at: datetime) -> ProofChainState | None:
+        self._id(proof_id, "prf_")
+        return await self._run("proof", proof_id, at)
