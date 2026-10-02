@@ -1,19 +1,14 @@
-# W1-D1/D2 — 착수 및 독립 QA
+# W1-D1/D2 — 현재 독립 QA 상태
 
-- 담당: D / 여인준님 (@yijun0330). 제안 리뷰어: C (@Jordi2801K); 아직 리뷰 미수행.
-- 작업: W1-D1 수용 사례표·카드 회귀, W1-D2 합성 입력·실패 재현 준비.
-- 기준: 개발 계획서 v3.0 §15.2·§16, ADR 0001.
-- 작업 branch: `codex/w1-d-qa`. PR 대상: `phase/W1`.
-- 단계 기준: `ae8c8e2335ace5f241b3a1ad3b548426364c218e`.
-- 최신 integration 반영: `3295a71c10a1a99c523d3cfefde91b5737b737ac` (phase 기준의 후손, 개인 branch만 fast-forward).
-- 원래 로컬 `mvp/ai`는 커밋 전 미추적 작업이므로 별도 worktree에서 진행한다.
-- 수정 경로: fixtures/finals, services/analyzer/tests, D의 QA·기여 문서.
-- 선행 계약: C1/C3의 구현·생성물은 현재 phase에 병합된 것으로 간주하지 않는다.
-- 독립 범위: ADR 기반 합성 사례, 자료 무결성 검사, 기존 카드 mock/core 회귀.
-- 실제 연결 대기: C2/C4 세션·신청 API, C3 v2 모델/생성물, A 브라우저, B 실제 Registry.
-- 수락 기준: F01~F15의 역할·입력·기대 결과·계층·미실행 구분, 합성 두 기관/두 유형 및 변조·기간·권한 경계, 기존 v1 회귀 증거.
-- 검증: Makefile의 bootstrap-check/env-check/env-fingerprint, test-api/test-analyzer/test, 관련 fixture lint. 기존 MVP의 합성 로컬 E2E는 `make mvp-e2e`로 DB migration·seed·Anvil 배포를 수행해 통과했다. W1 신규 기능 E2E는 실제 연결 후 실행한다.
-- 새 정책 없음. OCR/PDF·유료 모델 호출·공유 모델/ABI/Golden 생성기 변경은 범위 밖이다.
-
-확정 정책을 사용한 QA 입력은 실제 HTTP 요청/서명된 v2 Golden/구현 완료 증거가 아니다.
-다음 원격 확인은 선행 PR 병합 통지 또는 이 작업 PR 제출 전이다.
+- 담당: D / 여인준님 (`@yijun0330`). 기준: 계획서 v3.0 §15.2·§16, ADR 0001.
+- 공식 phase: `0308cb24f9e4aed157095131e2552243767d16eb`; 수정·검증 후보: `f1de961d8f94405d5a143cd853421eee8878b4f1`.
+- 현재 작업: `docs/w1-completion-evidence` → `phase/W1`, 단계 승격 초안 [PR #39](https://github.com/OriginProof-3web/OriginProof/pull/39).
+- 원래 로컬 `mvp/ai`의 미커밋·미추적 자료는 보존하고 기존 임시 worktree를 사용했습니다.
+- 수정: D 합성 입력/검사·QA/기여 기록, 사용자 지정 검사 runner/웹 live E2E 및 검사에서 발견한 승인 화면 HTML 오류.
+- 선행: A #27, B #26, C #23/#32, D #30이 공식 phase에 포함됐습니다.
+- 독립 W1 실제 연결: role/CSRF/login/logout/만료, 신청·승인·반려·재조회, 자기 승인/타 기관 격리 및 접근성 검사 통과.
+- D 자료는 fixture 1.1.0에서 현재 C v2 필드 계약과 대응했습니다. 28개 전체 본선 시나리오의 runtime 실행 상태는 NOT_RUN으로 유지합니다.
+- 현재 실제 결과: [최종 QA](w1-final-verification.md), [환경](w1-final-environment.json), [사례표](w1-acceptance-matrix.md).
+- 역사 기록: [이전 실행 결과](w1-results.md). 임시 통합 SHA 성공을 공식 phase 완료 증거로 재사용하지 않습니다.
+- 리뷰/범위/기여: [기록](w1-scope-and-reviews.md), [W1-D](../portfolio/W1-D.md).
+- 새 후보의 phase 반영·작성자 외 최종 승인과 A/B/C 본인 확인은 대기입니다. v2 실제 발행/키 관리·consume은 후속 단계 범위입니다.

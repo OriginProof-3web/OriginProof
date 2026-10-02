@@ -1,28 +1,24 @@
-# W1 / D / 여인준 — 개인 개발 기록
+# W1 / D / 여인준 — 독립 QA 기록
 
-- GitHub 계정: @yijun0330 (사용자가 확인한 담당 역할).
-- 작업일: 2026-10-01. W1은 개발 단계다.
-- 상태: 진행 중 — 독립 QA 준비·검사 완료, 실제 연결·리뷰 대기.
-- 작업 ID: W1-D1, W1-D2. 이슈: 미생성. PR 대상: `phase/W1`; 제출 상태는 PR에서 확인.
-- branch: codex/w1-d-qa → phase/W1.
-- 기준·검증: 3295a71c10a1a99c523d3cfefde91b5737b737ac + D 작업 트리 변경 (검사 시점).
+- GitHub 계정: `@yijun0330`, 사용자가 지정한 D 역할.
+- 작업일: 2026-10-01~2026-10-02. W1은 개발 단계입니다.
+- 작업 ID: W1-D1/D2. 상태: 실제 연결·계약 소비 검사 완료, 새 변경 리뷰와 단계 최종 확인 대기.
+- 기존 PR: [#30](https://github.com/OriginProof-3web/OriginProof/pull/30), C가 독립 QA 범위를 승인했습니다.
+- 공식 phase 기준: `0308cb24f9e4aed157095131e2552243767d16eb`; 수정·검증 후보: `f1de961d8f94405d5a143cd853421eee8878b4f1`.
+- 단계 승격 초안: [#39](https://github.com/OriginProof-3web/OriginProof/pull/39).
 
-| 작업 | 실제 산출물 | 재사용·협업 | 상태 |
-| --- | --- | --- | --- |
-| D1 | F01~F15 역할/입력/계층/기대값/공백 표, 기존 카드 독립 회귀 | v3.0·ADR, C의 공통 VerificationService와 Golden | 독립 검사 및 기존 MVP 로컬 HTTP E2E 완료; W1 신규 기능 E2E 대기 |
-| D2 | 합성 두 기관/두 유형, 변조·누락·기간·권한 입력 28개, 자료 검사 | 기존 payload_hash·공통 ID 규칙 | QA 입력 준비; C 생성 모델/API 소비 리뷰 대기 |
+| 작업 | 실제 D 수행 | 재사용·협업 |
+| --- | --- | --- |
+| D1 | F01~F15 수용표, v1 카드 정상/금액 변조 회귀, 공식 W1 실제 role/CSRF/신청/승인·반려/세션·DB 독립 QA | A 웹, C API/모델, B 기존 Registry·Foundry 컨테이너 |
+| D2 | 두 기관/두 유형 합성 입력 28개, C v2 필드 계약 대응, nonce 불일치 수정과 검사 보강 | C 원본 모델·생성 Schema/Golden을 재사용; D unsigned 입력을 signed Golden으로 간주하지 않음 |
+| 계약 검토 | 생성물 byte 재현, Foundry signing digest/ID hash 교차 확인, 생성 TS 소비 컴파일, PR #23/#32 사후 기술 승인 리뷰 | user가 1~5번 검토·기록 보완을 지시; Codex 수행임을 리뷰에 명시 |
 
-[작업 범위](../qa/w1-d.md), [사례표](../qa/w1-acceptance-matrix.md),
-[실행 결과·환경·한계](../qa/w1-results.md), [재현 입력](../../fixtures/finals/README.md).
+공식 W1의 승인 화면에서 axe serious 오류를 발견했습니다. `<dl>` 밖으로 안내 문구를 옮기는 최소 수정 후 실제 연결과 접근성 검사를 통과했습니다. 새 테스트의 Next route announcer 선택 충돌도 수정하고 다시 실행했습니다. 다른 담당자의 기능을 구현한 것이 아니라 사용자 요청 범위의 검사·발견 결함 수정입니다.
 
-기존 미추적 MVP 작업을 덮어쓰지 않도록 별도 worktree를 사용했다.
-공통 모델·API·ABI를 D가 새로 정의하는 대신 승인 ADR의 unsigned QA 입력으로 준비했다.
-실제 서명·체인 상태가 없는 데이터를 성공한 본선 Proof로 표시하지 않았다.
-검사에서 드러난 요청/키 ID 형식 오류는 공통 계약에 맞춰 QA 입력을 수정했다.
+[최종 QA 결과·환경·재현](../qa/w1-final-verification.md), [전체 본선 사례표](../qa/w1-acceptance-matrix.md), [단계 범위·리뷰](../qa/w1-scope-and-reviews.md), [합성 입력](../../fixtures/finals/README.md)을 참조합니다. 새 후보에서 전체 Python 220 passed/1 opt-in skipped, 실제 Chromium 1 passed 및 DB 검사 PASS, 기존 mock browser 4 passed, component 6개, Foundry Contract 10개가 통과했습니다.
 
-AI 활용: Codex가 자료·테스트·보고 초안을 작성하고 명령을 실행했다.
-사용자는 D 역할과 착수를 지정했다. 사람의 코드 검토·기여 확인은 아직 미확인이다.
-기여 비율·타인 승인·실제 서비스 성능을 추정하지 않는다.
+원래 미커밋·미추적 저장소를 보존하고 기존 임시 worktree에서 작업했습니다. 임시 DB·API·웹만 새 포트로 사용한 뒤 제거했습니다. Golden과 개인 `.env`, 기존 Compose DB는 변경하지 않았습니다.
 
-본인 확인: 대기. 작성자 외 리뷰어: C 제안, 리뷰 미수행.
-다음 작업: 생성 계약 대응, W1 실제 로그인/신청 거부·브라우저 E2E 실행, 결과 합의·PR 리뷰.
+AI 활용: 사용자가 D 역할과 W1 완료 준비 1~5번을 지정했고 Codex가 검사·수정·자료 작성·코드 리뷰를 수행했습니다. A/B/C 본인의 판단이나 사람의 최종 승인으로 표시하지 않습니다. 성능·기여 비율은 추정하지 않습니다.
+
+기존 작성자 외 승인: PR #30의 C 리뷰. 이번 새 후보 PR의 외부 승인 및 소유자 기여 확인은 대기입니다. 제품 연결 검사 완료와 phase/integration 승격 완료를 구분합니다.

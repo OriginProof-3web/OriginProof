@@ -23,3 +23,11 @@ Python core 검사 19개 통과: v1 Golden/기존 판정, 두 v2 서명 복구·
 별도 v2 모델로 기존 v1 계약을 보존하고 현재 상태 미실행을 null/NOT_RUN으로 표시합니다.
 Codex가 구현·검사·문서 작성을 보조했습니다. 정책은 사용자 승인 ADR을 따랐습니다.
 B의 체인 경계 검토, A/D 생성물 소비, 단계 독립 확인은 아직 없습니다.
+
+## 2026-10-02 D 검토·연결 확인
+
+원 기록 이후 D/Codex가 공식 `phase/W1@0308cb24`의 C API 및 모델을 검사했습니다. 실제 PostgreSQL·Chromium에서 로그인/권한/신청/승인·반려/세션 경계가 확인됐고, 생성 Schema/TypeScript/Golden 재생성 및 Foundry hash 교차 검사가 통과했습니다. [검증 보고](../qa/w1-final-verification.md)를 참조합니다.
+
+PR #23과 #32에는 `yijun0330` 계정의 Codex 수행 사후 승인 리뷰를 기록했습니다. 이는 C 작성자 외 D 기술 검토이며 B/A 소유자 본인의 확인이나 과거 병합 전 승인으로 소급하지 않습니다. [리뷰 현황](../qa/w1-scope-and-reviews.md)을 참조합니다. 정책 승인과 구현 리뷰, 실제 연결, 단계 승격은 계속 구분합니다.
+
+이번 후보의 제품 변경은 D가 발견한 A 승인 화면 접근성 수정이며 C API·모델·Golden은 바꾸지 않았습니다. 단계 승격은 [PR #39](https://github.com/OriginProof-3web/OriginProof/pull/39)의 최종 SHA·외부 리뷰 뒤 진행해야 합니다. C 본인의 새 기록 확인은 미확인입니다.

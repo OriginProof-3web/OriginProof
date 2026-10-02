@@ -1,6 +1,6 @@
 {
   "source": "synthetic",
-  "fixture_version": "1.0.0",
+  "fixture_version": "1.1.0",
   "target_schema_version": "2.0.0",
   "basis_sha": "3295a71c10a1a99c523d3cfefde91b5737b737ac",
   "purpose": "W1-D2 unsigned QA inputs; not generated v2 Schema, signed Golden or live results",
@@ -43,7 +43,7 @@
         "subject_binding_hash": "0xec3ccb784070cc49fc007d8eb948f5aa1d3fa641cd72b5e9570eadc88914b726",
         "issued_at": "2026-10-01T00:00:00Z",
         "expires_at": "2026-10-02T00:00:00Z",
-        "nonce": "SYNTHETIC_NONCE_PAYMENT_REQUEST",
+        "nonce": "a9a4fde84b29304396e7e21bd131bd6e",
         "single_use": true,
         "metadata_hash": null
       }
@@ -78,7 +78,7 @@
         "subject_binding_hash": "0xa9647fb23444da58eaba63d4af967da49be1a2570e4f41c4445fdf98be52a8c8",
         "issued_at": "2026-10-01T00:00:00Z",
         "expires_at": "2026-10-02T00:00:00Z",
-        "nonce": "SYNTHETIC_NONCE_OFFICIAL_DOCUMENT",
+        "nonce": "3762caf199f3074dace85a4f67ddf902",
         "single_use": false,
         "metadata_hash": null
       }
