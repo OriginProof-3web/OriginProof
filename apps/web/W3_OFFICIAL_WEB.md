@@ -3,7 +3,7 @@
 - 담당 범위: 김형준님 / A / @kimhyounjun, W3-A1~A3.
 - 작업 브랜치: `codex/w3-a-official-web`.
 - 시작: `phase/W3@1f8ed632ea9c74091abaf2fe2ec32882038f731f`.
-- PR: [#44](https://github.com/OriginProof-3web/OriginProof/pull/44), phase/W3 대상 Draft. 사용자님이 2026-10-02 제출을 요청하셨습니다.
+- PR: [#44](https://github.com/OriginProof-3web/OriginProof/pull/44), phase/W3 대상의 W3 웹 구현입니다. 사용자님이 2026-10-03 CI 보완·병합과 이전 준비 PR #29의 대체 정리를 요청하셨습니다. QR·독립 실제 연결 QA와 팀 전체 단계 완료는 별도입니다.
 
 ## 실행
 
@@ -29,13 +29,14 @@ Next.js의 기존 `/api` rewrite를 사용합니다. 운영자 인증은 서버 
 C #35 `17c24a36a46c6b2a823a3b7fac20c97c6faee98f`의
 `packages/schemas/generated/types/{api,originproof}.ts`를 수정 없이
 `official/components/{api,core}-types.generated.ts`로 복사했습니다.
-미병합 PR 계약의 소비자 snapshot이며, 공유 생성물 원본을 수작업으로 바꾸지 않았습니다.
-C PR 병합 후 생성 타입의 import를 정리해야 합니다. API의 허용 기관·문서 코드는 C 설정이
+현재 phase/W3에 병합된 계약의 소비자 snapshot이며, 공유 생성물 원본을 수작업으로 바꾸지 않았습니다.
+2026-10-03 두 snapshot과 현재 공유 생성물의 byte 일치를 확인했습니다. API의 허용 기관·문서 코드는 C 설정이
 결정합니다. 현재 P0 두 합성 기관만 표시합니다.
 
 실제 브라우저 연결은 별도 합성 PostgreSQL·Anvil 환경의 C #36
 `85e152cd5550f24874abb267122a5d8ece29e3b9`(C #35 포함)에 실행했습니다.
-이 결과는 `phase/W3` 병합 완료나 B #40의 snapshot을 소비한 결과를 의미하지 않습니다.
+이 과거 live 결과는 현재 `phase/W3` 통합 SHA의 실제 브라우저 검증 결과를 의미하지 않습니다.
+현재 branch에는 C #35, B #40, D #46이 포함된 `phase/W3@9047163`을 반영했습니다.
 다른 담당자의 backend·contract 경로는 수정하지 않았습니다.
 
 ## 구현과 남은 부분
@@ -44,9 +45,8 @@ C PR 병합 후 생성 타입의 import를 정리해야 합니다. API의 허용
   FastAPI 422 loc별 오류, 제출 중 중복 차단, 동일 body 재시도 시 request ID 재사용.
   발행 응답 후 목록 새로고침 실패를 발행 실패로 바꾸지 않습니다.
 - A2: 자기 기관 목록/제한 상세, ID 복사, 공개 ID만 담은 검증 링크. 다른 기관의 목록과
-  content 접근 차단을 실제 서버로 확인합니다. QR 라이브러리 추가는 AGENTS 12절의
-  사용자 확인을 요청했으며, 응답 전에는 추가하지 않았습니다. QR 생성·디코딩·휴대폰
-  LAN 스캔은 미완료입니다.
+  content 접근 차단을 기존 실제 서버 검사로 확인했습니다. QR 생성·디코딩·휴대폰
+  LAN 스캔은 별도 후속 작업이며, 이번 CI 보완에서 새 의존성을 추가하지 않았습니다.
 - A3: 익명 PROOF_ONLY 조회와 인증된 후보 필드 비교 분리. 실제 enum·checks·reason 표시,
   null lifecycle은 미확인, NOT_RUN은 미실행. 조회는 consume을 호출하지 않습니다.
   권한 실패 시 로그인 링크, 정상/금액·문서번호 변조 비교를 연결했습니다.
@@ -63,6 +63,11 @@ pnpm --filter originproof-demo-web build
 pnpm --filter originproof-demo-web test:e2e
 ```
 
+CI의 E2E는 앞 단계에서 만든 production build를 `pnpm start`로 실행합니다.
+로컬 기본은 기존 개발 서버입니다. CI 조건을 로컬에서 재현하려면 build 후
+`CI=1 pnpm --filter originproof-demo-web test:e2e`를 실행합니다. 기능 검사 context는
+`reducedMotion: reduce`를 사용하며, WebGL·일반 애니메이션 성능 검사는 아닙니다.
+
 실제 API 브라우저 검사는 격리된 합성 계정 파일을 명시해야 합니다. 파일은 배열 형태의
 username/password 객체이며 저장소에 넣지 않습니다. 계정 파일 환경변수가 없으면 live
 검사 2개는 skip합니다. live 검사는 새로운 합성 Proof를 발행하며 DB/체인을 초기화하지
@@ -72,5 +77,5 @@ username/password 객체이며 저장소에 넣지 않습니다. 계정 파일 �
 ORIGINPROOF_TEST_ACCOUNTS=/private/path/accounts.json pnpm --filter originproof-demo-web test:e2e official-live.spec.ts
 ```
 
-최종 실행 결과·fingerprint는 `W3_VALIDATION.md`를 참고합니다. D의 독립 재현·C의 계약
-리뷰·CI·작성자 외 리뷰는 미확인입니다. 따라서 W3 팀 전체 완료로 판정하지 않습니다.
+최신 CI 보완 결과와 과거 live 결과의 구분은 `W3_VALIDATION.md`를 참고합니다.
+D의 독립 실제 재현과 QR·팀 단계 완료는 후속 작업입니다.

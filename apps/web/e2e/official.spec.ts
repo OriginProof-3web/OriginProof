@@ -7,6 +7,22 @@ test('official landing and direct navigation preserve supplied design',async({pa
  await page.getByRole('link',{name:'개인 로그인'}).click();await expect(page).toHaveURL(/user-login\.html$/);
  await expect(page.getByRole('heading',{name:'Individual Sign In'})).toBeVisible();
 });
+test('mobile quick navigation opens by keyboard and Escape restores focus',async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ await page.goto('/index.html');
+ const menu=page.locator('#quick-nav');
+ const toggle=menu.locator('summary');
+ await toggle.focus();await toggle.press('Enter');
+ await expect(menu).toHaveAttribute('open','');
+ const link=menu.getByRole('link',{name:'개인 로그인'});
+ await expect(link).toBeVisible();
+ const box=await link.boundingBox();
+ expect(box!.x).toBeGreaterThanOrEqual(0);expect(box!.x+box!.width).toBeLessThanOrEqual(390);
+ await link.focus();await link.press('Escape');
+ await expect(menu).not.toHaveAttribute('open','');await expect(toggle).toBeFocused();
+ await toggle.press('Enter');await link.click();
+ await expect(page).toHaveURL(/user-login\.html$/);
+});
 test('anonymous Proof lookup is separated from restricted comparison',async({page})=>{
  const proof={proof_id:'prf_browser',issuer_id:'iss_origin_mock_bank',proof_type:'PAYMENT_REQUEST',issued_at:'2026-10-02T00:00:00Z',expires_at:'2026-12-01T00:00:00Z'};
  await page.route('**/api/v2/proofs/prf_browser',route=>route.fulfill({json:proof}));

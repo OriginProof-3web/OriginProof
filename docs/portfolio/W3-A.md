@@ -2,8 +2,8 @@
 
 - 역할 담당: 김형준님 / @kimhyounjun.
 - 기록 기간: 2026-10-02; Codex가 사용자 요청에 따라 로컬 구현·검사를 진행했습니다.
-- 상태: 부분 완료. QR 추가 확인·계약 리뷰·D 독립 재현 대기.
-- 작업: W3-A1/A2/A3; branch `codex/w3-a-official-web`, [Draft PR #44](https://github.com/OriginProof-3web/OriginProof/pull/44), 대상 phase/W3.
+- 상태: W3 웹 부분 구현. QR·D 독립 실제 재현은 후속 작업입니다.
+- 작업: W3-A1/A2/A3; branch `codex/w3-a-official-web`, [PR #44](https://github.com/OriginProof-3web/OriginProof/pull/44), 대상 phase/W3.
 - 시작 SHA·검사 fingerprint·명령·환경: [웹 검사 기록](../../apps/web/W3_VALIDATION.md).
 
 ## 실제 결과·기여
@@ -34,3 +34,16 @@
 ## 협업 코드 추가 검사
 
 사용자 요청에 따라 C #42/#37/#38, D #41/W2 QA, B W6 고정 SHA를 별도 archive에서 검사했습니다. 실제 DB·체인과 현재 웹 결과, 실패한 의존성 감사, 팀원별 후속 작업은 [추가 검사 보고서](../../apps/web/ADDITIONAL_TEST_RESULTS.md)에 연결합니다. 다른 팀원의 구현이나 작성자 외 승인으로 집계하지 않습니다.
+
+## 2026-10-03 CI 보완·병합 준비
+
+사용자님 요청으로 C 계정의 Codex가 최신 W3(#35/#40/#46)를 반영하고 CI E2E의 서버를
+production build로 맞췄습니다. 기능 검사에는 기존 live QA와 같은 reduced motion을 적용하고,
+390px 바로가기 메뉴의 키보드 열기·Escape 닫기/포커스 복귀·실제 링크 이동 검사를 추가했습니다.
+원본 디자인·WebGL·발행/조회/비교 제품 코드는 변경하지 않았습니다.
+
+웹 lint/typecheck/build 통과, component 15 passed, production E2E 9 passed/2 live skipped,
+Python 318 passed/5 opt-in skipped입니다. 과거 실제 브라우저 10 passed와 합산하지 않습니다.
+생성 타입 snapshot 두 파일은 병합된 C 생성 원본과 byte 일치를 확인했습니다.
+QR/LAN·현재 통합 SHA의 실제 API 브라우저 재현·D 독립 검증·W4 화면은 완료로 기록하지 않습니다.
+앞 절의 리뷰/CI 대기는 최초 제출 당시 기록이며 최신 결과는 웹 검사 기록과 PR에 남깁니다.
