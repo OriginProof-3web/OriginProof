@@ -24,7 +24,7 @@ test("amount-tampered preset calls the API and shows its deterministic result", 
     });
   });
 
-  await page.goto("/");
+  await page.goto("/mvp");
   const accessibility = await new AxeBuilder({ page }).analyze();
   expect(accessibility.violations).toEqual([]);
   await page.getByRole("button", { name: "금액 변조 프리셋" }).click();

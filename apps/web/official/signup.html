@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OriginProof — Sign Up</title><link rel="stylesheet" href="auth.css">
+</head>
+<body>
+<div class="auth-bg" aria-hidden="true"><canvas id="beyond-horizon-canvas"></canvas></div>
+<header class="auth-top"><a class="brand" href="index.html">OriginProof</a><a class="back-link" href="index.html">← 메인으로</a></header>
+<main class="auth-page"><section class="auth-card business-application" aria-label="계정 신청">
+  <section class="signup-panel" id="business-application-panel" aria-labelledby="business-title">
+    <p class="eyebrow">BUSINESS · ISSUER</p>
+    <div class="signup-heading"><h1 id="business-title">Business Sign Up</h1><button class="slide-fill-button" type="button" data-signup-choice="individual" aria-controls="individual-application-panel" aria-pressed="false" aria-label="Individual Sign Up 신청 양식 보기"><span class="slide-fill-water" aria-hidden="true"><svg class="slide-wave slide-wave-back" viewBox="0 0 400 30" preserveAspectRatio="none"><path d="M 0 15 C 50 24, 150 6, 200 15 C 250 24, 350 6, 400 15 V 40 H 0 Z"/></svg><svg class="slide-wave slide-wave-front" viewBox="0 0 400 30" preserveAspectRatio="none"><path d="M 0 15 C 25 5, 75 25, 100 15 C 125 5, 175 25, 200 15 C 225 5, 275 25, 300 15 C 325 5, 375 25, 400 15 V 40 H 0 Z"/></svg></span><span class="slide-fill-label">Individual Sign Up</span></button></div>
+    <p class="intro">기업 정보를 입력해 발행기관 신청을 진행하세요.</p>
+    <form data-issuer-application novalidate>
+      <div class="field"><label for="issuer-name">기업·기관명 <span>*</span></label><input id="issuer-name" name="issuer_name" maxlength="120" placeholder="기업 또는 기관명" required></div>
+      <div class="form-grid">
+        <div class="field"><label for="business-number">사업자등록번호 <span>*</span></label><input id="business-number" name="business_number" inputmode="numeric" placeholder="000-00-00000" required></div>
+        <div class="field"><label for="industry">업종 <span>*</span></label><select id="industry" name="industry" required><option value="" disabled selected>업종 선택</option><option>금융</option><option>공공기관</option><option>법률·전문 서비스</option><option>기타</option></select></div>
+      </div>
+      <div class="field"><label for="website">홈페이지</label><input id="website" name="website" type="url" placeholder="https://example.com"></div>
+      <div class="form-grid">
+        <div class="field"><label for="contact-name">담당자명 <span>*</span></label><input id="contact-name" name="contact_name" autocomplete="name" placeholder="담당자 이름" required></div>
+        <div class="field"><label for="contact-phone">연락처 <span>*</span></label><input id="contact-phone" name="contact_phone" type="tel" autocomplete="tel" placeholder="010-0000-0000" required></div>
+      </div>
+      <div class="field"><label for="contact-email">업무용 이메일 <span>*</span></label><input id="contact-email" name="contact_email" type="email" autocomplete="email" placeholder="name@company.com" required></div>
+      <div class="field"><label for="application-reason">신청 내용 <span>*</span></label><textarea id="application-reason" name="application_reason" rows="4" placeholder="기관과 서비스에 대해 소개해 주세요." required></textarea></div>
+      <button class="primary-button" type="submit">Submit Application</button>
+    </form>
+    <p class="auth-switch">이미 계정이 있으신가요?<a href="business-login.html">Business Sign In</a></p>
+  </section>
+  <section class="signup-panel" id="individual-application-panel" aria-labelledby="individual-title" hidden>
+    <p class="eyebrow">INDIVIDUAL ACCOUNT</p>
+    <div class="signup-heading"><h1 id="individual-title">Individual Sign Up</h1><button class="slide-fill-button" type="button" data-signup-choice="business" aria-controls="business-application-panel" aria-pressed="false" aria-label="Business Sign Up 신청 양식 보기"><span class="slide-fill-water" aria-hidden="true"><svg class="slide-wave slide-wave-back" viewBox="0 0 400 30" preserveAspectRatio="none"><path d="M 0 15 C 50 24, 150 6, 200 15 C 250 24, 350 6, 400 15 V 40 H 0 Z"/></svg><svg class="slide-wave slide-wave-front" viewBox="0 0 400 30" preserveAspectRatio="none"><path d="M 0 15 C 25 5, 75 25, 100 15 C 125 5, 175 25, 200 15 C 225 5, 275 25, 300 15 C 325 5, 375 25, 400 15 V 40 H 0 Z"/></svg></span><span class="slide-fill-label">Business Sign Up</span></button></div>
+    <p class="intro">개인 계정 정보를 입력하세요.</p>
+    <form data-individual-application novalidate>
+      <div class="field"><label for="full-name">이름 <span>*</span></label><input id="full-name" name="name" autocomplete="name" placeholder="이름을 입력하세요" required></div>
+      <div class="field"><label for="individual-email">이메일 <span>*</span></label><input id="individual-email" name="email" type="email" autocomplete="email" placeholder="name@example.com" required></div>
+      <div class="field"><label for="individual-password">비밀번호 <span>*</span></label><input id="individual-password" name="password" type="password" autocomplete="new-password" minlength="8" placeholder="8자 이상" required></div>
+      <div class="field"><label for="password-confirm">비밀번호 확인 <span>*</span></label><input id="password-confirm" name="password_confirm" type="password" autocomplete="new-password" minlength="8" placeholder="비밀번호를 다시 입력하세요" required></div>
+      <button class="primary-button" type="submit">Create Account</button>
+    </form>
+    <p class="auth-switch">이미 계정이 있으신가요?<a href="user-login.html">Individual Sign In</a></p>
+  </section>
+</section></main>
+<script src="beyond-horizon.js"></script><script type="module" src="auth.js"></script>
+</body></html>

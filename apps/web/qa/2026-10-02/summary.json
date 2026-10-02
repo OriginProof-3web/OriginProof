@@ -1,0 +1,70 @@
+{
+  "recorded_at": "2026-10-02T22:12:28.858010+09:00",
+  "independent": {
+    "c42": {
+      "sha": "8e57159efed4f3d435ab617b74952b2bbb970ec7",
+      "tests": 274,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 5,
+      "passed": 269
+    },
+    "b6": {
+      "sha": "3d7c4e73e49229150223a008e73e0769196e4b37",
+      "tests": 270,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 5,
+      "passed": 265
+    },
+    "d41": {
+      "sha": "94488b13d80df991bc5b861d1d4d44da267355ee",
+      "tests": 221,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 1,
+      "passed": 220
+    },
+    "d2": {
+      "sha": "e776b7328d016e8f4e1abaf77dae0410fac2d61b",
+      "tests": 235,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 4,
+      "passed": 231
+    },
+    "c5": {
+      "sha": "b6d7d678f65aac31fac9f031c9ec0e625b629173",
+      "tests": 275,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 5,
+      "passed": 270
+    },
+    "c6": {
+      "sha": "b70bfb93c5c0b5d175925139c5892d62ab0ffed0",
+      "tests": 293,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 5,
+      "passed": 288
+    }
+  },
+  "c42_postgres_anvil": {
+    "passed": 1
+  },
+  "b6_anvil": {
+    "passed": 2
+  },
+  "b6_foundry": {
+    "passed": 22
+  },
+  "current_official_browser": {
+    "passed": 10
+  },
+  "dependency_audit": {
+    "exit": 1,
+    "advisories": 16,
+    "unique_vulnerabilities_not_counted": true
+  }
+}
