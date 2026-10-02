@@ -141,8 +141,22 @@ async def live(tmp_path, monkeypatch):
             else:
                 raise AssertionError("Anvil did not start")
         sys.path.insert(0, str(ROOT / "packages/contracts/script"))
+        import deploy_local
         from deploy_local import deploy
         from eth_keys import keys
+
+        # Isolate deployment output as well as ports/DB; never overwrite a running manifest.
+        checkout = tmp_path / "checkout"
+        contracts = checkout / "packages/contracts"
+        shutil.copytree(
+            ROOT / "packages/contracts",
+            contracts,
+            ignore=shutil.ignore_patterns("lib", "out", "cache", "broadcast"),
+        )
+        (contracts / "lib").symlink_to(ROOT / "packages/contracts/lib", target_is_directory=True)
+        shutil.copytree(ROOT / "fixtures/golden", checkout / "fixtures/golden")
+        monkeypatch.setattr(deploy_local, "ROOT", checkout)
+        monkeypatch.setattr(deploy_local, "CONTRACTS", contracts)
 
         manifest = await asyncio.to_thread(
             deploy,
@@ -352,6 +366,9 @@ async def test_actual_process_restart_unknown_submission_and_consume(live):
     recovered = await bank.post(f"/v1/operations/{operation_id}/recover")
     assert recovered.json()["status"] == "CONFIRMED"
     original_tx = recovered.json()["tx_hash"]
+    reconciled = await bank.get(f"/v2/issuer/proofs/{proof['proof_id']}/reconciliation")
+    assert reconciled.json()["registration_consistent"] is True
+    assert reconciled.json()["authority"] == "CANONICAL_READER"
     async with live.database.session_factory() as db:
         assert (await db.get(OperationRow, operation_id)).recovery_reference == reference
     # Unrelated successful tx must not confirm even when the expected chain state already matches.
