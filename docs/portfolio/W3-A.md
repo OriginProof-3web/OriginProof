@@ -3,7 +3,7 @@
 - 역할 담당: 김형준님 / @kimhyounjun.
 - 기록 기간: 2026-10-02; Codex가 사용자 요청에 따라 로컬 구현·검사를 진행했습니다.
 - 상태: 부분 완료. QR 추가 확인·계약 리뷰·D 독립 재현 대기.
-- 작업: W3-A1/A2/A3; branch `codex/w3-a-official-web`, Draft PR 제출 준비.
+- 작업: W3-A1/A2/A3; branch `codex/w3-a-official-web`, [Draft PR #44](https://github.com/OriginProof-3web/OriginProof/pull/44), 대상 phase/W3.
 - 시작 SHA·검사 fingerprint·명령·환경: [웹 검사 기록](../../apps/web/W3_VALIDATION.md).
 
 ## 실제 결과·기여

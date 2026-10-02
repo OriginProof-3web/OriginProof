@@ -3,7 +3,7 @@
 - 담당 범위: 김형준님 / A / @kimhyounjun, W3-A1~A3.
 - 작업 브랜치: `codex/w3-a-official-web`.
 - 시작: `phase/W3@1f8ed632ea9c74091abaf2fe2ec32882038f731f`.
-- PR: 사용자님께 변경·검증을 보고했으며, 2026-10-02 제출 요청에 따라 Draft로 공유합니다.
+- PR: [#44](https://github.com/OriginProof-3web/OriginProof/pull/44), phase/W3 대상 Draft. 사용자님이 2026-10-02 제출을 요청하셨습니다.
 
 ## 실행
 
