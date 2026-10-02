@@ -8,9 +8,11 @@ from originproof_core.ports import DependencyUnavailableError
 
 ISSUER = "iss_origin_mock_bank"
 KEY = "key_origin_mock_bank_001"
+PROOF = "prf_synthetic_w4"
 SIGNER = "0x" + "11" * 20
 GENESIS_HASH = "0x" + "aa" * 32
 DEPLOYMENT_HASH = "0x" + "bb" * 32
+CURRENT_HASH = "0x" + "bc" * 32
 DEPLOYMENT_ID = "dep_" + "cc" * 32
 
 
@@ -55,7 +57,10 @@ def manifest(tmp_path):
 
 
 def transport(issuer=1, key=1, fault=None, calls=None):
+    current_block_reads = 0
+
     def handle(request):
+        nonlocal current_block_reads
         body = json.loads(request.content)
         method, params = body["method"], body["params"]
         if calls is not None:
@@ -74,10 +79,18 @@ def transport(issuer=1, key=1, fault=None, calls=None):
         elif method == "eth_getCode":
             result = "0x" if fault == "code" else "0x6000"
         elif method == "eth_getBlockByNumber":
-            expected = GENESIS_HASH if params[0] == "0x0" else DEPLOYMENT_HASH
-            if fault == "deployment" and params[0] != "0x0":
+            expected = {
+                "0x0": GENESIS_HASH,
+                "0x1": DEPLOYMENT_HASH,
+                "0x8": CURRENT_HASH,
+            }[params[0]]
+            if fault == "deployment" and params[0] == "0x1":
                 expected = "0x" + "ff" * 32
-            result = {"hash": expected}
+            if params[0] == "0x8":
+                current_block_reads += 1
+                if fault == "snapshot_reorg" and current_block_reads > 1:
+                    expected = "0x" + "dd" * 32
+            result = None if fault == "current_block" and params[0] == "0x8" else {"hash": expected}
         else:
             selector = params[0]["data"][2:10]
             if selector == digest("issuerStatus(bytes32)")[:4].hex():
@@ -95,6 +108,22 @@ def transport(issuer=1, key=1, fault=None, calls=None):
                     result = "0x1234"
                 if fault == "key_enum":
                     result = result[:-64] + word(9)
+            elif selector == digest("proofStatus(bytes32)")[:4].hex():
+                result = "0x" + word(0 if fault == "proof_absent" else 1)
+            elif selector == digest("getProof(bytes32)")[:4].hex():
+                result = "0x" + (
+                    digest(ISSUER).hex()
+                    + digest(KEY).hex()
+                    + "11" * 32
+                    + "22" * 32
+                    + word(0 if fault == "proof_epoch" else 100)
+                    + word(200)
+                    + word(1)
+                    + word(0)
+                    + word(0)
+                )
+            elif selector == digest("isConsumable(bytes32,uint64)")[:4].hex():
+                result = "0x" + word(1)
             else:
                 raise AssertionError("unexpected selector")
         return httpx.Response(200, json={"jsonrpc": "2.0", "id": body["id"], "result": result})
@@ -157,6 +186,75 @@ async def test_validity_and_snapshot(manifest, at, issuer, key, valid):
     for call in calls:
         if call["method"] in ("eth_call", "eth_getCode"):
             assert call["params"][-1] == "0x8"
+
+
+@pytest.mark.parametrize(
+    "issuer,key,expected_issuer,expected_key,valid",
+    [
+        (1, 1, "ACTIVE", "ACTIVE", True),
+        (2, 1, "SUSPENDED", "ACTIVE", False),
+        (3, 1, "REVOKED", "ACTIVE", False),
+        (1, 2, "ACTIVE", "REVOKED", False),
+        (0, 0, None, None, False),
+    ],
+)
+async def test_issuer_key_snapshot_uses_one_canonical_block(
+    manifest, issuer, key, expected_issuer, expected_key, valid
+):
+    calls = []
+    async with httpx.AsyncClient(transport=transport(issuer, key, calls=calls)) as client:
+        reader = JsonRpcBlockchainReader(
+            "http://test", manifest, issuer_ids=[ISSUER], client=client
+        )
+        snapshot = await reader.get_issuer_key_snapshot(
+            ISSUER, KEY, datetime.fromtimestamp(150, UTC)
+        )
+    assert snapshot.deployment_id == DEPLOYMENT_ID
+    assert snapshot.chain_id == 31337
+    assert snapshot.block_number == 8 and snapshot.block_hash == CURRENT_HASH
+    assert (snapshot.issuer.status if snapshot.issuer else None) == expected_issuer
+    assert (snapshot.key.status if snapshot.key else None) == expected_key
+    assert snapshot.key_valid_at is valid
+    state_reads = [call for call in calls if call["method"] == "eth_call"]
+    assert state_reads and {call["params"][-1] for call in state_reads} == {"0x8"}
+
+
+@pytest.mark.parametrize("fault", ["current_block", "chain", "snapshot_reorg"])
+async def test_snapshot_failure_is_not_absent(manifest, fault):
+    async with httpx.AsyncClient(transport=transport(fault=fault)) as client:
+        reader = JsonRpcBlockchainReader(
+            "http://test", manifest, issuer_ids=[ISSUER], client=client
+        )
+        with pytest.raises(DependencyUnavailableError, match="blockchain state unavailable"):
+            await reader.get_issuer_key_snapshot(ISSUER, KEY, datetime.fromtimestamp(150, UTC))
+
+
+@pytest.mark.parametrize(
+    "fault", [None, "proof_absent", "proof_epoch", "snapshot_reorg", "chain", "rpc"]
+)
+async def test_proof_state_distinguishes_absent_and_dependency(manifest, fault):
+    data = json.loads(manifest.read_text())
+    data["contracts"]["ProofStatusRegistry"] = {
+        "address": "0x" + "55" * 20,
+        "constructor_arguments": [],
+        "abi_sha256": "3" * 64,
+    }
+    data["roles"]["gateway"] = "0x" + "88" * 20
+    manifest.write_text(json.dumps(data))
+    async with httpx.AsyncClient(transport=transport(fault=fault)) as client:
+        reader = JsonRpcBlockchainReader(
+            "http://test", manifest, issuer_ids=[ISSUER], client=client
+        )
+        if fault in ("snapshot_reorg", "chain", "rpc"):
+            with pytest.raises(DependencyUnavailableError):
+                await reader.get_proof_state(PROOF, datetime.fromtimestamp(150, UTC))
+        else:
+            state = await reader.get_proof_state(PROOF, datetime.fromtimestamp(150, UTC))
+            if fault == "proof_absent":
+                assert state is None
+            else:
+                assert state.status == "ACTIVE" and state.consumable_at
+                assert state.proof_id == PROOF and state.block_hash == CURRENT_HASH
 
 
 @pytest.mark.parametrize(
