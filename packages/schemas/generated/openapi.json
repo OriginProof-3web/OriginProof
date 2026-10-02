@@ -1067,9 +1067,19 @@
             ],
             "title": "Issuer Id"
           },
+          "next_action": {
+            "readOnly": true,
+            "title": "Next Action",
+            "type": "string"
+          },
           "operation_id": {
             "title": "Operation Id",
             "type": "string"
+          },
+          "recovery_required": {
+            "readOnly": true,
+            "title": "Recovery Required",
+            "type": "boolean"
           },
           "request_id": {
             "title": "Request Id",
@@ -1109,7 +1119,9 @@
           "status",
           "tx_hash",
           "error_code",
-          "created_at"
+          "created_at",
+          "recovery_required",
+          "next_action"
         ],
         "title": "OperationView",
         "type": "object"
@@ -1341,6 +1353,78 @@
         ],
         "title": "SignatureScheme",
         "type": "string"
+      },
+      "SyncView": {
+        "properties": {
+          "authority": {
+            "default": "HISTORICAL_EVENTS_ONLY",
+            "title": "Authority",
+            "type": "string"
+          },
+          "checked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked At"
+          },
+          "checkpoint_block": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checkpoint Block"
+          },
+          "checkpoint_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checkpoint Hash"
+          },
+          "deployment_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deployment Id"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "status": {
+            "default": "STARTING",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "title": "SyncView",
+        "type": "object"
       },
       "ValidationError": {
         "properties": {
@@ -1575,6 +1659,48 @@
     "/v1/audit-events": {
       "get": {
         "operationId": "audit_events_v1_audit_events_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "target_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Target Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -1592,6 +1718,16 @@
           },
           "413": {
             "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           },
           "429": {
             "description": "RATE_LIMITED: retry after Retry-After seconds"
@@ -1701,6 +1837,33 @@
         "summary": "Me",
         "tags": [
           "auth"
+        ]
+      }
+    },
+    "/v1/chain-sync": {
+      "get": {
+        "operationId": "sync_status_v1_chain_sync_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "Sync Status",
+        "tags": [
+          "operations"
         ]
       }
     },
@@ -2086,6 +2249,105 @@
         "summary": "Verify Card Payment Notice",
         "tags": [
           "verification"
+        ]
+      }
+    },
+    "/v1/operations": {
+      "get": {
+        "operationId": "operation_list_v1_operations_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "target_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Target Id"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/OperationStatus"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 100,
+              "maximum": 200,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "required": false,
+            "schema": {
+              "default": 0,
+              "minimum": 0,
+              "title": "Offset",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/OperationView"
+                  },
+                  "title": "Response Operation List V1 Operations Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "Operation List",
+        "tags": [
+          "operations"
         ]
       }
     },
@@ -2515,6 +2777,9 @@
             },
             "description": "Successful Response"
           },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -2524,6 +2789,9 @@
               }
             },
             "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
           }
         },
         "summary": "Register",
@@ -2567,6 +2835,9 @@
             },
             "description": "Successful Response"
           },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -2576,6 +2847,9 @@
               }
             },
             "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
           }
         },
         "summary": "Revoke",
@@ -2698,6 +2972,9 @@
             },
             "description": "Successful Response"
           },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
           "422": {
             "content": {
               "application/json": {
@@ -2707,6 +2984,9 @@
               }
             },
             "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
           }
         },
         "summary": "Consume",

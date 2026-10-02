@@ -1,3 +1,4 @@
+import asyncio
 import re
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -22,6 +23,8 @@ from .chain_management import router as chain_router
 from .database import Database
 from .finals_proofs import router as finals_router
 from .operations import router as operations_router
+from .projection import SyncView, run_projection
+from .projection import router as projection_router
 from .repositories import SqlAlchemyProofRepository
 from .security import RequestSecurity
 from .settings import Settings
@@ -69,8 +72,19 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
-        yield
-        await app_database.dispose()
+        stop = asyncio.Event()
+        task = (
+            asyncio.create_task(run_projection(app, stop))
+            if app_settings.projection_enabled
+            else None
+        )
+        try:
+            yield
+        finally:
+            stop.set()
+            if task:
+                await task
+            await app_database.dispose()
 
     app = FastAPI(
         title="OriginProof API",
@@ -84,6 +98,10 @@ def create_app(
     app.add_middleware(RequestSecurity, settings=app_settings)
     app.state.database = app_database
     app.state.settings = app_settings
+    app.state.projection = SyncView(
+        status="STARTING" if app_settings.projection_enabled else "DISABLED"
+    )
+    app.include_router(projection_router)
     app.include_router(auth_router)
     app.include_router(applications_router)
     app.include_router(operations_router)
@@ -109,7 +127,9 @@ def create_app(
 
     @app.get("/health/ready", tags=["health"])
     async def ready() -> dict[str, str]:
-        await app.state.database.ping()
+        from .readiness import check_ready
+
+        await check_ready(app)
         return {"status": "ready"}
 
     @app.post(

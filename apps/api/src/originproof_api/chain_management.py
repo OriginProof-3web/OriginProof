@@ -5,6 +5,7 @@ from dataclasses import asdict
 from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Annotated, Literal
+from uuid import uuid4
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -409,8 +410,21 @@ class OperationPersistence:
             row = await db.get(OperationRow, self.operation_id)
             if row.recovery_reference["recovery_id"] != recovery_id:
                 raise ValueError("recovery mismatch")
+            previous = row.status
             row.tx_hash = tx_hash
             row.status = "SUBMITTED"
+            db.add(
+                AuditEventRow(
+                    event_id=f"evt_{uuid4().hex}",
+                    actor_account_id=row.account_id,
+                    issuer_id=row.issuer_id,
+                    action=row.action,
+                    target_id=row.target_id or row.operation_id,
+                    reason=(row.input_body or {}).get("reason"),
+                    before_status=previous,
+                    after_status="SUBMITTED",
+                )
+            )
             await db.commit()
 
 

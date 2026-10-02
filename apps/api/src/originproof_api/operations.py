@@ -7,9 +7,9 @@ from datetime import datetime
 from enum import StrEnum
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel, ConfigDict
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pydantic import BaseModel, ConfigDict, computed_field
+from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
 
 from .accounts import current_session
@@ -39,6 +39,20 @@ class OperationView(BaseModel):
     tx_hash: str | None
     error_code: str | None
     created_at: datetime
+
+    @computed_field
+    @property
+    def recovery_required(self) -> bool:
+        return self.status in (OperationStatus.UNKNOWN, OperationStatus.SUBMITTED)
+
+    @computed_field
+    @property
+    def next_action(self) -> str:
+        if self.recovery_required:
+            return "RECOVER_SAME_OPERATION"
+        if self.status == OperationStatus.PENDING_SUBMISSION:
+            return "RETRY_SAME_REQUEST"
+        return "NONE"
 
 
 class AuditView(BaseModel):
@@ -87,6 +101,18 @@ async def reserve_operation(
             status="PENDING_SUBMISSION",
         )
         db.add(row)
+        db.add(
+            AuditEventRow(
+                event_id=f"evt_{uuid4().hex}",
+                actor_account_id=account.account_id,
+                issuer_id=institution,
+                action=action,
+                target_id=target_id or row.operation_id,
+                reason=body.get("reason"),
+                before_status=None,
+                after_status="PENDING_SUBMISSION",
+            )
+        )
         try:
             await db.commit()
             await db.refresh(row)
@@ -135,6 +161,9 @@ async def operation(
 @router.get("/v1/audit-events", response_model=list[AuditView])
 async def audit_events(
     request: Request,
+    target_id: str | None = Query(default=None, max_length=128),
+    limit: int = Query(default=100, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
     identity: tuple[AccountRow, SessionRow] = Depends(current_session),
 ) -> list[AuditView]:
     account, _ = identity
@@ -142,9 +171,37 @@ async def audit_events(
         raise HTTPException(403, "FORBIDDEN")
     if account.role == "issuer" and not account.issuer_id:
         raise HTTPException(403, "FORBIDDEN")
-    query = select(AuditEventRow).order_by(AuditEventRow.created_at)
+    query = select(AuditEventRow).order_by(AuditEventRow.created_at, AuditEventRow.event_id)
+    if target_id is not None:
+        query = query.where(AuditEventRow.target_id == target_id)
+    query = query.limit(limit).offset(offset)
     if account.role == "issuer":
         query = query.where(AuditEventRow.issuer_id == account.issuer_id)
     async with request.app.state.database.session_factory() as db:
         rows = await db.scalars(query)
         return [AuditView.model_validate(row) for row in rows]
+
+
+@router.get("/v1/operations", response_model=list[OperationView])
+async def operation_list(
+    request: Request,
+    identity: tuple[AccountRow, SessionRow] = Depends(current_session),
+    target_id: str | None = Query(default=None, max_length=128),
+    status: OperationStatus | None = None,
+    limit: int = Query(default=100, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+) -> list[OperationView]:
+    account, _ = identity
+    query = select(OperationRow).order_by(OperationRow.created_at, OperationRow.operation_id)
+    if account.role != "operator":
+        allowed = OperationRow.account_id == account.account_id
+        if account.role == "issuer" and account.issuer_id:
+            allowed = or_(allowed, OperationRow.issuer_id == account.issuer_id)
+        query = query.where(allowed)
+    if target_id is not None:
+        query = query.where(OperationRow.target_id == target_id)
+    if status is not None:
+        query = query.where(OperationRow.status == status.value)
+    async with request.app.state.database.session_factory() as db:
+        rows = await db.scalars(query.limit(limit).offset(offset))
+        return [OperationView.model_validate(row) for row in rows]

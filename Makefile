@@ -2,13 +2,13 @@ SHELL := /bin/sh
 COMPOSE := COMPOSE_PROJECT_NAME=originproof docker compose
 UV_ENV := .uv-venv
 UV := UV_PROJECT_ENVIRONMENT=$(UV_ENV) uv
-WORKSPACE_PYTHONPATH := apps/api/src:packages/python:services/analyzer/src
+WORKSPACE_PYTHONPATH := apps/api/src:packages/python:services/analyzer/src:services/indexer/src
 
 .DEFAULT_GOAL := help
 
 
 
-.PHONY: help bootstrap bootstrap-check env-check env-fingerprint mvp-up stop reset db-upgrade seed deploy-local api-reload mvp-e2e db-smoke demo demo-reset demo-stop \
+.PHONY: help bootstrap bootstrap-check env-check env-fingerprint mvp-up stop reset db-upgrade seed finals-up finals-seed deploy-local api-reload mvp-e2e db-smoke demo demo-reset demo-stop \
 	test test-api test-analyzer test-contracts test-integration mvp-test lint typecheck build smoke generate security
 
 help:
@@ -107,3 +107,11 @@ generate:
 
 security:
 	@printf '%s\n' 'Run dependency and secret scans in CI after Bootstrap dependencies are locked.'
+
+
+# Preserves existing DB, issuer signer files and account credentials.
+finals-seed: db-upgrade
+	$(COMPOSE) exec -T api uv run --no-sync --package originproof-api python scripts/fixtures/seed_accounts.py --p0
+
+finals-up: mvp-up deploy-local api-reload finals-seed
+	@curl --fail --silent --show-error --retry 20 --retry-all-errors --max-time 5 http://127.0.0.1:8000/health/ready

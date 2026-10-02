@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     blockchain_manifest_path: str | None = None
     blockchain_issuer_id: str = "iss_origin_mock_bank"
     blockchain_chain_id: int = 31337
+    projection_enabled: bool = False
+    projection_poll_seconds: int = Field(default=5, ge=1, le=60)
     session_cookie_secure: bool = False
     finals_payment_issuer_id: str = "iss_origin_mock_bank"
     finals_document_issuer_id: str = "iss_origin_mock_office"

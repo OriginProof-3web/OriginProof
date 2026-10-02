@@ -22,3 +22,18 @@ Ruff 전체·API compileall·git diff --check·OpenAPI 원본 일치 검사 통�
 하민님 W4-B2/B3 → W4-C2/C3 후 폐기·consume 권한/입력/재시도 검사를 추가해야 합니다.
 W5-C2 Operation/복구 상태 통일과 W5-C3 기동 정리는 이번 범위가 아닙니다.
 형준님 오류 화면·인준님 독립 검증 및 PR 리뷰·CI는 별도 확인이 필요합니다.
+
+## 2026-10-03 후속 C1~C3
+
+W4 `8011f7f`와 B W5 `b7a4107` 위에서 C1 보안을 재적용했습니다.
+C2는 Operation 다음 행동·기관별 목록·예약/제출 감사 저장·B projection 백그라운드
+scanner와 복구 중 응답을 연결했습니다. C3는 migration 0006, 실제 기동 준비 검사,
+Docker 경로 정합성·loopback port·재실행 가능한 P0 계정 seed와 `make finals-up`을 추가했습니다.
+기존 B projection 및 C W4 orchestration/권한/서명을 재사용했고 새 라이브러리는 없습니다.
+공유 runtime/CI/생성기 수정 담당은 C, 리뷰 대상은 B의 projection 경계·A 응답 소비·D 재현입니다.
+
+작성자 검사: Python 3.13.0/macOS, 전체 `283 passed, 4 skipped`; 신규 W5 `4 passed`;
+Ruff 통과. 실제 PostgreSQL/Anvil 기동 검증은 W6 통합 실행 결과로 추가 기록합니다.
+OpenAPI/TypeScript는 원본에서 생성했습니다. 작성자 외 리뷰·A 실제 UI·D 독립 재현은 미확인입니다.
+구현·자체 검사와 단계 전체 완료를 구분합니다. Codex가 구현·검사·인계 작성을 보조했습니다.
+상세 계약: [W5 C 통합](../api/w5_c_integration_contract.md).
