@@ -291,6 +291,7 @@ def stack(tmp_path_factory):
             "http": api_relay,
             "anvil": anvil_name,
             "manifest": manifest,
+            "network": prefix,
         }
     finally:
         if api is not None:
@@ -472,3 +473,64 @@ async def test_live_failure_recovery_and_process_restart(stack):
             assert (await issuer.get(f"/v1/issuer/keys/{key_id}")).json()["status"] == "REVOKED"
     finally:
         await database.dispose()
+
+
+def test_existing_postgres_and_chain_acceptance(stack):
+    env = os.environ.copy()
+    env.pop("OPENAI_API_KEY", None)
+    env.update(
+        TEST_DATABASE_URL=stack["db_url"],
+        TEST_CHAIN_RPC_URL=stack["rpc_url"],
+        TEST_CHAIN_MANIFEST=str(stack["manifest"]),
+        LLM_PROVIDER="mock",
+        OPENAI_MODEL="gpt-6-luna",
+    )
+    result = command(
+        sys.executable,
+        "-m",
+        "pytest",
+        "-q",
+        "apps/api/tests/test_live_w1_w2.py",
+        "apps/api/tests/test_live_w2_chain.py",
+        "--tb=short",
+        env=env,
+    )
+    assert "3 passed" in result
+
+
+def test_existing_indexer_local_chain_acceptance(stack):
+    # The existing opt-in deploy helper uses forge inside the standard container.
+    # All ABI/manifest outputs remain in this disposable container filesystem.
+    result = command(
+        "docker",
+        "run",
+        "--rm",
+        "--network",
+        stack["network"],
+        "--mount",
+        f"type=bind,source={ROOT / 'services/indexer'},target=/workspace/services/indexer,readonly",
+        "-e",
+        "M4_LIVE_TEST=1",
+        "-e",
+        "M4_RPC_URL=http://anvil:8545",
+        "-e",
+        "M4_SOURCE_COMMIT_SHA=" + command("git", "rev-parse", "HEAD"),
+        "-e",
+        "LLM_PROVIDER=mock",
+        "-e",
+        "OPENAI_MODEL=gpt-6-luna",
+        "-e",
+        "PYTHONPATH=apps/api/src:packages/python:services/indexer/src:packages/contracts/script",
+        "originproof-w2-recovery-deployer",
+        "uv",
+        "run",
+        "--package",
+        "originproof-api",
+        "--group",
+        "dev",
+        "pytest",
+        "-q",
+        "services/indexer/tests/test_live_chain.py",
+        "--tb=short",
+    )
+    assert "1 passed" in result
