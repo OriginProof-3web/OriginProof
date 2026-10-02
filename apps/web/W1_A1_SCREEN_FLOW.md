@@ -1,6 +1,6 @@
 # W1-A1 화면 흐름·권한 정의
 
-상태: 독립 UX 기준 초안. 로그인·신청 API의 실제 경로와 필드명은 C의 W1-C1/C4 계약 검토 후 연결합니다.
+상태: W1 API/웹 코드가 phase/W1에 병합됐으며 실제 연결은 [D 최종 QA](../../docs/qa/w1-final-verification.md)에서 확인했습니다. 소유자 본인 확인과 단계 최종 리뷰는 별도입니다. 아래 후속 Proof 기능 정의는 W1 구현 완료를 뜻하지 않습니다.
 
 ## 화면 흐름
 
@@ -25,7 +25,7 @@
 
 신청의 실제 필드명·상태 enum·검증 규칙은 C의 W1-C1/C4 계약을 따릅니다. 위의 대기/승인/반려는 사용자에게 보여줄 의미 범주이며 wire enum을 정하지 않습니다. UX 초안에서 다룰 정보는 합성 기관 식별·신청 계정·신청 상태·운영자 검토 사유로 한정하며 실제 개인 연락처나 기관 비밀정보를 요구하지 않습니다.
 
-현재 소비 검토 대상은 C의 열린 W1 API 초안 PR [#23](https://github.com/OriginProof-3web/OriginProof/pull/23), 확인 SHA `167e0a9`입니다. 이 초안은 로그인 `username/password`, 서버가 돌려주는 `account_id/username/role/issuer_id/csrf_token`, 기관 신청 `issuer_name`, 운영자 결정 `decision/reason`을 정의합니다. 화면은 이 값으로 role 선택 없이 분기하고 CSRF token을 컴포넌트 메모리에만 둡니다. 초안의 `PENDING_REVIEW`, `APPROVED_PENDING_CHAIN`, `REJECTED`는 각각 검토 대기, 승인·체인 활성화 대기, 반려로 표시합니다. PR이 phase에 반영되기 전까지 이를 통합 API나 완료된 실제 연결로 간주하지 않습니다.
+현재 W1 로그인·신청 계약은 C의 병합된 [PR #23](https://github.com/OriginProof-3web/OriginProof/pull/23)입니다. 화면은 `username/password`, 서버 `account_id/username/role/issuer_id/csrf_token`, 신청 `issuer_name`, 결정 `decision/reason`을 소비합니다. `PENDING_REVIEW`, `APPROVED_PENDING_CHAIN`, `REJECTED`를 각각 검토 대기, 승인·체인 활성화 대기, 반려로 표시합니다. API의 실제 경로·필드와 브라우저 연결은 D의 최종 QA에서 재현했습니다. 승인된 W1은 실제 체인 활성화 완료와 다릅니다.
 
 ## 역할과 허용 동작
 

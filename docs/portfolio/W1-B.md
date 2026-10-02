@@ -74,3 +74,11 @@ API/analyzer smoke에는 영향이 없으며 브라우저 단계 검증 근거�
 
 - 본인 확인: `@hamin1228` / 2026-10-01 / 작업 내용과 기여 기록 확인 대기
 - 작성자 외 리뷰어: 미확인; W1-C3 담당자와 Contract/Adapter 소비자 리뷰 필요
+
+## 2026-10-02 D의 근거 보완
+
+위 본인 원 기록은 문서 작성 당시의 상태로 보존합니다. 이후 PR #26은 W1-B1/B2와 W2-B1/B2를 함께 포함해 C 승인 후 `phase/W1`에 병합됐습니다. Writer·manifest·projection 변경을 현재 없는 구현으로 해석하지 않습니다. [혼합 범위·리뷰 근거](../qa/w1-scope-and-reviews.md)를 참조합니다.
+
+D/Codex는 `phase/W1@0308cb24`에서 B 명세와 C3 모델 경계를 대조했고, 수정 후보 `f1de961`에서 Foundry 컨테이너 Contract 10개와 기존 Reader/Writer/indexer 회귀를 확인했습니다. Foundry cast와 C v2 Golden의 signing digest 및 ID hash도 일치했습니다. [실제 결과](../qa/w1-final-verification.md)는 D 검증이며 B 본인의 C3 소비 승인으로 표시하지 않습니다.
+
+단계 승격 초안은 [PR #39](https://github.com/OriginProof-3web/OriginProof/pull/39)입니다. B 본인의 이 기록/계약 확인은 아직 미확인입니다.

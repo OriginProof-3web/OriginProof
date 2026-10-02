@@ -1,6 +1,6 @@
 # W1-D2 합성 QA 입력
 
-기준: 개발 계획서 v3.0 §15.2·§16, ADR 0001. 자료 버전 1.0.0,
+기준: 개발 계획서 v3.0 §15.2·§16, ADR 0001. 자료 버전 1.1.0,
 대상 정책의 schema version 2.0.0. `cases.json`은 **서명되지 않은 QA 입력**이다.
 C의 v2 모델·OpenAPI 또는 Golden Fixture를 대체하지 않는다.
 
@@ -35,3 +35,9 @@ PYTHONPATH=packages/python .uv-venv/bin/python fixtures/finals/build_cases.py
 현재 검사는 합성 자료의 binding/hash·변조 분리·기간 경계·ID/출처를 검사한다.
 로그인/신청 서버, v2 검증 코어, 브라우저 또는 실제 체인의 통과 증거가 아니다.
 F01~F15 전체 수용 사례는 [D 사례표](../../docs/qa/w1-acceptance-matrix.md)를 참조한다.
+
+## 1.1.0 — 현재 C v2 계약 대응
+
+기존 nonce 예시 `SYNTHETIC_NONCE_*`는 C의 lowercase hex 128~256bit 규칙을 위반했습니다. 생성기는 합성 purpose/type의 canonical hash에서 고정 128bit nonce를 만들며, 모든 unsigned field를 C 모델로 검사합니다. 검사는 형식 확인용 zero signature를 메모리에서만 더하고 signed Golden이나 실제 서명 성공을 주장하지 않습니다. 이 변경은 unsigned 자료 버전만 올리며 C Golden은 그대로입니다. 기존 값과 이력은 이전 commit에서 보존됩니다. 두 기관·두 유형·28개 NOT_RUN 사례는 유지됩니다.
+
+`cases.json` SHA256: 1.0.0 `b90a2bf109633007268c61a1554d151cd319f86ddba7132695dc2dde73c3d202` → 1.1.0 `a97e5911d42141d97c7333011f158c0b0f2f8086e53a315923126aced2410a09`. 생성 명령은 위와 같습니다.
