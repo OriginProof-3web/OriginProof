@@ -1237,6 +1237,50 @@
         "title": "ProofMutation",
         "type": "object"
       },
+      "ProofReconciliation": {
+        "properties": {
+          "authority": {
+            "default": "CANONICAL_READER",
+            "title": "Authority",
+            "type": "string"
+          },
+          "current_verification": {
+            "$ref": "#/components/schemas/FinalsVerificationResult"
+          },
+          "database_registration_status": {
+            "title": "Database Registration Status",
+            "type": "string"
+          },
+          "deployment_matches": {
+            "title": "Deployment Matches",
+            "type": "boolean"
+          },
+          "proof_id": {
+            "title": "Proof Id",
+            "type": "string"
+          },
+          "registration_consistent": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Registration Consistent"
+          }
+        },
+        "required": [
+          "proof_id",
+          "database_registration_status",
+          "deployment_matches",
+          "registration_consistent",
+          "current_verification"
+        ],
+        "title": "ProofReconciliation",
+        "type": "object"
+      },
       "ProofView": {
         "properties": {
           "expires_at": {
@@ -2737,6 +2781,54 @@
           }
         },
         "summary": "Issue",
+        "tags": [
+          "finals-proofs"
+        ]
+      }
+    },
+    "/v2/issuer/proofs/{proof_id}/reconciliation": {
+      "get": {
+        "operationId": "reconcile_v2_issuer_proofs__proof_id__reconciliation_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proof_id",
+            "required": true,
+            "schema": {
+              "title": "Proof Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProofReconciliation"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "Reconcile",
         "tags": [
           "finals-proofs"
         ]
