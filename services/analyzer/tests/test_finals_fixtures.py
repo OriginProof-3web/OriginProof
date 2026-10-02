@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 from originproof_core import SignedProofEnvelope, payload_hash
+from originproof_core.finals import FinalsSignedProofEnvelope
 
 ROOT = Path(__file__).resolve().parents[3]
 DATA = json.loads((ROOT / "fixtures/finals/cases.json").read_text())
@@ -25,6 +26,8 @@ def test_unsigned_profiles_obey_adr_binding_and_payload_contract(kind, profile):
     for field in ("proof_id", "issuer_id", "key_id"):
         assert re.fullmatch(properties[field]["pattern"], envelope[field])
     assert "signature" not in envelope  # C owns signed Golden generation.
+    # Validate all unsigned fields against C's current model without signing a QA input.
+    FinalsSignedProofEnvelope.model_validate(envelope | {"signature": "0x" + "00" * 65})
     assert envelope["payload_hash"] == payload_hash(payload)
     assert envelope["subject_binding_hash"] == payload_hash(context)
     assert context["proof_id"] == envelope["proof_id"]

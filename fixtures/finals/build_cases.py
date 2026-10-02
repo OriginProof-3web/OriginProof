@@ -70,7 +70,7 @@ def build_cases() -> dict:
                 "subject_binding_hash": binding,
                 "issued_at": "2026-10-01T00:00:00Z",
                 "expires_at": "2026-10-02T00:00:00Z",
-                "nonce": "SYNTHETIC_NONCE_" + kind,
+                "nonce": payload_hash({"purpose": "synthetic QA nonce", "proof_type": kind})[2:34],
                 "single_use": single_use,
                 "metadata_hash": None,
             },
@@ -241,7 +241,7 @@ def build_cases() -> dict:
     )
     return {
         "source": "synthetic",
-        "fixture_version": "1.0.0",
+        "fixture_version": "1.1.0",
         "target_schema_version": "2.0.0",
         "basis_sha": BASE_SHA,
         "purpose": (

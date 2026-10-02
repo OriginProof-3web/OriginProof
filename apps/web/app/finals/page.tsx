@@ -424,11 +424,13 @@ function OperationMonitor() {
 
 function ApplicationSummary({ application }: { application: Application }) {
   return (
-    <dl className="application-summary">
-      <div><dt>기관</dt><dd>{application.issuer_name}</dd></div>
-      <div><dt>신청 상태</dt><dd>{statusLabel(application.status)}</dd></div>
-      {application.decision_reason && <div><dt>검토 사유</dt><dd>{application.decision_reason}</dd></div>}
+    <>
+      <dl className="application-summary">
+        <div><dt>기관</dt><dd>{application.issuer_name}</dd></div>
+        <div><dt>신청 상태</dt><dd>{statusLabel(application.status)}</dd></div>
+        {application.decision_reason && <div><dt>검토 사유</dt><dd>{application.decision_reason}</dd></div>}
+      </dl>
       {application.status === "APPROVED_PENDING_CHAIN" && <p className="chain-pending">운영자 검토는 승인됐지만 체인 활성화는 별도 확인이 필요합니다.</p>}
-    </dl>
+    </>
   );
 }
