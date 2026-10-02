@@ -25,6 +25,14 @@ checkpoints = Table(
     Column("block_number", BigInteger, nullable=False),
     Column("block_hash", String(66), nullable=False),
 )
+processed_blocks = Table(
+    "chain_processed_blocks",
+    metadata,
+    Column("chain_id", BigInteger, primary_key=True),
+    Column("deployment_id", String(68), primary_key=True),
+    Column("block_number", BigInteger, primary_key=True),
+    Column("block_hash", String(66), nullable=False),
+)
 proof_events = Table(
     "proof_chain_events",
     metadata,
@@ -191,6 +199,168 @@ class ProjectionStore:
                 ) from None
             return False
 
+    def apply_block(self, chain_id, deployment_id, block_number, block_hash, logs=()):
+        """Atomically persist an ordered block, its logs, and checkpoint."""
+
+        logs = tuple(logs)
+        self._deployment_id(deployment_id)
+        if (
+            type(chain_id) is not int
+            or chain_id < 0
+            or type(block_number) is not int
+            or block_number < 0
+        ):
+            raise ValueError("invalid block position")
+        if (
+            not isinstance(block_hash, str)
+            or len(block_hash) != 66
+            or not block_hash.startswith("0x")
+        ):
+            raise ValueError("invalid block hash")
+        int(block_hash[2:], 16)
+        block_hash = block_hash.lower()
+        positions = []
+        for item in logs:
+            event = item.event if isinstance(item, ProofLog) else item
+            if not isinstance(event, ChainEvent) or (
+                event.chain_id,
+                event.deployment_id,
+                event.block_number,
+                event.block_hash.lower(),
+            ) != (chain_id, deployment_id, block_number, block_hash):
+                raise ValueError("log does not belong to block")
+            if isinstance(item, ProofLog) and item.event_type not in (
+                "REGISTERED",
+                "REVOKED",
+                "CONSUMED",
+            ):
+                raise ValueError("invalid proof event type")
+            if isinstance(item, ProofLog) and (
+                not isinstance(item.proof_id_hash, str)
+                or len(item.proof_id_hash) != 66
+                or not item.proof_id_hash.startswith("0x")
+            ):
+                raise ValueError("invalid proof id hash")
+            if isinstance(item, ProofLog):
+                int(item.proof_id_hash[2:], 16)
+            positions.append(event.log_index)
+        if positions != sorted(set(positions)) or any(position < 0 for position in positions):
+            raise ValueError("logs must be in unique chain order")
+
+        with self.engine.begin() as connection:
+            old = (
+                connection.execute(
+                    select(checkpoints)
+                    .where(
+                        checkpoints.c.chain_id == chain_id,
+                        checkpoints.c.deployment_id == deployment_id,
+                    )
+                    .with_for_update()
+                )
+                .mappings()
+                .first()
+            )
+            if old is not None and block_number <= old["block_number"]:
+                seen = connection.execute(
+                    select(processed_blocks.c.block_hash).where(
+                        processed_blocks.c.chain_id == chain_id,
+                        processed_blocks.c.deployment_id == deployment_id,
+                        processed_blocks.c.block_number == block_number,
+                    )
+                ).scalar_one_or_none()
+                if seen != block_hash:
+                    raise ValueError("replayed block differs or lacks recorded hash")
+                return False
+            if old is not None and block_number != old["block_number"] + 1:
+                raise ValueError("block gap")
+            connection.execute(
+                insert(processed_blocks).values(
+                    chain_id=chain_id,
+                    deployment_id=deployment_id,
+                    block_number=block_number,
+                    block_hash=block_hash,
+                )
+            )
+            for item in logs:
+                event = item.event if isinstance(item, ProofLog) else item
+                connection.execute(insert(events).values(**vars(event)))
+                if isinstance(item, ProofLog):
+                    connection.execute(
+                        insert(proof_events).values(
+                            chain_id=chain_id,
+                            deployment_id=deployment_id,
+                            block_number=block_number,
+                            log_index=event.log_index,
+                            proof_id_hash=item.proof_id_hash,
+                            event_type=item.event_type,
+                        )
+                    )
+            if old is None:
+                connection.execute(
+                    insert(checkpoints).values(
+                        chain_id=chain_id,
+                        deployment_id=deployment_id,
+                        block_number=block_number,
+                        block_hash=block_hash,
+                    )
+                )
+            else:
+                connection.execute(
+                    update(checkpoints)
+                    .where(
+                        checkpoints.c.chain_id == chain_id,
+                        checkpoints.c.deployment_id == deployment_id,
+                    )
+                    .values(block_number=block_number, block_hash=block_hash)
+                )
+        return True
+
+    def sync_confirmed(
+        self,
+        chain_id,
+        deployment_id,
+        deployment_block,
+        latest_block_at,
+        block_hash_at,
+        logs_at,
+        confirmations=2,
+    ):
+        """Advance only through confirmed canonical blocks; leave RPC failures visible."""
+
+        self._deployment_id(deployment_id)
+        if (
+            type(deployment_block) is not int
+            or deployment_block < 0
+            or type(confirmations) is not int
+            or confirmations < 1
+        ):
+            raise ValueError("invalid scan boundary")
+        tip = latest_block_at()
+        if type(tip) is not int or tip < 0:
+            raise ValueError("invalid chain tip")
+        confirmed_tip = tip - confirmations + 1
+        checkpoint = self.checkpoint(chain_id, deployment_id)
+        if checkpoint is not None:
+            if checkpoint[0] < deployment_block or checkpoint[0] > confirmed_tip:
+                raise ValueError("checkpoint outside confirmed deployment range")
+            if block_hash_at(checkpoint[0]) != checkpoint[1]:
+                checkpoint = self.recover_reorg(chain_id, deployment_id, block_hash_at)
+        start = deployment_block if checkpoint is None else checkpoint[0] + 1
+        for number in range(start, confirmed_tip + 1):
+            block_hash = block_hash_at(number)
+            logs = logs_at(number)
+            if block_hash_at(number) != block_hash:
+                raise ValueError("block changed while fetching logs")
+            self.apply_block(chain_id, deployment_id, number, block_hash, logs)
+            if block_hash_at(number) != block_hash:
+                raise ValueError("block changed after checkpoint write")
+        checkpoint = self.checkpoint(chain_id, deployment_id)
+        if checkpoint is not None and block_hash_at(checkpoint[0]) != checkpoint[1]:
+            raise ValueError("checkpoint changed before scan completed")
+        if latest_block_at() < confirmed_tip + confirmations - 1:
+            raise ValueError("chain tip rolled back during scan")
+        return checkpoint
+
     def projected_proof_status(self, chain_id, deployment_id, proof_id_hash):
         """Historical event projection only; live authorization uses Reader."""
 
@@ -211,6 +381,19 @@ class ProjectionStore:
             if row is None
             else {"REGISTERED": "ACTIVE", "REVOKED": "REVOKED", "CONSUMED": "CONSUMED"}[row[0]]
         )
+
+    def verified_projected_proof_status(
+        self, chain_id, deployment_id, proof_id_hash, confirmed_tip, block_hash_at
+    ):
+        """Read historical status only while its checkpoint remains canonical and confirmed."""
+
+        checkpoint = self.verified_checkpoint(chain_id, deployment_id, block_hash_at)
+        if checkpoint is None or type(confirmed_tip) is not int or checkpoint[0] > confirmed_tip:
+            raise ValueError("projection is not confirmed")
+        status = self.projected_proof_status(chain_id, deployment_id, proof_id_hash)
+        if block_hash_at(checkpoint[0]) != checkpoint[1]:
+            raise ValueError("projection changed while reading")
+        return status
 
     @staticmethod
     def _deployment_id(value):
@@ -251,6 +434,16 @@ class ProjectionStore:
         if block_number < 0:
             raise ValueError("negative block")
         with self.engine.begin() as connection:
+            tracked = connection.execute(
+                select(processed_blocks.c.block_number)
+                .where(
+                    processed_blocks.c.chain_id == chain_id,
+                    processed_blocks.c.deployment_id == deployment_id,
+                )
+                .limit(1)
+            ).first()
+            if tracked is not None:
+                raise ValueError("tracked blocks require atomic apply_block")
             old = (
                 connection.execute(
                     select(checkpoints)
@@ -286,8 +479,10 @@ class ProjectionStore:
                     )
                 )
 
-    def rewind_for_reorg(self, chain_id, deployment_id, safe_block, safe_hash):
+    def rewind_for_reorg(self, chain_id, deployment_id, safe_block, safe_hash, block_hash_at):
         self._deployment_id(deployment_id)
+        if block_hash_at(safe_block) != safe_hash:
+            raise ValueError("safe ancestor is not canonical")
         with self.engine.begin() as connection:
             old = (
                 connection.execute(
@@ -303,6 +498,15 @@ class ProjectionStore:
             )
             if old is None or not 0 <= safe_block <= old["block_number"]:
                 raise ValueError("invalid safe ancestor")
+            recorded = connection.execute(
+                select(processed_blocks.c.block_hash).where(
+                    processed_blocks.c.chain_id == chain_id,
+                    processed_blocks.c.deployment_id == deployment_id,
+                    processed_blocks.c.block_number == safe_block,
+                )
+            ).scalar_one_or_none()
+            if recorded != safe_hash:
+                raise ValueError("safe ancestor differs from stored block or is untracked")
             connection.execute(
                 delete(proof_events).where(
                     proof_events.c.chain_id == chain_id,
@@ -318,6 +522,13 @@ class ProjectionStore:
                 )
             )
             connection.execute(
+                delete(processed_blocks).where(
+                    processed_blocks.c.chain_id == chain_id,
+                    processed_blocks.c.deployment_id == deployment_id,
+                    processed_blocks.c.block_number > safe_block,
+                )
+            )
+            connection.execute(
                 update(checkpoints)
                 .where(
                     checkpoints.c.chain_id == chain_id,
@@ -325,3 +536,24 @@ class ProjectionStore:
                 )
                 .values(block_number=safe_block, block_hash=safe_hash)
             )
+
+    def recover_reorg(self, chain_id, deployment_id, block_hash_at):
+        """Rewind only to a stored block that still matches the canonical chain."""
+
+        self._deployment_id(deployment_id)
+        with self.engine.connect() as connection:
+            candidates = connection.execute(
+                select(processed_blocks.c.block_number, processed_blocks.c.block_hash)
+                .where(
+                    processed_blocks.c.chain_id == chain_id,
+                    processed_blocks.c.deployment_id == deployment_id,
+                )
+                .order_by(processed_blocks.c.block_number.desc())
+            ).all()
+        if not candidates:
+            raise ValueError("no recorded blocks; rebuild from deployment required")
+        for number, stored_hash in candidates:
+            if block_hash_at(number) == stored_hash:
+                self.rewind_for_reorg(chain_id, deployment_id, number, stored_hash, block_hash_at)
+                return number, stored_hash
+        raise ValueError("no verified common ancestor; rebuild from deployment required")

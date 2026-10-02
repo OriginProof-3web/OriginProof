@@ -234,12 +234,17 @@ async def test_snapshot_failure_is_not_absent(manifest, fault):
 )
 async def test_proof_state_distinguishes_absent_and_dependency(manifest, fault):
     data = json.loads(manifest.read_text())
+    data["roles"]["gateway"] = "0x" + "88" * 20
     data["contracts"]["ProofStatusRegistry"] = {
         "address": "0x" + "55" * 20,
-        "constructor_arguments": [],
+        "constructor_arguments": [
+            data["roles"]["registry_admin"],
+            data["roles"]["gateway"],
+            data["contracts"]["IssuerRegistry"]["address"],
+            data["contracts"]["IssuerKeyRegistry"]["address"],
+        ],
         "abi_sha256": "3" * 64,
     }
-    data["roles"]["gateway"] = "0x" + "88" * 20
     manifest.write_text(json.dumps(data))
     async with httpx.AsyncClient(transport=transport(fault=fault)) as client:
         reader = JsonRpcBlockchainReader(
@@ -305,7 +310,7 @@ def test_invalid_manifest(tmp_path):
 
 @pytest.mark.parametrize(
     "change",
-    ["chain", "address", "block", "same_address", "deployment_id", "abi", "roles"],
+    ["chain", "address", "block", "same_address", "deployment_id", "abi", "roles", "constructor"],
 )
 def test_manifest_validation(manifest, change):
     data = json.loads(manifest.read_text())
@@ -321,6 +326,8 @@ def test_manifest_validation(manifest, change):
         data["deployment_id"] = "old-deployment"
     elif change == "abi":
         data["contracts"]["IssuerRegistry"]["abi_sha256"] = "not-a-hash"
+    elif change == "constructor":
+        data["contracts"]["IssuerKeyRegistry"]["constructor_arguments"][1] = "0x" + "77" * 20
     else:
         data["roles"]["issuer_manager"] = data["roles"]["registry_admin"]
     manifest.write_text(json.dumps(data))

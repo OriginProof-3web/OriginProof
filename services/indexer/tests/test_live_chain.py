@@ -80,6 +80,43 @@ async def test_live_reader_and_m1_api():
                 deploy, rpc_url, public_signer, source_commit_sha=source_sha
             )
             manifest = json.loads(manifest_path.read_text())
+
+            async def has_role(contract, role, account):
+                data = (
+                    chain_digest("hasRole(bytes32,address)")[:4]
+                    + role
+                    + bytes.fromhex(account[2:]).rjust(32, b"\0")
+                )
+                result = await rpc(
+                    "eth_call", [{"to": contract, "data": "0x" + data.hex()}, "latest"]
+                )
+                return int(result, 16) == 1
+
+            roles = manifest["roles"]
+            contracts = manifest["contracts"]
+            issuer_contract = contracts["IssuerRegistry"]["address"]
+            key_contract = contracts["IssuerKeyRegistry"]["address"]
+            proof_contract = contracts["ProofStatusRegistry"]["address"]
+            admin_role = bytes(32)
+            assert await has_role(issuer_contract, admin_role, roles["registry_admin"])
+            assert await has_role(key_contract, admin_role, roles["registry_admin"])
+            assert await has_role(proof_contract, admin_role, roles["registry_admin"])
+            assert await has_role(
+                issuer_contract, chain_digest("ISSUER_MANAGER_ROLE"), roles["issuer_manager"]
+            )
+            assert not await has_role(
+                issuer_contract, chain_digest("ISSUER_MANAGER_ROLE"), roles["registry_admin"]
+            )
+            assert await has_role(
+                key_contract, chain_digest("KEY_MANAGER_ROLE"), roles["key_manager"]
+            )
+            assert not await has_role(
+                key_contract, chain_digest("KEY_MANAGER_ROLE"), roles["registry_admin"]
+            )
+            assert await has_role(proof_contract, chain_digest("GATEWAY_ROLE"), roles["gateway"])
+            assert not await has_role(
+                proof_contract, chain_digest("GATEWAY_ROLE"), roles["registry_admin"]
+            )
             golden = json.loads(
                 (ROOT / "fixtures/golden/card_payment_notice_signing_v1.json").read_text()
             )
@@ -219,10 +256,41 @@ async def test_live_reader_and_m1_api():
                         "CONSUMED",
                         "REVOKED",
                     ]
-                    for log in proof_logs:
-                        assert projection.apply_proof_log(log)
-                        assert not projection.apply_proof_log(log)
+                    tip = int(await rpc("eth_blockNumber", []), 16)
+                    blocks = {
+                        number: await rpc("eth_getBlockByNumber", [hex(number), False])
+                        for number in range(manifest["deployment_block"], tip + 1)
+                    }
+
+                    def sync():
+                        return projection.sync_confirmed(
+                            31337,
+                            manifest["deployment_id"],
+                            manifest["deployment_block"],
+                            lambda: tip,
+                            lambda number: blocks[number]["hash"],
+                            lambda number: [
+                                log for log in proof_logs if log.event.block_number == number
+                            ],
+                        )
+
+                    assert sync() == (tip - 1, blocks[tip - 1]["hash"])
                     proof_hash = "0x" + chain_digest(proof_id).hex()
+                    assert (
+                        projection.projected_proof_status(
+                            31337, manifest["deployment_id"], proof_hash
+                        )
+                        == "CONSUMED"
+                    )
+                    await rpc("evm_mine", [])
+                    tip += 1
+                    blocks[tip] = await rpc("eth_getBlockByNumber", [hex(tip), False])
+                    assert sync() == (tip - 1, blocks[tip - 1]["hash"])
+                    assert projection.verified_checkpoint(
+                        31337,
+                        manifest["deployment_id"],
+                        lambda number: blocks[number]["hash"],
+                    ) == (tip - 1, blocks[tip - 1]["hash"])
                     assert (
                         projection.projected_proof_status(
                             31337, manifest["deployment_id"], proof_hash
