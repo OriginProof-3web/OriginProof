@@ -59,7 +59,7 @@ def manifest(tmp_path):
 
 
 def transport(fault=None, sends=None, timeline=None):
-    state = {"selector": None}
+    state = {"selector": None, "canonical_reads": 0}
 
     def handle(request):
         body = json.loads(request.content)
@@ -71,7 +71,18 @@ def transport(fault=None, sends=None, timeline=None):
         elif method == "eth_getBlockByNumber":
             if fault == "canonical_rpc" and params[0] == "0x9":
                 raise httpx.ConnectError("canonical lookup failed", request=request)
-            hashes = {"0x0": GENESIS_HASH, "0x1": DEPLOYMENT_HASH, "0x9": RECEIPT_HASH}
+            hashes = {
+                "0x0": GENESIS_HASH,
+                "0x1": DEPLOYMENT_HASH,
+                "0x8": "0x" + "ab" * 32,
+                "0x9": RECEIPT_HASH,
+            }
+            if params[0] == "0x9":
+                state["canonical_reads"] += 1
+                if fault == "reorg_after_reread" and state["canonical_reads"] >= 3:
+                    hashes["0x9"] = "0x" + "12" * 32
+                if fault == "reread_block_reorg" and state["canonical_reads"] >= 2:
+                    hashes["0x9"] = "0x" + "12" * 32
             transactions = []
             if fault == "recover_without_hash" and params == ["0x9", True]:
                 transactions = [
@@ -123,8 +134,14 @@ def transport(fault=None, sends=None, timeline=None):
                 result = {
                     "transactionHash": "0x" + "11" * 32 if fault == "transaction_hash" else TX_HASH,
                     "status": "0x0" if fault == "receipt_failed" else "0x1",
-                    "blockNumber": "0x9",
-                    "blockHash": "0x" + "12" * 32 if fault == "block_hash" else RECEIPT_HASH,
+                    "blockNumber": "0x8" if fault == "reread_block_reorg" else "0x9",
+                    "blockHash": (
+                        "0x" + "ab" * 32
+                        if fault == "reread_block_reorg"
+                        else "0x" + "12" * 32
+                        if fault == "block_hash"
+                        else RECEIPT_HASH
+                    ),
                 }
         elif method == "eth_blockNumber":
             result = "0x9"
@@ -250,6 +267,8 @@ async def test_key_register_and_revoke_confirm(manifest):
         ("reread", ChainOperationState.UNKNOWN, "STATE_NOT_CONFIRMED"),
         ("transaction_hash", ChainOperationState.UNKNOWN, "RECEIPT_NOT_CANONICAL"),
         ("block_hash", ChainOperationState.UNKNOWN, "RECEIPT_NOT_CANONICAL"),
+        ("reorg_after_reread", ChainOperationState.UNKNOWN, "RECEIPT_NOT_CANONICAL"),
+        ("reread_block_reorg", ChainOperationState.UNKNOWN, "STATE_NOT_CONFIRMED"),
         ("canonical_rpc", ChainOperationState.UNKNOWN, "DEPENDENCY_UNAVAILABLE"),
     ],
 )

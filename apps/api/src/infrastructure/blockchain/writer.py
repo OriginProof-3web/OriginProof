@@ -350,7 +350,44 @@ class JsonRpcBlockchainWriter:
                     block_hash=block_hash,
                     error_code="CONFIRMATION_PENDING",
                 )
-            if not await prepared._verify(client, hex(latest_number)):
+            reread_block = await self._rpc(
+                client, "eth_getBlockByNumber", [hex(latest_number), False]
+            )
+            if not isinstance(reread_block, dict):
+                raise ValueError("reread block unavailable")
+            reread_hash = validate_hash(reread_block.get("hash"))
+            state_matches = await prepared._verify(client, hex(latest_number))
+            receipt_again = await self._rpc(
+                client, "eth_getBlockByNumber", [hex(block_number), False]
+            )
+            reread_again = await self._rpc(
+                client, "eth_getBlockByNumber", [hex(latest_number), False]
+            )
+            if (
+                not isinstance(receipt_again, dict)
+                or receipt_again.get("hash", "").lower() != block_hash
+            ):
+                return self._prepared_result(
+                    prepared,
+                    ChainOperationState.UNKNOWN,
+                    tx_hash=tx_hash,
+                    block_number=block_number,
+                    block_hash=block_hash,
+                    error_code="RECEIPT_NOT_CANONICAL",
+                )
+            if (
+                not isinstance(reread_again, dict)
+                or reread_again.get("hash", "").lower() != reread_hash
+            ):
+                return self._prepared_result(
+                    prepared,
+                    ChainOperationState.UNKNOWN,
+                    tx_hash=tx_hash,
+                    block_number=block_number,
+                    block_hash=block_hash,
+                    error_code="STATE_NOT_CONFIRMED",
+                )
+            if not state_matches:
                 self._release_nonce(prepared)
                 return self._prepared_result(
                     prepared,

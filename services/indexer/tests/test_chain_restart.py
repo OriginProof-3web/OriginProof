@@ -12,7 +12,11 @@ import pytest
 from deploy_local import deploy
 from eth_keys import keys
 from infrastructure.blockchain.reader import JsonRpcBlockchainReader
+from infrastructure.blockchain.writer import ChainOperationState, JsonRpcBlockchainWriter
 from originproof_core.ports import DependencyUnavailableError
+from originproof_indexer import ProjectionStore, decode_proof_log
+from originproof_indexer.projection import PROOF_CONSUMED, PROOF_REGISTERED, PROOF_REVOKED
+from sqlalchemy import create_engine
 
 pytestmark = pytest.mark.skipif(os.environ.get("W6_LIVE_TEST") != "1", reason="local EVM opt-in")
 
@@ -66,6 +70,88 @@ async def test_same_chain_id_redeployment_invalidates_old_manifest(tmp_path):
         old_path = tmp_path / "old-manifest.json"
         old_path.write_text(json.dumps(first))
         assert (await rpc("eth_chainId", [])) == "0x7a69"
+        writer = JsonRpcBlockchainWriter(url, old_path, receipt_attempts=1, poll_interval=0)
+        prepared = await writer.prepare_suspend_issuer(
+            first["roles"]["issuer_manager"], "iss_origin_mock_bank"
+        )
+        await rpc("anvil_setAutomine", [False])
+        submitted = await writer.submit_prepared(prepared)
+        assert submitted.state == ChainOperationState.SUBMITTED
+        pending = await writer.confirm_prepared(prepared, submitted.tx_hash)
+        assert pending.state == ChainOperationState.UNKNOWN
+        assert pending.error_code == "RECEIPT_UNKNOWN"
+        await rpc("evm_mine", [])
+        await rpc("anvil_setAutomine", [True])
+        confirmed = await writer.recover_prepared(prepared, submitted.tx_hash)
+        assert confirmed.state == ChainOperationState.CONFIRMED
+        assert confirmed.tx_hash == submitted.tx_hash
+
+        projection_engine = create_engine("sqlite:///" + str(tmp_path / "reorg.db"))
+        try:
+            projection = ProjectionStore(projection_engine)
+            projection.initialize()
+            snapshot = await rpc("evm_snapshot", [])
+            base_tip = int(await rpc("eth_blockNumber", []), 16)
+            for _ in range(3):
+                await rpc("evm_mine", [])
+
+            def scan():
+                with httpx.Client(timeout=2, trust_env=False) as client:
+
+                    def sync_rpc(method, params):
+                        response = client.post(
+                            url,
+                            json={"jsonrpc": "2.0", "id": 1, "method": method, "params": params},
+                        )
+                        response.raise_for_status()
+                        body = response.json()
+                        assert "error" not in body
+                        return body["result"]
+
+                    def block_hash_at(number):
+                        block = sync_rpc("eth_getBlockByNumber", [hex(number), False])
+                        return block["hash"]
+
+                    def logs_at(number):
+                        raw = sync_rpc(
+                            "eth_getLogs",
+                            [
+                                {
+                                    "address": first["contracts"]["ProofStatusRegistry"]["address"],
+                                    "fromBlock": hex(number),
+                                    "toBlock": hex(number),
+                                    "topics": [[PROOF_REGISTERED, PROOF_CONSUMED, PROOF_REVOKED]],
+                                }
+                            ],
+                        )
+                        return [decode_proof_log(log, 31337, first["deployment_id"]) for log in raw]
+
+                    return projection.sync_confirmed(
+                        31337,
+                        first["deployment_id"],
+                        first["deployment_block"],
+                        lambda: int(sync_rpc("eth_blockNumber", []), 16),
+                        block_hash_at,
+                        logs_at,
+                    )
+
+            old_checkpoint = await asyncio.to_thread(scan)
+            assert old_checkpoint[0] == base_tip + 2
+            assert await rpc("evm_revert", [snapshot])
+            accounts = await rpc("eth_accounts", [])
+            await rpc(
+                "eth_sendTransaction",
+                [{"from": accounts[0], "to": accounts[1], "value": "0x0"}],
+            )
+            await rpc("evm_mine", [])
+            await rpc("evm_mine", [])
+            while int(await rpc("eth_blockNumber", []), 16) < old_checkpoint[0] + 1:
+                await rpc("evm_mine", [])
+            new_checkpoint = await asyncio.to_thread(scan)
+            assert new_checkpoint[0] == old_checkpoint[0]
+            assert new_checkpoint[1] != old_checkpoint[1]
+        finally:
+            projection_engine.dispose()
         stop()
 
         await start()
