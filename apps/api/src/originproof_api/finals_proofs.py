@@ -849,3 +849,40 @@ async def require_binding(manager, row, envelope):
         != envelope.subject_binding_hash
     ):
         raise HTTPException(409, "SUBJECT_BINDING_MISMATCH")
+
+
+class ProofReconciliation(BaseModel):
+    proof_id: str
+    database_registration_status: str
+    deployment_matches: bool
+    registration_consistent: bool | None
+    current_verification: FinalsVerificationResult
+    authority: str = "CANONICAL_READER"
+
+
+@router.get("/issuer/proofs/{proof_id}/reconciliation", response_model=ProofReconciliation)
+async def reconcile(proof_id: str, request: Request, identity: Identity):
+    account, _ = identity
+    if account.role not in ("operator", "issuer"):
+        raise HTTPException(403, "FORBIDDEN")
+    row = await proof_row(request, proof_id)
+    if account.role != "operator" and account.issuer_id != row.issuer_id:
+        raise HTTPException(404, "PROOF_NOT_FOUND")
+    manager = chain_management.service(request)
+    stored = await view(row, request)
+    current = await evaluate_saved(manager, row, f"req_reconcile_{uuid4().hex}")
+    deployment_matches = row.deployment_id == manager.manifest.deployment_id
+    consistent = None
+    if deployment_matches and current.verification_status != VerificationStatus.INCONCLUSIVE:
+        chain_registered = current.verification_status == VerificationStatus.VERIFIED
+        if stored.registration_status == "CONFIRMED":
+            consistent = chain_registered
+        elif stored.registration_status in ("FAILED", "NOT_REGISTERED"):
+            consistent = not chain_registered
+    return ProofReconciliation(
+        proof_id=proof_id,
+        database_registration_status=stored.registration_status,
+        deployment_matches=deployment_matches,
+        registration_consistent=consistent,
+        current_verification=current,
+    )
