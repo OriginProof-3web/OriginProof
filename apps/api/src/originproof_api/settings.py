@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     blockchain_issuer_id: str = "iss_origin_mock_bank"
     blockchain_chain_id: int = 31337
     session_cookie_secure: bool = False
+    signer_directory: str = "build/secrets/issuer-signers"
 
     model_config = SettingsConfigDict(
         env_file=".env",

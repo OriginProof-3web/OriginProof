@@ -1,0 +1,131 @@
+{
+  "$defs": {
+    "CheckState": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "NOT_RUN",
+        "UNAVAILABLE"
+      ],
+      "title": "CheckState",
+      "type": "string"
+    },
+    "FinalsReasonCode": {
+      "enum": [
+        "INVALID_SIGNATURE",
+        "PAYLOAD_HASH_MISMATCH",
+        "AMOUNT_MISMATCH",
+        "FIELD_MISMATCH",
+        "PROOF_EXPIRED",
+        "PROOF_NOT_FOUND",
+        "ISSUER_NOT_FOUND",
+        "SCHEMA_UNSUPPORTED",
+        "DEPENDENCY_UNAVAILABLE",
+        "REPLAY_DETECTED",
+        "DOMAIN_MISMATCH",
+        "NETWORK_MISMATCH",
+        "KEY_NOT_FOUND",
+        "KEY_TIME_INVALID",
+        "INPUT_INCOMPLETE",
+        "SUBJECT_BINDING_MISMATCH",
+        "PROOF_REVOKED",
+        "ISSUER_KEY_REVOKED",
+        "ISSUER_SUSPENDED"
+      ],
+      "title": "FinalsReasonCode",
+      "type": "string"
+    },
+    "LifecycleStatus": {
+      "enum": [
+        "ACTIVE",
+        "EXPIRED",
+        "CONSUMED",
+        "PROOF_REVOKED",
+        "ISSUER_SUSPENDED",
+        "ISSUER_KEY_REVOKED"
+      ],
+      "title": "LifecycleStatus",
+      "type": "string"
+    },
+    "VerificationScope": {
+      "enum": [
+        "PROOF_ONLY",
+        "FULL_COMPARISON",
+        "PARTIAL_COMPARISON"
+      ],
+      "title": "VerificationScope",
+      "type": "string"
+    },
+    "VerificationStatus": {
+      "enum": [
+        "VERIFIED",
+        "NOT_REGISTERED",
+        "TAMPERED",
+        "INCONCLUSIVE",
+        "ERROR"
+      ],
+      "title": "VerificationStatus",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "checks": {
+      "additionalProperties": {
+        "$ref": "#/$defs/CheckState"
+      },
+      "title": "Checks",
+      "type": "object"
+    },
+    "lifecycle_status": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LifecycleStatus"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "reason_codes": {
+      "items": {
+        "$ref": "#/$defs/FinalsReasonCode"
+      },
+      "title": "Reason Codes",
+      "type": "array"
+    },
+    "request_id": {
+      "pattern": "^req_[A-Za-z0-9_-]+$",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "scope": {
+      "$ref": "#/$defs/VerificationScope"
+    },
+    "session_id": {
+      "pattern": "^vsn_[A-Za-z0-9_-]+$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "verification_status": {
+      "$ref": "#/$defs/VerificationStatus"
+    },
+    "verified_at": {
+      "format": "date-time",
+      "title": "Verified At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "session_id",
+    "verification_status",
+    "lifecycle_status",
+    "scope",
+    "checks",
+    "verified_at",
+    "request_id"
+  ],
+  "title": "FinalsVerificationResult",
+  "type": "object"
+}
