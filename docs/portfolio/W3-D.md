@@ -4,6 +4,7 @@
 - 작업: W3-D1 합성 사례, W3-D2 코어 경계 및 연결 검사 준비, W3-D3 재현 계획.
 - 상태: **독립 fixture·모델/코어 검사 통과; 실제 발행 API·브라우저 연결 대기**.
 - branch: `test/w3-d-proof-qa`, 시작 `phase/W3@1f8ed632ea9c74091abaf2fe2ec32882038f731f`.
+- 작업 PR: [#46](https://github.com/OriginProof-3web/OriginProof/pull/46), `phase/W3` 대상 초안. C 리뷰 요청 완료.
 - 검사 코드 SHA: `cbe8aaeea59e18bd4e8529bf59b618683f3e3964`. 후속 기록 commit은 검사 소스를 바꾸지 않습니다.
 
 ## 목표·실제 기여

@@ -3,6 +3,7 @@
 - 담당: D / 여인준님 `@yijun0330`, 2026-10-02. W3는 개발 단계입니다.
 - 시작: `phase/W3@1f8ed632ea9c74091abaf2fe2ec32882038f731f`
 - 작업 branch: `test/w3-d-proof-qa`
+- D 독립 QA 초안 PR: [#46](https://github.com/OriginProof-3web/OriginProof/pull/46), C 리뷰 요청 완료.
 - 검사 코드 SHA: `cbe8aaeea59e18bd4e8529bf59b618683f3e3964`
 - [환경 fingerprint](w3-d-environment.json): Python 3.13.7, Node 22.18.0,
   uv 0.8.17. 기존 개인 .env·애플리케이션 소스·공통 모델·Golden은 수정하지 않았습니다.
