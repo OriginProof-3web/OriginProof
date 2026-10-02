@@ -6,7 +6,7 @@ import os
 import shutil
 import socket
 import subprocess
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import httpx
@@ -14,6 +14,7 @@ import pytest
 from deploy_local import deploy
 from eth_keys import keys
 from infrastructure.blockchain.reader import JsonRpcBlockchainReader
+from infrastructure.blockchain.reader import digest as chain_digest
 from infrastructure.blockchain.writer import ChainOperationState, JsonRpcBlockchainWriter
 from originproof_api.main import create_app
 from originproof_core import (
@@ -22,6 +23,9 @@ from originproof_core import (
     VerificationService,
     signing_digest,
 )
+from originproof_indexer import ProjectionStore, decode_proof_log
+from originproof_indexer.projection import PROOF_CONSUMED, PROOF_REGISTERED, PROOF_REVOKED
+from sqlalchemy import create_engine
 
 ROOT = Path(__file__).resolve().parents[3]
 pytestmark = pytest.mark.skipif(os.environ.get("M4_LIVE_TEST") != "1", reason="local EVM opt-in")
@@ -76,6 +80,43 @@ async def test_live_reader_and_m1_api():
                 deploy, rpc_url, public_signer, source_commit_sha=source_sha
             )
             manifest = json.loads(manifest_path.read_text())
+
+            async def has_role(contract, role, account):
+                data = (
+                    chain_digest("hasRole(bytes32,address)")[:4]
+                    + role
+                    + bytes.fromhex(account[2:]).rjust(32, b"\0")
+                )
+                result = await rpc(
+                    "eth_call", [{"to": contract, "data": "0x" + data.hex()}, "latest"]
+                )
+                return int(result, 16) == 1
+
+            roles = manifest["roles"]
+            contracts = manifest["contracts"]
+            issuer_contract = contracts["IssuerRegistry"]["address"]
+            key_contract = contracts["IssuerKeyRegistry"]["address"]
+            proof_contract = contracts["ProofStatusRegistry"]["address"]
+            admin_role = bytes(32)
+            assert await has_role(issuer_contract, admin_role, roles["registry_admin"])
+            assert await has_role(key_contract, admin_role, roles["registry_admin"])
+            assert await has_role(proof_contract, admin_role, roles["registry_admin"])
+            assert await has_role(
+                issuer_contract, chain_digest("ISSUER_MANAGER_ROLE"), roles["issuer_manager"]
+            )
+            assert not await has_role(
+                issuer_contract, chain_digest("ISSUER_MANAGER_ROLE"), roles["registry_admin"]
+            )
+            assert await has_role(
+                key_contract, chain_digest("KEY_MANAGER_ROLE"), roles["key_manager"]
+            )
+            assert not await has_role(
+                key_contract, chain_digest("KEY_MANAGER_ROLE"), roles["registry_admin"]
+            )
+            assert await has_role(proof_contract, chain_digest("GATEWAY_ROLE"), roles["gateway"])
+            assert not await has_role(
+                proof_contract, chain_digest("GATEWAY_ROLE"), roles["registry_admin"]
+            )
             golden = json.loads(
                 (ROOT / "fixtures/golden/card_payment_notice_signing_v1.json").read_text()
             )
@@ -95,6 +136,16 @@ async def test_live_reader_and_m1_api():
             assert key.issuer_id == envelope.issuer_id
             assert key.signer.lower() == public_signer.lower()
             assert key.valid_from == envelope.issued_at
+            snapshot = await reader.get_issuer_key_snapshot(
+                envelope.issuer_id, envelope.key_id, envelope.issued_at
+            )
+            assert snapshot.issuer == issuer
+            assert snapshot.key == key
+            assert snapshot.key_valid_at
+            assert snapshot.deployment_id == manifest["deployment_id"]
+            assert snapshot.chain_id == manifest["chain_id"]
+            assert snapshot.block_number >= manifest["deployment_block"]
+            assert snapshot.block_hash.startswith("0x") and len(snapshot.block_hash) == 66
             assert await reader.is_key_valid(envelope.key_id, key.valid_from)
             assert not await reader.is_key_valid(
                 envelope.key_id, key.valid_from - timedelta(seconds=1)
@@ -132,6 +183,122 @@ async def test_live_reader_and_m1_api():
                 assert "AMOUNT_MISMATCH" in tampered["reason_codes"]
 
                 writer = JsonRpcBlockchainWriter(rpc_url, manifest_path, client=rpc_client)
+                latest_block = await rpc("eth_getBlockByNumber", ["latest", False])
+                now = int(latest_block["timestamp"], 16)
+                proof_id = "prf_w4_live_synthetic"
+                subject = "0x" + chain_digest("synthetic subject").hex()
+                register = await writer.prepare_register_proof(
+                    manifest["roles"]["gateway"],
+                    proof_id,
+                    envelope.issuer_id,
+                    envelope.key_id,
+                    golden["signing_digest"],
+                    subject,
+                    int(key.valid_from.timestamp()),
+                    now + 1000,
+                    True,
+                )
+                submitted = await writer.submit_prepared(register)
+                assert submitted.state == ChainOperationState.SUBMITTED
+                confirmed = await writer.confirm_prepared(register, submitted.tx_hash)
+                assert confirmed.state == ChainOperationState.CONFIRMED
+                state = await reader.get_proof_state(proof_id, datetime.fromtimestamp(now, UTC))
+                assert state.status == "ACTIVE" and state.consumable_at
+                assert state.signing_digest == golden["signing_digest"]
+                consume = await writer.prepare_consume_proof(
+                    manifest["roles"]["gateway"], proof_id, 1, subject
+                )
+                submitted = await writer.submit_prepared(consume)
+                assert submitted.state == ChainOperationState.SUBMITTED
+                assert (await writer.confirm_prepared(consume, submitted.tx_hash)).state == (
+                    ChainOperationState.CONFIRMED
+                )
+                state = await reader.get_proof_state(proof_id, datetime.fromtimestamp(now, UTC))
+                assert state.status == "CONSUMED" and not state.consumable_at
+                replay = await writer.prepare_consume_proof(
+                    manifest["roles"]["gateway"], proof_id, 1, subject
+                )
+                replay_submitted = await writer.submit_prepared(replay)
+                assert replay_submitted.state == ChainOperationState.SUBMITTED
+                assert (await writer.confirm_prepared(replay, replay_submitted.tx_hash)).state == (
+                    ChainOperationState.FAILED
+                )
+                revoke = await writer.prepare_revoke_proof(
+                    manifest["roles"]["issuer_account"], proof_id
+                )
+                submitted = await writer.submit_prepared(revoke)
+                assert submitted.state == ChainOperationState.SUBMITTED
+                assert (await writer.confirm_prepared(revoke, submitted.tx_hash)).state == (
+                    ChainOperationState.CONFIRMED
+                )
+                state = await reader.get_proof_state(proof_id, datetime.fromtimestamp(now, UTC))
+                assert state.status == "REVOKED" and state.consumed_at is not None
+                raw_logs = await rpc(
+                    "eth_getLogs",
+                    [
+                        {
+                            "address": manifest["contracts"]["ProofStatusRegistry"]["address"],
+                            "fromBlock": hex(manifest["deployment_block"]),
+                            "toBlock": "latest",
+                            "topics": [[PROOF_REGISTERED, PROOF_CONSUMED, PROOF_REVOKED]],
+                        }
+                    ],
+                )
+                projection_engine = create_engine("sqlite://")
+                try:
+                    projection = ProjectionStore(projection_engine)
+                    projection.initialize()
+                    proof_logs = [
+                        decode_proof_log(raw, 31337, manifest["deployment_id"]) for raw in raw_logs
+                    ]
+                    assert [log.event_type for log in proof_logs] == [
+                        "REGISTERED",
+                        "CONSUMED",
+                        "REVOKED",
+                    ]
+                    tip = int(await rpc("eth_blockNumber", []), 16)
+                    blocks = {
+                        number: await rpc("eth_getBlockByNumber", [hex(number), False])
+                        for number in range(manifest["deployment_block"], tip + 1)
+                    }
+
+                    def sync():
+                        return projection.sync_confirmed(
+                            31337,
+                            manifest["deployment_id"],
+                            manifest["deployment_block"],
+                            lambda: tip,
+                            lambda number: blocks[number]["hash"],
+                            lambda number: [
+                                log for log in proof_logs if log.event.block_number == number
+                            ],
+                        )
+
+                    assert sync() == (tip - 1, blocks[tip - 1]["hash"])
+                    proof_hash = "0x" + chain_digest(proof_id).hex()
+                    assert (
+                        projection.projected_proof_status(
+                            31337, manifest["deployment_id"], proof_hash
+                        )
+                        == "CONSUMED"
+                    )
+                    await rpc("evm_mine", [])
+                    tip += 1
+                    blocks[tip] = await rpc("eth_getBlockByNumber", [hex(tip), False])
+                    assert sync() == (tip - 1, blocks[tip - 1]["hash"])
+                    assert projection.verified_checkpoint(
+                        31337,
+                        manifest["deployment_id"],
+                        lambda number: blocks[number]["hash"],
+                    ) == (tip - 1, blocks[tip - 1]["hash"])
+                    assert (
+                        projection.projected_proof_status(
+                            31337, manifest["deployment_id"], proof_hash
+                        )
+                        == "REVOKED"
+                    )
+                finally:
+                    projection_engine.dispose()
                 rejected = await writer.suspend_issuer(
                     manifest["roles"]["registry_admin"], envelope.issuer_id
                 )

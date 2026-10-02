@@ -19,3 +19,13 @@ A/B/D 경로 구현·타인의 리뷰를 수행했다고 기록하지 않습니�
 macOS/Python 3.13 환경, 합성 계정·임시 DB/chain만 사용했습니다. 성능·실제 브라우저·타인 리뷰는 미측정/미실행입니다.
 상세 계약·재현 원본: [W3 API 인계](../api/w3_c_proof_contract.md).
 최종 코드와 실제 CI SHA는 작업 PR에서 확인하며 단계 전체 완료는 선언하지 않습니다.
+
+
+## 2026-10-02 W3-B1 연결 보완
+
+W4 후속 branch `feat/w4-c-proof-lifecycle`의 C 코드 `596f313`에서 B W3 `92e0e94`의
+get_issuer_key_snapshot을 발행·검증에 연결했습니다. 기관과 키의 동일 block/hash,
+발행 직전 유효 구간·signer를 검사하고 Proof 상태 snapshot과도 일관성을 확인합니다.
+이 branch에서는 W4 Registry가 연결되어 위 W3 최초 결과의 NOT_RUN/null 한계를 대체합니다.
+C 자체 실제 DB/체인 검사는 통과했으며 A 화면·D 독립 확인·공유 phase 병합·팀 리뷰는 대기입니다.
+[후속 연결·검사 상세](../api/w4_c_proof_lifecycle_contract.md)를 참조합니다.

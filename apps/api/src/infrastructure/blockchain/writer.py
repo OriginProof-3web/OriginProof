@@ -88,7 +88,10 @@ class ChainWritePersistence(Protocol):
 
 
 class RpcRejected(RuntimeError):
-    pass
+    def __init__(self, code=None, category="other"):
+        super().__init__("RPC rejected request")
+        self.code = code
+        self.category = category
 
 
 def _word(value: int) -> bytes:
@@ -157,7 +160,18 @@ class JsonRpcBlockchainWriter:
         ):
             raise ValueError("invalid RPC response")
         if "error" in body:
-            raise RpcRejected("RPC rejected transaction")
+            error = body["error"]
+            code = error.get("code") if isinstance(error, dict) else None
+            message = error.get("message") if isinstance(error, dict) else None
+            message = message.casefold() if isinstance(message, str) else ""
+            category = (
+                "already_known"
+                if "already known" in message
+                else "nonce_too_low"
+                if "nonce too low" in message
+                else "other"
+            )
+            raise RpcRejected(code if type(code) is int else None, category)
         if "result" not in body:
             raise ValueError("missing RPC result")
         return body["result"]
@@ -179,7 +193,7 @@ class JsonRpcBlockchainWriter:
             or deployed.get("hash", "").lower() != self._manifest.deployment_block_hash
         ):
             raise ValueError("deployment identity mismatch")
-        for name in ("IssuerRegistry", "IssuerKeyRegistry"):
+        for name in self._manifest.contracts:
             code = await self._rpc(
                 client,
                 "eth_getCode",
@@ -253,13 +267,7 @@ class JsonRpcBlockchainWriter:
         client = self._client or httpx.AsyncClient()
         try:
             await self._verify_deployment(client)
-            try:
-                tx_hash = await self._rpc(client, "eth_sendTransaction", [prepared.transaction])
-            except RpcRejected:
-                self._release_nonce(prepared)
-                return self._prepared_result(
-                    prepared, ChainOperationState.FAILED, error_code="CHAIN_REVERTED"
-                )
+            tx_hash = await self._rpc(client, "eth_sendTransaction", [prepared.transaction])
             tx_hash = validate_hash(tx_hash)
             return self._prepared_result(prepared, ChainOperationState.SUBMITTED, tx_hash=tx_hash)
         except (httpx.HTTPError, ValueError, RpcRejected):
@@ -326,7 +334,39 @@ class JsonRpcBlockchainWriter:
                     block_hash=block_hash,
                     error_code="RECEIPT_NOT_CANONICAL",
                 )
-            if int(status, 16) != 1:
+            transaction = await self._rpc(client, "eth_getTransactionByHash", [tx_hash])
+            try:
+                transaction_hash = validate_hash(transaction.get("hash"))
+            except (AttributeError, ValueError):
+                transaction_hash = None
+            if transaction_hash != tx_hash or not self._matches_prepared(transaction, prepared):
+                return self._prepared_result(
+                    prepared,
+                    ChainOperationState.UNKNOWN,
+                    tx_hash=tx_hash,
+                    block_number=block_number,
+                    block_hash=block_hash,
+                    error_code="TRANSACTION_NOT_MATCHED",
+                )
+            receipt_status = int(status, 16)
+            if receipt_status not in (0, 1):
+                raise ValueError("invalid receipt status")
+            if receipt_status == 0:
+                failed_block = await self._rpc(
+                    client, "eth_getBlockByNumber", [hex(block_number), False]
+                )
+                if (
+                    not isinstance(failed_block, dict)
+                    or failed_block.get("hash", "").lower() != block_hash
+                ):
+                    return self._prepared_result(
+                        prepared,
+                        ChainOperationState.UNKNOWN,
+                        tx_hash=tx_hash,
+                        block_number=block_number,
+                        block_hash=block_hash,
+                        error_code="RECEIPT_NOT_CANONICAL",
+                    )
                 self._release_nonce(prepared)
                 return self._prepared_result(
                     prepared,
@@ -350,7 +390,44 @@ class JsonRpcBlockchainWriter:
                     block_hash=block_hash,
                     error_code="CONFIRMATION_PENDING",
                 )
-            if not await prepared._verify(client, hex(latest_number)):
+            reread_block = await self._rpc(
+                client, "eth_getBlockByNumber", [hex(latest_number), False]
+            )
+            if not isinstance(reread_block, dict):
+                raise ValueError("reread block unavailable")
+            reread_hash = validate_hash(reread_block.get("hash"))
+            state_matches = await prepared._verify(client, hex(latest_number))
+            receipt_again = await self._rpc(
+                client, "eth_getBlockByNumber", [hex(block_number), False]
+            )
+            reread_again = await self._rpc(
+                client, "eth_getBlockByNumber", [hex(latest_number), False]
+            )
+            if (
+                not isinstance(receipt_again, dict)
+                or receipt_again.get("hash", "").lower() != block_hash
+            ):
+                return self._prepared_result(
+                    prepared,
+                    ChainOperationState.UNKNOWN,
+                    tx_hash=tx_hash,
+                    block_number=block_number,
+                    block_hash=block_hash,
+                    error_code="RECEIPT_NOT_CANONICAL",
+                )
+            if (
+                not isinstance(reread_again, dict)
+                or reread_again.get("hash", "").lower() != reread_hash
+            ):
+                return self._prepared_result(
+                    prepared,
+                    ChainOperationState.UNKNOWN,
+                    tx_hash=tx_hash,
+                    block_number=block_number,
+                    block_hash=block_hash,
+                    error_code="STATE_NOT_CONFIRMED",
+                )
+            if not state_matches:
                 self._release_nonce(prepared)
                 return self._prepared_result(
                     prepared,
@@ -466,10 +543,7 @@ class JsonRpcBlockchainWriter:
             or prepared.deployment_id != self._manifest.deployment_id
             or prepared.chain_id != self._manifest.chain_id
             or prepared.contract
-            not in {
-                self._manifest.contract("IssuerRegistry").address.lower(),
-                self._manifest.contract("IssuerKeyRegistry").address.lower(),
-            }
+            not in {entry.address.lower() for entry in self._manifest.contracts.values()}
         ):
             raise ValueError("prepared transaction does not match deployment")
 
@@ -481,6 +555,8 @@ class JsonRpcBlockchainWriter:
     @staticmethod
     def _matches_prepared(transaction, prepared):
         if not isinstance(transaction, dict):
+            return False
+        if any(type(transaction.get(key)) is not str for key in ("from", "to", "input", "nonce")):
             return False
         try:
             nonce = int(transaction.get("nonce", ""), 16)
@@ -723,3 +799,104 @@ class JsonRpcBlockchainWriter:
         if submitted.state != ChainOperationState.SUBMITTED:
             return submitted
         return await self.confirm_prepared(prepared, submitted.tx_hash)
+
+    def _proof_contract(self):
+        return self._manifest.contract("ProofStatusRegistry").address
+
+    async def prepare_register_proof(
+        self,
+        sender,
+        proof_id,
+        issuer_id,
+        key_id,
+        signing_digest,
+        subject_binding_hash,
+        issued_at,
+        expires_at,
+        single_use,
+        *,
+        nonce=None,
+    ):
+        self._proof_contract()
+        if (
+            type(issued_at) is not int
+            or type(expires_at) is not int
+            or not 0 <= issued_at < expires_at < 2**64
+            or type(single_use) is not bool
+        ):
+            raise ValueError("invalid proof period or single-use flag")
+        expected = (
+            _identifier(issuer_id, "iss_"),
+            _identifier(key_id, "key_"),
+            _bytes32(signing_digest),
+            _bytes32(subject_binding_hash),
+            _word(issued_at),
+            _word(expires_at),
+            _word(int(single_use)),
+        )
+        data = _call_data(
+            "registerProof(bytes32,bytes32,bytes32,bytes32,bytes32,uint64,uint64,bool)",
+            _identifier(proof_id, "prf_"),
+            *expected,
+        )
+
+        async def verify(client, block):
+            stored = await self._eth_call(
+                client,
+                self._proof_contract(),
+                _call_data("getProof(bytes32)", _identifier(proof_id, "prf_")),
+                block,
+                9,
+            )
+            return tuple(stored[:7]) == expected
+
+        return await self._prepare(
+            sender, "ProofStatusRegistry", data, "register_proof", verify, nonce
+        )
+
+    async def prepare_revoke_proof(self, sender, proof_id, *, nonce=None):
+        self._proof_contract()
+        identifier = _identifier(proof_id, "prf_")
+        data = _call_data("revokeProof(bytes32)", identifier)
+
+        async def verify(client, block):
+            (status,) = await self._eth_call(
+                client,
+                self._proof_contract(),
+                _call_data("proofStatus(bytes32)", identifier),
+                block,
+                1,
+            )
+            return uint(status, 8) == 2
+
+        return await self._prepare(
+            sender, "ProofStatusRegistry", data, "revoke_proof", verify, nonce
+        )
+
+    async def prepare_consume_proof(
+        self, sender, proof_id, actor_kind, actor_binding, *, nonce=None
+    ):
+        self._proof_contract()
+        if type(actor_kind) is not int or actor_kind not in (0, 1):
+            raise ValueError("invalid actor kind")
+        identifier = _identifier(proof_id, "prf_")
+        data = _call_data(
+            "consumeProof(bytes32,uint8,bytes32)",
+            identifier,
+            _word(actor_kind),
+            _bytes32(actor_binding),
+        )
+
+        async def verify(client, block):
+            stored = await self._eth_call(
+                client,
+                self._proof_contract(),
+                _call_data("getProof(bytes32)", identifier),
+                block,
+                9,
+            )
+            return uint(stored[8], 64) > 0
+
+        return await self._prepare(
+            sender, "ProofStatusRegistry", data, "consume_proof", verify, nonce
+        )

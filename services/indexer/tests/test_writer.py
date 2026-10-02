@@ -4,7 +4,11 @@ import json
 import httpx
 import pytest
 from infrastructure.blockchain.reader import digest
-from infrastructure.blockchain.writer import ChainOperationState, JsonRpcBlockchainWriter
+from infrastructure.blockchain.writer import (
+    ChainOperationState,
+    JsonRpcBlockchainWriter,
+    RpcRejected,
+)
 
 ISSUER = "iss_origin_mock_bank"
 KEY = "key_origin_mock_bank_002"
@@ -45,12 +49,23 @@ def manifest(tmp_path):
                         "constructor_arguments": ["0x" + "44" * 20, "0x" + "22" * 20],
                         "abi_sha256": "2" * 64,
                     },
+                    "ProofStatusRegistry": {
+                        "address": "0x" + "34" * 20,
+                        "constructor_arguments": [
+                            "0x" + "44" * 20,
+                            "0x" + "78" * 20,
+                            "0x" + "22" * 20,
+                            "0x" + "33" * 20,
+                        ],
+                        "abi_sha256": "3" * 64,
+                    },
                 },
                 "roles": {
                     "registry_admin": "0x" + "44" * 20,
                     "issuer_manager": "0x" + "55" * 20,
                     "key_manager": "0x" + "66" * 20,
                     "issuer_account": ACCOUNT,
+                    "gateway": "0x" + "78" * 20,
                 },
             }
         )
@@ -59,7 +74,7 @@ def manifest(tmp_path):
 
 
 def transport(fault=None, sends=None, timeline=None):
-    state = {"selector": None}
+    state = {"selector": None, "canonical_reads": 0, "transaction": None}
 
     def handle(request):
         body = json.loads(request.content)
@@ -71,25 +86,43 @@ def transport(fault=None, sends=None, timeline=None):
         elif method == "eth_getBlockByNumber":
             if fault == "canonical_rpc" and params[0] == "0x9":
                 raise httpx.ConnectError("canonical lookup failed", request=request)
-            hashes = {"0x0": GENESIS_HASH, "0x1": DEPLOYMENT_HASH, "0x9": RECEIPT_HASH}
+            hashes = {
+                "0x0": GENESIS_HASH,
+                "0x1": DEPLOYMENT_HASH,
+                "0x8": "0x" + "ab" * 32,
+                "0x9": RECEIPT_HASH,
+            }
+            if params[0] == "0x9":
+                state["canonical_reads"] += 1
+                if fault == "failed_receipt_reorg" and state["canonical_reads"] >= 2:
+                    hashes["0x9"] = "0x" + "12" * 32
+                if fault == "reorg_after_reread" and state["canonical_reads"] >= 3:
+                    hashes["0x9"] = "0x" + "12" * 32
+                if fault == "reread_block_reorg" and state["canonical_reads"] >= 2:
+                    hashes["0x9"] = "0x" + "12" * 32
             transactions = []
-            if fault == "recover_without_hash" and params == ["0x9", True]:
+            if fault in ("recover_without_hash", "already_known", "response_lost") and params == [
+                "0x9",
+                True,
+            ]:
                 transactions = [
                     {
                         "hash": TX_HASH,
-                        "from": "0x" + "55" * 20,
-                        "to": "0x" + "22" * 20,
-                        "input": (
+                        "from": (state["transaction"] or {}).get("from", "0x" + "55" * 20),
+                        "to": (state["transaction"] or {}).get("to", "0x" + "22" * 20),
+                        "input": (state["transaction"] or {}).get(
+                            "data",
                             "0x"
                             + digest("registerIssuer(bytes32,address,bytes32)")[:4].hex()
                             + digest(ISSUER).hex()
                             + "00" * 12
                             + ACCOUNT[2:]
-                            + METADATA[2:]
+                            + METADATA[2:],
                         ),
-                        "nonce": "0x5",
+                        "nonce": (state["transaction"] or {}).get("nonce", "0x5"),
                     }
                 ]
+                state["transaction"] = transactions[0]
             result = {
                 "hash": hashes.get(params[0], RECEIPT_HASH),
                 "transactions": transactions,
@@ -103,17 +136,53 @@ def transport(fault=None, sends=None, timeline=None):
                 timeline.append("send")
             if sends is not None:
                 sends.append(params[0])
+            state["transaction"] = params[0]
             state["selector"] = params[0]["data"][2:10]
-            if fault == "rejected":
+            if fault == "response_lost":
+                raise httpx.ReadError("send response lost", request=request)
+            errors = {
+                "rejected": (3, "execution reverted"),
+                "already_known": (-32000, "already known"),
+                "nonce_too_low": (-32000, "nonce too low"),
+                "internal_error": (-32603, "internal error"),
+            }
+            if fault in errors:
+                code, message = errors[fault]
                 return httpx.Response(
                     200,
                     json={
                         "jsonrpc": "2.0",
                         "id": body["id"],
-                        "error": {"code": 3, "message": "execution reverted"},
+                        "error": {"code": code, "message": message},
                     },
                 )
             result = TX_HASH
+        elif method == "eth_getTransactionByHash":
+            if fault == "transaction_rpc":
+                raise httpx.ConnectError("transaction lookup failed", request=request)
+            sent = state["transaction"]
+            input_data = (sent or {}).get("data", (sent or {}).get("input"))
+            if fault == "wrong_function":
+                input_data = "0x1234"
+            elif fault == "wrong_input":
+                input_data = input_data[:-2] + "ff"
+            elif fault == "wrong_proof_id":
+                input_data = input_data[:10] + "11" * 32 + input_data[74:]
+            result = (
+                None
+                if sent is None or fault == "transaction_missing"
+                else {
+                    "hash": "0x" + "11" * 32 if fault == "wrong_tx_hash" else TX_HASH,
+                    "from": "0x" + "11" * 20 if fault == "wrong_sender" else sent["from"],
+                    "to": "0x" + "11" * 20 if fault == "wrong_contract" else sent["to"],
+                    "input": input_data,
+                    "nonce": "0x6" if fault == "wrong_nonce" else sent["nonce"],
+                }
+            )
+            if fault == "transaction_missing_field":
+                result.pop("input")
+            if fault == "transaction_invalid_type":
+                result["nonce"] = 5
         elif method == "eth_getTransactionReceipt":
             if timeline is not None:
                 timeline.append("receipt")
@@ -122,9 +191,21 @@ def transport(fault=None, sends=None, timeline=None):
             else:
                 result = {
                     "transactionHash": "0x" + "11" * 32 if fault == "transaction_hash" else TX_HASH,
-                    "status": "0x0" if fault == "receipt_failed" else "0x1",
-                    "blockNumber": "0x9",
-                    "blockHash": "0x" + "12" * 32 if fault == "block_hash" else RECEIPT_HASH,
+                    "status": (
+                        "0x0"
+                        if fault in ("receipt_failed", "failed_receipt_reorg")
+                        else "0x2"
+                        if fault == "receipt_invalid_status"
+                        else "0x1"
+                    ),
+                    "blockNumber": "0x8" if fault == "reread_block_reorg" else "0x9",
+                    "blockHash": (
+                        "0x" + "ab" * 32
+                        if fault == "reread_block_reorg"
+                        else "0x" + "12" * 32
+                        if fault == "block_hash"
+                        else RECEIPT_HASH
+                    ),
                 }
         elif method == "eth_blockNumber":
             result = "0x9"
@@ -243,14 +324,32 @@ async def test_key_register_and_revoke_confirm(manifest):
 @pytest.mark.parametrize(
     "fault,state,error",
     [
-        ("rejected", ChainOperationState.FAILED, "CHAIN_REVERTED"),
+        ("rejected", ChainOperationState.UNKNOWN, "SUBMISSION_UNKNOWN"),
+        ("already_known", ChainOperationState.UNKNOWN, "SUBMISSION_UNKNOWN"),
+        ("nonce_too_low", ChainOperationState.UNKNOWN, "SUBMISSION_UNKNOWN"),
+        ("internal_error", ChainOperationState.UNKNOWN, "SUBMISSION_UNKNOWN"),
         ("receipt_failed", ChainOperationState.FAILED, "CHAIN_REVERTED"),
+        ("failed_receipt_reorg", ChainOperationState.UNKNOWN, "RECEIPT_NOT_CANONICAL"),
+        ("receipt_invalid_status", ChainOperationState.UNKNOWN, "DEPENDENCY_UNAVAILABLE"),
         ("receipt_missing", ChainOperationState.UNKNOWN, "RECEIPT_UNKNOWN"),
         ("transport", ChainOperationState.UNKNOWN, "SUBMISSION_UNKNOWN"),
+        ("response_lost", ChainOperationState.UNKNOWN, "SUBMISSION_UNKNOWN"),
         ("reread", ChainOperationState.UNKNOWN, "STATE_NOT_CONFIRMED"),
         ("transaction_hash", ChainOperationState.UNKNOWN, "RECEIPT_NOT_CANONICAL"),
         ("block_hash", ChainOperationState.UNKNOWN, "RECEIPT_NOT_CANONICAL"),
+        ("reorg_after_reread", ChainOperationState.UNKNOWN, "RECEIPT_NOT_CANONICAL"),
+        ("reread_block_reorg", ChainOperationState.UNKNOWN, "STATE_NOT_CONFIRMED"),
         ("canonical_rpc", ChainOperationState.UNKNOWN, "DEPENDENCY_UNAVAILABLE"),
+        ("transaction_rpc", ChainOperationState.UNKNOWN, "DEPENDENCY_UNAVAILABLE"),
+        ("transaction_missing", ChainOperationState.UNKNOWN, "TRANSACTION_NOT_MATCHED"),
+        ("transaction_missing_field", ChainOperationState.UNKNOWN, "TRANSACTION_NOT_MATCHED"),
+        ("transaction_invalid_type", ChainOperationState.UNKNOWN, "TRANSACTION_NOT_MATCHED"),
+        ("wrong_sender", ChainOperationState.UNKNOWN, "TRANSACTION_NOT_MATCHED"),
+        ("wrong_nonce", ChainOperationState.UNKNOWN, "TRANSACTION_NOT_MATCHED"),
+        ("wrong_contract", ChainOperationState.UNKNOWN, "TRANSACTION_NOT_MATCHED"),
+        ("wrong_input", ChainOperationState.UNKNOWN, "TRANSACTION_NOT_MATCHED"),
+        ("wrong_function", ChainOperationState.UNKNOWN, "TRANSACTION_NOT_MATCHED"),
+        ("wrong_tx_hash", ChainOperationState.UNKNOWN, "TRANSACTION_NOT_MATCHED"),
     ],
 )
 async def test_failure_and_ambiguous_results_are_not_confirmed(manifest, fault, state, error):
@@ -261,6 +360,114 @@ async def test_failure_and_ambiguous_results_are_not_confirmed(manifest, fault, 
     assert result.state == state
     assert result.error_code == error
     assert len(sends) <= 1
+
+
+@pytest.mark.parametrize(
+    "fault,code,category",
+    [
+        ("already_known", -32000, "already_known"),
+        ("nonce_too_low", -32000, "nonce_too_low"),
+        ("internal_error", -32603, "other"),
+    ],
+)
+async def test_rpc_rejection_keeps_only_safe_classification(manifest, fault, code, category):
+    adapter, client = await writer(manifest, fault=fault)
+    async with client:
+        prepared = await adapter.prepare_suspend_issuer("0x" + "55" * 20, ISSUER)
+        with pytest.raises(RpcRejected) as raised:
+            await adapter._rpc(client, "eth_sendTransaction", [prepared.transaction])
+    assert raised.value.code == code
+    assert raised.value.category == category
+    assert str(raised.value) == "RPC rejected request"
+
+
+@pytest.mark.parametrize(
+    "fault",
+    ["rejected", "already_known", "nonce_too_low", "internal_error", "transport", "response_lost"],
+)
+async def test_submission_error_keeps_nonce_and_recovery_reference(manifest, fault):
+    sends = []
+    adapter, client = await writer(manifest, fault=fault, sends=sends)
+    store = FakePersistence()
+    async with client:
+        prepared = await adapter.prepare_register_issuer(
+            "0x" + "55" * 20, ISSUER, ACCOUNT, METADATA
+        )
+        result = await adapter.execute_prepared(prepared, store)
+        next_prepared = await adapter.prepare_suspend_issuer("0x" + "55" * 20, ISSUER)
+        recovered = await adapter.recover_prepared(prepared)
+    assert result.state == ChainOperationState.UNKNOWN
+    assert result.error_code == "SUBMISSION_UNKNOWN"
+    assert result.recovery_id == store.prepared["recovery_id"]
+    assert store.tx_hash is None
+    assert next_prepared.nonce == prepared.nonce + 1
+    assert recovered.state == (
+        ChainOperationState.CONFIRMED
+        if fault in ("already_known", "response_lost")
+        else ChainOperationState.UNKNOWN
+    )
+    assert len(sends) <= 1
+
+
+async def test_wrong_proof_id_transaction_never_confirms(manifest):
+    adapter, client = await writer(manifest, fault="wrong_proof_id")
+    async with client:
+        prepared = await adapter.prepare_register_proof(
+            "0x" + "78" * 20,
+            "prf_001",
+            ISSUER,
+            KEY,
+            "0x" + "11" * 32,
+            "0x" + "22" * 32,
+            100,
+            200,
+            False,
+        )
+        submitted = await adapter.submit_prepared(prepared)
+        result = await adapter.confirm_prepared(prepared, submitted.tx_hash)
+    assert submitted.state == ChainOperationState.SUBMITTED
+    assert result.state == ChainOperationState.UNKNOWN
+    assert result.error_code == "TRANSACTION_NOT_MATCHED"
+
+
+async def test_persisted_hash_restart_checks_transaction_fields(manifest):
+    sends = []
+    shared_transport = transport(fault="wrong_sender", sends=sends)
+    async with httpx.AsyncClient(transport=shared_transport) as client:
+        first = JsonRpcBlockchainWriter("http://test", manifest, client=client)
+        store = FakePersistence()
+        prepared = await first.prepare_register_issuer("0x" + "55" * 20, ISSUER, ACCOUNT, METADATA)
+        result = await first.execute_prepared(prepared, store)
+        restarted = JsonRpcBlockchainWriter("http://test", manifest, client=client)
+        rebuilt = await restarted.prepare_register_issuer(
+            "0x" + "55" * 20, ISSUER, ACCOUNT, METADATA, nonce=store.prepared["nonce"]
+        )
+        restored = restarted.restore_prepared(rebuilt, store.prepared)
+        recovered = await restarted.recover_prepared(restored, store.tx_hash)
+    assert result.state == recovered.state == ChainOperationState.UNKNOWN
+    assert result.error_code == recovered.error_code == "TRANSACTION_NOT_MATCHED"
+    assert len(sends) == 1
+
+
+async def test_lost_response_restart_recovers_original_transaction(manifest):
+    sends = []
+    shared_transport = transport(fault="response_lost", sends=sends)
+    async with httpx.AsyncClient(transport=shared_transport) as client:
+        first = JsonRpcBlockchainWriter("http://test", manifest, client=client)
+        store = FakePersistence()
+        prepared = await first.prepare_register_issuer("0x" + "55" * 20, ISSUER, ACCOUNT, METADATA)
+        unknown = await first.execute_prepared(prepared, store)
+        restarted = JsonRpcBlockchainWriter("http://test", manifest, client=client)
+        rebuilt = await restarted.prepare_register_issuer(
+            "0x" + "55" * 20, ISSUER, ACCOUNT, METADATA, nonce=store.prepared["nonce"]
+        )
+        restored = restarted.restore_prepared(rebuilt, store.prepared)
+        recovered = await restarted.recover_prepared(restored)
+    assert unknown.state == ChainOperationState.UNKNOWN
+    assert store.tx_hash is None
+    assert recovered.state == ChainOperationState.CONFIRMED
+    assert recovered.tx_hash == TX_HASH
+    assert len(sends) == 1
 
 
 async def test_invalid_input_does_not_submit(manifest):
@@ -420,3 +627,33 @@ async def test_restart_recovers_by_persisted_nonce_without_resending(manifest):
     assert recovered.tx_hash == TX_HASH
     assert recovered.recovery_id == reference["recovery_id"]
     assert sends == []
+
+
+async def test_receipt_rpc_outage_then_recovery_reuses_submission(manifest):
+    sends = []
+    original = transport(sends=sends)
+    outage = {"active": True}
+
+    def handle(request):
+        body = json.loads(request.content)
+        if outage["active"] and body["method"] == "eth_getTransactionReceipt":
+            raise httpx.ConnectError("temporary receipt RPC outage", request=request)
+        return original.handle_request(request)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+        adapter = JsonRpcBlockchainWriter(
+            "http://test", manifest, client=client, receipt_attempts=1, poll_interval=0
+        )
+        store = FakePersistence()
+        prepared = await adapter.prepare_register_issuer(
+            "0x" + "55" * 20, ISSUER, ACCOUNT, METADATA
+        )
+        unknown = await adapter.execute_prepared(prepared, store)
+        assert unknown.state == ChainOperationState.UNKNOWN
+        assert store.tx_hash == TX_HASH
+        outage["active"] = False
+        recovered = await adapter.recover_prepared(prepared, store.tx_hash)
+    assert recovered.state == ChainOperationState.CONFIRMED
+    assert recovered.tx_hash == unknown.tx_hash == TX_HASH
+    assert recovered.nonce == unknown.nonce
+    assert len(sends) == 1

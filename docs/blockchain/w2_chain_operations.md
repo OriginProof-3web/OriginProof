@@ -85,10 +85,19 @@ C는 `(deployment_id, sender, nonce)`를 DB unique constraint로 예약하고 �
 인스턴스의 동시 prepare 충돌만 줄이며 다중 프로세스의 내구성 경계가 아니다.
 동일 요청 재시도는 새 prepare를 호출하지 않고 저장된 참조로 recover한다.
 
-`submit_prepared`는 receipt를 기다리지 않고 `SUBMITTED + tx_hash`를 반환한다. 명시적
-RPC reject는 `FAILED`, 전송 timeout처럼 제출 여부가 불명확하면 tx hash 없이
-`UNKNOWN/SUBMISSION_UNKNOWN`이다. `confirm_prepared`만 receipt·canonical block·
-confirmation·최종 상태를 확인해 `CONFIRMED`를 반환한다.
+`submit_prepared`는 receipt를 기다리지 않고 `SUBMITTED + tx_hash`를 반환한다. 제출
+JSON-RPC 오류(`already known`, `nonce too low`, `execution reverted` 문자열 포함),
+전송 timeout·응답 유실은 채굴 실패의 증거가 아니므로 tx hash 없이
+`UNKNOWN/SUBMISSION_UNKNOWN`이다. 이때 로컬 nonce 예약을 해제하지 않는다. 노드
+오류의 숫자 code와 제한된 category는 Writer 내부 진단에만 보존하며 원문 오류·calldata는
+공개하지 않는다. 오류 메시지 일부만으로 확정 미제출을 선언하지 않는다.
+`confirm_prepared`는 receipt·canonical block에 더해 `eth_getTransactionByHash`의
+hash·from·nonce·to·input을 준비한 요청과 대조한다. 일치하지 않거나 거래 조회가
+불완전하면 `UNKNOWN/TRANSACTION_NOT_MATCHED`, RPC 조회 실패면
+`UNKNOWN/DEPENDENCY_UNAVAILABLE`다. 같은 검사가 저장된 hash의 재시작
+`recover_prepared`에도 적용된다. 확인된 canonical 실패 receipt만
+`FAILED/CHAIN_REVERTED`이고, 성공 receipt와 confirmation·최종 상태 재조회가 모두
+맞아야 `CONFIRMED`다.
 
 | Writer 결과 | C Operation 전이 | 처리 |
 | --- | --- | --- |
@@ -160,12 +169,27 @@ projection은 이력·표시 용도일 뿐 현재 Registry 상태의 권위가 �
 ## 오류와 안전 조건
 
 - 잘못된 ID, 주소, bytes32, 기간은 제출 전에 `ValueError`로 거부한다.
-- JSON-RPC가 명시적으로 transaction을 거부하면 `FAILED/CHAIN_REVERTED`다.
+- 제출 RPC 오류는 `UNKNOWN/SUBMISSION_UNKNOWN`이다. 제출 여부를 재조회하기 전
+  새 nonce·새 transaction으로 자동 재시도하지 않는다.
+- 거래 원본이 준비한 sender·nonce·contract·calldata와 다르면
+  `UNKNOWN/TRANSACTION_NOT_MATCHED`다. 저장된 tx hash도 신뢰하지 않고 재검사한다.
+- 준비한 거래의 canonical 실패 receipt가 확인된 경우에만 `FAILED/CHAIN_REVERTED`다.
 - 전송 중 연결 단절, receipt 미확인, 재조회 불일치는 `UNKNOWN`이다.
 - receipt transaction hash나 canonical block hash 불일치/reorg는 `UNKNOWN`이다.
 - manifest/chain/deployment/bytecode 불일치는 `UNKNOWN/DEPENDENCY_UNAVAILABLE`다.
 - receipt status 1이어도 상태 재조회가 일치하지 않으면 CONFIRMED가 아니다.
 - 미등록과 RPC/ABI/manifest 실패를 같은 결과로 축소하지 않는다.
+
+### W6 Writer 우선순위 1 보완과 C 호환성 (2026-10-02)
+
+검증 코드 SHA `65b041e`. 기존 C `ChainManagement.run`은 `UNKNOWN`이면 저장된
+`recovery_reference`와 가능하면 tx hash로 `recover_prepared`를 호출하고,
+`FAILED`만 종료 상태로 취급한다. 새 `TRANSACTION_NOT_MATCHED`는 동일한 문자열
+`error_code` 필드에 들어가므로 Schema 변경은 없다. C는 이 UNKNOWN을 성공·확정
+실패로 바꾸지 말고, 동일 Operation의 저장된 sender·nonce·입력으로 조회해야 한다.
+과거 버전이 제출 RPC 오류만으로 이미 `FAILED`로 저장한 Operation은 자동 재시도
+대상이 아니므로 별도 감사·복구 판단이 필요하다. 실제 C DB 재시작 연결 검사는
+아직 수행하지 않았다.
 
 ## 검증 결과
 

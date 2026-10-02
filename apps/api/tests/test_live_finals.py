@@ -8,6 +8,8 @@ from uuid import uuid4
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from infrastructure.blockchain import JsonRpcBlockchainReader
+from infrastructure.blockchain.reader import digest
 from infrastructure.blockchain.writer import ChainOperationState
 from originproof_api.accounts import password_hash
 from originproof_api.database import AccountRow, Database, FinalsProofRow
@@ -30,7 +32,7 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-async def test_live_two_types_signing_storage_and_comparison(tmp_path):
+async def test_live_two_types_signing_storage_and_comparison(tmp_path, monkeypatch):
     suffix = uuid4().hex[:12]
     settings = Settings(
         database_url=os.environ["TEST_DATABASE_URL"],
@@ -139,8 +141,8 @@ async def test_live_two_types_signing_storage_and_comparison(tmp_path):
                 query = {"request_id": f"req_verify_{suffix}"}
                 result = await anonymous.post(f"/v2/proofs/{proof_id}/verify", json=query)
                 assert result.json()["verification_status"] == "VERIFIED", result.text
-                assert result.json()["lifecycle_status"] is None
-                assert result.json()["checks"]["proof_status"] == "NOT_RUN"
+                assert result.json()["lifecycle_status"] == "ACTIVE"
+                assert result.json()["checks"]["proof_status"] == "PASS"
                 candidate = content.copy()
                 candidate.pop("proof_type")
                 result = await recipient.post(
@@ -266,5 +268,294 @@ async def test_live_two_types_signing_storage_and_comparison(tmp_path):
                 historical = await anonymous.post(f"/v2/proofs/{proof_id}/verify", json=query)
                 assert historical.json()["verification_status"] == "VERIFIED"
                 assert "ISSUER_KEY_REVOKED" in historical.json()["reason_codes"]
+                # W4 lifecycle uses real submitted transactions and current chain reads.
+                current_id = subsequent.json()["proof_id"]
+                use_path = f"/v2/proofs/{current_id}/consume"
+                use_body = {"request_id": f"req_use_{kind}_{suffix}"}
+                assert (await anonymous.post(use_path, json=use_body)).status_code == 401
+                assert (await admin.post(use_path, json=use_body)).status_code == 404
+                other_client = office if client is bank else bank
+                assert (await other_client.post(use_path, json=use_body)).status_code == 404
+                assert (
+                    await recipient.post(use_path, json=use_body, headers={"X-CSRF-Token": "wrong"})
+                ).status_code == 403
+                assert (
+                    await recipient.post(
+                        use_path,
+                        json=use_body
+                        | {
+                            "actor_binding": "0x" + "ff" * 32,
+                        },
+                    )
+                ).status_code == 422
+                assert (
+                    await recipient.post(
+                        f"/v2/issuer/proofs/{current_id}/revoke",
+                        json={
+                            "request_id": f"req_recipient_revoke_{suffix}",
+                            "reason": "synthetic",
+                        },
+                    )
+                ).status_code == 403
+
+                # A real dead RPC endpoint must hold validity; no W3 NOT_RUN fallback.
+                manager = app.state.chain_management
+                original_reader = manager.reader
+                manager.reader = lambda issuer_id: JsonRpcBlockchainReader(
+                    "http://127.0.0.1:1",
+                    settings.blockchain_manifest_path,
+                    issuer_ids=[issuer_id],
+                    expected_chain_id=31337,
+                    timeout=0.2,
+                )
+                try:
+                    held = await anonymous.post(f"/v2/proofs/{current_id}/verify", json=query)
+                    assert held.json()["verification_status"] == "INCONCLUSIVE"
+                    assert held.json()["lifecycle_status"] is None
+                    assert held.json()["reason_codes"] == ["DEPENDENCY_UNAVAILABLE"]
+                finally:
+                    manager.reader = original_reader
+
+                # Suspension is current state, while cryptographic verification still passes.
+                issuer_id = envelope.issuer_id
+                suspended = await admin.post(
+                    f"/v1/operator/issuers/{issuer_id}/suspend",
+                    json={
+                        "request_id": f"req_suspend_{kind}_{suffix}",
+                        "reason": "synthetic",
+                    },
+                )
+                assert suspended.json()["status"] == "CONFIRMED", suspended.text
+                held = await anonymous.post(f"/v2/proofs/{current_id}/verify", json=query)
+                assert held.json()["verification_status"] == "VERIFIED"
+                assert held.json()["lifecycle_status"] == "ISSUER_SUSPENDED"
+                assert (await recipient.post(use_path, json=use_body)).status_code == 409
+                resumed = await admin.post(
+                    f"/v1/operator/issuers/{issuer_id}/reactivate",
+                    json={
+                        "request_id": f"req_resume_{kind}_{suffix}",
+                        "reason": "synthetic",
+                    },
+                )
+                assert resumed.json()["status"] == "CONFIRMED", resumed.text
+
+                if kind == "PAYMENT_REQUEST":
+                    # A real status=0 consume receipt does not consume or report success.
+                    original_prepare_consume = writer.prepare_consume_proof
+
+                    async def unauthorized_consume(
+                        *args,
+                        _prepare=original_prepare_consume,
+                        _sender=manager.manifest.roles["registry_admin"],
+                        **kwargs,
+                    ):
+                        return await _prepare(_sender, *args[1:], **kwargs)
+
+                    writer.prepare_consume_proof = unauthorized_consume
+                    try:
+                        failed_use = await recipient.post(
+                            use_path,
+                            json={
+                                "request_id": f"req_failed_use_{suffix}",
+                            },
+                        )
+                        assert failed_use.json()["status"] == "FAILED", failed_use.text
+                    finally:
+                        writer.prepare_consume_proof = original_prepare_consume
+                    actual = await original_reader(issuer_id).get_proof_state(
+                        current_id, datetime.now(UTC)
+                    )
+                    assert actual.consumed_at is None
+                    original_confirm_consume = writer.confirm_prepared
+
+                    async def hold_consume(prepared, tx_hash, _confirm=original_confirm_consume):
+                        confirmed = await _confirm(prepared, tx_hash)
+                        if prepared.action == "consume_proof":
+                            assert confirmed.state == ChainOperationState.CONFIRMED
+                            return replace(
+                                confirmed,
+                                state=ChainOperationState.UNKNOWN,
+                                error_code="STATE_NOT_CONFIRMED",
+                            )
+                        return confirmed
+
+                    writer.confirm_prepared = hold_consume
+                    try:
+                        attempts = await asyncio.gather(
+                            client.post(use_path, json=use_body),
+                            recipient.post(use_path, json={"request_id": f"req_race_{suffix}"}),
+                        )
+                    finally:
+                        writer.confirm_prepared = original_confirm_consume
+                    assert sorted(r.status_code for r in attempts) == [200, 409], [
+                        r.text for r in attempts
+                    ]
+                    index = 0 if attempts[0].status_code == 200 else 1
+                    winning_client = client if index == 0 else recipient
+                    winning = attempts[index].json()
+                    assert winning["status"] == "UNKNOWN"
+                    retried = await winning_client.post(
+                        use_path, json={"request_id": winning["request_id"]}
+                    )
+                    assert retried.json()["operation_id"] == winning["operation_id"]
+                    assert retried.json()["status"] == "CONFIRMED"
+                    assert retried.json()["tx_hash"] == winning["tx_hash"]
+                    replay = await recipient.post(
+                        use_path, json={"request_id": f"req_replay_{suffix}"}
+                    )
+                    assert (
+                        replay.status_code == 409 and replay.json()["detail"] == "REPLAY_DETECTED"
+                    )
+                    held = await anonymous.post(f"/v2/proofs/{current_id}/verify", json=query)
+                    assert held.json()["lifecycle_status"] == "CONSUMED"
+                else:
+                    rejected = await recipient.post(use_path, json=use_body)
+                    assert (
+                        rejected.status_code == 409
+                        and rejected.json()["detail"] == "PROOF_NOT_SINGLE_USE"
+                    )
+                revoke_path = f"/v2/issuer/proofs/{current_id}/revoke"
+                revoke_body = {
+                    "request_id": f"req_revoke_proof_{kind}_{suffix}",
+                    "reason": "synthetic",
+                }
+                revoked = await client.post(revoke_path, json=revoke_body)
+                assert revoked.json()["status"] == "CONFIRMED", revoked.text
+                repeated = await client.post(
+                    revoke_path,
+                    json=revoke_body
+                    | {
+                        "request_id": f"req_no_change_{kind}_{suffix}",
+                    },
+                )
+                assert repeated.json()["chain_evidence"]["no_change"]
+                assert repeated.json()["tx_hash"] is None
+                state = await original_reader(issuer_id).get_proof_state(
+                    current_id, datetime.now(UTC)
+                )
+                assert (state.consumed_at is not None) == (kind == "PAYMENT_REQUEST")
+                held = await anonymous.post(f"/v2/proofs/{current_id}/verify", json=query)
+                assert held.json()["verification_status"] == "VERIFIED"
+                assert held.json()["lifecycle_status"] == "PROOF_REVOKED"
+                async with AsyncClient() as rpc:
+                    logs_response = await rpc.post(
+                        settings.blockchain_rpc_url,
+                        json={
+                            "jsonrpc": "2.0",
+                            "id": 1,
+                            "method": "eth_getLogs",
+                            "params": [
+                                {
+                                    "address": manager.manifest.contract(
+                                        "ProofStatusRegistry"
+                                    ).address,
+                                    "fromBlock": "0x0",
+                                    "toBlock": "latest",
+                                    "topics": [None, "0x" + digest(current_id).hex()],
+                                }
+                            ],
+                        },
+                    )
+                events = [log["topics"][0] for log in logs_response.json()["result"]]
+                assert (
+                    events.count("0x" + digest("ProofRegistered(bytes32,bytes32,bytes32)").hex())
+                    == 1
+                )
+                assert events.count("0x" + digest("ProofRevoked(bytes32,uint64)").hex()) == 1
+                assert events.count("0x" + digest("ProofConsumed(bytes32,uint8,uint64)").hex()) == (
+                    1 if kind == "PAYMENT_REQUEST" else 0
+                )
+
+                if kind == "PAYMENT_REQUEST":
+                    original_confirm = writer.confirm_prepared
+
+                    async def hold_registration(prepared, tx_hash, _confirm=original_confirm):
+                        confirmed = await _confirm(prepared, tx_hash)
+                        if prepared.action == "register_proof":
+                            assert confirmed.state == ChainOperationState.CONFIRMED
+                            return replace(
+                                confirmed,
+                                state=ChainOperationState.UNKNOWN,
+                                error_code="STATE_NOT_CONFIRMED",
+                            )
+                        return confirmed
+
+                    writer.confirm_prepared = hold_registration
+                    try:
+                        pending = await client.post(
+                            "/v2/issuer/proofs",
+                            json=body
+                            | {
+                                "request_id": f"req_pending_registration_{suffix}",
+                            },
+                        )
+                        assert pending.json()["registration_status"] == "UNKNOWN", pending.text
+                    finally:
+                        writer.confirm_prepared = original_confirm
+                    pending_id = pending.json()["proof_id"]
+                    held = await anonymous.post(f"/v2/proofs/{pending_id}/verify", json=query)
+                    assert held.json()["verification_status"] == "INCONCLUSIVE"
+                    assert held.json()["lifecycle_status"] is None
+                    assert held.json()["reason_codes"] == ["REGISTRATION_PENDING"]
+                    recovered = await client.post(
+                        f"/v1/operations/{pending.json()['registration_operation_id']}/recover"
+                    )
+                    assert recovered.json()["status"] == "CONFIRMED", recovered.text
+
+                    held = await anonymous.post(f"/v2/proofs/{pending_id}/verify", json=query)
+                    assert held.json()["lifecycle_status"] == "ACTIVE"
+                    # Mine an actual expiry and use the same controlled time in API evaluation.
+                    moment = datetime.now(UTC).replace(microsecond=0)
+                    expiring = await client.post(
+                        "/v2/issuer/proofs",
+                        json=body
+                        | {
+                            "request_id": f"req_expiring_{suffix}",
+                            "expires_at": (moment + timedelta(minutes=2)).isoformat(),
+                        },
+                    )
+                    assert expiring.json()["registration_status"] == "CONFIRMED", expiring.text
+                    async with AsyncClient() as rpc:
+                        await rpc.post(
+                            settings.blockchain_rpc_url,
+                            json={
+                                "jsonrpc": "2.0",
+                                "id": 2,
+                                "method": "evm_increaseTime",
+                                "params": [125],
+                            },
+                        )
+                        await rpc.post(
+                            settings.blockchain_rpc_url,
+                            json={
+                                "jsonrpc": "2.0",
+                                "id": 3,
+                                "method": "evm_mine",
+                                "params": [],
+                            },
+                        )
+                    from originproof_api import finals_proofs
+
+                    class Clock(datetime):
+                        @classmethod
+                        def now(cls, tz=None):
+                            return datetime.now(tz) + timedelta(seconds=125)
+
+                    with monkeypatch.context() as clock:
+                        clock.setattr(finals_proofs, "datetime", Clock)
+                        expiring_id = expiring.json()["proof_id"]
+                        expired = await anonymous.post(
+                            f"/v2/proofs/{expiring_id}/verify", json=query
+                        )
+                        assert expired.json()["verification_status"] == "VERIFIED"
+                        assert expired.json()["lifecycle_status"] == "EXPIRED"
+                        assert (
+                            await recipient.post(
+                                f"/v2/proofs/{expiring_id}/consume",
+                                json={
+                                    "request_id": f"req_expired_use_{suffix}",
+                                },
+                            )
+                        ).status_code == 409
     finally:
         await database.dispose()

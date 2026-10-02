@@ -12,12 +12,15 @@ from originproof_api.finals_proofs import (
     IssueInput,
     PaymentIssue,
     ProofContent,
+    ProofMutation,
+    ProofReconciliation,
     ProofView,
     RecipientView,
     VerifyInput,
 )
 from originproof_api.main import create_app
 from originproof_api.operations import AuditView, OperationView
+from originproof_api.projection import SyncView
 
 OUTPUT = ROOT / "packages/schemas/generated"
 
@@ -28,7 +31,7 @@ def main():
         encoding="utf-8",
     )
     schemas = {
-        model.__name__: model.model_json_schema()
+        model.__name__: model.model_json_schema(mode="serialization")
         for model in (
             AccountView,
             LoginInput,
@@ -42,11 +45,14 @@ def main():
             IssuerView,
             OperationView,
             AuditView,
+            SyncView,
             PaymentIssue,
             DocumentIssue,
             IssueInput,
             ProofView,
             ProofContent,
+            ProofReconciliation,
+            ProofMutation,
             RecipientView,
             ComparisonInput,
             VerifyInput,
