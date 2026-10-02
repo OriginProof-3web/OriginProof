@@ -76,28 +76,41 @@ async def seed_p0(password: str) -> None:
 def synthetic_password(path: Path) -> str:
     """Local-only seed credential survives restarts; never printed or passed in argv."""
     path.parent.mkdir(parents=True, mode=0o700, exist_ok=True)
+    root_fd = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
     try:
-        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
-    except FileExistsError:
-        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
-        with os.fdopen(fd) as stream:
-            info = os.fstat(stream.fileno())
-            if (
-                not stat.S_ISREG(info.st_mode)
-                or info.st_nlink != 1
-                or (stat.S_IMODE(info.st_mode) != 0o600 or info.st_uid != os.getuid())
-            ):
-                raise ValueError("unsafe seed credential file") from None
-            value = json.load(stream)["password"]
-            if not isinstance(value, str) or len(value) < 12:
-                raise ValueError("invalid seed credential") from None
-            return value
-    password = secrets.token_urlsafe(24)
-    with os.fdopen(fd, "w") as stream:
-        json.dump({"password": password}, stream)
-        stream.flush()
-        os.fsync(stream.fileno())
-    return password
+        info = os.fstat(root_fd)
+        if info.st_mode & 0o077 or info.st_uid != os.getuid():
+            raise ValueError("seed credential directory must be owned and private")
+        try:
+            fd = os.open(
+                path.name,
+                os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                0o600,
+                dir_fd=root_fd,
+            )
+        except FileExistsError:
+            fd = os.open(path.name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=root_fd)
+            with os.fdopen(fd) as stream:
+                info = os.fstat(stream.fileno())
+                if (
+                    not stat.S_ISREG(info.st_mode)
+                    or info.st_nlink != 1
+                    or (stat.S_IMODE(info.st_mode) != 0o600 or info.st_uid != os.getuid())
+                ):
+                    raise ValueError("unsafe seed credential file") from None
+                value = json.load(stream)["password"]
+                if not isinstance(value, str) or len(value) < 12:
+                    raise ValueError("invalid seed credential") from None
+                return value
+        password = secrets.token_urlsafe(24)
+        with os.fdopen(fd, "w") as stream:
+            json.dump({"password": password}, stream)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.fsync(root_fd)
+        return password
+    finally:
+        os.close(root_fd)
 
 
 def main() -> None:
@@ -108,9 +121,7 @@ def main() -> None:
     parser.add_argument("--p0", action="store_true")
     args = parser.parse_args()
     if args.p0:
-        password = synthetic_password(
-            Path(Settings().signer_directory) / "test-accounts.json"
-        )
+        password = synthetic_password(Path(Settings().signer_directory) / "test-accounts.json")
         asyncio.run(seed_p0(password))
         print("P0 synthetic accounts ready; local credential file: test-accounts.json (0600)")
         return

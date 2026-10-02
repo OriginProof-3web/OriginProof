@@ -78,6 +78,7 @@ async def test_sync_status_never_exposes_stale_projection_as_current(finals):
 async def test_not_prepared_runtime_is_503_without_sensitive_errors():
     class Unavailable:
         session_factory = None
+
         async def ping(self):
             raise RuntimeError("synthetic database password must not appear")
 
@@ -108,3 +109,8 @@ def test_local_seed_password_is_preserved_and_links_are_rejected(tmp_path):
     os.link(path, hard)
     with pytest.raises(ValueError, match="unsafe"):
         seed.synthetic_password(path)
+
+    fifo = tmp_path / "fifo"
+    os.mkfifo(fifo)
+    with pytest.raises(ValueError, match="unsafe"):
+        seed.synthetic_password(fifo)
