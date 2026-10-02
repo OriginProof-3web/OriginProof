@@ -212,3 +212,104 @@ def test_reorg_requires_verified_common_ancestor(tmp_path):
         assert store.checkpoint(31337, DEPLOYMENT) == (2, block_hash(9))
     finally:
         engine.dispose()
+
+
+def test_confirmed_scan_skips_tip_and_recovers_fork(tmp_path):
+    engine = create_engine("sqlite:///" + str(tmp_path / "confirmed.db"))
+    proof = "0x" + "11" * 32
+    hashes = {number: block_hash(number) for number in range(1, 6)}
+    chain = {"tip": 3}
+    logs = {
+        1: [ProofLog(event(1, hashes[1]), proof, "REGISTERED")],
+        3: [ProofLog(event(3, hashes[3]), proof, "CONSUMED")],
+    }
+    try:
+        store = ProjectionStore(engine)
+        store.initialize()
+
+        def sync():
+            return store.sync_confirmed(
+                31337,
+                DEPLOYMENT,
+                1,
+                lambda: chain["tip"],
+                hashes.__getitem__,
+                lambda number: logs.get(number, ()),
+            )
+
+        assert sync() == (2, hashes[2])
+        assert store.projected_proof_status(31337, DEPLOYMENT, proof) == "ACTIVE"
+        chain["tip"] = 4
+        assert sync() == (3, hashes[3])
+        assert store.projected_proof_status(31337, DEPLOYMENT, proof) == "CONSUMED"
+        hashes[3] = block_hash(9)
+        logs[3] = [ProofLog(event(3, hashes[3]), proof, "REVOKED")]
+        with pytest.raises(ValueError, match="current deployment chain"):
+            store.verified_projected_proof_status(
+                31337,
+                DEPLOYMENT,
+                proof,
+                3,
+                hashes.__getitem__,
+            )
+        assert sync() == (3, hashes[3])
+        assert store.projected_proof_status(31337, DEPLOYMENT, proof) == "REVOKED"
+        assert (
+            store.verified_projected_proof_status(
+                31337,
+                DEPLOYMENT,
+                proof,
+                3,
+                hashes.__getitem__,
+            )
+            == "REVOKED"
+        )
+        with pytest.raises(ValueError, match="not confirmed"):
+            store.verified_projected_proof_status(
+                31337,
+                DEPLOYMENT,
+                proof,
+                2,
+                hashes.__getitem__,
+            )
+        assert sync() == (3, hashes[3])
+    finally:
+        engine.dispose()
+
+
+def test_confirmed_scan_rpc_error_and_moving_head_do_not_advance(tmp_path):
+    engine = create_engine("sqlite:///" + str(tmp_path / "unstable.db"))
+    hashes = {number: block_hash(number) for number in range(1, 5)}
+    chain = {"tip": 3, "fail": False}
+    try:
+        store = ProjectionStore(engine)
+        store.initialize()
+
+        def logs_at(number):
+            if chain["fail"] and number == 3:
+                raise ConnectionError("RPC outage")
+            return ()
+
+        def sync():
+            return store.sync_confirmed(
+                31337,
+                DEPLOYMENT,
+                1,
+                lambda: chain["tip"],
+                hashes.__getitem__,
+                logs_at,
+            )
+
+        assert sync() == (2, hashes[2])
+        chain.update(tip=4, fail=True)
+        with pytest.raises(ConnectionError, match="RPC outage"):
+            sync()
+        assert store.checkpoint(31337, DEPLOYMENT) == (2, hashes[2])
+        chain["fail"] = False
+        assert sync() == (3, hashes[3])
+        chain["tip"] = 3
+        with pytest.raises(ValueError, match="outside confirmed"):
+            sync()
+        assert store.checkpoint(31337, DEPLOYMENT) == (3, hashes[3])
+    finally:
+        engine.dispose()

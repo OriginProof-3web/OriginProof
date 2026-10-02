@@ -315,6 +315,52 @@ class ProjectionStore:
                 )
         return True
 
+    def sync_confirmed(
+        self,
+        chain_id,
+        deployment_id,
+        deployment_block,
+        latest_block_at,
+        block_hash_at,
+        logs_at,
+        confirmations=2,
+    ):
+        """Advance only through confirmed canonical blocks; leave RPC failures visible."""
+
+        self._deployment_id(deployment_id)
+        if (
+            type(deployment_block) is not int
+            or deployment_block < 0
+            or type(confirmations) is not int
+            or confirmations < 1
+        ):
+            raise ValueError("invalid scan boundary")
+        tip = latest_block_at()
+        if type(tip) is not int or tip < 0:
+            raise ValueError("invalid chain tip")
+        confirmed_tip = tip - confirmations + 1
+        checkpoint = self.checkpoint(chain_id, deployment_id)
+        if checkpoint is not None:
+            if checkpoint[0] < deployment_block or checkpoint[0] > confirmed_tip:
+                raise ValueError("checkpoint outside confirmed deployment range")
+            if block_hash_at(checkpoint[0]) != checkpoint[1]:
+                checkpoint = self.recover_reorg(chain_id, deployment_id, block_hash_at)
+        start = deployment_block if checkpoint is None else checkpoint[0] + 1
+        for number in range(start, confirmed_tip + 1):
+            block_hash = block_hash_at(number)
+            logs = logs_at(number)
+            if block_hash_at(number) != block_hash:
+                raise ValueError("block changed while fetching logs")
+            self.apply_block(chain_id, deployment_id, number, block_hash, logs)
+            if block_hash_at(number) != block_hash:
+                raise ValueError("block changed after checkpoint write")
+        checkpoint = self.checkpoint(chain_id, deployment_id)
+        if checkpoint is not None and block_hash_at(checkpoint[0]) != checkpoint[1]:
+            raise ValueError("checkpoint changed before scan completed")
+        if latest_block_at() < confirmed_tip + confirmations - 1:
+            raise ValueError("chain tip rolled back during scan")
+        return checkpoint
+
     def projected_proof_status(self, chain_id, deployment_id, proof_id_hash):
         """Historical event projection only; live authorization uses Reader."""
 
@@ -335,6 +381,19 @@ class ProjectionStore:
             if row is None
             else {"REGISTERED": "ACTIVE", "REVOKED": "REVOKED", "CONSUMED": "CONSUMED"}[row[0]]
         )
+
+    def verified_projected_proof_status(
+        self, chain_id, deployment_id, proof_id_hash, confirmed_tip, block_hash_at
+    ):
+        """Read historical status only while its checkpoint remains canonical and confirmed."""
+
+        checkpoint = self.verified_checkpoint(chain_id, deployment_id, block_hash_at)
+        if checkpoint is None or type(confirmed_tip) is not int or checkpoint[0] > confirmed_tip:
+            raise ValueError("projection is not confirmed")
+        status = self.projected_proof_status(chain_id, deployment_id, proof_id_hash)
+        if block_hash_at(checkpoint[0]) != checkpoint[1]:
+            raise ValueError("projection changed while reading")
+        return status
 
     @staticmethod
     def _deployment_id(value):
