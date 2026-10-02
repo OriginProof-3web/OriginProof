@@ -41,3 +41,10 @@
 - C #35/#36, B #40은 미병합 PR입니다. phase의 실제 통합 결과·D 독립 clean 재현·작성자 외
   리뷰·CI 성공을 대체하지 않습니다.
 - AI 추출 provider, Proof 폐기·consume, 공개 가입은 W3 P0 완료 근거에 포함하지 않습니다.
+
+## PR 제출 전 clean archive 재현
+
+- 사용자님이 2026-10-02 PR 제출을 요청한 뒤 커밋 `52e794c`를 git archive로 별도 디렉터리에 추출했습니다.
+- 루트 `pnpm install --frozen-lockfile` 후 웹 lint·typecheck·component(15 passed)·production build가 모두 통과했습니다. 기존 autoprefixer end 경고는 유지됩니다.
+- 이 커밋은 앞선 웹 검사 이후 문서·추가 검사 증거·공백 정리만 포함합니다. clean archive 브라우저 재실행은 하지 않았고, 실제 웹 browser 10 passed 증거는 앞선 기존 작업 트리/production 서버 검사입니다.
+- 커밋 이후 추가된 이 절은 기록만 변경합니다. 작성자 외 리뷰와 CI는 제출 후 확인 대상입니다.
