@@ -219,9 +219,21 @@ async def test_live_reader_and_m1_api():
                         "CONSUMED",
                         "REVOKED",
                     ]
-                    for log in proof_logs:
-                        assert projection.apply_proof_log(log)
-                        assert not projection.apply_proof_log(log)
+                    tip = int(await rpc("eth_blockNumber", []), 16)
+                    for number in range(manifest["deployment_block"], tip + 1):
+                        block = await rpc("eth_getBlockByNumber", [hex(number), False])
+                        logs = [log for log in proof_logs if log.event.block_number == number]
+                        assert projection.apply_block(
+                            31337, manifest["deployment_id"], number, block["hash"], logs
+                        )
+                        assert not projection.apply_block(
+                            31337, manifest["deployment_id"], number, block["hash"], logs
+                        )
+                    assert projection.verified_checkpoint(
+                        31337,
+                        manifest["deployment_id"],
+                        lambda number: block["hash"] if number == tip else None,
+                    ) == (tip, block["hash"])
                     proof_hash = "0x" + chain_digest(proof_id).hex()
                     assert (
                         projection.projected_proof_status(

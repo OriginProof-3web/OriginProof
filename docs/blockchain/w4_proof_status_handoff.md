@@ -73,7 +73,8 @@ Operation/Proof를 새 체인의 ACTIVE로 간주하지 않는다.
 중복 적용하지 않는다. `projected_proof_status`는 이벤트 이력 표시용이다. 실제 EVM
 `eth_getLogs` 요청은 새 Proof contract 주소와 세 topic을 필터링해야 한다. 배포 시
 OpenZeppelin 권한 event도 나오므로 전체 로그를 무조건 Proof decoder에 보내지 않는다.
-checkpoint 공통 조상 검증·복구 강화는 W5-B1/B2 범위이며 현재 체인 Reader가 판정 권위다.
+checkpoint 공통 조상 검증·복구 경계는 [W5-B 인계](w5_indexer_recovery_handoff.md)에 기록한다.
+현재 체인 Reader가 판정 권위다.
 
 W3에 DB만 저장된 Proof의 소급 등록은 C가 보존된 검증 envelope를 다시 확인하고 새
 Operation으로 진행해야 한다. 재서명하거나 미등록 Proof를 ACTIVE로 추정하지 않는다.

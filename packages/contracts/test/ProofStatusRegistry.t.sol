@@ -36,6 +36,8 @@ contract ProofStatusRegistryTest is Test {
     }
 
     function testRegistrationIsImmutableAndCallerRestricted() public {
+        vm.expectRevert(ProofStatusRegistry.UnauthorizedIssuerOperator.selector);
+        proofs.registerProof(PROOF, ISSUER, KEY, DIGEST, SUBJECT, 120, 250, true);
         vm.prank(outsider);
         vm.expectRevert(ProofStatusRegistry.UnauthorizedIssuerOperator.selector);
         proofs.registerProof(PROOF, ISSUER, KEY, DIGEST, SUBJECT, 120, 250, true);
@@ -99,6 +101,11 @@ contract ProofStatusRegistryTest is Test {
 
     function testOnlyGatewayCanConsumeAndOnlyOnce() public {
         _register(true);
+        vm.expectRevert();
+        proofs.consumeProof(PROOF, ProofStatusRegistry.ConsumeActorKind.RECIPIENT, SUBJECT);
+        vm.prank(issuer);
+        vm.expectRevert();
+        proofs.consumeProof(PROOF, ProofStatusRegistry.ConsumeActorKind.RECIPIENT, SUBJECT);
         vm.prank(outsider);
         vm.expectRevert();
         proofs.consumeProof(PROOF, ProofStatusRegistry.ConsumeActorKind.RECIPIENT, SUBJECT);
