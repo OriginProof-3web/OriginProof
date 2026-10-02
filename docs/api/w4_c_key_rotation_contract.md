@@ -2,7 +2,7 @@
 
 - C / @Jordi2801K. 선행 W3 C 작업 PR #35, branch feat/w4-c-key-rotation.
 - C 구현·HTTP/DB/서명 및 실제 PostgreSQL·Anvil 확인 완료. A W4-A1 화면·B 소비자 리뷰·D 독립 검증 대기.
-- W4-C2/C3 및 Proof lifecycle/consume은 포함하지 않습니다.
+- 이 문서는 최초 W4-C1 범위입니다. W4-C2/C3 후속은 [lifecycle 인계](w4_c_proof_lifecycle_contract.md)에 구현·연결 근거를 기록했습니다.
 
 ## 호출과 상태
 
@@ -30,7 +30,7 @@ W3 발행이 같은 PostgreSQL advisory lock으로 선택·실제 기관/키·�
 과거 Proof는 서명된 key_id의 실제 signer와 발행 당시 기간을 확인합니다.
 정상 교체 및 키 기간 종료만으로 과거 정상 서명을 무효화하지 않습니다.
 유출 폐기는 과거 서명이 맞더라도 ISSUER_KEY_REVOKED 원인을 반환합니다.
-아직 없는 ProofStatusRegistry는 NOT_RUN/null이므로 현재 사용 가능 성공을 주장하지 않습니다.
+최초 W4-C1 branch의 ProofStatusRegistry는 NOT_RUN/null이었습니다. W4-C2/C3 후속 branch는 실제 Registry/lifecycle을 연결하며 정상 교체와 유출 폐기의 현재 상태를 분리합니다.
 
 ## 검증·인계
 
