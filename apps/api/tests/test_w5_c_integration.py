@@ -108,3 +108,27 @@ def test_local_seed_password_is_preserved_and_links_are_rejected(tmp_path):
     os.link(path, hard)
     with pytest.raises(ValueError, match="unsafe"):
         seed.synthetic_password(path)
+
+
+async def test_reconciliation_separates_db_confirmation_from_live_chain(finals):
+    client, manager, selected, accounts, _, _ = finals
+    proof = (await client.post("/v2/issuer/proofs", json=w3.body())).json()
+    path = f"/v2/issuer/proofs/{proof['proof_id']}/reconciliation"
+    response = await client.get(path)
+    assert response.json()["database_registration_status"] == "CONFIRMED"
+    assert response.json()["registration_consistent"] is True
+    assert response.json()["authority"] == "CANONICAL_READER"
+    assert "payload" not in response.json()
+    selected[0] = accounts[2]
+    assert (await client.get(path)).status_code == 404
+    selected[0] = accounts[1]
+    saved = manager.proof_states.pop(proof["proof_id"])
+    response = await client.get(path)
+    assert response.json()["database_registration_status"] == "CONFIRMED"
+    assert response.json()["registration_consistent"] is False
+    assert response.json()["current_verification"]["verification_status"] == "NOT_REGISTERED"
+    manager.proof_states[proof["proof_id"]] = saved
+    manager.rpc_failure = True
+    response = await client.get(path)
+    assert response.json()["registration_consistent"] is None
+    assert response.json()["current_verification"]["verification_status"] == "INCONCLUSIVE"

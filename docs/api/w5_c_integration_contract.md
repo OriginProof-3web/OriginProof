@@ -15,6 +15,9 @@ B의 Adapter/ProjectionStore 코드는 수정하지 않았습니다. A/B/D 작�
 - `GET /v1/audit-events?target_id=...&limit=100&offset=0`: 운영자/자기 기관만 허용합니다.
   기본 100, 최대 200. 기존 배열 응답 유지. 예약과 SUBMITTED 저장에 감사 이벤트를 같은
   DB transaction으로 추가해 주체·대상·전후 상태·시각을 추적합니다.
+- `GET /v2/issuer/proofs/{proof_id}/reconciliation`: 운영자/발행 기관이 DB 등록 상태와
+  현재 Reader 검증을 함께 조회합니다. `registration_consistent`는 true/false/보류(null),
+  `deployment_matches`는 DB와 현재 manifest의 배포 일치입니다. payload·binding 원문은 없습니다.
 - `GET /v1/chain-sync`: 운영자/발행자용 역사 projection 진행 상태입니다.
   STARTING / SYNCED / CATCHING_UP / WAITING_CONFIRMATIONS / RECOVERING / STALE / DISABLED.
   `authority=HISTORICAL_EVENTS_ONLY`를 명시합니다. 현 사용 가능성은 기존 v2 Reader 검증입니다.
