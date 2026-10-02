@@ -190,7 +190,7 @@ class ChainManagement:
                 operation.issuer_id,
                 nonce=nonce,
             )
-        elif operation.action == "register_key":
+        elif operation.action in ("register_key", "rotate_key"):
             key_id = "key_" + operation.operation_id.removeprefix("op_")
             async with self.database.session_factory() as db:
                 row = await db.get(IssuerKeyRow, key_id)
@@ -283,7 +283,7 @@ class ChainManagement:
             }
             if row.status == "CONFIRMED":
                 await self.confirm_target(db, row)
-            elif row.action == "register_key" and row.status == "FAILED":
+            elif row.action in ("register_key", "rotate_key") and row.status == "FAILED":
                 key = await db.get(IssuerKeyRow, "key_" + row.operation_id[3:])
                 if key:
                     key.status = "REGISTRATION_FAILED"
@@ -319,8 +319,29 @@ class ChainManagement:
                 "reactivate_issuer": "ACTIVE",
                 "revoke_issuer": "REVOKED",
             }[row.action]
-        elif row.action == "register_key":
+        elif row.action in ("register_key", "rotate_key"):
             key = await db.get(IssuerKeyRow, "key_" + row.operation_id[3:])
+            key.status = "ACTIVE"
+            now = int(datetime.now(UTC).timestamp())
+            if not key.valid_from <= now < key.valid_until:
+                return  # Registered future/expired keys do not replace the current issuing key.
+            verify_signer(self.settings.signer_directory, key.secret_ref, key.signer)
+            selected = await db.scalar(
+                select(IssuerKeyRow).where(
+                    IssuerKeyRow.issuer_id == row.issuer_id, IssuerKeyRow.selected.is_(True)
+                )
+            )
+            if selected is not None and selected.key_id != key.key_id:
+                prior = await db.get(OperationRow, "op_" + selected.key_id.removeprefix("key_"))
+                previous_ref = prior.recovery_reference if prior else None
+                reference = row.recovery_reference
+                if (
+                    previous_ref
+                    and reference
+                    and previous_ref["sender"] == reference["sender"]
+                    and previous_ref["nonce"] > reference["nonce"]
+                ):
+                    return  # Recovering an older registration must not undo a later key switch.
             await db.execute(
                 update(IssuerKeyRow)
                 .where(IssuerKeyRow.issuer_id == row.issuer_id)
@@ -470,6 +491,7 @@ async def issuer_status(
     )
 
 
+@router.post("/v1/issuer/keys/rotate", response_model=OperationView)
 @router.post("/v1/issuer/keys", response_model=OperationView)
 async def register_key(
     body: KeyInput,
@@ -477,13 +499,26 @@ async def register_key(
     identity: Annotated[tuple[AccountRow, SessionRow], Depends(current_session)],
 ):
     account = authorize(request, identity, "issuer")
+    action = "rotate_key" if request.url.path.endswith("/rotate") else "register_key"
     manager = service(request)
     async with chain_lock(manager.database):
         await manager.active_issuer(account.issuer_id)
+        if action == "rotate_key":
+            async with manager.database.session_factory() as db:
+                existing = await db.scalar(
+                    select(OperationRow).where(
+                        OperationRow.account_id == account.account_id,
+                        OperationRow.action == action,
+                        OperationRow.request_id == body.request_id,
+                    )
+                )
+            now = datetime.now(UTC)
+            if existing is None and not body.valid_from <= now < body.valid_until:
+                raise HTTPException(422, "ROTATION_KEY_NOT_CURRENTLY_VALID")
         operation = await reserve_operation(
             manager.database.session_factory,
             account,
-            "register_key",
+            action,
             body.request_id,
             body.model_dump(mode="json"),
         )

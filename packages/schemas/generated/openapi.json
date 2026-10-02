@@ -1761,6 +1761,47 @@
         ]
       }
     },
+    "/v1/issuer/keys/rotate": {
+      "post": {
+        "operationId": "register_key_v1_issuer_keys_rotate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeyInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Register Key",
+        "tags": [
+          "issuer and key management"
+        ]
+      }
+    },
     "/v1/issuer/keys/{key_id}": {
       "get": {
         "operationId": "get_key_v1_issuer_keys__key_id__get",
