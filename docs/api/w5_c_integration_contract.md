@@ -30,7 +30,8 @@ A는 UNKNOWN에서 같은 Operation recover 버튼을 사용하고 새 request I
 
 ## 로컬 기동
 
-1. `.env.example`을 `.env`로 복사합니다. Compose project는 기본 originproof입니다.
+1. `.env.example`을 `.env`로 복사합니다. 본선 두 기관 ID는 legacy 카드 seed와 분리합니다.
+   기존 .env에도 API_FINALS_PAYMENT_ISSUER_ID/ API_FINALS_DOCUMENT_ISSUER_ID를 반영합니다. Compose project는 기본 originproof입니다.
 2. 기존 build/seed/deploy 명령을 재사용하는 `make finals-up`을 실행합니다.
    DB migration head, 기존 카드 회귀 seed/체인 배포, API 재기동, P0 계정 seed, readiness 순서입니다.
    `make demo-reset`/`make reset`은 데이터 삭제이므로 보존 재시작에 사용하지 않습니다.
