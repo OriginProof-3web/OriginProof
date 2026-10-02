@@ -1,4 +1,8 @@
-# W5 C — 기존 API 권한·요청 보호
+# W5 C — API 권한·상태 연결·P0 기동
+
+**현재(2026-10-03): C1~C3 구현·자체 검증 완료, 리뷰·팀 단계 완료 대기.**
+
+아래 첫 기록은 2026-10-01 당시 상태이며 최신 검증은 마지막 절입니다.
 
 C / @Jordi2801K, W5-C1. 2026-10-01, 선행 W4-C1 `85e152c`,
 branch `feat/w5-c-api-security`, 검증 코드 `1da16f0`.
@@ -37,3 +41,13 @@ Ruff 통과. 실제 PostgreSQL/Anvil 기동 검증은 W6 통합 실행 결과로
 OpenAPI/TypeScript는 원본에서 생성했습니다. 작성자 외 리뷰·A 실제 UI·D 독립 재현은 미확인입니다.
 구현·자체 검사와 단계 전체 완료를 구분합니다. Codex가 구현·검사·인계 작성을 보조했습니다.
 상세 계약: [W5 C 통합](../api/w5_c_integration_contract.md).
+
+### 최종 W5 독립 검증
+
+2026-10-03, C W5 코드 `19584cc` (생성물 `147e007`): 기존 FastAPI 0.115.14/pytest 8.4.2
+잠금 버전으로 `284 passed, 4 skipped`; W5 후속 상태/권한/파일/불일치 검사 5개 통과.
+W4 lifecycle 신규 권한/재시도 검사는 기존 W4 테스트와 함께 재실행했습니다.
+DB 확인 상태와 실제 canonical Reader 비교를 `/v2/issuer/proofs/{proof_id}/reconciliation`으로 제공합니다.
+배포 불일치·RPC 오류에서는 일치를 단정하지 않습니다. 기존 PR #37을 C1~C3 전체로 갱신합니다.
+공유 lock 보안 패치와 실제 복구/Compose 결과는 W6 C 기록의 검증 SHA에서 확인합니다.
+W5 작성자 외 리뷰·A 실제 전체 UI 연결·D 독립 재현은 미확인입니다.
