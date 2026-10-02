@@ -4,13 +4,14 @@
 
 ## 기준과 현재 상태
 
-- 최신 `origin/phase/W2`: `1f8ed632ea9c74091abaf2fe2ec32882038f731f` (PR #33 병합 결과).
-- D 작업 branch `feat/w2-d-qa-phase`는 기존 PR #34를 이어가며 최신 `phase/W2`를 merge commit `5f0df0d4caddfc6f1f5ba68aa45466413f6b0a3a`로 반영했습니다. 기존 PR 커밋은 유지했습니다.
+- 최신 확인 `origin/phase/W2`: `812265b285b218e004a08b632ac3aa36125add21` (PR #34 병합 결과).
+- **후속 최신 검사:** [실제 프로세스 재시작·RPC 장애 보고](w2-d-recovery.md). 아래 수치와 D1 표는 PR #34 당시 기록이며, 후속에서 해소한 항목은 해당 보고를 우선합니다.
+- PR #34 당시 D 작업 branch `feat/w2-d-qa-phase`는 `phase/W2`를 merge commit `5f0df0d4caddfc6f1f5ba68aa45466413f6b0a3a`로 반영했습니다. 새 후속 branch는 `test/w2-d-recovery-qa`이며 기존 branch·커밋은 유지했습니다.
 - W2-B Writer/Indexer 구현은 PR #26에서, A의 키 화면 준비는 PR #28에서, C의 Operation·기관/키 API는 PR #33에서 `phase/W2`에 병합됐습니다. v2 공통 모델과 생성물도 현재 W2 트리에 포함됩니다.
 - D1 API·PostgreSQL·Anvil live 검증과 전체 Python 회귀를 disposable 환경에서 실행했습니다. D2 브라우저 신청→체인 승인→키 등록/폐기 전체 흐름은 실제 A 화면 연결을 기다리고 있습니다.
 - W1의 `phase/W1 → integration`은 초안 PR #39로 열려 있으며 아직 승격되지 않았습니다. W2의 독립 QA 준비·검사가 W1 또는 W2 단계 완료를 뜻하지 않습니다.
 
-## 검증 결과
+## PR #34 당시 검증 결과
 
 | 실행 | 결과 | 범위·한계 |
 | --- | --- | --- |
@@ -48,12 +49,12 @@
 | --- | --- |
 | 운영자 승인/반려·기관 활성화 실제 브라우저 흐름 | `NOT_RUN` — W2-A1 연결 대기 |
 | 키 등록·목록·폐기 실제 브라우저 흐름 | `NOT_RUN` — W2-A2 화면 API 연결 대기 |
-| PostgreSQL + Anvil 독립 D1 실패 사례 | 통과한 범위는 위 D1 표 참조; API/Anvil 프로세스 재시작 등은 미실행 |
+| PostgreSQL + Anvil 독립 D1 실패 사례 | [후속 보고](w2-d-recovery.md): 실제 프로세스 재시작·RPC 장애·응답 유실·승인/반려 경계 추가 통과 |
 | clean 환경 브라우저 배포/재현 보고 | `NOT_RUN` — 실제 UI 연결 자료 대기 |
 
 ## 후속
 
 - W2-D1 disposable PostgreSQL·Anvil live 검증과 전체 Python 회귀를 완료했고 위 표에 검증 경계와 제한을 기록했습니다.
 - W2-A1/A2가 C API 및 B Adapter에 연결되면 신청부터 키 폐기까지 새 브라우저 세션으로 재검증합니다.
-- 실제 프로세스 재시작, RPC 장애 주입, 남은 승인/키 사례는 D2 UI 연결과 분리해 후속 QA 항목으로 유지합니다.
-- 작성자 외 리뷰는 아직 미확인입니다. PR #34의 최신 CI와 담당자 리뷰를 기다립니다.
+- 실제 프로세스 재시작, RPC 장애 주입, 승인/반려 키 거부·역할/기관 주입 및 HTTP 응답 유실은 [후속 QA](w2-d-recovery.md)에서 실제 검사했습니다. 과거 표의 미검증 상태와 구분합니다.
+- PR #34는 [C의 승인](https://github.com/OriginProof-3web/OriginProof/pull/34#pullrequestreview-5389403389) 뒤 병합됐습니다. 이 승인은 기존 문서·CI 범위이며 새 후속 QA 코드는 별도 C 리뷰 대기입니다.
