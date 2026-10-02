@@ -1,0 +1,48 @@
+No files changed, compilation skipped
+
+Ran 2 tests for test/FinalsSigningBoundary.t.sol:FinalsSigningBoundaryTest
+[PASS] testOfficialDocumentCanonicalDigestMatchesPythonVector() (gas: 588)
+[PASS] testPaymentRequestCanonicalDigestMatchesPythonVector() (gas: 587)
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 2.45ms (3.63ms CPU time)
+
+Ran 5 tests for test/IssuerKeyRegistry.t.sol:IssuerKeyRegistryTest
+[PASS] testDuplicateZeroAddressAndInvalidWindowRevert() (gas: 208831)
+[PASS] testIssuerRegistersAndRevokesOwnKey() (gas: 192743)
+[PASS] testOutsiderCannotRegisterOrRevoke() (gas: 185944)
+[PASS] testSuspendedIssuerCannotRegisterAndInvalidatesKey() (gas: 204740)
+[PASS] testValidityBoundary() (gas: 167337)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 5.03ms (1.81ms CPU time)
+
+Ran 5 tests for test/IssuerRegistry.t.sol:IssuerRegistryTest
+[PASS] testFuzzRejectsZeroIssuerId(address) (runs: 512, μ: 37845, ~: 37895)
+[PASS] testManagerRegistersIssuer() (gas: 126413)
+[PASS] testSuspendReactivateAndIrreversibleRevoke() (gas: 232402)
+[PASS] testUnauthorizedRegistrationReverts() (gas: 37789)
+[PASS] testZeroAddressAndDuplicateRevert() (gas: 149420)
+Suite result: ok. 5 passed; 0 failed; 0 skipped; finished in 12.97ms (11.74ms CPU time)
+
+Ran 10 tests for test/ProofStatusRegistry.t.sol:ProofStatusRegistryTest
+[PASS] testCompetingConsumesEmitOneEvent() (gas: 290985)
+[PASS] testCurrentIssuerKeyAndExpiryBlockConsumption() (gas: 456165)
+[PASS] testForeignIssuerKeyCannotBeCommitted() (gas: 169488)
+[PASS] testFuzzWrongRecipientBindingNeverConsumes(bytes32) (runs: 512, μ: 213773, ~: 213873)
+[PASS] testIssuerOnlyRevocationIsIdempotentAndKeepsConsumption() (gas: 442395)
+[PASS] testNonSingleUseAndRevokedAreRejected() (gas: 262973)
+[PASS] testOnlyGatewayCanConsumeAndOnlyOnce() (gas: 429124)
+[PASS] testRegistrationIsImmutableAndCallerRestricted() (gas: 347870)
+[PASS] testRegistrationRejectsInvalidTrustAndTime() (gas: 197922)
+[PASS] testZeroBlockTimestampCannotMasqueradeAsUnchangedState() (gas: 388755)
+Suite result: ok. 10 passed; 0 failed; 0 skipped; finished in 12.99ms (11.17ms CPU time)
+
+╭---------------------------+--------+--------+---------╮
+| Test Suite                | Passed | Failed | Skipped |
++=======================================================+
+| FinalsSigningBoundaryTest | 2      | 0      | 0       |
+|---------------------------+--------+--------+---------|
+| IssuerKeyRegistryTest     | 5      | 0      | 0       |
+|---------------------------+--------+--------+---------|
+| IssuerRegistryTest        | 5      | 0      | 0       |
+|---------------------------+--------+--------+---------|
+| ProofStatusRegistryTest   | 10     | 0      | 0       |
+╰---------------------------+--------+--------+---------╯
+

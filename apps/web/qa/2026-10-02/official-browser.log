@@ -1,0 +1,33 @@
+$ playwright test
+(node:88575) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+
+Running 10 tests using 3 workers
+
+(node:88583) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:88582) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:88581) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:88582) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(node:88583) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(node:88582) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:88583) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:88581) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(node:88581) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   3 [chromium] › e2e/demo.spec.ts:4:5 › amount-tampered preset calls the API and shows its deterministic result (1.0s)
+  ✓   4 [chromium] › e2e/demo.spec.ts:40:5 › issuer can submit a synthetic application through the W1 browser flow (809ms)
+  ✓   5 [chromium] › e2e/demo.spec.ts:101:5 › operator review remains pending on chain and issuer can re-query the decision (818ms)
+  ✓   6 [chromium] › e2e/demo.spec.ts:186:5 › operator sees uncertain chain work and audit history without a false success (696ms)
+  ✓   7 [chromium] › e2e/demo.spec.ts:249:5 › W2 key screen checks the date range but never submits without an API contract (441ms)
+  ✓   1 [chromium] › e2e/official-live.spec.ts:15:6 › actual PAYMENT_REQUEST: issue, own list, anonymous lookup, recipient match and tamper (4.2s)
+  ✓   2 [chromium] › e2e/official.spec.ts:3:5 › official landing and direct navigation preserve supplied design (6.0s)
+  ✓   9 [chromium] › e2e/official.spec.ts:10:5 › anonymous Proof lookup is separated from restricted comparison (847ms)
+  ✓  10 [chromium] › e2e/official.spec.ts:25:5 › sidebar collapse keeps dock centered and mobile viewport scrollable (666ms)
+  ✓   8 [chromium] › e2e/official-live.spec.ts:15:6 › actual OFFICIAL_DOCUMENT: issue, own list, anonymous lookup, recipient match and tamper (4.0s)
+
+  10 passed (8.9s)

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OriginProof — Application Status</title><link rel="stylesheet" href="auth.css">
+</head>
+<body>
+<div class="auth-bg" aria-hidden="true"><canvas id="beyond-horizon-canvas"></canvas></div>
+<header class="auth-top"><a class="brand" href="index.html">OriginProof</a><a class="back-link" href="index.html">← 메인으로</a></header>
+<main class="auth-page"><section class="auth-card application-status-card" aria-labelledby="page-title">
+  <p class="eyebrow">BUSINESS · APPLICATION</p>
+  <h1 id="page-title">Application Status</h1>
+  <p class="intro">기관 신청이 현재 어느 단계에 있는지 확인하세요.</p>
+
+  <div class="status-summary"><span class="status-dot" aria-hidden="true"></span><div><strong>운영자 검토 대기</strong><small>신청 상태 · PENDING_REVIEW</small></div></div>
+
+  <div class="application-steps" aria-label="기관 신청 진행 단계">
+    <details class="application-step" open>
+      <summary><span class="step-mark complete" aria-label="완료">✓</span><span class="step-title">기관 신청 접수</span><span class="step-detail">신청 완료</span><span class="step-chevron" aria-hidden="true">⌄</span></summary>
+      <div class="step-content"><span></span><p>신청이 접수되어 신청한 발행기관 계정에 연결되었습니다.</p></div>
+    </details>
+    <details class="application-step current">
+      <summary><span class="step-mark active" aria-label="현재 단계"><svg class="step-spinner" width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="none" stroke="#ffffff20" stroke-width="2"/><circle cx="12" cy="12" r="11" fill="none" stroke="#a8a3b0" stroke-width="2" stroke-linecap="round" stroke-dasharray="19.35 49.77"/></svg><span>2</span></span><span class="step-title">운영자 정보 검토</span><span class="step-pill">검토 대기</span><span class="step-chevron" aria-hidden="true">⌄</span></summary>
+      <div class="step-content"><span></span><p>운영자가 합성 기관 정보와 신청 담당자 권한을 확인하는 단계입니다.</p></div>
+    </details>
+    <details class="application-step">
+      <summary><span class="step-mark waiting" aria-label="대기">3</span><span class="step-title">승인 또는 반려 결정</span><span class="step-detail">대기</span><span class="step-chevron" aria-hidden="true">⌄</span></summary>
+      <div class="step-content"><span></span><p>결정 후 결과와 운영자가 남긴 사유가 표시됩니다.</p></div>
+    </details>
+    <details class="application-step">
+      <summary><span class="step-mark waiting" aria-label="대기">4</span><span class="step-title">Registry 체인 활성화 확인</span><span class="step-detail">승인 후 진행</span><span class="step-chevron" aria-hidden="true">⌄</span></summary>
+      <div class="step-content"><span></span><p>운영자 승인과 체인 활성화는 별도 단계입니다. 체인 반영이 확인되어야 등록이 활성화됩니다.</p></div>
+    </details>
+  </div>
+
+  <p class="status-demo-note">화면 시안 예시입니다. 실제 신청 정보와 진행 상태는 아직 API·DB에 연결되지 않았습니다.</p>
+  <nav class="auth-options" aria-label="다른 화면"><a href="business-login.html">Business Sign In</a><a href="signup.html">Business Sign Up</a></nav>
+</section></main>
+<script src="beyond-horizon.js"></script>
+<script type="module" src="application-status.js"></script></body></html>
