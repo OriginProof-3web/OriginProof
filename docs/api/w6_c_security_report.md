@@ -1,4 +1,8 @@
-# W6-C2 — 기존 API 보안 검사와 잔여 개발
+# W6-C2 — API 보안 검사와 개발 기록
+
+**2026-10-03 최신 상태:** W4 신규 API 연결, W6 C1~C3 구현·실제 복구 검증과
+공유 의존성 보안 패치를 마쳤습니다. [최신 검증·한계](../portfolio/W6-C.md)와
+[복구 runbook](w6_c_recovery_runbook.md)을 기준으로 봅니다. 아래 본문은 2026-10-01 초기 기록입니다.
 
 C / @Jordi2801K. 선행 W5-C1 `b6d7d67`, branch `feat/w6-c-security-checks`.
 현재 존재하는 API·세션·DB 오류·서명기 파일의 독립 구현·검사 결과입니다.
