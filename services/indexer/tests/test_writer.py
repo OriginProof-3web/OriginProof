@@ -420,3 +420,33 @@ async def test_restart_recovers_by_persisted_nonce_without_resending(manifest):
     assert recovered.tx_hash == TX_HASH
     assert recovered.recovery_id == reference["recovery_id"]
     assert sends == []
+
+
+async def test_receipt_rpc_outage_then_recovery_reuses_submission(manifest):
+    sends = []
+    original = transport(sends=sends)
+    outage = {"active": True}
+
+    def handle(request):
+        body = json.loads(request.content)
+        if outage["active"] and body["method"] == "eth_getTransactionReceipt":
+            raise httpx.ConnectError("temporary receipt RPC outage", request=request)
+        return original.handle_request(request)
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+        adapter = JsonRpcBlockchainWriter(
+            "http://test", manifest, client=client, receipt_attempts=1, poll_interval=0
+        )
+        store = FakePersistence()
+        prepared = await adapter.prepare_register_issuer(
+            "0x" + "55" * 20, ISSUER, ACCOUNT, METADATA
+        )
+        unknown = await adapter.execute_prepared(prepared, store)
+        assert unknown.state == ChainOperationState.UNKNOWN
+        assert store.tx_hash == TX_HASH
+        outage["active"] = False
+        recovered = await adapter.recover_prepared(prepared, store.tx_hash)
+    assert recovered.state == ChainOperationState.CONFIRMED
+    assert recovered.tx_hash == unknown.tx_hash == TX_HASH
+    assert recovered.nonce == unknown.nonce
+    assert len(sends) == 1

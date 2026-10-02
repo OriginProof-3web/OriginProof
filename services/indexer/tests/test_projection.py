@@ -201,6 +201,12 @@ def test_reorg_requires_verified_common_ancestor(tmp_path):
             )
         with pytest.raises(ValueError, match="no verified common ancestor"):
             store.recover_reorg(31337, DEPLOYMENT, lambda _: block_hash(9))
+
+        def offline_hash(_number):
+            raise ConnectionError("RPC outage")
+
+        with pytest.raises(ConnectionError, match="RPC outage"):
+            store.recover_reorg(31337, DEPLOYMENT, offline_hash)
         assert store.checkpoint(31337, DEPLOYMENT) == (2, block_hash(2))
         assert store.recover_reorg(
             31337,
