@@ -45,4 +45,3 @@ Suite result: ok. 10 passed; 0 failed; 0 skipped; finished in 12.99ms (11.17ms C
 |---------------------------+--------+--------+---------|
 | ProofStatusRegistryTest   | 10     | 0      | 0       |
 ╰---------------------------+--------+--------+---------╯
-
