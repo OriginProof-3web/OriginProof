@@ -35,7 +35,7 @@ Codex가 최신 phase/W2와 기존 PR 변경을 대조하고, 격리된 로컬 D
 
 ## W2-D1 후속 검사 — 2026-10-02
 
-- 작업 branch: `test/w2-d-recovery-qa`; 검사 코드 SHA: `dd5fc7479b71610be7d53ebbcd94a4b7f8d19342`.
+- 작업 branch: `test/w2-d-recovery-qa`; 후속 PR: [#45](https://github.com/OriginProof-3web/OriginProof/pull/45); 검사 코드 SHA: `dd5fc7479b71610be7d53ebbcd94a4b7f8d19342`.
 - D 기여: 공유 `scripts/ci`에 격리 QA 추가, RPC/HTTP 장애 relay, 실제 API·Anvil 프로세스 재시작, 실패 원인 분석·재검사·증거 기록. 지정 리뷰어는 C이며 후속 코드는 리뷰 대기입니다.
 - B/C의 기존 Contract·Adapter·Operation·인증/감사·키 관리 구현을 재사용했습니다. 제품 소스와 공유 모델은 수정하지 않았습니다.
 - 실환경 QA 파일 3 passed. 내부에서 기존 C live 3건과 B local-EVM 1건도 실제 실행했습니다. Python 기본 회귀 171 passed/6 skipped, Indexer 60 passed/1 skipped, Contract 10 passed. 구조·환경·lint·compileall/tsc 통과.

@@ -3,6 +3,7 @@
 - 담당: D / 여인준님 `@yijun0330`, 2026-10-02
 - 시작 기준: `phase/W2@812265b285b218e004a08b632ac3aa36125add21`
 - 작업 branch: `test/w2-d-recovery-qa`
+- 후속 PR: [#45](https://github.com/OriginProof-3web/OriginProof/pull/45), `phase/W2` 대상 초안. C 리뷰 요청 완료.
 - 최종 실환경 검사 코드 SHA: `dd5fc7479b71610be7d53ebbcd94a4b7f8d19342`
 - [환경 fingerprint](w2-d-recovery-environment.json): Python 3.13.7, Node 22.18.0,
   uv 0.8.17, Docker 29.7.2, Compose 5.5.1. host forge 미설치는 차단 조건이 아닙니다.
