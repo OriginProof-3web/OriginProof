@@ -35,3 +35,19 @@ PYTHONPATH=packages/python .uv-venv/bin/python fixtures/finals/build_cases.py
 현재 검사는 합성 자료의 binding/hash·변조 분리·기간 경계·ID/출처를 검사한다.
 로그인/신청 서버, v2 검증 코어, 브라우저 또는 실제 체인의 통과 증거가 아니다.
 F01~F15 전체 수용 사례는 [D 사례표](../../docs/qa/w1-acceptance-matrix.md)를 참조한다.
+
+## W3 독립 모델·코어 사례
+
+`w3_cases.json`은 기존 W1 자료와 분리한 fixture 1.0.0입니다. C의 공개 서명 Golden을
+읽어 지급 요청 31개·공식 문서 33개를 구성하며 Golden/기존 cases.json을 수정하지 않습니다.
+domain/기간/타입 모델 거부와 정상·누락·변조·서명·신뢰 입력 경계를 검사합니다.
+
+```sh
+PYTHONPATH=packages/python .uv-venv/bin/python fixtures/finals/build_w3_cases.py
+make test-analyzer
+```
+
+실행 결과는 [W3-D 보고](../../docs/qa/w3-d-acceptance.md)에 기록합니다. manifest의
+`live_execution_status=NOT_RUN`은 실제 발행/DB/RPC/브라우저 미실행을 뜻합니다.
+코어 검사 통과로 이를 PASS로 바꾸지 않습니다. W3 모든 결과의 lifecycle은 null,
+Proof 상태 검사는 NOT_RUN이며 실제 현재 사용 가능 상태를 주장하지 않습니다.
