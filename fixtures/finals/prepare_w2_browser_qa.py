@@ -146,12 +146,18 @@ async def check_browser_database(stack) -> dict:
             statuses = {
                 row.issuer_id: row.status for row in await db.scalars(select(IssuerApplicationRow))
             }
-            assert statuses["iss_w2_approve"] == "APPROVED_PENDING_CHAIN"
-            assert statuses["iss_w2_reject"] == "REJECTED"
             # Browser period checking must not create a registration Operation.
             operations = list(await db.scalars(select(OperationRow)))
-            assert all(row.request_id.startswith("req_w2_prepare_") for row in operations)
-            return {"application_statuses": statuses, "operation_count": len(operations)}
+            expected_match = (
+                statuses.get("iss_w2_approve") == "APPROVED_PENDING_CHAIN"
+                and statuses.get("iss_w2_reject") == "REJECTED"
+                and all(row.request_id.startswith("req_w2_prepare_") for row in operations)
+            )
+            return {
+                "application_statuses": statuses,
+                "operation_count": len(operations),
+                "expected_match": expected_match,
+            }
     finally:
         await database.dispose()
 
@@ -276,7 +282,11 @@ def main() -> int:
             resources.close()
             result["owned_resources_cleaned"] = True
             private_file(OUT / "summary.json", json.dumps(result, indent=2))
-    return 0 if result.get("browser_exit_code") == 0 else 1
+    return (
+        0
+        if result.get("browser_exit_code") == 0 and result.get("db_check", {}).get("expected_match")
+        else 1
+    )
 
 
 if __name__ == "__main__":

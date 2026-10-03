@@ -40,8 +40,8 @@ export default defineConfig({
     screenshot: 'off',
   },
   projects: [
-    { name: 'connected', grep: /^\[connected\]/, use: webConfig.projects?.[0].use },
-    { name: 'acceptance-gaps', grep: /^\[acceptance\]/, use: webConfig.projects?.[0].use },
+    { name: 'connected', grep: /\[connected\]/, use: webConfig.projects?.[0].use },
+    { name: 'acceptance-gaps', grep: /\[acceptance\]/, use: webConfig.projects?.[0].use },
   ],
   webServer: undefined,
 });
