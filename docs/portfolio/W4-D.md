@@ -13,7 +13,7 @@
 | --- | --- | --- | --- |
 | W4-D1 | 두 유형의 합성 lifecycle 기대값, 만료 초 경계·과거 키 기간·교체/유출 폐기·기관 중지 독립 검사 | C Golden/코어/API/DB/서명기, B Registry/Reader/Writer | 위 실제 실행 범위 통과 |
 | W4-D2 | ASGI API + 실제 PG/Anvil의 권한/직접 호출/동시·같은 ID 사용/재사용/읽기/반복 폐기/RPC 장애 검사 | C Operation/인증/binding·복구, B 실제 receipt/event·배포 | 새 자원 2회 재현 통과 |
-| W4-D3 | 현재 화면 연결 조건과 다음 브라우저 시나리오를 기록 | A W4 화면 소비 필요 | 실제 브라우저 미실행 |
+| W4-D3 | 12개 사례·실행 순서, 새 계정/기관/초기 키·Proof의 socket HTTP 준비기, 읽기 전용 DB/체인 snapshot·결과 양식 | 기존 D1/D2 owned fixture와 C/B API·배포 재사용; A W4 화면 소비 필요 | 초기 준비 확인 완료, 실제 브라우저 미실행 |
 
 ## 결정·실패 해결
 
@@ -26,6 +26,7 @@
 ## 검증 근거
 
 상세 실행·명령·한계: [W4 D QA](../qa/w4-d-acceptance.md), [환경 fingerprint](../qa/w4-d-environment.json).
+후속 D3 자료: [실행 준비](../qa/w4-d3-browser.md), [준비 확인 기록](../qa/w4-d3-preparation.json).
 코어 20 + 실제 PG/Anvil 순차 API 1 = 21 passed, fresh archive도 21 passed.
 기본 Python 248 passed/4 skipped, indexer 86 passed/1 skipped, Foundry container 22 passed.
 구조·lint·typecheck·fingerprint와 fixture Ruff/문서/diff를 확인했습니다.

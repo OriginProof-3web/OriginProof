@@ -2,6 +2,7 @@
 
 - 담당 D / 여인준님 `@yijun0330`, 착수일 2026-10-03.
 - 작업 ID W4-D1/D2; W4-D3 브라우저는 A 연결 후 별도 확인.
+- 후속 D3 실행 절차·합성 계정/입력·DB/체인 snapshot 준비: [D3 브라우저 준비](w4-d3-browser.md).
 - 기준 `phase/W4@8011f7fe3da033c9253894a9de0fd98aa7bbcc16`, 작업 `test/w4-d-lifecycle-qa`.
 - 작업 PR [#49](https://github.com/OriginProof-3web/OriginProof/pull/49), C 작성자 외 리뷰 요청.
 - C #36/#42가 병합된 제품과 B의 Contract/Reader/Writer를 재사용합니다.

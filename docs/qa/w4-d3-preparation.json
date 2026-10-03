@@ -1,0 +1,15 @@
+{
+  "purpose": "W4-D3 execution preparation, not browser acceptance",
+  "synthetic": true,
+  "date": "2026-10-03",
+  "product_sha": "8011f7fe3da033c9253894a9de0fd98aa7bbcc16",
+  "preparation_code_sha": null,
+  "verification": "PENDING final code preparation run",
+  "d3_browser_status": "NOT_RUN",
+  "scenario_count": 12,
+  "limitations": [
+    "A W4-A1/A2/A3 UI is not connected in this phase",
+    "UI locators and submitted-transaction fault injection are applied after the connected screen is available",
+    "Initial API seeding is not browser issuance/rotation/revocation/consume evidence"
+  ]
+}
