@@ -38,10 +38,40 @@ def disposable_config():
     assert api.port and api.path in ("", "/") and not api.query and not api.fragment
     assert not api.username and not api.password
     assert database.scheme == "postgresql+asyncpg" and database.hostname in loopback
-    assert database.port and database.path not in ("", "/")
+    assert database.port == 15433 and database.path == "/originproof_w3_d_qa"
+    root = Path(__file__).resolve().parents[2]
+    assert root.is_relative_to(Path("/private/tmp"))
+    resources = json.loads((root / "build/w3-qa/resources.json").read_text())
+    postgres = json.loads(
+        subprocess.run(
+            ["docker", "inspect", resources["postgres"]],
+            capture_output=True,
+            check=True,
+            text=True,
+            timeout=15,
+        ).stdout
+    )[0]
+    assert resources["postgres"] == resources["network"] + "-postgres"
+    assert resources["network"].startswith("originproof-w3-d-qa-")
+    assert postgres["Config"]["Image"] == "postgres:16.4-alpine"
+    assert postgres["State"]["Running"]
+    assert resources["network"] in postgres["NetworkSettings"]["Networks"]
+    assert {"POSTGRES_DB=originproof_w3_d_qa", "POSTGRES_USER=originproof"} <= set(
+        postgres["Config"]["Env"]
+    )
+    assert any(
+        mapping["HostIp"] == "127.0.0.1" and mapping["HostPort"] == "15433"
+        for mapping in postgres["NetworkSettings"]["Ports"]["5432/tcp"]
+    )
+    assert api.port == 14803
+    assert (
+        Path(os.environ["ORIGINPROOF_TEST_ACCOUNTS"]).resolve()
+        == root / "build/w3-qa/accounts.json"
+    )
     signer_directory = Path(os.environ["W3_QA_SIGNER_DIRECTORY"]).resolve()
     assert signer_directory.is_relative_to(Path("/private/tmp"))
     assert signer_directory.is_dir()
+    assert signer_directory == root / "build/w3-qa/signers"
     rpc_container = os.environ["W3_QA_RPC_CONTAINER"]
     assert rpc_container.startswith("originproof-w3-d-qa")
     assert all(char.isalnum() or char in "-_" for char in rpc_container)
@@ -57,6 +87,8 @@ def disposable_config():
     assert inspection["Config"]["Image"].startswith("ghcr.io/foundry-rs/foundry:")
     assert "anvil" in " ".join([inspection["Path"], *inspection["Args"]])
     assert inspection["State"]["Running"]
+    assert rpc_container == resources["anvil"] == resources["network"] + "-anvil"
+    assert resources["network"] in inspection["NetworkSettings"]["Networks"]
     rows = json.loads(Path(os.environ["ORIGINPROOF_TEST_ACCOUNTS"]).read_text())
     accounts = {row["account_id"].removeprefix("acct_"): row for row in rows}
     assert {"bank", "office", "operator", "recipient", "recipient_other", "recipient_new"} <= (
@@ -253,7 +285,8 @@ async def test_w3_actual_http_permissions_failures_and_atomic_storage():
                         )
                     ).all()
                     assert len(rows) == 1
-                    assert rows[0][0] == envelope
+                    same_envelope = rows[0][0] == envelope
+                    assert same_envelope, "stored envelope differs from authenticated content"
                     assert (
                         await connection.scalar(
                             text(

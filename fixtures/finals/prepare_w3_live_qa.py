@@ -21,7 +21,10 @@ from pathlib import Path
 
 import httpx
 from originproof_api.accounts import password_hash
-from originproof_api.database import AccountRow, Database
+from originproof_api.database import AccountRow, Database, IssuerApplicationRow
+from originproof_api.main import create_app
+from originproof_api.settings import Settings
+from sqlalchemy import select
 
 ROOT = Path(__file__).resolve().parents[2]
 OUT = ROOT / "build/w3-qa"
@@ -95,22 +98,53 @@ async def register() -> None:
         now = datetime.now(UTC).replace(microsecond=0)
         for name in ("bank", "office"):
             issuer, admin = clients[name], clients["operator"]
-            response = await issuer.post(
-                "/v1/issuer-applications", json={"issuer_name": f"Origin Mock {name.title()}"}
-            )
-            assert response.status_code == 201, "synthetic application failed"
-            target = f"/v1/operator/issuer-applications/{response.json()['application_id']}"
-            response = await admin.post(
-                target + "/decision", json={"decision": "APPROVE", "reason": "D synthetic QA"}
-            )
-            assert response.status_code == 200, "synthetic approval failed"
-            response = await admin.post(
-                target + "/activate",
-                json={"request_id": f"req_d_activate_{name}", "reason": "D synthetic QA"},
-            )
-            assert response.status_code == 200 and response.json()["status"] == "CONFIRMED", (
-                "activation not confirmed"
-            )
+            if name == "bank":
+                # Official MVP deployment already activates the bank. Verify that
+                # actual chain state and seed its matching DB fixture; don't register twice.
+                settings = Settings()
+                database = Database(settings.database_url)
+                try:
+                    app = create_app(database=database, settings=settings)
+                    await app.state.chain_management.active_issuer("iss_origin_mock_bank")
+                    async with database.session_factory() as session:
+                        row = await session.scalar(
+                            select(IssuerApplicationRow).where(
+                                IssuerApplicationRow.issuer_id == "iss_origin_mock_bank"
+                            )
+                        )
+                        if row is None:
+                            row = IssuerApplicationRow(
+                                application_id="app_d_seed_bank",
+                                issuer_id="iss_origin_mock_bank",
+                                applicant_account_id="acct_bank",
+                                issuer_name="Origin Mock Bank",
+                                status="ACTIVE",
+                                decision_reason="official deployment seed",
+                                decided_by_account_id="acct_operator",
+                            )
+                            session.add(row)
+                        else:
+                            row.status = "ACTIVE"
+                        await session.commit()
+                finally:
+                    await database.dispose()
+            else:
+                response = await issuer.post(
+                    "/v1/issuer-applications", json={"issuer_name": "Origin Mock Office"}
+                )
+                assert response.status_code == 201, "synthetic application failed"
+                target = f"/v1/operator/issuer-applications/{response.json()['application_id']}"
+                response = await admin.post(
+                    target + "/decision", json={"decision": "APPROVE", "reason": "D synthetic QA"}
+                )
+                assert response.status_code == 200, "synthetic approval failed"
+                response = await admin.post(
+                    target + "/activate",
+                    json={"request_id": f"req_d_activate_{name}", "reason": "D synthetic QA"},
+                )
+                assert response.status_code == 200 and response.json()["status"] == "CONFIRMED", (
+                    "activation not confirmed"
+                )
             response = await issuer.post(
                 "/v1/issuer/keys",
                 json={
@@ -129,6 +163,17 @@ async def register() -> None:
 
 
 def main() -> None:
+    assert ROOT.is_relative_to(Path("/private/tmp")), "use a new disposable QA checkout"
+    for path in (
+        ROOT / "build/seed_manifest.json",
+        ROOT / "build/mock_issuer_private_key.hex",
+        ROOT / "packages/contracts/deployments/31337.local.json",
+    ):
+        if path.exists():
+            raise SystemExit("existing generated seed/deployment found; use a fresh QA checkout")
+    dotenv = ROOT / ".env"
+    if dotenv.exists() and dotenv.read_text() != "LLM_PROVIDER=mock\nOPENAI_MODEL=gpt-6-luna\n":
+        raise SystemExit("existing dotenv settings found; use a fresh QA checkout")
     if OUT.exists():
         raise SystemExit("build/w3-qa already exists; preserve it and use a fresh QA checkout")
     for port in (15433, 18543, 14803):
