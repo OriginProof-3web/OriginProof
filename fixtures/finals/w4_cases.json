@@ -1,0 +1,20 @@
+{
+  "purpose": "W4-D1/D2 synthetic lifecycle regression; core expectations are not live acceptance",
+  "synthetic": true,
+  "schema_version": "2.0.0",
+  "basis": "development_plan 15.5; ADR 0001 sections 3-7",
+  "profiles": ["payment_request", "official_document"],
+  "cases": [
+    {"id": "active", "lifecycle": "ACTIVE", "reasons": []},
+    {"id": "expiry_before", "expiry_offset": -1, "lifecycle": "ACTIVE", "reasons": []},
+    {"id": "expiry_at", "expiry_offset": 0, "lifecycle": "EXPIRED", "reasons": ["PROOF_EXPIRED"]},
+    {"id": "expiry_after", "expiry_offset": 1, "lifecycle": "EXPIRED", "reasons": ["PROOF_EXPIRED"]},
+    {"id": "historical_key_expired", "historical_key_expired": true, "lifecycle": "ACTIVE", "reasons": []},
+    {"id": "key_compromised", "key_status": "REVOKED", "lifecycle": "ISSUER_KEY_REVOKED", "reasons": ["ISSUER_KEY_REVOKED"]},
+    {"id": "issuer_suspended", "issuer_status": "SUSPENDED", "lifecycle": "ISSUER_SUSPENDED", "reasons": ["ISSUER_SUSPENDED"]},
+    {"id": "proof_revoked", "proof_states": ["PROOF_REVOKED"], "lifecycle": "PROOF_REVOKED", "reasons": ["PROOF_REVOKED"]},
+    {"id": "consumed", "profiles": ["payment_request"], "proof_states": ["CONSUMED"], "lifecycle": "CONSUMED", "reasons": ["REPLAY_DETECTED"]},
+    {"id": "consumed_then_revoked", "profiles": ["payment_request"], "proof_states": ["CONSUMED", "PROOF_REVOKED"], "lifecycle": "PROOF_REVOKED", "reasons": ["PROOF_REVOKED", "REPLAY_DETECTED"]},
+    {"id": "invalid_signature_before_status", "invalid_signature": true, "proof_states": ["PROOF_REVOKED"], "verification": "TAMPERED", "lifecycle": null, "reasons": ["INVALID_SIGNATURE"]}
+  ]
+}
