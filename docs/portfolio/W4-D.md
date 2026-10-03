@@ -4,6 +4,7 @@
 - 작업 W4-D1/D2 독립 상태·1회 사용 QA, W4-D3은 A 실제 화면 연결 대기.
 - 시작 `phase/W4@8011f7fe3da033c9253894a9de0fd98aa7bbcc16`.
 - branch `test/w4-d-lifecycle-qa`, PR 대상 `phase/W4`.
+- 작업 PR [#49](https://github.com/OriginProof-3web/OriginProof/pull/49), C 리뷰 요청. 단계 승격 PR은 아닙니다.
 - 검사 코드 `0bb5da42d64b9ce298cb2de2951b327da6bc4fc7`; 이후 기록 커밋은 제품을 변경하지 않습니다.
 
 ## 목표·기여·재사용
