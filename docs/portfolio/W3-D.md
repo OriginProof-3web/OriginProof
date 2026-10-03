@@ -51,6 +51,8 @@ A 연결 후 D3 새 발행→익명 ID/링크 조회→지정 수신자 정상/�
 - 시작 제품 SHA: `phase/W3@121e1cade40f9ac3b001dc7aa24256d9033f0214`.
 - 새 작업 branch: `test/w3-d-live-qa`, 검증 QA 코드 SHA
   `53da535ae36ca4c9616c04ad4f179bec74aac539`.
+- 실제 연결 QA PR: [#47](https://github.com/OriginProof-3web/OriginProof/pull/47),
+  `phase/W3` 대상, C 리뷰 요청. 강제 병합·단계 승격은 수행하지 않았습니다.
 - #35/#40/#44/#46 병합 후 D 실제 HTTP·PG·Anvil 실패 검사와 실제 브라우저 연결을 진행.
   기존 #46의 코어 검사 결과와 이번 실제 연결 결과를 구분합니다.
 

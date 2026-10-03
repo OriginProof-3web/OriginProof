@@ -4,6 +4,7 @@
 - 시작 제품 기준: `phase/W3@121e1cade40f9ac3b001dc7aa24256d9033f0214`.
 - 선행 #35(C 발행), #40(B Reader), #44(A 웹), #46(D 코어 QA)는 모두 병합됐습니다.
 - 작업: `test/w3-d-live-qa`, 대상 `phase/W3`. **W3 단계 완료·승격 PR이 아닙니다.**
+- 작업 PR: [#47](https://github.com/OriginProof-3web/OriginProof/pull/47), C 작성자 외 리뷰 요청.
 - 최종 검사 코드: `53da535ae36ca4c9616c04ad4f179bec74aac539`.
 - [환경 fingerprint](w3-d-live-environment.json), [기여 기록](../portfolio/W3-D.md).
 
@@ -142,3 +143,6 @@ NODE_PATH="$PWD/apps/web/node_modules" pnpm --dir apps/web exec playwright test 
 API 검사는 recipient_new token의 초기 부재를 요구하므로 재실행도 새 QA DB에서 합니다.
 검사 종료 후 build/w3-qa/resources.json의 **이번 실행에서 만든** 두 컨테이너·네트워크와
 API PID 및 따로 실행한 웹만 종료합니다. 개인 작업 파일·키·다른 서비스/볼륨은 지우지 않습니다.
+
+이번 검사 종료 후 실제로 두 실행의 task-owned API·DB·Anvil·네트워크와 production 웹,
+Foundry 검사에서 만든 별도 네트워크를 정리했습니다. 기존 작업 파일·개인 설정은 보존했습니다.
