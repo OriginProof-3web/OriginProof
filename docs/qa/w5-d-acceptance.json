@@ -1,0 +1,1149 @@
+{
+  "schema_version": 1,
+  "as_of": "2026-10-03",
+  "owner": {
+    "role": "D",
+    "github": "yijun0330"
+  },
+  "task_ids": [
+    "W5-D1",
+    "W5-D2",
+    "W5-D3"
+  ],
+  "preparation_base_sha": "3295a71c10a1a99c523d3cfefde91b5737b737ac",
+  "policy_files": [
+    {
+      "sha": "3295a71c10a1a99c523d3cfefde91b5737b737ac",
+      "path": "docs/development_plan.md",
+      "url": "https://github.com/OriginProof-3web/OriginProof/blob/3295a71c10a1a99c523d3cfefde91b5737b737ac/docs/development_plan.md"
+    },
+    {
+      "sha": "3295a71c10a1a99c523d3cfefde91b5737b737ac",
+      "path": "docs/adr/0001-finals-contracts.md",
+      "url": "https://github.com/OriginProof-3web/OriginProof/blob/3295a71c10a1a99c523d3cfefde91b5737b737ac/docs/adr/0001-finals-contracts.md"
+    }
+  ],
+  "stage_snapshot": {
+    "integration": "3295a71c10a1a99c523d3cfefde91b5737b737ac",
+    "phase/W1": "ab86892f1aedc14664e3129231225e79220b7394",
+    "phase/W2": "6f508fe6ae5ce106999c171e8205978dd2201333",
+    "phase/W3": "121e1cade40f9ac3b001dc7aa24256d9033f0214",
+    "phase/W4": "8011f7fe3da033c9253894a9de0fd98aa7bbcc16",
+    "phase/W5": null
+  },
+  "task_status": {
+    "W5-D1": "PREPARED_REVIEW_PENDING",
+    "W5-D2": "PREPARED_EXECUTION_NOT_RUN",
+    "W5-D3": "DEFERRED_UNTIL_P0"
+  },
+  "candidate_note": "PR37 draft@9651062c9f36e124b76796278c996764678e1c77 is C preparation, temporarily based on phase/W4; its author says not to merge into W4. W6 runtime is not W5 acceptance.",
+  "counting_rules": [
+    "과거 실행 결과를 읽어 매핑했습니다. 이번 문서 변경에서 기능 검사를 새로 실행하지 않았습니다.",
+    "QA 코드 SHA, 제품 base SHA, 보고 문서 SHA를 분리합니다. 명령은 해당 QA SHA의 원 보고서 선행 절차와 함께 사용하며 현재 integration에서 모두 실행할 수 있다는 뜻이 아닙니다.",
+    "ASGI와 socket HTTP, core/mock와 실제 DB/chain, API seed와 UI 관리 동작을 구분합니다.",
+    "W2 wrapper 3개에 포함된 C 3개/B 1개를 더하지 않습니다. 반복 fresh-clone 결과·여러 F행의 같은 live test도 중복 합산하지 않습니다.",
+    "W3 lifecycle null/NOT_RUN과 W4 ACTIVE를 합쳐 하나의 최종 RC 성공으로 선언하지 않습니다.",
+    "CARD_PAYMENT_NOTICE v1 회귀는 F01 두 유형 v2 성공 증거가 아닙니다."
+  ],
+  "evidence": [
+    {
+      "id": "W1-LIVE",
+      "stage": "W1",
+      "qa_code_sha": "f1de961d8f94405d5a143cd853421eee8878b4f1",
+      "product_base_sha": "0308cb24f9e4aed157095131e2552243767d16eb",
+      "pr_url": "https://github.com/OriginProof-3web/OriginProof/pull/41",
+      "test_files": [
+        {
+          "sha": "f1de961d8f94405d5a143cd853421eee8878b4f1",
+          "path": "scripts/ci/w1_live_qa.py",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/f1de961d8f94405d5a143cd853421eee8878b4f1/scripts/ci/w1_live_qa.py"
+        },
+        {
+          "sha": "f1de961d8f94405d5a143cd853421eee8878b4f1",
+          "path": "apps/web/e2e/w1-live.spec.ts",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/f1de961d8f94405d5a143cd853421eee8878b4f1/apps/web/e2e/w1-live.spec.ts"
+        }
+      ],
+      "tests": [
+        "scripts/ci/w1_live_qa.py::main",
+        "real W1 roles, CSRF, application decisions, session persistence and isolation"
+      ],
+      "command": "W1_QA_DISPOSABLE=1 W1_LIVE_API_URL=http://127.0.0.1:18081 W1_LIVE_BASE_URL=http://127.0.0.1:13000 PYTHONPATH=apps/api/src:packages/python .uv-venv/bin/python scripts/ci/w1_live_qa.py",
+      "layers": [
+        "actual_socket_http",
+        "actual_postgresql",
+        "actual_chromium_browser",
+        "actual_web_to_api"
+      ],
+      "reported_result": {
+        "status": "PASS_SCOPED",
+        "browser_passed": 1,
+        "db_checks": "PASS",
+        "claims": [
+          "Anonymous/operator-request 401; recipient/issuer 403",
+          "login role and application issuer_id injection 422",
+          "CSRF missing 403; no application creation",
+          "separate issuer A/B applications and mine/read isolation",
+          "operator approve/reject => APPROVED_PENDING_CHAIN/REJECTED; DB matches",
+          "issuer/self approval 403; duplicate decision 409; state unchanged",
+          "reload/logout/fresh login preserves decisions and revokes sessions",
+          "cookie HttpOnly/SameSite=Lax/Max-Age=28800; synthetic DB-expired session auth/me 401",
+          "two successful decision AuditEvent rows",
+          "axe violations zero at login/operator/approved issuer screens after dl fix"
+        ]
+      },
+      "limits": [
+        "W1 has no actual institution activation/key/proof issuance/consume browser path",
+        "Several denial/injection checks use Playwright APIRequestContext actual HTTP, not user UI actions",
+        "The session-expiry DB timestamp was changed only for disposable synthetic session, not OS clock",
+        "No general request-limit or whole logging/secret audit claim"
+      ],
+      "reports": [
+        {
+          "sha": "94488b13d80df991bc5b861d1d4d44da267355ee",
+          "path": "docs/qa/w1-final-verification.md",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/94488b13d80df991bc5b861d1d4d44da267355ee/docs/qa/w1-final-verification.md"
+        }
+      ],
+      "executed_in_this_change": false
+    },
+    {
+      "id": "W2-LATEST-RECOVERY-RERUN",
+      "stage": "W2",
+      "qa_code_sha": "a66ac7205119369774c62466ae0ea4d3c5259aff",
+      "product_base_sha": "6f508fe6ae5ce106999c171e8205978dd2201333",
+      "pr_url": "https://github.com/OriginProof-3web/OriginProof/pull/51",
+      "test_files": [
+        {
+          "sha": "a66ac7205119369774c62466ae0ea4d3c5259aff",
+          "path": "scripts/ci/test_w2_recovery_qa.py",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/a66ac7205119369774c62466ae0ea4d3c5259aff/scripts/ci/test_w2_recovery_qa.py"
+        },
+        {
+          "sha": "a66ac7205119369774c62466ae0ea4d3c5259aff",
+          "path": "apps/api/tests/test_live_w1_w2.py",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/a66ac7205119369774c62466ae0ea4d3c5259aff/apps/api/tests/test_live_w1_w2.py"
+        },
+        {
+          "sha": "a66ac7205119369774c62466ae0ea4d3c5259aff",
+          "path": "apps/api/tests/test_live_w2_chain.py",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/a66ac7205119369774c62466ae0ea4d3c5259aff/apps/api/tests/test_live_w2_chain.py"
+        },
+        {
+          "sha": "a66ac7205119369774c62466ae0ea4d3c5259aff",
+          "path": "services/indexer/tests/test_live_chain.py",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/a66ac7205119369774c62466ae0ea4d3c5259aff/services/indexer/tests/test_live_chain.py"
+        }
+      ],
+      "tests": [
+        "test_live_failure_recovery_and_process_restart",
+        "test_existing_postgres_and_chain_acceptance",
+        "test_existing_indexer_local_chain_acceptance",
+        "test_postgres_login_application_and_operation_flow",
+        "test_postgres_chain_lock_releases_on_cancellation",
+        "test_live_approval_keys_failure_and_restart",
+        "test_live_reader_and_m1_api"
+      ],
+      "command": "W2_RECOVERY_QA=1 LLM_PROVIDER=mock OPENAI_MODEL=gpt-6-luna PYTHONPATH=apps/api/src:packages/python:services/analyzer/src:services/indexer/src UV_PROJECT_ENVIRONMENT=.uv-venv uv run --no-sync pytest -q scripts/ci/test_w2_recovery_qa.py",
+      "layers": [
+        "actual_socket_http",
+        "actual_postgresql",
+        "actual_anvil",
+        "actual_api_process_restart",
+        "wrapper-contained ASGI HTTP with actual PostgreSQL/Anvil; v1 Reader regression; not actual Indexer process/reorg evidence"
+      ],
+      "reported_result": {
+        "status": "PASS_SCOPED",
+        "passed": 3,
+        "duration_seconds": 25.53,
+        "inner_not_additive": "C live3 and B localEVM1 included"
+      },
+      "limits": [
+        "하나의 순서 있는 socket 장애 시나리오와 C/B 검사 wrapper 두 개입니다. wrapper 내부 C 3개와 B 1개를 총 3개에 더하지 않습니다.",
+        "실제 socket/API 프로세스 재시작과 내부 ASGI/DB/chain 검사를 구분합니다. 실제 PostgreSQL Indexer 서비스 재시작·reorg, Proof/consume와 전체 브라우저 쓰기 흐름의 통과를 주장하지 않습니다.",
+        "전송 전 save_prepared 실패/취소의 PR50 수정과 전체 키 파일/로그/비밀정보·요청 제한은 이 원 실행의 검사 범위가 아닙니다."
+      ],
+      "reports": [
+        {
+          "sha": "17f78e300b04aa9395fb20f6f76f5313d705db3d",
+          "path": "docs/qa/w2-d-browser.md",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/17f78e300b04aa9395fb20f6f76f5313d705db3d/docs/qa/w2-d-browser.md"
+        },
+        {
+          "sha": "17f78e300b04aa9395fb20f6f76f5313d705db3d",
+          "path": "docs/qa/w2-d-recovery.md",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/17f78e300b04aa9395fb20f6f76f5313d705db3d/docs/qa/w2-d-recovery.md"
+        }
+      ],
+      "executed_in_this_change": false
+    },
+    {
+      "id": "W2-BROWSER-CONNECTED",
+      "stage": "W2",
+      "qa_code_sha": "a66ac7205119369774c62466ae0ea4d3c5259aff",
+      "product_base_sha": "6f508fe6ae5ce106999c171e8205978dd2201333",
+      "pr_url": "https://github.com/OriginProof-3web/OriginProof/pull/51",
+      "test_files": [
+        {
+          "sha": "a66ac7205119369774c62466ae0ea4d3c5259aff",
+          "path": "fixtures/finals/prepare_w2_browser_qa.py",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/a66ac7205119369774c62466ae0ea4d3c5259aff/fixtures/finals/prepare_w2_browser_qa.py"
+        },
+        {
+          "sha": "a66ac7205119369774c62466ae0ea4d3c5259aff",
+          "path": "fixtures/finals/w2_browser_qa.spec.ts",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/a66ac7205119369774c62466ae0ea4d3c5259aff/fixtures/finals/w2_browser_qa.spec.ts"
+        },
+        {
+          "sha": "a66ac7205119369774c62466ae0ea4d3c5259aff",
+          "path": "fixtures/finals/w2_browser_qa.config.ts",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/a66ac7205119369774c62466ae0ea4d3c5259aff/fixtures/finals/w2_browser_qa.config.ts"
+        }
+      ],
+      "tests": [
+        "[connected] actual application APPROVE, issuer refresh, fresh login and logout",
+        "[connected] actual application REJECT, issuer refresh, fresh login and logout",
+        "[connected] real confirmed Operation and own audit events are read through the UI",
+        "[connected] real UNKNOWN Operation is shown without a confirmed success",
+        "[connected] another issuer is denied another institution Operation through the actual UI",
+        "[connected] anonymous, operator and recipient see the actual issuer-only key access gate"
+      ],
+      "command": "W2_BROWSER_QA=1 PYTHONPATH=apps/api/src:packages/python:services/analyzer/src:services/indexer/src .uv-venv/bin/python fixtures/finals/prepare_w2_browser_qa.py",
+      "layers": [
+        "actual_chromium_browser",
+        "production_next",
+        "actual_socket_http",
+        "actual_postgresql",
+        "actual_anvil_seed"
+      ],
+      "reported_result": {
+        "status": "PASS_SCOPED",
+        "connected_passed": 6,
+        "claims": [
+          "fresh UI application approve/reject with DB matching states",
+          "separate context reload/login/logout persisted decisions",
+          "real confirmed operation and institution-isolated audit displayed",
+          "real hash response loss seed yields UNKNOWN shown pending rather than confirmed",
+          "other issuer Operation404 through UI",
+          "anonymous401 and issuer-only key access gate"
+        ]
+      },
+      "limits": [
+        "Active institution/key/UNKNOWN preparation uses actual API seed, not UI success",
+        "No page.route mock but full activation/register/revoke UI does not exist",
+        "Default CI does not run these disposable opt-in browser acceptance projects"
+      ],
+      "reports": [
+        {
+          "sha": "17f78e300b04aa9395fb20f6f76f5313d705db3d",
+          "path": "docs/qa/w2-d-browser.md",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/17f78e300b04aa9395fb20f6f76f5313d705db3d/docs/qa/w2-d-browser.md"
+        },
+        {
+          "sha": "17f78e300b04aa9395fb20f6f76f5313d705db3d",
+          "path": "docs/qa/w2-d-browser-environment.json",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/17f78e300b04aa9395fb20f6f76f5313d705db3d/docs/qa/w2-d-browser-environment.json"
+        }
+      ],
+      "executed_in_this_change": false
+    },
+    {
+      "id": "W2-BROWSER-GAPS",
+      "stage": "W2",
+      "qa_code_sha": "a66ac7205119369774c62466ae0ea4d3c5259aff",
+      "product_base_sha": "6f508fe6ae5ce106999c171e8205978dd2201333",
+      "pr_url": "https://github.com/OriginProof-3web/OriginProof/pull/51",
+      "test_files": [
+        {
+          "sha": "a66ac7205119369774c62466ae0ea4d3c5259aff",
+          "path": "fixtures/finals/w2_browser_qa.spec.ts",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/a66ac7205119369774c62466ae0ea4d3c5259aff/fixtures/finals/w2_browser_qa.spec.ts"
+        }
+      ],
+      "tests": [
+        "[acceptance] W2-A1 approved application offers an actual chain activation control",
+        "[acceptance] W2-A2 key screen actually queries the current institution key list",
+        "[acceptance] W2-A2 valid key form performs a real registration instead of only inspecting dates",
+        "[acceptance] W2-A2 registered key offers an explicit revoke control",
+        "[acceptance] W2-A1 displays the actual ACTIVE application status",
+        "[acceptance] approved application satisfies the definition-list accessibility rule"
+      ],
+      "command": "W2_BROWSER_QA=1 PYTHONPATH=apps/api/src:packages/python:services/analyzer/src:services/indexer/src .uv-venv/bin/python fixtures/finals/prepare_w2_browser_qa.py",
+      "layers": [
+        "actual_chromium_browser",
+        "production_next",
+        "actual_socket_http"
+      ],
+      "reported_result": {
+        "status": "FAIL",
+        "failed": 6,
+        "skipped": 0,
+        "total_browser": 12,
+        "runner_exit": 1,
+        "claims": [
+          "activation control absent",
+          "key-list GET absent",
+          "registration POST absent despite dates inspected",
+          "revoke control absent",
+          "actual API ACTIVE displayed status-needs-check",
+          "axe definition-list fails from direct dl/p structure"
+        ]
+      },
+      "limits": [
+        "Six capability assertions fail; not six full write E2Es executed",
+        "Actual activation/register/revoke + new-session lifecycle and mutation failure UX NOT_RUN until A connects UI",
+        "Do not xfail/skip or infer pass from green basic CI"
+      ],
+      "reports": [
+        {
+          "sha": "17f78e300b04aa9395fb20f6f76f5313d705db3d",
+          "path": "docs/qa/w2-d-browser.md",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/17f78e300b04aa9395fb20f6f76f5313d705db3d/docs/qa/w2-d-browser.md"
+        }
+      ],
+      "executed_in_this_change": false
+    },
+    {
+      "id": "w3_core",
+      "stage": "W3",
+      "qa_code_sha": "cbe8aaeea59e18bd4e8529bf59b618683f3e3964",
+      "product_base_sha": "1f8ed632ea9c74091abaf2fe2ec32882038f731f",
+      "pr_url": "https://github.com/OriginProof-3web/OriginProof/pull/46",
+      "test_files": [
+        {
+          "sha": "cbe8aaeea59e18bd4e8529bf59b618683f3e3964",
+          "path": "services/analyzer/tests/test_w3_proof_qa.py",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/cbe8aaeea59e18bd4e8529bf59b618683f3e3964/services/analyzer/tests/test_w3_proof_qa.py"
+        }
+      ],
+      "tests": [
+        "test_w3_case",
+        "test_w3_manifest_reproduces_and_preserves_signed_goldens"
+      ],
+      "command": "PYTHONPATH=packages/python .uv-venv/bin/python -m pytest -q services/analyzer/tests/test_w3_proof_qa.py",
+      "layers": [
+        "Pydantic input model and deterministic core with real public ECDSA Golden vectors and synthetic trust; no DB/RPC/API/browser"
+      ],
+      "reported_result": "65 passed (64 parameterized cases + one manifest/Golden preservation test)",
+      "limits": [
+        "All core results have lifecycle_status=null and proof_status=NOT_RUN. Each manifest case has live_execution_status=NOT_RUN. Case counts are not final acceptance counts."
+      ],
+      "reports": [
+        {
+          "sha": "59084570960e94a76bf041c513043816e6075ae1",
+          "path": "docs/qa/w3-d-acceptance.md",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/59084570960e94a76bf041c513043816e6075ae1/docs/qa/w3-d-acceptance.md"
+        }
+      ],
+      "executed_in_this_change": false
+    },
+    {
+      "id": "w3_socket_api",
+      "stage": "W3",
+      "qa_code_sha": "53da535ae36ca4c9616c04ad4f179bec74aac539",
+      "product_base_sha": "121e1cade40f9ac3b001dc7aa24256d9033f0214",
+      "pr_url": "https://github.com/OriginProof-3web/OriginProof/pull/47",
+      "test_files": [
+        {
+          "sha": "53da535ae36ca4c9616c04ad4f179bec74aac539",
+          "path": "fixtures/finals/test_w3_live_api_qa.py",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/53da535ae36ca4c9616c04ad4f179bec74aac539/fixtures/finals/test_w3_live_api_qa.py"
+        }
+      ],
+      "tests": [
+        "test_w3_actual_http_permissions_failures_and_atomic_storage"
+      ],
+      "command": "W3_LIVE_QA=1 W3_QA_DISPOSABLE=1 PYTHONPATH=apps/api/src:packages/python:services/analyzer/src .uv-venv/bin/python -m pytest -q fixtures/finals/test_w3_live_api_qa.py",
+      "layers": [
+        "Actual socket HTTP / PostgreSQL / ECDSA / Anvil Reader and Writer"
+      ],
+      "reported_result": "1 ordered integration test passed / 3.47 seconds; fresh archive on final QA code 1 passed / 3.52 seconds",
+      "limits": [
+        "Many assertions inside one test; do not count them as separate passed pytest tests. VERIFIED does not mean ACTIVE: requires lifecycle_status=null and proof_status=NOT_RUN."
+      ],
+      "reports": [
+        {
+          "sha": "59084570960e94a76bf041c513043816e6075ae1",
+          "path": "docs/qa/w3-d-live-acceptance.md",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/59084570960e94a76bf041c513043816e6075ae1/docs/qa/w3-d-live-acceptance.md"
+        },
+        {
+          "sha": "59084570960e94a76bf041c513043816e6075ae1",
+          "path": "docs/qa/w3-d-live-environment.json",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/59084570960e94a76bf041c513043816e6075ae1/docs/qa/w3-d-live-environment.json"
+        }
+      ],
+      "executed_in_this_change": false,
+      "command_prerequisite": "해당 QA SHA의 prepare_w3_live_qa.py로 소유한 폐기 가능한 DB/Anvil/API를 준비하고 원 보고서의 build/w3-qa/runtime.env를 사용합니다. W3_QA_API_URL, TEST_DATABASE_URL, ORIGINPROOF_TEST_ACCOUNTS, W3_QA_SIGNER_DIRECTORY, W3_QA_RPC_CONTAINER 등 환경 인계가 필요합니다. flag만 설정해서 개인 서비스에 실행하지 않습니다."
+    },
+    {
+      "id": "w3_browser",
+      "stage": "W3",
+      "qa_code_sha": "53da535ae36ca4c9616c04ad4f179bec74aac539",
+      "product_base_sha": "121e1cade40f9ac3b001dc7aa24256d9033f0214",
+      "pr_url": "https://github.com/OriginProof-3web/OriginProof/pull/47",
+      "test_files": [
+        {
+          "sha": "53da535ae36ca4c9616c04ad4f179bec74aac539",
+          "path": "fixtures/finals/w3_browser_qa.spec.ts",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/53da535ae36ca4c9616c04ad4f179bec74aac539/fixtures/finals/w3_browser_qa.spec.ts"
+        }
+      ],
+      "tests": [
+        "D live PAYMENT_REQUEST: new issuance, fresh sessions, comparison boundaries and privacy",
+        "D live OFFICIAL_DOCUMENT: new issuance, fresh sessions, comparison boundaries and privacy"
+      ],
+      "command": "NODE_PATH=\"$PWD/apps/web/node_modules\" pnpm --dir apps/web exec playwright test --config ../../fixtures/finals/w3_playwright.config.ts",
+      "layers": [
+        "Chromium / production Next UI / actual socket API / PostgreSQL / Anvil, fresh BrowserContexts"
+      ],
+      "reported_result": "D 2 passed / 13.0 seconds; fresh archive D 2 passed / 0 skipped / 12.9 seconds. Existing A suite separately 11 passed / 0 skipped (9 mock/UI + 2 actual). Do not add overlapping suites.",
+      "limits": [
+        "PC proof_id links only. QR generation/decoding and phone LAN NOT_RUN by D. W3 lifecycle=null/proof_status=NOT_RUN. Matching dependency cache and earlier identical product web build reused for fresh archive."
+      ],
+      "reports": [
+        {
+          "sha": "59084570960e94a76bf041c513043816e6075ae1",
+          "path": "docs/qa/w3-d-live-acceptance.md",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/59084570960e94a76bf041c513043816e6075ae1/docs/qa/w3-d-live-acceptance.md"
+        }
+      ],
+      "executed_in_this_change": false
+    },
+    {
+      "id": "w4_core_and_actual_asgi",
+      "stage": "W4",
+      "qa_code_sha": "0bb5da42d64b9ce298cb2de2951b327da6bc4fc7",
+      "product_base_sha": "8011f7fe3da033c9253894a9de0fd98aa7bbcc16",
+      "pr_url": "https://github.com/OriginProof-3web/OriginProof/pull/49",
+      "test_files": [
+        {
+          "sha": "0bb5da42d64b9ce298cb2de2951b327da6bc4fc7",
+          "path": "fixtures/finals/test_w4_lifecycle_qa.py",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/0bb5da42d64b9ce298cb2de2951b327da6bc4fc7/fixtures/finals/test_w4_lifecycle_qa.py"
+        }
+      ],
+      "tests": [
+        "test_w4_policy",
+        "test_w4_real_database_and_chain"
+      ],
+      "command": "W4_LIVE_QA=1 W4_QA_DISPOSABLE=1 PYTHONPATH=apps/api/src:packages/python:services/analyzer/src .uv-venv/bin/python -m pytest -q fixtures/finals/test_w4_lifecycle_qa.py",
+      "layers": [
+        "20 deterministic core vectors plus one ordered ASGI HTTP integration with actual PostgreSQL, ECDSA, Reader/Writer, Anvil Contract, receipts and events"
+      ],
+      "reported_result": "21 passed / 0 skipped / 12.02 seconds; fresh archive 21 passed / 0 skipped / 12.04 seconds",
+      "limits": [
+        "ASGI transport, not socket HTTP/browser. API trusted clock controlled, actual chain timestamp moved for expiry. Fresh DB/Anvil deployment and migrations; identical locked Python install and same product deployer image reused. Pass counts include all F items inside one live test, never add per-row."
+      ],
+      "reports": [
+        {
+          "sha": "f2e9774003badb692fb4de6b89de640a155c1fa6",
+          "path": "docs/qa/w4-d-acceptance.md",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/f2e9774003badb692fb4de6b89de640a155c1fa6/docs/qa/w4-d-acceptance.md"
+        },
+        {
+          "sha": "f2e9774003badb692fb4de6b89de640a155c1fa6",
+          "path": "docs/qa/w4-d-environment.json",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/f2e9774003badb692fb4de6b89de640a155c1fa6/docs/qa/w4-d-environment.json"
+        }
+      ],
+      "executed_in_this_change": false
+    },
+    {
+      "id": "w4_d3_preparation",
+      "stage": "W4",
+      "qa_code_sha": "78cce405357ae1f509a9bfebdbb07af4b02b2411",
+      "product_base_sha": "8011f7fe3da033c9253894a9de0fd98aa7bbcc16",
+      "pr_url": "https://github.com/OriginProof-3web/OriginProof/pull/49",
+      "test_files": [
+        {
+          "sha": "78cce405357ae1f509a9bfebdbb07af4b02b2411",
+          "path": "fixtures/finals/prepare_w4_d3.py",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/78cce405357ae1f509a9bfebdbb07af4b02b2411/fixtures/finals/prepare_w4_d3.py"
+        }
+      ],
+      "tests": [
+        "main",
+        "seed",
+        "snapshot"
+      ],
+      "command": "W4_D3_PREPARE=1 PYTHONPATH=apps/api/src:packages/python:services/analyzer/src:services/indexer/src .uv-venv/bin/python fixtures/finals/prepare_w4_d3.py --serve",
+      "layers": [
+        "Owned environment preparation, API seeding, read-only DB/chain/receipt/event evidence collection, socket HTTP initial verdicts only"
+      ],
+      "reported_result": "PASS preparation and fresh clone preparation; two initial VERIFIED + ACTIVE socket verdicts; six confirmed status=0x1 receipts; collector outage/recovery, DB invariance and cleanup checks PASS. 12 browser cases NOT_RUN.",
+      "limits": [
+        "Initial API seeding is not UI issuance/rotation/revoke/consume evidence. RPC outage snapshot validates collector, not browser outage acceptance. No web build/Playwright, no submitted-transaction response-loss/failure receipt injection. Node/browser unused."
+      ],
+      "reports": [
+        {
+          "sha": "f2e9774003badb692fb4de6b89de640a155c1fa6",
+          "path": "docs/qa/w4-d3-browser.md",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/f2e9774003badb692fb4de6b89de640a155c1fa6/docs/qa/w4-d3-browser.md"
+        },
+        {
+          "sha": "f2e9774003badb692fb4de6b89de640a155c1fa6",
+          "path": "docs/qa/w4-d3-preparation.json",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/f2e9774003badb692fb4de6b89de640a155c1fa6/docs/qa/w4-d3-preparation.json"
+        }
+      ],
+      "executed_in_this_change": false
+    },
+    {
+      "id": "LEGACY-V1-CORE",
+      "stage": "W1",
+      "qa_code_sha": "54f09e4e8db162db078c9347015c47cae881301d",
+      "product_base_sha": "3295a71c10a1a99c523d3cfefde91b5737b737ac",
+      "pr_url": "https://github.com/OriginProof-3web/OriginProof/pull/30",
+      "test_files": [
+        {
+          "sha": "54f09e4e8db162db078c9347015c47cae881301d",
+          "path": "services/analyzer/tests/test_v1_qa_regression.py",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/54f09e4e8db162db078c9347015c47cae881301d/services/analyzer/tests/test_v1_qa_regression.py"
+        }
+      ],
+      "tests": [
+        "test_existing_card_fixture_through_real_verification_core"
+      ],
+      "command": "python -m pytest -q services/analyzer/tests/test_v1_qa_regression.py",
+      "layers": [
+        "actual_verification_core",
+        "ephemeral_real_ecdsa",
+        "in_memory_mock_repository_reader"
+      ],
+      "reported_result": {
+        "status": "PASS_REGRESSION_ONLY",
+        "passed": 2,
+        "normal": "VERIFIED + ACTIVE",
+        "amount_change": "TAMPERED + ACTIVE / AMOUNT_MISMATCH"
+      },
+      "limits": [
+        "CARD_PAYMENT_NOTICE v1, not PAYMENT_REQUEST/OFFICIAL_DOCUMENT finals-v2",
+        "Golden digest is verified and ephemeral in-memory signer signs; Golden not modified",
+        "Source report initial execution 3295a71 plus D working tree; committed code54f09e4 identifies same D source"
+      ],
+      "reports": [
+        {
+          "sha": "94488b13d80df991bc5b861d1d4d44da267355ee",
+          "path": "docs/qa/w1-results.md",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/94488b13d80df991bc5b861d1d4d44da267355ee/docs/qa/w1-results.md"
+        }
+      ],
+      "executed_in_this_change": false
+    }
+  ],
+  "cases": [
+    {
+      "id": "F01",
+      "expected": "두 기관·두 유형 신규 발행, VERIFIED + ACTIVE와 인증 대상자의 FULL_COMPARISON",
+      "owner_task_ids": [
+        "W3-A1",
+        "W3-A2",
+        "W3-A3",
+        "W3-B1",
+        "W3-C1",
+        "W3-C2",
+        "W3-C3",
+        "W4-B3",
+        "W4-C2",
+        "W5-C3",
+        "W5-D2"
+      ],
+      "prior_evidence_refs": [
+        "w3_core",
+        "w3_socket_api",
+        "w3_browser",
+        "w4_core_and_actual_asgi",
+        "w4_d3_preparation"
+      ],
+      "prior_status": "PARTIAL",
+      "prior_coverage": "W3 새 발행·실제 서명·자료 비교 통과. W4 ASGI 신규 발행·현재 ACTIVE 확인. 서로 다른 제품 실행입니다.",
+      "w5_execution_status": "NOT_RUN",
+      "remaining_d_checks": [
+        "같은 W5 통합 SHA에서 브라우저 신규 발행 → 지정 수신자 새 세션 → 전체 비교 → ACTIVE를 함께 확인합니다.",
+        "QR 생성·PNG 해석·새 세션 조회는 D 독립 검사 미실행입니다. API seed 성공은 브라우저 발행 성공이 아닙니다."
+      ],
+      "blocker_refs": [
+        "G01",
+        "G02",
+        "G03",
+        "G04"
+      ]
+    },
+    {
+      "id": "F02",
+      "expected": "같은 ID에서 금액/문서번호 하나만 변경하면 TAMPERED와 해당 불일치 사유",
+      "owner_task_ids": [
+        "W3-A3",
+        "W3-C3",
+        "W5-A3",
+        "W5-D2"
+      ],
+      "prior_evidence_refs": [
+        "w3_core",
+        "w3_socket_api",
+        "w3_browser"
+      ],
+      "prior_status": "PARTIAL",
+      "prior_coverage": "W3 socket·브라우저의 금액 +1/문서번호 변경 통과. 누락만 있으면 INCONCLUSIVE, 누락과 실제 불일치는 TAMPERED입니다.",
+      "w5_execution_status": "NOT_RUN",
+      "remaining_d_checks": [
+        "W5 통합본에서 lifecycle과 비교 범위·실제 사유를 함께 재검사합니다."
+      ],
+      "blocker_refs": [
+        "G01"
+      ]
+    },
+    {
+      "id": "F03",
+      "expected": "v2 수행한 서명/요청 범위 성공 + EXPIRED, 사용 불가; v1 INCONCLUSIVE + EXPIRED 보존",
+      "owner_task_ids": [
+        "W4-A2",
+        "W4-B2",
+        "W4-C2",
+        "W5-D2"
+      ],
+      "prior_evidence_refs": [
+        "w3_core",
+        "w4_core_and_actual_asgi"
+      ],
+      "prior_status": "PARTIAL",
+      "prior_coverage": "W4 실제 DB/chain + ASGI에서 만료 -1/0/+1초, EXPIRED와 consume 거부 확인. v1 만료 전용 D 실행 근거는 이 선택 자료에 매핑되지 않았습니다.",
+      "w5_execution_status": "NOT_RUN",
+      "remaining_d_checks": [
+        "통합 UI의 만료·사용 불가 표시를 검사합니다.",
+        "기존 v1 만료 회귀 파일/함수는 확인했습니다. 같은 후보에서 실행 명령·SHA·결과를 별도로 연결합니다. 정상/금액 변조 v1 결과로 만료를 대신하지 않습니다."
+      ],
+      "blocker_refs": [
+        "G01",
+        "G04"
+      ],
+      "existing_unexecuted_test": {
+        "sha": "3295a71c10a1a99c523d3cfefde91b5737b737ac",
+        "path": "packages/python/tests/test_verification.py",
+        "function": "test_expired_proof_is_not_reported_as_verified",
+        "url": "https://github.com/OriginProof-3web/OriginProof/blob/3295a71c10a1a99c523d3cfefde91b5737b737ac/packages/python/tests/test_verification.py",
+        "command": "UV_PROJECT_ENVIRONMENT=.uv-venv uv run --no-sync pytest -q packages/python/tests/test_verification.py::test_expired_proof_is_not_reported_as_verified",
+        "status": "CODE_ONLY_EXECUTION_NOT_MAPPED",
+        "note": "Existing test expects v1 INCONCLUSIVE/PROOF_EXPIRED/EXPIRED. It was read, not newly executed; prior aggregate make test output is not counted as an isolated mapped execution."
+      }
+    },
+    {
+      "id": "F04",
+      "expected": "순차/동시 consume 체인 전이 한 번, 새 ID 재사용 거부·같은 ID 기존 Operation·조회 불변",
+      "owner_task_ids": [
+        "W4-A3",
+        "W4-B2",
+        "W4-B3",
+        "W4-C3",
+        "W5-D2"
+      ],
+      "prior_evidence_refs": [
+        "w4_core_and_actual_asgi",
+        "w4_d3_preparation"
+      ],
+      "prior_status": "PARTIAL",
+      "prior_coverage": "W4 ASGI + 실제 chain에서 서로 다른 ID 경쟁 200/409·event 1개, 같은 ID 동일 Operation/tx, 새 ID REPLAY_DETECTED·읽기 불변 통과.",
+      "w5_execution_status": "NOT_RUN",
+      "remaining_d_checks": [
+        "새 수신자 세션의 UI consume → 재조회 → 재사용 거부를 검사합니다.",
+        "미확정/실패 UI는 receipt와 현재 체인 재조회 전 성공 표시 금지를 확인합니다. W4 준비 수집기의 RPC 중지는 제출 후 응답 유실 검사와 다릅니다."
+      ],
+      "blocker_refs": [
+        "G01",
+        "G04"
+      ]
+    },
+    {
+      "id": "F05",
+      "expected": "기관 A의 기관 B 키·Proof 변경을 서버/계약에서 거부하고 B 상태 불변",
+      "owner_task_ids": [
+        "W2-A2",
+        "W2-B1",
+        "W2-C3",
+        "W3-C2",
+        "W4-B1",
+        "W4-C2",
+        "W5-C1",
+        "W5-D2"
+      ],
+      "prior_evidence_refs": [
+        "W1-LIVE",
+        "W2-LATEST-RECOVERY-RERUN",
+        "W2-BROWSER-CONNECTED",
+        "w3_socket_api",
+        "w4_core_and_actual_asgi"
+      ],
+      "prior_status": "PARTIAL",
+      "prior_coverage": "W1 신청·W2 키/이력 격리, W3 제한 조회, W4 타 기관 폐기/consume 거부와 상태/event 불변 근거가 있습니다.",
+      "w5_execution_status": "NOT_RUN",
+      "remaining_d_checks": [
+        "W5 현재 통합본에서 키·Proof의 UI와 직접 HTTP 변경을 대조하고 거부 전후 DB·chain·event를 확인합니다."
+      ],
+      "blocker_refs": [
+        "G01",
+        "G02",
+        "G04"
+      ]
+    },
+    {
+      "id": "F06",
+      "expected": "미등록 Proof/발행자는 NOT_REGISTERED, 위조라고 단정하지 않음",
+      "owner_task_ids": [
+        "W3-A3",
+        "W3-B1",
+        "W3-C2",
+        "W3-C3",
+        "W5-A3",
+        "W5-D2"
+      ],
+      "prior_evidence_refs": [
+        "w3_core"
+      ],
+      "prior_status": "PARTIAL",
+      "prior_coverage": "W3 코어의 합성 issuer=None은 NOT_REGISTERED/ISSUER_NOT_FOUND. key=None은 INCONCLUSIVE/KEY_NOT_FOUND입니다. 실제 HTTP unknown Proof 검사는 D 선택 파일에 없습니다.",
+      "w5_execution_status": "NOT_RUN",
+      "remaining_d_checks": [
+        "실제 저장소에 없는 Proof ID와 미등록 발행자의 HTTP 결과·웹 문구를 확인합니다.",
+        "원 보고서의 F06 범위 문구만으로 실제 실행 통과를 선언하지 않습니다."
+      ],
+      "blocker_refs": [
+        "G01"
+      ]
+    },
+    {
+      "id": "F07",
+      "expected": "Proof 폐기 후 새 사용자 세션에서 VERIFIED + PROOF_REVOKED, 사용 불가",
+      "owner_task_ids": [
+        "W4-A2",
+        "W4-B1",
+        "W4-C2",
+        "W5-D2"
+      ],
+      "prior_evidence_refs": [
+        "w4_core_and_actual_asgi",
+        "w4_d3_preparation"
+      ],
+      "prior_status": "PARTIAL",
+      "prior_coverage": "W4 실제 DB/chain + ASGI에서 적법한 폐기·반복 폐기 event 불증가·소비 후 폐기 이력 보존 통과. 새 브라우저 세션은 미실행입니다.",
+      "w5_execution_status": "NOT_RUN",
+      "remaining_d_checks": [
+        "브라우저 실제 폐기 후 새 수신자 세션에서 두 유형의 현재 상태·사유·사용 불가를 확인합니다."
+      ],
+      "blocker_refs": [
+        "G01",
+        "G04"
+      ]
+    },
+    {
+      "id": "F08",
+      "expected": "정상 교체·키 기간 종료는 과거 정상 Proof 보존, 유출 폐기는 사용 차단·미확인 키 발행 금지",
+      "owner_task_ids": [
+        "W4-A1",
+        "W4-B3",
+        "W4-C1",
+        "W5-D2"
+      ],
+      "prior_evidence_refs": [
+        "w4_core_and_actual_asgi",
+        "w4_d3_preparation"
+      ],
+      "prior_status": "PARTIAL",
+      "prior_coverage": "W4 ASGI/chain에서 두 기관 정상 교체·선택 키·과거 ACTIVE·키 기간 종료 보존·유출 ISSUER_KEY_REVOKED 통과.",
+      "w5_execution_status": "NOT_RUN",
+      "remaining_d_checks": [
+        "UI 교체 → 새 발행 → 새 사용자 세션의 과거/신규 Proof 확인을 수행합니다.",
+        "등록 미확정/실패 시 발행 키 선택 유지와 발행 금지를 확인합니다. 준비 manifest 기대값을 실행 성공으로 바꾸지 않습니다."
+      ],
+      "blocker_refs": [
+        "G01",
+        "G04"
+      ]
+    },
+    {
+      "id": "F09",
+      "expected": "미승인 기관 발행·키 등록 거부; DB 승인만으로 허용하지 않고 체인 활성화 후 허용",
+      "owner_task_ids": [
+        "W2-A1",
+        "W2-A2",
+        "W2-B1",
+        "W2-C2",
+        "W2-C3",
+        "W3-A1",
+        "W3-C1",
+        "W5-D2"
+      ],
+      "prior_evidence_refs": [
+        "W1-LIVE",
+        "W2-LATEST-RECOVERY-RERUN",
+        "W2-BROWSER-CONNECTED",
+        "W2-BROWSER-GAPS",
+        "w3_socket_api"
+      ],
+      "prior_status": "PARTIAL_WITH_FAILURE",
+      "prior_coverage": "미승인/반려/DB 승인 체인 미완료 키 등록 거부·Operations/sends 0 확인. W3 발행 권한 거부. W2 UI 활성화·키 경로 6개 capability 검사 실패가 남습니다.",
+      "w5_execution_status": "NOT_RUN",
+      "remaining_d_checks": [
+        "W5 UI 신청 → 검토 → 체인 활성화 → 키 등록 → 발행을 새 상태에서 완료합니다.",
+        "pending/rejected/approved_pending_chain 단계의 발행·키 등록 거부를 같은 후보 SHA에서 재검사합니다."
+      ],
+      "blocker_refs": [
+        "G01",
+        "G02"
+      ]
+    },
+    {
+      "id": "F10",
+      "expected": "무권한 승인·consume 및 역할/기관 ID 주입 거부",
+      "owner_task_ids": [
+        "W1-C2",
+        "W2-C2",
+        "W4-A3",
+        "W4-B2",
+        "W4-C3",
+        "W5-C1",
+        "W5-D2"
+      ],
+      "prior_evidence_refs": [
+        "W1-LIVE",
+        "W2-LATEST-RECOVERY-RERUN",
+        "w4_core_and_actual_asgi"
+      ],
+      "prior_status": "PARTIAL",
+      "prior_coverage": "W1 실제 역할·자체 승인·CSRF·주입 거부, W4 ASGI/실제 chain에서 비인가 consume·직접 gateway 우회 거부 근거가 있습니다.",
+      "w5_execution_status": "NOT_RUN",
+      "remaining_d_checks": [
+        "W5 세 역할·다른 기관/수신자·익명 세션의 UI와 직접 HTTP/Contract 호출을 대조합니다. 숨긴 버튼만으로 서버 권한 성공을 주장하지 않습니다."
+      ],
+      "blocker_refs": [
+        "G01",
+        "G04"
+      ]
+    },
+    {
+      "id": "F11",
+      "expected": "기관 중지 중 신규 발행 거부, 기존 Proof ISSUER_SUSPENDED",
+      "owner_task_ids": [
+        "W2-A1",
+        "W3-B1",
+        "W3-C1",
+        "W4-A2",
+        "W4-C2",
+        "W5-D2"
+      ],
+      "prior_evidence_refs": [
+        "w4_core_and_actual_asgi"
+      ],
+      "prior_status": "PARTIAL",
+      "prior_coverage": "W4 실제 chain 중지 → 기존 문서 Proof VERIFIED + ISSUER_SUSPENDED → 복귀 ACTIVE 확인. 중지 중 새 발행 POST는 이 D 검사에 없습니다.",
+      "w5_execution_status": "NOT_RUN",
+      "remaining_d_checks": [
+        "중지 중 두 유형 새 발행을 직접 시도해 거부와 Proof/Operation/event 불변을 확인합니다.",
+        "새 브라우저 세션의 중지·복귀 표시를 검사합니다. 증거 부재를 API 미구현으로 단정하지 않습니다."
+      ],
+      "blocker_refs": [
+        "G01",
+        "G04"
+      ]
+    },
+    {
+      "id": "F12",
+      "expected": "등록·발행 timeout 재시도 시 기존 작업 조회, 중복 키/Proof/체인 변경 없음",
+      "owner_task_ids": [
+        "W2-A1",
+        "W2-A2",
+        "W2-C1",
+        "W3-A1",
+        "W3-C1",
+        "W5-C1",
+        "W5-C2",
+        "W5-D2"
+      ],
+      "prior_evidence_refs": [
+        "W2-LATEST-RECOVERY-RERUN",
+        "w3_socket_api",
+        "w4_core_and_actual_asgi"
+      ],
+      "prior_status": "PARTIAL",
+      "prior_coverage": "W2 실제 응답 유실·receipt timeout/API 재시작 후 같은 tx 복구. W3 동시 발행 동일 envelope·저장 1개/서명·저장 실패 거부. W4 같은 ID consume 동일 Operation.",
+      "w5_execution_status": "NOT_RUN",
+      "remaining_d_checks": [
+        "통합 UI 중복 클릭·timeout·재시도에서 같은 Operation/tx·Proof를 확인합니다.",
+        "PR #50의 전송 전 저장 실패/취소 nonce 수정은 별도 B/C 리뷰 대상이며 이 선택 D 실행 증거에 포함되지 않았습니다."
+      ],
+      "blocker_refs": [
+        "G01",
+        "G02",
+        "G04"
+      ]
+    },
+    {
+      "id": "F13",
+      "expected": "RPC·미확인 제출·재시작에서 대기/실패 구분, 현재 판정 보류와 복구 상태 일치",
+      "owner_task_ids": [
+        "W5-A1",
+        "W5-A3",
+        "W5-B1",
+        "W5-B2",
+        "W5-B3",
+        "W5-C2",
+        "W5-C3",
+        "W5-D2"
+      ],
+      "prior_evidence_refs": [
+        "W2-LATEST-RECOVERY-RERUN",
+        "W2-BROWSER-CONNECTED",
+        "W2-BROWSER-GAPS",
+        "w3_socket_api",
+        "w4_core_and_actual_asgi",
+        "w4_d3_preparation"
+      ],
+      "prior_status": "PARTIAL_WITH_FAILURE",
+      "prior_coverage": "W2 socket RPC/UNKNOWN/실제 프로세스 재시작·실패 receipt 구분, UI UNKNOWN 대기 표시. W4 실제 RPC 단절 → null/503 → ACTIVE 복구. Indexer/reorg 실제 D 연결 근거는 없습니다.",
+      "w5_execution_status": "NOT_RUN",
+      "remaining_d_checks": [
+        "같은 W5 배포의 UI pending/UNKNOWN/FAILED·복구 조회·현재 판정 보류를 재검사합니다.",
+        "B/C의 실제 Indexer 중복/restart/reorg·deployment mismatch 근거를 확인하고 D 재현을 연결합니다. projection만으로 현재 ACTIVE를 판정하지 않습니다."
+      ],
+      "blocker_refs": [
+        "G01",
+        "G02",
+        "G04",
+        "G06"
+      ]
+    },
+    {
+      "id": "F14",
+      "expected": "수신자 binding·domain/network 불일치 거부, 다른 chain ID 서명 재사용 금지",
+      "owner_task_ids": [
+        "W3-B2",
+        "W3-C3",
+        "W4-A3",
+        "W4-B2",
+        "W4-C3",
+        "W5-D2"
+      ],
+      "prior_evidence_refs": [
+        "w3_core",
+        "w3_socket_api",
+        "w3_browser",
+        "w4_core_and_actual_asgi"
+      ],
+      "prior_status": "PARTIAL",
+      "prior_coverage": "코어 network/domain 오류, 실제 지정 수신자 제한 조회·잘못된 binding 체인 receipt 0/상태 불변 근거. 실제 두 번째 chain 재사용은 D 미실행입니다.",
+      "w5_execution_status": "NOT_RUN",
+      "remaining_d_checks": [
+        "실제 다른 chain/deployment에서 같은 서명 거부를 B 계약/배포 절차에 맞춰 재현합니다.",
+        "W5 지정 수신자·다른 수신자의 UI 비교/consume과 서버가 세션에서 도출한 binding을 확인합니다."
+      ],
+      "blocker_refs": [
+        "G01",
+        "G04",
+        "G06"
+      ]
+    },
+    {
+      "id": "F15",
+      "expected": "비밀정보 비노출, 키보드·결과 읽기 가능, 과도한 요청 제한",
+      "owner_task_ids": [
+        "W5-A1",
+        "W5-A2",
+        "W5-A3",
+        "W5-C1",
+        "W5-D2"
+      ],
+      "prior_evidence_refs": [
+        "W1-LIVE",
+        "W2-LATEST-RECOVERY-RERUN",
+        "W2-BROWSER-CONNECTED",
+        "W2-BROWSER-GAPS",
+        "w3_socket_api",
+        "w3_browser"
+      ],
+      "prior_status": "PARTIAL_WITH_FAILURE",
+      "prior_coverage": "W1 선택 화면 axe 0, W2 키 응답·W3 공개/제한 필드 비노출 근거. W2 approved 화면 definition-list 접근성 실패. 전체 보안·요청 제한 검사는 미매핑입니다.",
+      "w5_execution_status": "NOT_RUN",
+      "remaining_d_checks": [
+        "세 역할 핵심 경로의 키보드·focus·label·오류/결과 읽기·대비·작은 화면을 독립 검사합니다.",
+        "C가 제공한 한계와 응답 계약으로 요청 제한의 실제 거부·복구를 검사합니다. 임계치를 D가 임의 정책으로 만들지 않습니다.",
+        "응답·URL/QR·DOM/저장소·로그·Git·키 파일·체인 자료를 합성 환경에서 검사합니다. 의도된 보호 세션 저장과 허용 공개 signer를 노출 결함으로 혼동하지 않습니다."
+      ],
+      "blocker_refs": [
+        "G01",
+        "G02",
+        "G05"
+      ]
+    }
+  ],
+  "blockers": [
+    {
+      "id": "G01",
+      "type": "HANDOFF_PENDING",
+      "owner_task_ids": [
+        "W5-C3",
+        "W5-A1",
+        "W5-A2",
+        "W5-A3",
+        "W5-B3"
+      ],
+      "summary": "phase/W5와 A/B/C 공통 통합 검증 SHA·웹/API/Contract manifest·기동 안내가 아직 없습니다.",
+      "references": [
+        "https://github.com/OriginProof-3web/OriginProof/pull/37"
+      ],
+      "d_next": "소유자가 전달한 후보를 read-only 확인 후 W5-D2를 같은 SHA에서 실행합니다."
+    },
+    {
+      "id": "G02",
+      "type": "KNOWN_PRIOR_FAILURE",
+      "owner_task_ids": [
+        "W2-A1",
+        "W2-A2",
+        "W5-A1",
+        "W5-A2"
+      ],
+      "summary": "PR51: W2 브라우저 6 통과/6 실패/0 skipped. 활성화·키 목록/등록/폐기·ACTIVE 표시·definition-list 결함.",
+      "references": [
+        "https://github.com/OriginProof-3web/OriginProof/pull/51"
+      ],
+      "d_next": "A 수정 handoff 후 실패 6개와 전체 기관/키 흐름을 재검사합니다."
+    },
+    {
+      "id": "G03",
+      "type": "D_EXECUTION_PENDING",
+      "owner_task_ids": [
+        "W3-A2",
+        "W3-D3",
+        "W5-D2"
+      ],
+      "summary": "A QR 후속 PR48은 열려 있으며 D의 실제 QR 생성/해석→새 세션 조회는 미실행입니다.",
+      "references": [
+        "https://github.com/OriginProof-3web/OriginProof/pull/48",
+        "https://github.com/OriginProof-3web/OriginProof/pull/47"
+      ],
+      "d_next": "승인된 QR 화면과 최신 API의 같은 후보에서 D가 재현합니다."
+    },
+    {
+      "id": "G04",
+      "type": "HANDOFF_PENDING",
+      "owner_task_ids": [
+        "W4-A1",
+        "W4-A2",
+        "W4-A3",
+        "W4-D3",
+        "W5-D2"
+      ],
+      "summary": "PR49의 D3 환경/수집기 준비는 통과했으나 실제 W4 브라우저 사례 12개는 NOT_RUN입니다.",
+      "references": [
+        "https://github.com/OriginProof-3web/OriginProof/pull/49"
+      ],
+      "d_next": "연결 화면 handoff 후 실제 UI 변경과 DB/체인·receipt·새 세션 결과를 대조합니다."
+    },
+    {
+      "id": "G05",
+      "type": "D_EVIDENCE_GAP",
+      "owner_task_ids": [
+        "W5-C1",
+        "W5-A2",
+        "W5-D2"
+      ],
+      "summary": "F15 요청 제한/전체 비밀정보 감사와 핵심 키보드·접근성에 대한 현재 D 통합 실행 근거가 없습니다.",
+      "references": [
+        "https://github.com/OriginProof-3web/OriginProof/pull/37",
+        "https://github.com/OriginProof-3web/OriginProof/pull/51"
+      ],
+      "d_next": "C의 요청 제한 계약·보호 설정과 A 화면을 사용해 D가 검사합니다."
+    },
+    {
+      "id": "G06",
+      "type": "D_EVIDENCE_GAP",
+      "owner_task_ids": [
+        "W3-B2",
+        "W5-B1",
+        "W5-B2",
+        "W5-B3",
+        "W5-C2",
+        "W5-D2"
+      ],
+      "summary": "실제 Indexer/reorg·다른 chain 서명 재사용의 D 연결 증거가 이 선택 자료에 없습니다.",
+      "references": [
+        "https://github.com/OriginProof-3web/OriginProof/pull/37"
+      ],
+      "d_next": "B/C 소유자의 배포/상태 계약·실행 절차와 근거를 받은 뒤 D 독립 결과를 연결합니다."
+    }
+  ],
+  "preparation_validation": {
+    "scope": "documents and trace data only; not W5 functional acceptance",
+    "validated_base_sha": "3295a71c10a1a99c523d3cfefde91b5737b737ac",
+    "commands": [
+      {
+        "command": "UV_PROJECT_ENVIRONMENT=.uv-venv uv sync --frozen --all-packages --all-groups",
+        "status": "PASS",
+        "note": "51 packages installed in a dedicated new environment; lockfiles unchanged"
+      },
+      {
+        "command": "make bootstrap-check",
+        "status": "PASS",
+        "note": "Repository structure finals-v3; required files/commands and Compose CLI only"
+      },
+      {
+        "command": "make env-fingerprint",
+        "status": "PASS",
+        "note": "No services started; fingerprint generated at preparation base SHA"
+      },
+      {
+        "command": "temporary Python stdlib document/reference checker",
+        "status": "PASS",
+        "note": "15 F rows, 10 evidence groups, 6 blockers, 35 immutable source/Makefile references, 122 Markdown references; task IDs, actual test templates, commands, credential patterns"
+      },
+      {
+        "command": "git diff --cached --check; git diff --cached --name-only",
+        "status": "PASS",
+        "note": "Only 4 documentation/data files under docs/qa and docs/portfolio; no product code, lockfile, personal env or shared branch changed"
+      }
+    ],
+    "fingerprint": {
+      "comparable": {
+        "git_sha": "3295a71c10a1a99c523d3cfefde91b5737b737ac",
+        "docker": "Docker version 29.7.2, build a7dcaa6",
+        "compose": "Docker Compose version v5.5.1",
+        "python": "Python 3.13.7",
+        "uv": "uv 0.8.17 (10960bc13 2025-09-10)",
+        "node": "v22.18.0",
+        "pnpm": "11.19.0",
+        "container_config": {
+          ".tool-versions": "9e238d2a904c0fe8d489505fbe1e6a51185ba327ada08d34db8cf8d7bd9f94e2",
+          "docker-compose.yml": "ac73f432998f87a7bf3d0dfd49dff743c31c7fa2627a082a76cccca183f9cb1a",
+          "infra/docker/deployer.Dockerfile": "b34edd32f46ea1cb2f05dc0fcbe42d3c7202a2f8c8c71b2f2e5867be53d5e5c7",
+          "packages/contracts/foundry.toml": "296fc0438fa08cf77a324b12b64850d5b12a1edd88d81cbb4ee7c82477b57d89"
+        },
+        "lockfiles": {
+          "uv.lock": "10ad0e9c32643eaba3405234ccf7fead6ef120f7f7626e3b69b1b2589760fa75",
+          "pnpm-lock.yaml": "25a2e4a6ddb95d4a22bee0c1d530aeb8efb0f1fce26856926c35477fa6af8110",
+          "contract_dependencies": "d602f87fe5dbb7bc482a851adf729d02249bc2774bd58cbe613c0a61d7d4d154"
+        },
+        "schema_tree": "e1f10b9ceb3844b90fcb54afd9bb09a44f9ed1017650c03975f417ba5dea6278",
+        "abi_tree": "e5300b490b5b701b13615c51587ef54f1cbbceb8e5b206671f1153823b281b38"
+      },
+      "informational": {
+        "host_platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+        "host_forge": "NOT_INSTALLED"
+      }
+    },
+    "limitations": [
+      "Python 3.13.7 vs .tool-versions 3.13.0; document preparation only, no Python product regression claim",
+      "host_forge NOT_INSTALLED is informational; standard Contract workflow uses Foundry container",
+      "No W5 integration candidate/services/browser executed; every W5 F status remains NOT_RUN",
+      "A new minimal mock .env was exclusively created in this preparation clone; existing personal .env was not changed"
+    ],
+    "independent_agent_review": {
+      "status": "REVIEWED_AND_CORRECTED",
+      "scope": "read-only document/evidence review, not owner/human approval",
+      "corrections": [
+        "W2 excluded evidence IDs replaced with explicit limits and included wrapper source files",
+        "0 skipped distinguished from complete UI NOT_RUN",
+        "W3 opt-in flags and owned resource environment prerequisites added",
+        "F03 existing v1 expired test linked as code-only, no new test claim"
+      ]
+    }
+  }
+}
