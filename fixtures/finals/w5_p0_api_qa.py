@@ -142,8 +142,12 @@ def server(settings):
 
 
 @contextmanager
-def fresh_lifecycle_stack(helper, out):
+def fresh_lifecycle_stack(helper, out, mixed_environment):
     """Preserve the original fixture's fresh DB/chain scope for its ordered clock tests."""
+    if os.getenv("W5_D_MIXED_STACK_QA") == "1":
+        # Diagnostic opt-in: reuse prior RPC/reorg state to reproduce the observed failure.
+        yield mixed_environment
+        return
     directory = out / "lifecycle"
     directory.mkdir(mode=0o700)
     resources = helper.disposable_stack.__wrapped__(directory)
@@ -1063,6 +1067,9 @@ def main():
         ).hexdigest(),
         "qa_git_dirty": bool(command(["git", "status", "--porcelain"])),
         "browser_e2e": "NOT_RUN",
+        "lifecycle_fixture_mode": (
+            "MIXED_DIAGNOSTIC" if os.getenv("W5_D_MIXED_STACK_QA") == "1" else "FRESH"
+        ),
         "results": [],
         "resources_closed": False,
     }
@@ -1240,7 +1247,7 @@ def main():
                     "Settings",
                     lambda **kw: Settings(**kw, requests_per_minute=1000, logins_per_minute=100),
                 )
-                with fresh_lifecycle_stack(helper, out) as lifecycle_environment:
+                with fresh_lifecycle_stack(helper, out, env_stack) as lifecycle_environment:
                     asyncio.run(
                         helper.test_w4_real_database_and_chain(lifecycle_environment, monkeypatch)
                     )
@@ -1253,10 +1260,12 @@ def main():
                         "core_vector_function_calls": len(helper.POLICY_CASES),
                         "ordered_asgi_function_calls": 1,
                         "layer": "ASGI transport with actual PostgreSQL/ECDSA/Reader/Writer/Anvil",
-                        "environment_scope": "fresh dedicated lifecycle fixture stack",
+                        "environment_scope": summary["lifecycle_fixture_mode"],
                         "functional_requests_per_minute": 1000,
                         "functional_logins_per_minute": 100,
-                        "owned_lifecycle_resources_absent": True,
+                        "owned_lifecycle_resources_absent": (
+                            True if summary["lifecycle_fixture_mode"] == "FRESH" else None
+                        ),
                         "source": f"{W4_QA_SHA}:fixtures/finals/test_w4_lifecycle_qa.py",
                         "time_control": (
                             "trusted API clock and owned EVM timestamp only; OS clock unchanged"
