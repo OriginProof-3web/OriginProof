@@ -1,8 +1,8 @@
 # W2 / D / 여인준 — 독립 QA 기록
 
 - GitHub 계정: `@yijun0330` (저장소 역할표 기준)
-- 작업일: 2026-10-02. W2는 개발 단계입니다.
-- 상태: D1 실제 RPC 장애·API/Anvil 프로세스 재시작·응답 유실 후속 검사 통과; 새 QA 코드 리뷰 대기. D2 실제 브라우저 흐름은 A 화면 연결 대기
+- 작업일: 2026-10-02 ~ 2026-10-03. W2는 개발 단계입니다.
+- 현재 상태: PR #45 C 승인·병합 완료. D2 실제 브라우저 부분 흐름 6 통과·수용 조건 6 실패; 전체 활성화·키 등록·폐기는 A 화면 연결 대기
 - 작업 ID: W2-D1, W2-D2. PR: [#34](https://github.com/OriginProof-3web/OriginProof/pull/34)
 - 후속 기준: `origin/phase/W2@812265b285b218e004a08b632ac3aa36125add21`; 이전 PR #34 검사는 `1f8ed632` 기준
 - 검증 checkout: `feat/w2-d-qa-phase`; 기존 PR 작업을 보존하고 최신 phase/W2를 merge
@@ -43,3 +43,16 @@ Codex가 최신 phase/W2와 기존 PR 변경을 대조하고, 격리된 로컬 D
 - 기존 PR #34의 [C 승인](https://github.com/OriginProof-3web/OriginProof/pull/34#pullrequestreview-5389403389)은 문서/CI만을 대상으로 합니다. 새 QA 승인으로 재사용하지 않습니다.
 - 실제 실패·수정·재현 명령·환경·검사별 제한: [후속 보고](../qa/w2-d-recovery.md), [fingerprint](../qa/w2-d-recovery-environment.json).
 - W2-A 기록과 전체 브라우저 E2E/다른 컴퓨터 재현 및 이번 후속 코드 리뷰가 남았습니다. W2 전체 단계 완료로 표시하지 않습니다. 본인 기여 사실 확인은 사용자님 확인 대기입니다.
+
+## W2-D2 실제 브라우저 검사 — 2026-10-03
+
+- 제품 기준 `phase/W2@6f508fe6ae5ce106999c171e8205978dd2201333`, 검사 코드 `a66ac7205119369774c62466ae0ea4d3c5259aff`, 작업 branch `test/w2-d-browser-qa`.
+- PR #45는 C의 독립 재현·승인 후 병합됐습니다. 위 과거 리뷰 대기 문구는 당시 기록입니다. 새 브라우저 QA는 별도 지정 리뷰어 C 검토가 필요합니다.
+- 실제 D 기여: 기존 PR #45의 격리 환경을 재사용해 production Next/Chromium QA 추가, UI 실제 HTTP 관찰, 실패 재현·DB 대조·합성 화면·새 clone 재현·기록. B/C API·Adapter·Contract와 A 화면을 변경하지 않았습니다.
+- 실제 Chromium: 신청·승인/반려·새 세션·감사/작업 조회·UNKNOWN·권한 거부 **6 passed**, 활성화/키 목록·등록·폐기/ACTIVE 표시/접근성 수용 조건 **6 failed**, **0 skipped**. API로 만든 사전 준비를 UI 성공으로 주장하지 않습니다.
+- 동일 코드의 새 clone·새 PostgreSQL/Anvil/API/production build에서 동일 결과 재현. 같은 Mac이며 Node frozen 의존성/cache/배포 이미지는 재사용했습니다. 다른 물리 컴퓨터 재현은 미실행입니다.
+- 현재 W2 기준의 기존 장애 QA 3 passed, Python 171 passed/6 opt-in skipped, 웹 component 8 passed, 구조·lint·typecheck·fixture Ruff 및 production build 통과.
+- 검사 선택 패턴의 No tests found를 수정하고 최초 진단을 보존했습니다. 임시 자원은 모두 정리했고 개인 설정·기존 DB·미커밋 작업을 보존했습니다.
+- [실행·실패·재현 보고](../qa/w2-d-browser.md), [환경·실제 배포 기록](../qa/w2-d-browser-environment.json), 합성 [키 요청 미전송 화면](assets/W2/browser-key-registration-not-submitted.png).
+- Codex와 협업 에이전트가 QA 코드·읽기 검토·실행·기록을 수행했습니다. 팀원 사람의 승인·기여 확인을 새로 받은 것으로 작성하지 않았습니다.
+- **잔여:** A W2-A1/A2 연결·결함 수정 → D 전체 브라우저 재검증. 전체 D2/W2 완료·단계 승격은 미완료입니다.

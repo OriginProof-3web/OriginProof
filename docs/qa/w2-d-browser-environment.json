@@ -1,0 +1,163 @@
+{
+  "date": "2026-10-03",
+  "role": "D",
+  "task_id": "W2-D2",
+  "status": "PARTIAL_PASS_AND_ACCEPTANCE_FAILURE",
+  "environment": {
+    "comparable": {
+      "git_sha": "a66ac7205119369774c62466ae0ea4d3c5259aff",
+      "docker": "Docker version 29.7.2, build a7dcaa6",
+      "compose": "Docker Compose version v5.5.1",
+      "python": "Python 3.13.7",
+      "uv": "uv 0.8.17 (10960bc13 2025-09-10)",
+      "node": "v22.18.0",
+      "pnpm": "11.19.0",
+      "container_config": {
+        ".tool-versions": "9e238d2a904c0fe8d489505fbe1e6a51185ba327ada08d34db8cf8d7bd9f94e2",
+        "docker-compose.yml": "84df3ab57a31667cf29a106a90dda933f0d490c5aa9862c0bbb17d9a378fd785",
+        "infra/docker/deployer.Dockerfile": "b34edd32f46ea1cb2f05dc0fcbe42d3c7202a2f8c8c71b2f2e5867be53d5e5c7",
+        "packages/contracts/foundry.toml": "296fc0438fa08cf77a324b12b64850d5b12a1edd88d81cbb4ee7c82477b57d89"
+      },
+      "lockfiles": {
+        "uv.lock": "10ad0e9c32643eaba3405234ccf7fead6ef120f7f7626e3b69b1b2589760fa75",
+        "pnpm-lock.yaml": "25a2e4a6ddb95d4a22bee0c1d530aeb8efb0f1fce26856926c35477fa6af8110",
+        "contract_dependencies": "d602f87fe5dbb7bc482a851adf729d02249bc2774bd58cbe613c0a61d7d4d154"
+      },
+      "schema_tree": "197fd880e051c8ca34b773ba84eda92a51dce493a528d17deb34bb9db046994a",
+      "abi_tree": "e5300b490b5b701b13615c51587ef54f1cbbceb8e5b206671f1153823b281b38"
+    },
+    "informational": {
+      "host_platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+      "host_forge": "NOT_INSTALLED"
+    }
+  },
+  "postgresql": {
+    "version": "16.15",
+    "image": "postgres:16-alpine",
+    "image_id": "sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea"
+  },
+  "runs": [
+    {
+      "name": "main",
+      "qa_source_sha": "a66ac7205119369774c62466ae0ea4d3c5259aff",
+      "product_source_sha": "6f508fe6ae5ce106999c171e8205978dd2201333",
+      "browser_stats": {
+        "startTime": "2026-10-03T08:40:04.621Z",
+        "duration": 27174.003999999997,
+        "expected": 6,
+        "skipped": 0,
+        "unexpected": 6,
+        "flaky": 0
+      },
+      "browser_exit_code": 1,
+      "db_check": {
+        "application_statuses": {
+          "iss_w2_approved": "APPROVED_PENDING_CHAIN",
+          "iss_w2_active": "ACTIVE",
+          "iss_w2_approve": "APPROVED_PENDING_CHAIN",
+          "iss_w2_reject": "REJECTED"
+        },
+        "operation_count": 3,
+        "expected_match": true
+      },
+      "rpc_url": "http://127.0.0.1:60333",
+      "deployment": {
+        "chain_id": 31337,
+        "genesis_block_hash": "0xa20f03918b6a0ae45fd2c2f19c7ab63a0e297190b3260ac145f0c8d004f6fb9b",
+        "deployment_block": 1,
+        "deployment_block_hash": "0xa84d6e5bc62bce981f3159aa36067640604c480b87442486e8801d9e1a34cc09",
+        "source_commit_sha": "a66ac7205119369774c62466ae0ea4d3c5259aff",
+        "contracts": {
+          "IssuerRegistry": {
+            "address": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+            "constructor_arguments": [
+              "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"
+            ],
+            "abi_sha256": "259a6af346b1c4b0bc22cc014dacd7dcc8d0121a224c26e56cc78787c6213e72"
+          },
+          "IssuerKeyRegistry": {
+            "address": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512",
+            "constructor_arguments": [
+              "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+              "0x5fbdb2315678afecb367f032d93f642f64180aa3"
+            ],
+            "abi_sha256": "8e522d85f431134aa35400cfee693f6e8303aa05523774ad892807832d8b0e33"
+          }
+        },
+        "deployment_id": "dep_75815c11b77a75b8aacf48e8bcd3279b0b524db6f97ffbb24964ddf8a875239b",
+        "roles": {
+          "registry_admin": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+          "issuer_manager": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "key_manager": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "issuer_account": "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        }
+      },
+      "owned_resources_cleaned": true
+    },
+    {
+      "name": "fresh_clone",
+      "qa_source_sha": "a66ac7205119369774c62466ae0ea4d3c5259aff",
+      "product_source_sha": "6f508fe6ae5ce106999c171e8205978dd2201333",
+      "browser_stats": {
+        "startTime": "2026-10-03T08:41:37.107Z",
+        "duration": 27080.568,
+        "expected": 6,
+        "skipped": 0,
+        "unexpected": 6,
+        "flaky": 0
+      },
+      "browser_exit_code": 1,
+      "db_check": {
+        "application_statuses": {
+          "iss_w2_approved": "APPROVED_PENDING_CHAIN",
+          "iss_w2_active": "ACTIVE",
+          "iss_w2_approve": "APPROVED_PENDING_CHAIN",
+          "iss_w2_reject": "REJECTED"
+        },
+        "operation_count": 3,
+        "expected_match": true
+      },
+      "rpc_url": "http://127.0.0.1:60801",
+      "deployment": {
+        "chain_id": 31337,
+        "genesis_block_hash": "0x3dbcb1f3fb92517b38dd8e993b1f13fd186e0a3452cc5ee7cdb1fa84cb2f42b3",
+        "deployment_block": 1,
+        "deployment_block_hash": "0xcc852741f4a22f17fb0b9721ba25a84c8c5a0486476a4275859529bff50fcf67",
+        "source_commit_sha": "a66ac7205119369774c62466ae0ea4d3c5259aff",
+        "contracts": {
+          "IssuerRegistry": {
+            "address": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+            "constructor_arguments": [
+              "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"
+            ],
+            "abi_sha256": "259a6af346b1c4b0bc22cc014dacd7dcc8d0121a224c26e56cc78787c6213e72"
+          },
+          "IssuerKeyRegistry": {
+            "address": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512",
+            "constructor_arguments": [
+              "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+              "0x5fbdb2315678afecb367f032d93f642f64180aa3"
+            ],
+            "abi_sha256": "8e522d85f431134aa35400cfee693f6e8303aa05523774ad892807832d8b0e33"
+          }
+        },
+        "deployment_id": "dep_99b2cf413e1093e23a422984f51cbd2ad56f641d89d2b09f5c45984850482a6a",
+        "roles": {
+          "registry_admin": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+          "issuer_manager": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+          "key_manager": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+          "issuer_account": "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+        }
+      },
+      "owned_resources_cleaned": true
+    }
+  ],
+  "limits": [
+    "API preparation of active issuers/keys is not UI acceptance evidence",
+    "6 connected browser tests pass; 6 capability/accessibility assertions fail",
+    "Same Mac with fresh clone and newly deployed containers; not a second physical computer",
+    "Next production sources built independently; identical frozen Node packages/cache and deployer image reused",
+    "Fingerprint schema_tree includes Python cache artifacts; tracked product source is unchanged",
+    "No paid model calls, existing DB reset, production deployment or app source changes"
+  ]
+}
