@@ -21,8 +21,8 @@ from pathlib import Path
 
 import httpx
 from originproof_api.accounts import password_hash
+from originproof_api.chain_management import ChainManagement
 from originproof_api.database import AccountRow, Database, IssuerApplicationRow
-from originproof_api.main import create_app
 from originproof_api.settings import Settings
 from sqlalchemy import select
 
@@ -104,8 +104,8 @@ async def register() -> None:
                 settings = Settings()
                 database = Database(settings.database_url)
                 try:
-                    app = create_app(database=database, settings=settings)
-                    await app.state.chain_management.active_issuer("iss_origin_mock_bank")
+                    manager = ChainManagement(database, settings)
+                    await manager.active_issuer("iss_origin_mock_bank")
                     async with database.session_factory() as session:
                         row = await session.scalar(
                             select(IssuerApplicationRow).where(
