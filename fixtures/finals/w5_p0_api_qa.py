@@ -1071,6 +1071,24 @@ def main():
     try:
         product, helper, prep, sources = materialize(out)
         summary["reused_qa_sources"] = sources
+        summary["environment"] = {
+            "python": sys.version.split()[0],
+            "required_python": "3.13.0",
+            "llm_provider": "mock",
+            "openai_model": "gpt-6-luna",
+            "paid_calls": 0,
+            "foundry_image": helper.FOUNDRY,
+            "source_config_sha256": {
+                path: hashlib.sha256((product / path).read_bytes()).hexdigest()
+                for path in (
+                    "uv.lock",
+                    ".tool-versions",
+                    "docker-compose.yml",
+                    "infra/docker/api.Dockerfile",
+                    "infra/docker/deployer.Dockerfile",
+                )
+            },
+        }
         from originproof_api.settings import Settings
 
         resources = helper.disposable_stack.__wrapped__(out)
