@@ -67,3 +67,25 @@ Vision decoder는 macOS 기본 프레임워크이며 추가 의존성이 없습�
 - 이 별도 디렉터리에서 브라우저는 재실행하지 않았습니다. 브라우저 12 passed는 앞의
   동일 제품 소스/production 서버 검사입니다. 다음 문서 커밋은 이 기록만 추가합니다.
 - audit high 4개 경로의 lock 버전은 기준 SHA와 동일함을 비교했습니다.
+
+## 최신 W3 실제 연결 재현 (2026-10-03 후속)
+
+- 사용자님이 PR 제출/CI 확인과 최신 통합 연결 검사를 요청했습니다.
+- 웹 검사 SHA: `1ed6b536a0e7c3979d076445bbc9747ddde2837c`; 제품 코드는 `d54efe6`과 같습니다.
+- backend/Contract SHA: 최신 `phase/W3@121e1cade40f9ac3b001dc7aa24256d9033f0214`의 새 disposable clone.
+- 새 PostgreSQL 16.4-alpine (tmpfs), 고정 Foundry 1.4.4 이미지/Anvil chain 31337,
+  Python 3.13.15, uv 0.8.17, Node 26.0.0, pnpm 11.19.0, production Next 웹입니다.
+- D #47@5908457의 `prepare_w3_live_qa.py`를 임시 clone에서 재사용했습니다. D branch를
+  제품 branch에 merge/cherry-pick하지 않았고 backend/Contract 코드를 수정하지 않았습니다.
+- 새 합성 계정·두 기관·발행 키를 실제 API/receipt로 준비했습니다. 기존 사용자 DB·서비스는 보존했습니다.
+- 준비 중 Docker bind 파일이 macOS 임시 경로에 전달되지 않았습니다. 이 새 QA chain만 reset한 뒤,
+  같은 SHA의 공식 배포 스크립트를 고정 컨테이너에서 실행하고 `docker cp`로 공개 manifest를
+  전달했습니다. API가 manifest 없이 기동되어 기존 MVP Reader가 unavailable로 고정됐으므로
+  manifest 복구 뒤 이 새 API만 재시작했습니다. backend 코드 결함으로 기록하지 않습니다.
+- 새 API 14803 / production 웹 3104에서 최종 **12 passed / 0 skipped / 7.2초**.
+  실제 두 유형 발행·기관 목록/제한 상세·QR 해독·새 익명 세션 PROOF_ONLY·지정 수신자
+  FULL_COMPARISON·금액/문서번호 변조·타 기관 목록 분리/content 404를 확인했습니다.
+- 새 API의 `scripts/ci/mvp_http_e2e.py`도 통과: 정상 `VERIFIED + ACTIVE`,
+  변조 `TAMPERED + AMOUNT_MISMATCH`. 첫 manifest 미반영 실행은 실패했고 복구 후 통과했습니다.
+- 앞 절의 최신 backend 재현 미실행은 당시 상태이며, 이번 절이 최신 연결 결과입니다.
+  휴대폰 카메라/LAN 스캔과 작성자 외 리뷰는 아직 완료가 아닙니다. 팀 전체 W3 완료 판정은 하지 않습니다.

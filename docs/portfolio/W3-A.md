@@ -60,3 +60,12 @@ component 18 passed, production browser 12 passed/0 skipped입니다. 기존 C #
 최신 phase backend/휴대폰 스캔/새 변경의 작성자 외 리뷰·CI는 완료로 기록하지 않습니다.
 [QR 후속 검사·환경·실패·한계](../../apps/web/W3_QR_VALIDATION.md)에 근거를 남겼습니다.
 앞의 QR 미완료·승인 대기는 당시 기록이며 이 절이 최신 QR 상태입니다.
+
+## 최신 W3 통합 백엔드 연결 확인
+
+2026-10-03 사용자 요청으로 최신 phase/W3@121e1ca의 별도 합성 PostgreSQL·고정 Anvil·API에서
+QR 웹을 다시 연결했습니다. 최종 production browser 12 passed/0 skipped, 실제 카드 MVP HTTP
+회귀 통과입니다. D #47 환경 준비 스크립트를 재사용했고, macOS Docker manifest 전달 실패는
+임시 환경에서 복구했습니다. 제품 backend/Contract 코드는 수정하지 않았습니다.
+[실행 SHA·환경·실패·복구 근거](../../apps/web/W3_QR_VALIDATION.md#최신-w3-실제-연결-재현-2026-10-03-후속)를 참고하세요.
+작성자 외 리뷰와 CI는 실제 확인 후 PR에 기록하며 승인받았다고 가정하지 않습니다.
