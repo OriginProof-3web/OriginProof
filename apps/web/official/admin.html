@@ -1,16 +1,3 @@
 <!doctype html>
-<html lang="ko">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>OriginProof — 관리자</title>
-<link rel="stylesheet" href="auth.css">
-<style>
-body{background:#08080a}.admin-page{min-height:100vh;padding:120px 28px 48px}
-.admin-page{max-width:1100px;margin:auto}.admin-page h1{font-size:30px;color:#eeeaf5}.test-card{background:#101014;border:1px solid #292630;border-radius:18px;padding:24px;margin:18px 0}.test-card h2{font-size:20px}.test-card p,.test-intro{color:#b2aabc}.test-meta{font-size:12px;overflow-wrap:anywhere}.test-card button{background:#b79bfa;color:#17121f;border:0;border-radius:9px;padding:10px 16px;cursor:pointer}.test-card button:disabled{opacity:.5;cursor:wait}.test-card details{margin-top:18px}.test-card summary{cursor:pointer;color:#b79bfa}.test-card ul{padding-left:20px;line-height:1.9;overflow-wrap:anywhere;font-size:13px}.test-card pre{overflow:auto;max-height:360px;font-size:12px;white-space:pre-wrap}.test-limit{color:#aaa0b8;line-height:1.8}
-</style>
-</head>
-<body>
-<header class="auth-top"><a class="brand" href="index.html">OriginProof</a><a class="back-link" data-logout href="index.html">로그아웃</a></header>
-<main class="admin-page" aria-label="기관 신청 관리"><h1>기관 신청 관리</h1><p id="test-message" role="status"></p><section id="operator-controls" class="test-card"></section></main>
-<script type="module" src="admin-operations.js"></script></body>
-</html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>OriginProof — 관리자</title><link rel="stylesheet" href="admin.bundle.css"><link rel="stylesheet" href="business-workspace.css"><link rel="stylesheet" href="admin-console.css"></head>
+<body><div id="admin-root"></div><div class="console-panels"><section id="operator-panel" hidden><h1>기관 승인</h1><section id="operator-controls" class="test-card"></section></section><section id="tests-panel" hidden><h1>협업 테스트</h1><p id="test-message" role="status"></p><div id="test-results" aria-live="polite"></div></section></div><script src="admin.bundle.js"></script><script src="collaboration-results.js"></script><script src="admin-tests.js"></script><script type="module" src="admin-operations.js"></script></body></html>

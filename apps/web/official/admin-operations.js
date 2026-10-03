@@ -1,4 +1,5 @@
-import {api,requestId} from './api-client.js';
+import {api as scopedApi,requestId} from './api-client.js';
+const api=(path,body)=>scopedApi(path,body,'/api');
 const root=document.getElementById('operator-controls');
 const text=(tag,value)=>{const node=document.createElement(tag);node.textContent=value;return node;};
 let busy=false;

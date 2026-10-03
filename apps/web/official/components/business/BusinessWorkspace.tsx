@@ -20,6 +20,7 @@ const date = (value: string) => value ? new Date(value).toLocaleString("ko-KR") 
 const localTime=(offset:number)=>{const d=new Date(Date.now()+offset);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);};
 
 export default function BusinessWorkspace() {
+  const [loading,setLoading]=useState(true);
   const [action, setAction] = useState<Action>("status");
   const [org, setOrg] = useState<Org>("bank");
   const [scenario, setScenario] = useState("ACTIVE");
@@ -70,7 +71,7 @@ export default function BusinessWorkspace() {
     setRecords(proofRows.map((p:ProofView)=>({id:p.proof_id,org:next,type:p.proof_type,recipient:"서버 binding",expiry:p.expires_at,fields:{},draft:false})));
     setOperations(audit.map((a:AuditView)=>({id:a.event_id,org:next,target:a.target_id,name:a.action,reason:a.reason??"",time:a.created_at,status:a.after_status})));
   }
-  useEffect(()=>{refresh().catch(error=>setError(error.message));},[]);
+  useEffect(()=>{refresh().catch(error=>setError(error.message)).finally(()=>setLoading(false));},[]);
   async function run(body:object,path:string) {
     if(submitting.current)return;submitting.current=true;setBusy(true);setError("");setMessage("");
     try {const result=await api(path,{...body,request_id:stableId({path,...body})});
@@ -114,6 +115,7 @@ export default function BusinessWorkspace() {
   async function copy(text: string) {
     try { await navigator.clipboard.writeText(text); setMessage("복사했습니다."); } catch { setMessage("복사 기능을 사용할 수 없습니다. 표시된 ID나 링크를 선택해 복사해 주세요."); }
   }
+  if(loading)return <div className="uw-shell"><p role="status">기관 정보 확인 중…</p></div>;
   return <div className="uw-shell">
     <header className="uw-header"><span className="uw-eyebrow">BUSINESS SPACE</span><span className="uw-preview">실제 API · 로컬 테스트</span><h1>{labels[action]}</h1><p>{descriptions[action]}</p></header>
     <div className="bw-context"><Building2 size={18} /><label>로그인 기관<select disabled value={org} onChange={(e) => changeOrg(e.target.value as Org)}><option value="bank">Origin Mock Bank</option><option value="office">Origin Mock Office</option></select></label><span>실제 기관 권한은 서버에서 확인합니다.</span></div>
