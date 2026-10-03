@@ -274,18 +274,31 @@ async def test_invalid_input_does_not_submit(manifest):
     assert sends == []
 
 
-async def test_persistence_failure_prevents_submission(manifest):
+@pytest.mark.parametrize("cancelled", [False, True])
+async def test_persistence_failure_prevents_submission(manifest, cancelled):
     sends = []
     adapter, client = await writer(manifest, sends=sends)
     store = FakePersistence(fail="prepared")
+    if cancelled:
+
+        async def cancel_save(_):
+            store.events.append("prepared")
+            raise asyncio.CancelledError
+
+        store.save_prepared = cancel_save
     async with client:
         prepared = await adapter.prepare_register_issuer(
             "0x" + "55" * 20, ISSUER, ACCOUNT, METADATA
         )
-        with pytest.raises(RuntimeError, match="database unavailable"):
+        with pytest.raises(asyncio.CancelledError if cancelled else RuntimeError):
             await adapter.execute_prepared(prepared, store)
+        assert sends == []
+        retry = await adapter.prepare_register_issuer("0x" + "55" * 20, ISSUER, ACCOUNT, METADATA)
+        assert retry.nonce == prepared.nonce == 5
+        result = await adapter.execute_prepared(retry, FakePersistence())
+        assert result.state == ChainOperationState.CONFIRMED
     assert store.events == ["prepared"]
-    assert sends == []
+    assert len(sends) == 1 and sends[0]["nonce"] == "0x5"
 
 
 @pytest.mark.parametrize("fault", ["transport", "invalid_block"])
@@ -358,6 +371,10 @@ async def test_ambiguous_send_keeps_fixed_nonce_recovery_reference(manifest):
             "0x" + "55" * 20, ISSUER, ACCOUNT, METADATA
         )
         result = await adapter.execute_prepared(prepared, store)
+        next_prepared = await adapter.prepare_register_issuer(
+            "0x" + "55" * 20, ISSUER, ACCOUNT, METADATA
+        )
+        assert next_prepared.nonce == prepared.nonce + 1
     assert store.prepared == prepared.recovery_reference
     assert prepared.transaction["nonce"] == "0x5"
     assert result.state == ChainOperationState.UNKNOWN

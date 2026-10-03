@@ -388,7 +388,12 @@ class JsonRpcBlockchainWriter:
     ):
         """Persist each recovery boundary before the next irreversible step."""
 
-        await persistence.save_prepared(prepared.recovery_reference)
+        try:
+            await persistence.save_prepared(prepared.recovery_reference)
+        except BaseException:
+            # No submission has started; release even when persistence is cancelled.
+            self._release_nonce(prepared)
+            raise
         submitted = await self.submit_prepared(prepared)
         if submitted.tx_hash is None:
             return submitted
