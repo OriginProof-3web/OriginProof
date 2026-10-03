@@ -56,9 +56,10 @@ def disposable_config():
     assert postgres["Config"]["Image"] == "postgres:16.4-alpine"
     assert postgres["State"]["Running"]
     assert resources["network"] in postgres["NetworkSettings"]["Networks"]
-    assert {"POSTGRES_DB=originproof_w3_d_qa", "POSTGRES_USER=originproof"} <= set(
+    owns_database = {"POSTGRES_DB=originproof_w3_d_qa", "POSTGRES_USER=originproof"} <= set(
         postgres["Config"]["Env"]
     )
+    assert owns_database, "container does not match the disposable QA database"
     assert any(
         mapping["HostIp"] == "127.0.0.1" and mapping["HostPort"] == "15433"
         for mapping in postgres["NetworkSettings"]["Ports"]["5432/tcp"]

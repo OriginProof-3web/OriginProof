@@ -79,7 +79,8 @@ async def initialize(env: dict[str, str]) -> None:
     private_file(OUT / "accounts.json", json.dumps(credentials))
 
 
-async def register() -> None:
+async def register(env: dict[str, str] | None = None) -> None:
+    task_env = env or os.environ
     credentials = json.loads((OUT / "accounts.json").read_text())
     clients = {}
     try:
@@ -101,7 +102,13 @@ async def register() -> None:
             if name == "bank":
                 # Official MVP deployment already activates the bank. Verify that
                 # actual chain state and seed its matching DB fixture; don't register twice.
-                settings = Settings()
+                settings = Settings(
+                    _env_file=None,
+                    database_url=task_env["API_DATABASE_URL"],
+                    blockchain_rpc_url=task_env["API_BLOCKCHAIN_RPC_URL"],
+                    blockchain_manifest_path=task_env["API_BLOCKCHAIN_MANIFEST_PATH"],
+                    signer_directory=task_env["API_SIGNER_DIRECTORY"],
+                )
                 database = Database(settings.database_url)
                 try:
                     manager = ChainManagement(database, settings)
@@ -342,7 +349,7 @@ def main() -> None:
             time.sleep(0.2)
         else:
             raise RuntimeError("isolated API did not become ready")
-    asyncio.run(register())
+    asyncio.run(register(env))
     print(
         "Prepared new isolated W3 PostgreSQL/Anvil/API, two approved issuers and synthetic accounts"
     )
