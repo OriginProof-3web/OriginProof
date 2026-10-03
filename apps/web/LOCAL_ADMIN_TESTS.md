@@ -50,3 +50,74 @@ W3 검사 버튼은 lint → typecheck → 컴포넌트 → Playwright 순으로
 #35/#40의 skip 및 mock 경계는 그대로 보존합니다. 과거 고정 SHA 검사 결과가
 최신 팀원 구현 전체의 통합 성공을 의미하지 않습니다. W3 QR 문서에 남긴 3103/3104 검사는
 당시 실행 기록이며, 현재 로컬 재검사는 위 8768 관리자 화면에서 진행합니다.
+
+## 최신 관리자 기능 연결 (2026-10-03)
+
+`codex/admin-latest-functions`, 시작 웹 SHA `5cd16fc5f6bc4145ca21737e76de5f3014251609`.
+관리자에만 `lifecycleEnabled`를 전달합니다. 일반 기업·개인 화면의 활성화는 후속 이식입니다.
+GitHub C #38 `3ef1fd40943914c1450e8bc05047119ab7eabbc0`의 실제 API/Adapter/계약과
+lockfile을 재사용하며, 해당 PR/단계가 승인·완료되었다고 판정하지 않습니다.
+새 프레임워크·의존성·팀원 API 구현을 추가하지 않았습니다.
+
+- 관리자 화면: 기관 신청·승인·활성화, 기관 중지/재활성화/폐기, 키 등록/교체/폐기,
+  두 유형 Proof 발행/등록/조회/비교/폐기, 지정 수신자 1회 사용, Operation 조회/복구,
+  체인 동기화와 DB/현재 체인 등록 일치 조회.
+- 관리자 QR: `admin.html?proof_id=...`로 같은 합성 환경을 조회합니다. 관리자 인증이
+  필요하며 공개 사용자 QR라고 표시하지 않습니다. 일반 페이지의 공개 QR는 유지합니다.
+- AI: Git에 구현된 카드 알림 후보 추출만 mock Analyzer에 연결했습니다.
+  PAYMENT_REQUEST/OFFICIAL_DOCUMENT 추출 API 및 유료 provider live 검사는 미제공/미실행입니다.
+- API 모델에서 `scripts/generate_api_contracts.py`로 생성한 타입을 웹에 복사했습니다.
+
+### 환경과 시작
+
+기존 8768 웹·8770 로그인/일반 페이지는 유지합니다. 관리자 proxy만 8780으로 연결합니다.
+`test/admin-runtime.py`는 독립 합성 PostgreSQL 55434, Anvil 18546(1초 채굴),
+최신 API 8780, 기존 mock Analyzer 8781을 실행합니다. 새 등록 검사를 위해 배포 스크립트의
+Bank 사전 seed만 임시 제외하고 동일 계약과 역할을 배포하며 원본 스크립트를 복원합니다.
+이 배포 방식은 원래 seed 배포의 검증 결과와 구분합니다. DB를 reset하지 않습니다.
+보호된 계정·signer·체인 상태는 `~/.local/share/originproof-admin-test`에 보존됩니다.
+실행 당시 환경: Python 3.13, Node 26, pnpm 11.19, PostgreSQL 16.4, Foundry 1.4.4.
+
+기존 macOS 시작 `.command`의 `local-runtime.py`는 8780이 준비되지 않으면 이 runtime을
+추가로 실행하도록 연결했습니다. 웹 진입점은 여전히 `index.html`입니다.
+운영자 역할 검사는 기존 8770 세션을 사용하고 실제 테스트 역할은 8780이 확인합니다.
+테스트 역할 비밀번호·쿠키·개인키는 브라우저 응답이나 Git에 포함하지 않습니다.
+모든 proxy는 loopback Host·운영자 세션·변경 Origin·본문 크기를 검사합니다.
+
+### 실행 명령과 결과 보관
+
+관리자 → 검사 결과 → 관리자 기능 검사는 `test/admin-lifecycle-check.py`를 실행합니다.
+이 검사는 동일 8768 proxy를 통해 요청하며 합성 발행·키 교체·폐기·기관 상태 변경을 수행합니다.
+명시된 독립 합성 Anvil에서만 채굴을 잠시 멈추어 미확정 receipt의 같은 tx 복구를 확인하고
+finally에서 채굴을 복원합니다. 운영 환경에서 실행하는 검사가 아닙니다.
+PR #38 검사 버튼은 고정 SHA의 API/Adapter/Analyzer 회귀 검사를 별도로 실행합니다.
+최종 개별 결과·skip·시간·SHA는 `collaboration-results.json`에 기록되어 관리자에서 조회합니다.
+
+초기 실패: demo seed로 Bank 중복 등록(CHAIN_REVERTED), 재시작 뒤 Anvil 시각 지연
+(ProofExpired)을 발견했습니다. 사전 seed 제외와 시작 시각/주기 채굴로 합성 환경을 고쳤습니다.
+HTTP 404의 권한 보호, REPLAY_DETECTED 409, PROOF_REVOKED enum은 실제 API 계약에 맞춰
+검사 기대값을 수정했습니다. 이를 제품 코드 오류 수정이나 fake success로 표현하지 않습니다.
+
+연속 채굴 중 API가 서로 다른 블록 snapshot을 관측하면 fail-closed로
+INCONCLUSIVE + DEPENDENCY_UNAVAILABLE를 반환합니다. 관리자만 읽기 전용 verify를
+최대 4회 재조회하며 지속 실패와 TAMPERED는 성공으로 바꾸지 않습니다.
+실제 검사도 이 조건의 읽기만 다시 확인합니다. 변경 요청은 재전송하지 않습니다.
+회귀 검사와 동시에 많은 요청을 보낸 초기 실행에서는 RATE_LIMITED(429)를 확인했습니다.
+정책을 완화하지 않고 실제 기능 검사를 순차·간격을 두고 실행하도록 조정했습니다.
+
+### 이번 최종 검사 결과
+
+| 검사 | 결과 | 경계 |
+| --- | --- | --- |
+| 최신 #38 API/Adapter/Analyzer 회귀 | 404 passed / 6 skipped | mock 및 독립 단위 검사 포함; skip은 실제 연결 성공이 아님 |
+| 관리자 실제 기능 연결 | 19 passed | 동일 8768 proxy → 실제 PostgreSQL/Anvil; 같은 tx 복구 포함; AI만 mock |
+| 웹 컴포넌트 | 22 passed | 읽기 재시도·지속 불확실·변조·HTTP 실패 4개 추가 |
+| 8768 웹 브라우저 | 13 passed | 실제 관리자 1회 사용·AI 버튼, 일반 페이지·QR·MVP 기존 회귀 |
+| lint / typecheck / build / Python compile / diff | 통과 | 새 의존성 없음; 기존 npm audit 4 high는 이번 변경의 신규 의존성이 아님 |
+
+기관 영구 폐기는 UI 연결 및 저장소 회귀 검사에 포함되지만, 두 수동 테스트 기관을
+계속 사용할 수 있도록 이번 실제 8768 시나리오에서 영구 폐기하지 않았습니다.
+공개 회원가입, 신규 두 유형 AI 추출, 유료 AI live, 외부 체인/운영 배포,
+작성자 외 리뷰·D 독립 재현 및 개인/기업 페이지 이식은 완료로 판정하지 않습니다.
+위 검사들은 변경된 로컬 웹 내용을 대상으로 했고, 관리자 W3 재실행 기록은 현재 Git HEAD와
+웹 fingerprint를 별도로 저장합니다. 팀 전체 W4/W5/W6 완료를 의미하지 않습니다.

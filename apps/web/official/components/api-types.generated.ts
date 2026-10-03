@@ -62,6 +62,27 @@ export interface PaymentRequest {
 
 export type SignatureScheme = "ECDSA_SECP256K1_KECCAK256_V1";
 
+export type CheckState = "PASS" | "FAIL" | "NOT_RUN" | "UNAVAILABLE";
+
+export type FinalsReasonCode = "INVALID_SIGNATURE" | "PAYLOAD_HASH_MISMATCH" | "AMOUNT_MISMATCH" | "FIELD_MISMATCH" | "PROOF_EXPIRED" | "PROOF_NOT_FOUND" | "ISSUER_NOT_FOUND" | "SCHEMA_UNSUPPORTED" | "DEPENDENCY_UNAVAILABLE" | "REPLAY_DETECTED" | "DOMAIN_MISMATCH" | "NETWORK_MISMATCH" | "KEY_NOT_FOUND" | "KEY_TIME_INVALID" | "INPUT_INCOMPLETE" | "REGISTRATION_PENDING" | "CHAIN_COMMITMENT_MISMATCH" | "SUBJECT_BINDING_MISMATCH" | "PROOF_REVOKED" | "ISSUER_KEY_REVOKED" | "ISSUER_SUSPENDED";
+
+export interface FinalsVerificationResult {
+  session_id: string;
+  verification_status: VerificationStatus;
+  lifecycle_status: LifecycleStatus | null;
+  scope: VerificationScope;
+  reason_codes?: FinalsReasonCode[];
+  checks: Record<string, CheckState>;
+  verified_at: string;
+  request_id: string;
+}
+
+export type LifecycleStatus = "ACTIVE" | "EXPIRED" | "CONSUMED" | "PROOF_REVOKED" | "ISSUER_SUSPENDED" | "ISSUER_KEY_REVOKED";
+
+export type VerificationScope = "PROOF_ONLY" | "FULL_COMPARISON" | "PARTIAL_COMPARISON";
+
+export type VerificationStatus = "VERIFIED" | "NOT_REGISTERED" | "TAMPERED" | "INCONCLUSIVE" | "ERROR";
+
 export interface ComparisonInput {
   amount_minor?: number | null;
   currency?: string | null;
@@ -151,6 +172,8 @@ export interface OperationView {
   tx_hash: string | null;
   error_code: string | null;
   created_at: string;
+  recovery_required: boolean;
+  next_action: string;
 }
 
 export interface AuditView {
@@ -163,6 +186,16 @@ export interface AuditView {
   before_status: string | null;
   after_status: string;
   created_at: string;
+}
+
+export interface SyncView {
+  status?: string;
+  deployment_id?: string | null;
+  checkpoint_block?: number | null;
+  checkpoint_hash?: string | null;
+  checked_at?: string | null;
+  error_code?: string | null;
+  authority?: string;
 }
 
 export interface IssueInput {
@@ -180,12 +213,27 @@ export interface ProofView {
   schema_version: "2.0.0";
   issued_at: string;
   expires_at: string;
+  registration_status?: OperationStatus | "NOT_REGISTERED";
+  registration_operation_id?: string | null;
   verification_path: string;
 }
 
 export interface ProofContent {
   envelope: FinalsSignedProofEnvelope;
   target_ref?: string | null;
+}
+
+export interface ProofReconciliation {
+  proof_id: string;
+  database_registration_status: string;
+  deployment_matches: boolean;
+  registration_consistent: boolean | null;
+  current_verification: FinalsVerificationResult;
+  authority?: string;
+}
+
+export interface ProofMutation {
+  request_id: string;
 }
 
 export interface RecipientView {

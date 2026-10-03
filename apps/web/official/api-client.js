@@ -3,7 +3,7 @@ import {validationErrors} from './w3-input.js';
 export async function api(path, body, prefix = window.originproofTestApi ?? '/api') {
   if (location.protocol === 'file:') throw new Error('협업 테스트 시작.command로 서버를 실행해 주세요.');
   const headers = { 'Content-Type': 'application/json' };
-  if (body !== undefined && !path.startsWith('/v1/auth/login') && !/^\/v2\/proofs\/[^/]+\/verify$/.test(path)) {
+  if (body !== undefined && !path.startsWith('/v1/auth/login') && !/^\/v2\/proofs\/[^/]+\/verify$/.test(path) && !(prefix === '/admin-analyzer' && path === '/v1/analyze/card-payment-notice')) {
     const me = await api('/v1/auth/me', undefined, prefix);
     headers['X-CSRF-Token'] = me.csrf_token;
   }
@@ -16,6 +16,16 @@ export async function api(path, body, prefix = window.originproofTestApi ?? '/ap
     throw error;
   }
   return data;
+}
+// Only repeat read-only verification when the moving chain snapshot is inconclusive.
+export async function verifyRead(path,body,prefix) {
+  let result;
+  for(let attempt=0;attempt<4;attempt++) {
+    result=await api(path,body,prefix);
+    if(result.verification_status!=='INCONCLUSIVE'||!result.reason_codes?.includes('DEPENDENCY_UNAVAILABLE'))return result;
+    if(attempt<3)await new Promise(resolve=>setTimeout(resolve,150));
+  }
+  return result;
 }
 export function requestId() { return 'req_' + crypto.randomUUID().replaceAll('-', ''); }
 export function seconds(value) { return new Date(value).toISOString().replace(/\.\d{3}Z$/, 'Z'); }

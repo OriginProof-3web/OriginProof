@@ -21,6 +21,8 @@ SUITES = {
     '36': {'sha': '85e152cd5550f24874abb267122a5d8ece29e3b9', 'title': 'C · 실제 PostgreSQL·Anvil 연결 및 키 교체', 'path': 'apps/api/tests'},
     '40': {'sha': '92e0e94cba8e7799f709060afc9f4e02d220d142', 'title': 'B · W3 체인 조회·서명 경계', 'path': 'services/indexer/tests'},
 }
+SUITES['38']={'sha':'3ef1fd40943914c1450e8bc05047119ab7eabbc0','title':'C W6 최신 · API/Adapter/Analyzer 회귀','path':['apps/api/tests','services/indexer/tests','services/analyzer/tests']}
+SUITES['admin']={'sha':'3ef1fd40943914c1450e8bc05047119ab7eabbc0','title':'최신 관리자 기능 · 실제 API/체인 · mock AI','path':'test/admin-lifecycle-check.py'}
 REPORT = ROOT / 'collaboration-results.json'
 LOCK = threading.Lock()
 BUSY = set()
@@ -58,6 +60,13 @@ def run_suite(key):
         result['web_fingerprint'] = hashlib.sha256(b''.join((ROOT / path).read_bytes() for path in ('api-client.js','auth.js','components/user/UserWorkspace.tsx','components/business/BusinessWorkspace.tsx','test_web_connection.py'))).hexdigest()
     logs = []
     try:
+        if key == 'admin':
+            process=subprocess.run(['python3',str(WEB_SOURCE/'test/admin-lifecycle-check.py')],text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=300)
+            report=Path('/tmp/originproof-admin-lifecycle.json')
+            if report.exists():result.update(json.loads(report.read_text()))
+            result['status']='passed' if process.returncode==0 else 'failed'
+            result['command']='python3 test/admin-lifecycle-check.py (8768 admin proxy)'
+            logs.append(process.stdout);return
         if key == 'w3':
             run_web_suite(result, logs)
             return
@@ -76,7 +85,7 @@ def run_suite(key):
             raise RuntimeError('고정 lockfile 환경 준비 실패')
         junit = checkout / 'collaboration-junit.xml'
         junit.unlink(missing_ok=True)
-        command = ['uv', 'run', '--all-packages', '--all-groups', 'pytest', '-q', '--tb=short', suite['path'], f'--junitxml={junit}']
+        command = ['uv', 'run', '--all-packages', '--all-groups', 'pytest', '-q', '--tb=short', *(suite['path'] if isinstance(suite['path'],list) else [suite['path']]), f'--junitxml={junit}']
         result['command'] = ' '.join(command)
         process = subprocess.run(command, cwd=checkout, env=env, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=180)
         logs.append(process.stdout)
@@ -189,18 +198,18 @@ class Handler(SimpleHTTPRequestHandler):
         parts=self.path.split('/',3)
         role=parts[2] if len(parts)>3 else ''
         path='/'+parts[3] if len(parts)>3 else ''
-        if role not in ('bank','office','recipient') or not path.startswith(('/v1/','/v2/')) or '/auth/login' in path or '/auth/logout' in path:
+        if role not in ('bank','office','recipient','other-recipient','operator') or not path.startswith(('/v1/','/v2/')) or '/auth/login' in path or '/auth/logout' in path:
             self.send_error(404);return
         try:size=int(self.headers.get('Content-Length','0'))
         except ValueError:self.send_error(400);return
         if size<0 or size>65536:self.send_error(413);return
         body=self.rfile.read(size) if size else None
         key=(hashlib.sha256(self.headers.get('Cookie','').encode()).hexdigest(),role)
-        connection=http.client.HTTPConnection('127.0.0.1',8770,timeout=45)
+        connection=http.client.HTTPConnection('127.0.0.1',8780,timeout=45)
         try:
             with LOCK:cookie=TEST_SESSIONS.get(key)
             if not cookie:
-                account=next(row for row in json.loads(ACCOUNT_FILE.read_text()) if row['username']==role)
+                account=next(row for row in json.loads((Path.home()/'.local/share/originproof-admin-test/accounts.json').read_text()) if row['username']==role)
                 connection.request('POST','/v1/auth/login',json.dumps({'username':role,'password':account['password']}),{'Content-Type':'application/json'})
                 response=connection.getresponse();response.read()
                 if response.status!=200:self.send_error(503);return
@@ -221,6 +230,23 @@ class Handler(SimpleHTTPRequestHandler):
         except (OSError,ValueError,StopIteration,http.client.HTTPException):self.send_error(503,'Synthetic test session unavailable')
         finally:connection.close()
 
+    def analyzer_proxy(self):
+        if not self.local_operator():self.send_error(403);return
+        if self.command=='POST' and self.headers.get('Origin')!=f'http://127.0.0.1:{PORT}':self.send_error(403);return
+        path=self.path.removeprefix('/admin-analyzer')
+        if (self.command,path) not in [('GET','/v1/capabilities'),('POST','/v1/analyze/card-payment-notice')]:self.send_error(404);return
+        try:size=int(self.headers.get('Content-Length','0'))
+        except ValueError:self.send_error(400);return
+        if not 0<=size<=65536:self.send_error(413);return
+        body=self.rfile.read(size) if size else None
+        connection=http.client.HTTPConnection('127.0.0.1',8781,timeout=45)
+        try:
+            connection.request(self.command,path,body,{'Content-Type':'application/json'})
+            response=connection.getresponse();output=response.read()
+            self.send_response(response.status);self.send_header('Content-Type','application/json');self.send_header('Content-Length',str(len(output)));self.end_headers();self.wfile.write(output)
+        except (OSError,http.client.HTTPException):self.send_error(503)
+        finally:connection.close()
+
     def translate_path(self, path):
         from urllib.parse import urlsplit, unquote
         route = unquote(urlsplit(path).path)
@@ -237,6 +263,7 @@ class Handler(SimpleHTTPRequestHandler):
         if self.path=='/':
             self.send_response(302);self.send_header('Location','/index.html');self.end_headers();return
         if self.path.split('?')[0] in ('/collaboration-results.json','/collaboration-results.js','/w3-junit.xml','/w3-components.xml') and not self.local_operator():self.send_error(403);return
+        if self.path.startswith("/admin-analyzer/"):self.analyzer_proxy();return
         if self.path.startswith("/test-api/"):self.test_proxy();return
         if self.path.startswith('/api/v1/') or self.path.startswith('/api/v2/') or self.path.startswith('/api/health/'):
             self.proxy(); return
@@ -245,6 +272,7 @@ class Handler(SimpleHTTPRequestHandler):
         super().do_GET()
 
     def do_POST(self):
+        if self.path.startswith("/admin-analyzer/"):self.analyzer_proxy();return
         if self.path.startswith("/test-api/"):self.test_proxy();return
         if self.path.startswith('/api/v1/') or self.path.startswith('/api/v2/'):
             self.proxy(); return

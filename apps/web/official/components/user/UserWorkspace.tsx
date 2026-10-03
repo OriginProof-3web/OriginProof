@@ -2,8 +2,8 @@ import { useEffect, useState, useRef, useCallback, type FormEvent } from "react"
 import { Search, ArrowRight, Copy, Check, FileText, History, RefreshCw } from "lucide-react";
 
 import ArtifactExtraction from "./ArtifactExtraction";
-import { api, requestId } from "../../api-client.js";
-import type { ProofView, ProofContent } from "../api-types.generated";
+import { api as scopedApi, verifyRead, requestId } from "../../api-client.js";
+import type { ProofView, ProofContent, OperationView } from "../api-types.generated";
 
 import type { FinalsVerificationResult } from "../core-types.generated";
 type Action = "verify" | "compare" | "consume" | "history";
@@ -29,7 +29,10 @@ function Checks({ result }: { result: FinalsVerificationResult | null }) {
  return <details className="uw-checks"><summary>검사 근거</summary><ul>{Object.entries(result?.checks ?? {}).map(([label,state])=><li key={label}><span>{label}</span><span>{state}</span></li>)}</ul><p>{result?.reason_codes?.join(" · ")}</p></details>;
 }
 
-export default function UserWorkspace() {
+export default function UserWorkspace({lifecycleEnabled=false,apiPrefix}: {lifecycleEnabled?:boolean;apiPrefix?:string}={}) {
+  const api=useCallback((path:string,body?:object)=>lifecycleEnabled&&path.endsWith('/verify')?verifyRead(path,body,apiPrefix):apiPrefix===undefined?(body===undefined?scopedApi(path):scopedApi(path,body)):scopedApi(path,body,apiPrefix),[apiPrefix,lifecycleEnabled]);
+  const consumeIds=useRef(new Map<string,string>());
+  const [operation,setOperation]=useState<OperationView|null>(null);
   const [result,setResult] = useState<FinalsVerificationResult | null>(null);
   const [busy,setBusy] = useState(false);
   const generation=useRef(0);
@@ -62,7 +65,7 @@ export default function UserWorkspace() {
       setProof({id:view.proof_id,issuer:view.issuer_id,type:view.proof_type,issued:view.issued_at,expires:view.expires_at,fields});setResult(verification);
       record(id,"verify",`${verification.verification_status} · ${verification.scope}`);
     } catch(error) {if(token===generation.current)setError((error as Error).message);} finally{if(token===generation.current)setBusy(false);}
-  }, [record]);
+  }, [record,api]);
   useEffect(() => {
     const linkedId = new URLSearchParams(location.search).get("proof_id");
     if (linkedId) {
@@ -73,13 +76,13 @@ export default function UserWorkspace() {
     const change = (event: Event) => {
       const detail = (event as CustomEvent).detail;
       const next = detail?.key === "home" ? "verify" : detail?.key;
-      if (Object.hasOwn(labels, next)) { setAction(next); setError(""); setMessage(""); setRows(null); setConfirmed(false); setCopied(false); if (detail.proofId) { setInput(detail.proofId); void load(detail.proofId); setValues({}); } }
+      if (Object.hasOwn(labels, next)) { setOperation(null);setAction(next); setError(""); setMessage(""); setRows(null); setConfirmed(false); setCopied(false); if (detail.proofId) { setInput(detail.proofId); void load(detail.proofId); setValues({}); } }
     };
     window.addEventListener("originproof-action", change);
     return () => window.removeEventListener("originproof-action", change);
   }, [load]);
   function lookup(event: FormEvent) {
-    event.preventDefault();setMessage("");setRows(null);setConfirmed(false);setValues({});setCopied(false);
+    event.preventDefault();setOperation(null);setMessage("");setRows(null);setConfirmed(false);setValues({});setCopied(false);
     const id=parseProof(input);if(!id){setProof(null);setError("Proof ID 또는 검증 링크를 입력해 주세요.");return;}void load(id);
   }
   async function compare(event: FormEvent) {
@@ -92,10 +95,13 @@ export default function UserWorkspace() {
       setRows([]);record(proof.id,"compare",`${verdict.verification_status} · ${verdict.scope}`);
     }catch(error){if(token===generation.current)setError((error as Error).message);}finally{pending.current=false;if(token===generation.current)setBusy(false);}
   }
-  function useRequest() {
-    if (!proof || !confirmed) return;
-    setMessage(proof.type === "OFFICIAL_DOCUMENT" ? "문서형은 1회 사용 대상이 아닙니다." : "사용 요청을 제출하지 않았습니다. 서버의 수신자 권한 확인과 체인 상태 연결이 필요합니다.");
-    record(proof.id, "consume", "사용 조건 확인 · API 연결 대기 · 미제출");
+  async function submitConsume() {
+    if(!lifecycleEnabled||!proof||!confirmed||pending.current)return;
+    pending.current=true;setBusy(true);setError("");
+    const id=proof.id;
+    if(!consumeIds.current.has(id))consumeIds.current.set(id,requestId());
+    try{const op=await api(`/v2/proofs/${id}/consume`,{request_id:consumeIds.current.get(id)});setOperation(op);setMessage(`${op.operation_id} · ${op.status} · ${op.error_code??""}`);record(id,"consume",op.status);await load(id);setConfirmed(false);}
+    catch(error){setError((error as Error).message);}finally{pending.current=false;setBusy(false);}
   }
   function jump(next: Action, id?: string) { (window as any).selectAction(next, id); }
   async function copy() {
@@ -118,7 +124,7 @@ export default function UserWorkspace() {
       {action === "verify" && <><div className="uw-status"><span>검증 판정 <b>{result?.verification_status ?? "미실행"}</b></span><span>현재 상태 <b>{result?.lifecycle_status ?? "미확인"}</b></span><span>조회 범위 <b>{result?.scope ?? "발행 기록"}</b></span></div><p className="uw-note">ID 조회로 받은 자료의 내용 일치를 확인할 수는 없습니다.</p><Checks result={result} /><div className="uw-actions"><button className="uw-primary" onClick={() => jump("compare", proof.id)}>내용 비교<ArrowRight size={16} /></button>{proof.type === "PAYMENT_REQUEST" && <button className="uw-secondary" onClick={() => jump("consume", proof.id)}>요청 사용</button>}</div></>}
       {action === "compare" && <ArtifactExtraction key={proof.id} proofType={proof.type} fields={proof.fields} onApply={values=>{generation.current++;setBusy(false);setValues(values);setRows(null);setMessage("");setError("");}} />}
       {action === "compare" && <form onSubmit={compare} className="uw-compare"><div className="uw-form-grid">{Object.keys(proof.fields).map((key) => <label key={key}>{fieldNames[key]}<input value={values[key] ?? ""} inputMode={["amount_minor", "version"].includes(key) ? "numeric" : "text"} maxLength={key === "target_ref" ? 500 : 120} onChange={(e) => { generation.current++; setBusy(false); setValues({ ...values, [key]: e.target.value }); setRows(null); setMessage(""); setError(""); }} /></label>)}</div><div className="uw-actions"><button type="button" className="uw-secondary" onClick={() => { setValues({ ...proof.fields }); setRows(null); setMessage(""); setError(""); }}>발행 값 채우기</button><button className="uw-primary" disabled={busy} type="submit">내용 비교<ArrowRight size={16} /></button></div><p className="uw-note">지정 수신자 또는 발행기관 계정으로 로그인해야 내용을 비교할 수 있습니다.</p>{rows && <div className="uw-comparison" aria-live="polite"><h3>{message}</h3>{rows.map((row) => <div key={row.key}><span>{fieldNames[row.key]}</span><b className={row.state === "불일치" ? "uw-mismatch" : ""}>{row.state}</b></div>)}<p className="uw-note">{result?.reason_codes?.join(" · ")}</p></div>}{result && <Checks result={result} />}</form>}
-      {action === "consume" && <>{proof.type === "OFFICIAL_DOCUMENT" ? <p className="uw-error">공식 문서는 사용 처리 대상이 아닙니다. 조회와 내용 비교를 이용해 주세요.</p> : <><ul className="uw-conditions"><li><span>1회성 요청 유형</span><b>지급 요청</b></li><li><span>지정 수신자 인증</span><b>서버 확인 대기</b></li><li><span>기간·폐기·사용 여부</span><b>체인 확인 대기</b></li></ul><label className="uw-confirm"><input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />조회와 별개인 1회성 사용 요청임을 확인했습니다.</label><button className="uw-primary" disabled={true} onClick={useRequest}>요청 사용 · API 제공 대기<ArrowRight size={16} /></button><p className="uw-note">실제 요청은 전송되지 않으며 사용 완료로 처리하지 않습니다.</p></>}{message && <p className="uw-notice" role="status">{message}</p>}</>}
+      {action === "consume" && <>{proof.type === "OFFICIAL_DOCUMENT" ? <p className="uw-error">공식 문서는 사용 처리 대상이 아닙니다. 조회와 내용 비교를 이용해 주세요.</p> : <><ul className="uw-conditions"><li><span>1회성 요청 유형</span><b>지급 요청</b></li><li><span>지정 수신자 인증</span><b>서버에서 권한 확인</b></li><li><span>기간·폐기·사용 여부</span><b>{result?.lifecycle_status??"미확인"}</b></li></ul><label className="uw-confirm"><input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />조회와 별개인 1회성 사용 요청임을 확인했습니다.</label><button className="uw-primary" disabled={!lifecycleEnabled||!confirmed||busy||result?.lifecycle_status!=="ACTIVE"} onClick={()=>void submitConsume()}>{lifecycleEnabled?"1회 사용 요청 실행":"요청 사용 · API 제공 대기"}<ArrowRight size={16} /></button><p className="uw-note">{lifecycleEnabled?"CONFIRMED와 현재 체인 상태를 확인해야 사용 완료입니다.":"실제 요청은 전송되지 않으며 사용 완료로 처리하지 않습니다."}</p></>}{operation&&<div className="uw-status"><span>{operation.operation_id} · {operation.status}</span>{["UNKNOWN","SUBMITTED","PENDING_SUBMISSION"].includes(operation.status)&&<button className="uw-secondary" disabled={busy} onClick={async()=>{setBusy(true);try{setOperation(await api(`/v1/operations/${operation.operation_id}/recover`,{}));if(proof)await load(proof.id);}catch(e){setError((e as Error).message);}finally{setBusy(false);}}}>기존 사용 거래 복구</button>}</div>}{message && <p className="uw-notice" role="status">{message}</p>}</>}
       {action !== "compare" && message && action !== "consume" && <p className="uw-notice" role="status">{message}</p>}
       </section>}
       {!proof && !error && <div className="uw-empty"><FileText size={29} /><h2>확인할 자료를 선택하세요</h2><p>발행기관에서 받은 ID를 입력하고 조회해 주세요.</p></div>}

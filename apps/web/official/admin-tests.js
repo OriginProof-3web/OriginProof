@@ -10,12 +10,13 @@ async function refresh(){
       data=await response.json();
     }
     data??={};
+    data.admin??={title:'최신 관리자 기능 · 실제 API/체인 · mock AI',status:'not_run',sha:'3ef1fd40943914c1450e8bc05047119ab7eabbc0',cases:[]};
     data.w3??={title:'현재 웹 · 기업/개인/관리자 · QR · 실제 연결',status:'not_run',sha:'현재 작업 소스',cases:[]};
     document.querySelector('#test-message').textContent=location.protocol==='file:'?'마지막으로 저장된 실제 검사 결과입니다.':'';
     results.replaceChildren();
     for(const [id,report] of Object.entries(data)){
       const card=document.createElement('section');card.className='test-card';
-      const heading=document.createElement('h2');heading.textContent=`${id==='web'?'웹 연결 검사':id==='w3'?'W3 전체 검사':'PR #'+id} · ${report.title}`;card.append(heading);
+      const heading=document.createElement('h2');heading.textContent=`${id==='admin'?'관리자 기능 검사':id==='web'?'웹 연결 검사':id==='w3'?'W3 전체 검사':'PR #'+id} · ${report.title}`;card.append(heading);
       const summary=document.createElement('p');
       const commands=report.cases.filter(c=>c.group==='현재 GitHub 웹 소스');
       const cases=report.cases.filter(c=>c.group!=='현재 GitHub 웹 소스');
