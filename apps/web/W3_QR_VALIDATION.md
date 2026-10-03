@@ -58,3 +58,12 @@ Vision decoder는 macOS 기본 프레임워크이며 추가 의존성이 없습�
 - D 독립 실제 QA [#47](https://github.com/OriginProof-3web/OriginProof/pull/47) head `59084570960e94a76bf041c513043816e6075ae1`는 확인 시 OPEN입니다. 해당 결과는 D의 증거이며 이번 QR 검사에 합산하지 않습니다.
 - npm audit는 기존 Tailwind CLI → parcel/watcher → micromatch → braces 경로의 high 4개를 보고합니다. QR 패키지는 해당 목록에 없습니다. 기존 의존성 교체는 하지 않았습니다. audit 전체 통과로 주장하지 않습니다.
 - 새 QR 변경의 작성자 외 리뷰/CI와 최신 통합 backend에서의 재현은 남아 있습니다. PR은 사용자님께 결과를 먼저 보고한 뒤 진행합니다. W3 팀 전체 완료 판정은 하지 않습니다.
+
+## 커밋 후 별도 소스 재현
+
+- 실행 SHA: `d54efe6` (QR 구현·검사·기록 커밋).
+- `git archive`로 별도 임시 디렉터리에 추출 후 frozen install, 웹 typecheck,
+  component **18 passed**, production build가 모두 통과했습니다.
+- 이 별도 디렉터리에서 브라우저는 재실행하지 않았습니다. 브라우저 12 passed는 앞의
+  동일 제품 소스/production 서버 검사입니다. 다음 문서 커밋은 이 기록만 추가합니다.
+- audit high 4개 경로의 lock 버전은 기준 SHA와 동일함을 비교했습니다.
