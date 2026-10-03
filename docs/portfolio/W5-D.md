@@ -7,7 +7,7 @@
 - 기준: [계획서 15.6절](../development_plan.md), [ADR 0001](../adr/0001-finals-contracts.md).
 - 시작 기준: `integration@3295a71c10a1a99c523d3cfefde91b5737b737ac`. 2026-10-03 확인 시 `phase/W5`가 없습니다.
 - 브랜치: `test/w5-d-p0-qa`. 문서/운영 계획만의 Draft PR을 `integration`으로 제출합니다. 단계 기능을 W4에 넣거나 phase 완료를 선언하지 않습니다.
-- 상태: D1 근거 매핑 작성, D2 실행 계획 준비; 실제 W5 통합 실행·작성자 외 리뷰 대기.
+- 현재 상태: D1 매핑·후보 독립 실행·실패 재현 보고 완료, D2 통합 UI와 B/C 혼합 장애 원인 확인·작성자 외 리뷰 대기.
 
 ## 문제와 변경 결과
 
@@ -60,3 +60,17 @@ Codex가 D1 추적 자료와 D2 문서를 작성했습니다. 읽기 전용 보�
 - W5-D3: P0 D1/D2 완료 뒤 팀 결정에 따라 선택 기능 검토. 현재 보류가 기본입니다.
 - 본인 사실 확인: 아직 미확인. 에이전트가 사람의 확인을 대신 채우지 않습니다.
 - 작성자 외 리뷰어: 아직 미확인. 실제 리뷰 링크·확인 범위를 받은 뒤 갱신합니다.
+
+## 2026-10-04 — 후보 독립 실행 추가
+
+[실제 보고](../qa/w5-d-api-verification.md), [결과 JSON](../qa/w5-d-api-results.json)에 고정 제품/QA SHA와 범위를 기록했습니다. D가 새 fixture 두 파일로 현재 후보의 실제 socket HTTP·PostgreSQL·Anvil·projection worker/API process 재시작/reorg를 재현했습니다. C/B 소스는 변경하지 않았고 기존 D W4 helper를 재사용했습니다.
+
+- 기본 fresh clean clone: **18 보고 그룹 PASS / 0 FAIL**, 소스 hash·qa_git_dirty=false·소유 자원 부재 확인.
+- 같은 코드 mixed 진단: **17 PASS / 1 FAIL**. 재기동 후 lifecycle verify의 INCONCLUSIVE/DEPENDENCY_UNAVAILABLE를 재현했습니다. B/C 원인 확인 대기이며 성공에 합치거나 제품 수정으로 닫지 않았습니다.
+- 후보 Makefile 구조·환경 PASS, `make test`284PASS/4opt-in skipped, 표준 Foundry 컨테이너22PASS/0FAIL/0skipped. 이 수를 D 그룹이나 fuzz 반복과 중복 합산하지 않았습니다.
+- 처음 signer 검사에서 확장자 선택이 틀린 QA 결함은 `key_*` raw32byte·권한 검사로 보완했습니다. 권한표의 consume404·Proof revoke 필수reason도 실제 계약과 맞췄습니다. 제품 코드를 바꾼 해결로 기록하지 않습니다.
+- 앞선 혼합 스택 lifecycle 실패를 조사하며 원래 fixture의 fresh DB/chain 범위를 유지했습니다. 재현 가능한 mixed flag를 삭제하지 않고 현재 QA 커밋에 함께 보존했습니다.
+- 독립 코드 branch `test/w5-d-api-qa`는 push로 공유합니다. phase/W5가 없어 기능 PR의 단계 대상 생성은 대기하며 이 문서 PR52는 docs만 유지합니다.
+- 기본 provider/model은 mock/gpt-6-luna, 유료 호출0. 개인 .env·사용자 작업·기존 서비스·Serena/Graphify 보존. 새 소유 합성 자원의 migration/로컬 배포·종료를 수행했으며 운영 DB/배포는 하지 않았습니다.
+
+W5-D2의 실제 UI·QR·키 관리·consume·접근성은 A/C의 같은 통합 화면 인계 뒤 실행합니다. W5-D3는 P0 완료 후로 보류입니다. Codex가 D 코드·실행·보고를 수행했고 사람의 결과/기여 사실 확인과 작성자 외 리뷰는 PENDING입니다. 초기 문서 준비 당시 기능 미실행 기록은 당시 범위로 보존합니다.

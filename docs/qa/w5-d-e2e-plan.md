@@ -1,8 +1,14 @@
 # W5-D2 — 세 역할 P0 E2E 실행 계획
 
-담당 D `@yijun0330`. 기준은 [계획서 15.6·15.9·16절](../development_plan.md)과 [ADR 0001](../adr/0001-finals-contracts.md)입니다. 확인일 2026-10-03.
+담당 D `@yijun0330`. 기준은 [계획서 15.6·15.9·16절](../development_plan.md)과 [ADR 0001](../adr/0001-finals-contracts.md)입니다. 확인일 2026-10-04.
 
-**실행 준비 문서입니다. 아래 사례는 모두 NOT_RUN입니다.** A/B/C의 같은 W5 통합본을 받은 뒤 D가 독립 실행합니다. 현재 `phase/W5`가 없고 최신 `integration@3295a71c10a1a99c523d3cfefde91b5737b737ac`에는 그 기능 통합본이 없습니다. [D1 추적표](w5-d-acceptance.md)의 과거 부분 성공은 이번 전체 흐름 성공을 대신하지 않습니다.
+**아래 15개 통합 UI 사례는 모두 NOT_RUN입니다. 후보 독립 API·체인 검사는 별도로 실행됐습니다.** A/B/C의 같은 W5 통합본을 받은 뒤 D가 독립 실행합니다. 현재 `phase/W5`가 없고 최신 `integration@3295a71c10a1a99c523d3cfefde91b5737b737ac`에는 그 기능 통합본이 없습니다. [D1 추적표](w5-d-acceptance.md)의 과거 부분 성공은 이번 전체 흐름 성공을 대신하지 않습니다.
+
+## 후보 부분 실행과 통합 UI 판정
+
+[별도 실제 보고](w5-d-api-verification.md): 기본 fresh18PASS/0FAIL, 혼합 장애17PASS/1FAIL입니다. D2-04의 권한, D2-05 unknown 조회, D2-08 중지 중 새 발행 거부, D2-13 실제 projection replay/restart/reorg, D2-14 기본 rate/body/Origin과 선택 API/키/체인/Git 검사를 실행했습니다. D2-07 v1 만료와 fresh ASGI lifecycle도 별도 통과했습니다.
+
+API seed·ASGI·socket HTTP 결과는 브라우저 관리·QR·키보드 성공이 아닙니다. 혼합 RPC/reorg 스택에서 추가 재기동 후 Reader UNAVAILABLE가 재현돼 B/C 원인 확인을 기다립니다. 제출 뒤 hash loss는 프로세스 내부 주입이며 실제 socket 응답 소실이 아닙니다. 전체 UI/로그 감사는 여전히 미실행입니다.
 
 ## 1. 실행 전 인계 확인
 
@@ -13,7 +19,7 @@
 | API 인증/권한/제한·Operation/감사·reconciliation·기동/seed | `W5-C1/C2/C3` | API 모델/OpenAPI와 실제 설정·명령·migration·보호된 계정 준비 안내를 받습니다. pending/UNKNOWN/FAILED와 current lifecycle을 구분합니다. |
 | 공통 검증 대상 | 통합 조율 C, 각 소유자 | phase/통합 후보의 전체 SHA, 웹 빌드 SHA, QA 코드 SHA와 manifest를 기록합니다. 외부 작성자 리뷰는 실제 리뷰 링크만 사용합니다. |
 
-위 인계가 없으면 관련 사례를 BLOCKED/NOT_RUN으로 기록합니다. D는 자기 사례·실행·재현 결과를 제공하고, A/B/C의 제품 수정과 C의 단계 승격은 각 담당자가 수행합니다. 단계 브랜치가 없는 동안 D의 독립 문서 준비를 계속할 수 있습니다.
+위 인계가 없으면 관련 사례를 BLOCKED/NOT_RUN으로 기록합니다. D는 자기 사례·실행·재현 결과를 제공하고, A/B/C의 제품 수정과 C의 단계 승격은 각 담당자가 수행합니다. 단계 브랜치가 없는 동안 D의 독립 문서 준비·후보 API/체인 검사를 계속할 수 있습니다.
 
 ### 현재 C 후보와 명령의 범위
 
@@ -48,7 +54,7 @@ API seed는 준비 자료입니다. 화면의 관리 작업을 API 호출로 대
 | D2-05 미등록 | 실제 저장소에 없는 ID와 미등록 발행자 자료 조회 | `NOT_REGISTERED`와 실제 원인; 위조라고 단정하지 않음. 키 미등록 `INCONCLUSIVE/KEY_NOT_FOUND`와 혼동 금지. | F06 |
 | D2-06 정상 키 교체 | 기관 UI 새 키 준비 → 등록 확정 → 발행 키 전환 → 새 발행; 수신자 새 세션 과거/신규 조회 | 전환 키와 실제 발행 서명키 일치. 이전 정상 Proof는 키 교체/키 기간 종료 후에도 정책에 따라 유효. 이전 키 자동 revoke 금지. 미확정 새 키로 발행 금지. | F01, F08, F12 |
 | D2-07 만료 | 두 유형 만료 직전/경계/직후 조회·사용, v1 만료 회귀 별도 | QA가 소유한 환경의 trusted clock·chain 시간 기록. v2 수행 검사 성공은 `VERIFIED + EXPIRED`, 사용 거부; v1 `INCONCLUSIVE + EXPIRED`. OS 시간/개인 데이터를 바꾸지 않음. | F03 |
-| D2-08 기관 중지 | 운영자 UI 기관 중지 → 중지 중 새 발행 직접 시도 → 새 수신자 세션 기존 Proof 검증 → 복귀 | 새 발행 거부와 상태 불변, 기존 `ISSUER_SUSPENDED`·사용 불가; 복귀 뒤 실제 현재 상태 일치. 이 새 발행 거부는 앞선 W4 D 자료의 누락 검사임. | F11 |
+| D2-08 기관 중지 | 운영자 UI 기관 중지 → 중지 중 새 발행 직접 시도 → 새 수신자 세션 기존 Proof 검증 → 복귀 | 새 발행 거부와 상태 불변, 기존 `ISSUER_SUSPENDED`·사용 불가; 복귀 뒤 실제 현재 상태 일치. 이 새 발행 거부는 앞선 W4 D 자료의 누락 검사였고 후보 socket API 검사에서 보완됨. UI/새 세션은 미실행. | F11 |
 | D2-09 유출 키·Proof 폐기 | 정상 교체와 다른 유출 키 폐기; 기관 UI Proof 폐기; 수신자 새 세션 재검증 | 과거 Proof `ISSUER_KEY_REVOKED` 또는 `PROOF_REVOKED`, 현재 사용 불가. 반복 적법 폐기는 tx/event 불증가. 소비 후 폐기는 소비 이력을 보존. 여러 lifecycle의 대표 우선순위와 모든 사유도 ADR대로 대조. | F07, F08 |
 | D2-10 소비·재사용 | 지정 수신자 UI 소비 → 새 세션 재조회 → 새 ID 재사용; 같은 ID 재시도; 발행자/수신자 병렬 연결 | 체인 `ProofConsumed` 전이 한 번. 같은 ID는 기존 Operation/tx, 새 ID는 `REPLAY_DETECTED`. 다른 입력 ID 재사용은 conflict. 문서형 consume 거부. API DB lock만으로 원자성 성공을 주장하지 않음. | F04, F10, F14 |
 | D2-11 조회 불변·직접 우회 | 여러 세션 반복 조회; 타 기관/틀린 binding/gateway 외 직접 Contract 변경 | 조회 전후 Operation/Audit/event/consume 불변. 직접 우회 호출 실패 receipt와 현재 상태 불변. 서버의 세션 actor 전달과 체인의 commitment 대조라는 trusted gateway 범위를 기록. | F04, F05, F10, F14 |

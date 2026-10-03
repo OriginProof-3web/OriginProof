@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "as_of": "2026-10-03",
+  "as_of": "2026-10-04",
   "owner": {
     "role": "D",
     "github": "yijun0330"
@@ -32,18 +32,19 @@
     "phase/W5": null
   },
   "task_status": {
-    "W5-D1": "PREPARED_REVIEW_PENDING",
-    "W5-D2": "PREPARED_EXECUTION_NOT_RUN",
+    "W5-D1": "MAPPED_AND_INDEPENDENT_EXECUTION_RECORDED_REVIEW_PENDING",
+    "W5-D2": "CANDIDATE_API_EXECUTED_MIXED_FAILURE_UI_NOT_RUN",
     "W5-D3": "DEFERRED_UNTIL_P0"
   },
   "candidate_note": "PR37 draft@9651062c9f36e124b76796278c996764678e1c77 is C preparation, temporarily based on phase/W4; its author says not to merge into W4. W6 runtime is not W5 acceptance.",
   "counting_rules": [
-    "과거 실행 결과를 읽어 매핑했습니다. 이번 문서 변경에서 기능 검사를 새로 실행하지 않았습니다.",
+    "최초 문서 준비는 과거 결과 읽기 매핑이었습니다. 이후 후보 독립 실제 실행은 W5-CANDIDATE-INDEPENDENT에 별도로 기록하며 과거 결과를 신규 실행으로 세지 않습니다.",
     "QA 코드 SHA, 제품 base SHA, 보고 문서 SHA를 분리합니다. 명령은 해당 QA SHA의 원 보고서 선행 절차와 함께 사용하며 현재 integration에서 모두 실행할 수 있다는 뜻이 아닙니다.",
     "ASGI와 socket HTTP, core/mock와 실제 DB/chain, API seed와 UI 관리 동작을 구분합니다.",
     "W2 wrapper 3개에 포함된 C 3개/B 1개를 더하지 않습니다. 반복 fresh-clone 결과·여러 F행의 같은 live test도 중복 합산하지 않습니다.",
     "W3 lifecycle null/NOT_RUN과 W4 ACTIVE를 합쳐 하나의 최종 RC 성공으로 선언하지 않습니다.",
-    "CARD_PAYMENT_NOTICE v1 회귀는 F01 두 유형 v2 성공 증거가 아닙니다."
+    "CARD_PAYMENT_NOTICE v1 회귀는 F01 두 유형 v2 성공 증거가 아닙니다.",
+    "W5 통합 D2의 w5_execution_status=NOT_RUN을 후보 API 부분 판정과 분리합니다. fresh18PASS와 혼합17PASS/1FAIL을 합산하거나 실패를 숨기지 않습니다."
   ],
   "evidence": [
     {
@@ -530,6 +531,94 @@
         }
       ],
       "executed_in_this_change": false
+    },
+    {
+      "id": "W5-CANDIDATE-INDEPENDENT",
+      "stage": "W5_candidate",
+      "qa_code_sha": "a3f55c6991061ac445d2223f19ff1b2a48acab0e",
+      "product_base_sha": "9651062c9f36e124b76796278c996764678e1c77",
+      "pr_url": "https://github.com/OriginProof-3web/OriginProof/pull/52",
+      "test_files": [
+        {
+          "sha": "a3f55c6991061ac445d2223f19ff1b2a48acab0e",
+          "path": "fixtures/finals/w5_p0_api_qa.py",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/a3f55c6991061ac445d2223f19ff1b2a48acab0e/fixtures/finals/w5_p0_api_qa.py"
+        },
+        {
+          "sha": "a3f55c6991061ac445d2223f19ff1b2a48acab0e",
+          "path": "fixtures/finals/w5_projection_qa.py",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/a3f55c6991061ac445d2223f19ff1b2a48acab0e/fixtures/finals/w5_projection_qa.py"
+        },
+        {
+          "sha": "0bb5da42d64b9ce298cb2de2951b327da6bc4fc7",
+          "path": "fixtures/finals/test_w4_lifecycle_qa.py",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/0bb5da42d64b9ce298cb2de2951b327da6bc4fc7/fixtures/finals/test_w4_lifecycle_qa.py"
+        },
+        {
+          "sha": "9651062c9f36e124b76796278c996764678e1c77",
+          "path": "packages/python/tests/test_verification.py",
+          "url": "https://github.com/OriginProof-3web/OriginProof/blob/9651062c9f36e124b76796278c996764678e1c77/packages/python/tests/test_verification.py"
+        }
+      ],
+      "tests": [
+        "run_checks",
+        "approval_boundaries",
+        "exercise",
+        "test_w4_policy",
+        "test_w4_real_database_and_chain",
+        "test_expired_proof_is_not_reported_as_verified"
+      ],
+      "command": "W5_D_API_QA=1 .uv-venv/bin/python fixtures/finals/w5_p0_api_qa.py",
+      "command_prerequisite": "해당 QA SHA의 clean clone에서 git fetch origin, frozen uv sync. Docker와 owned disposable opt-in 필요. 개인 서비스·DB 사용하지 않음.",
+      "layers": [
+        "actual_socket_http",
+        "actual_postgresql",
+        "actual_anvil",
+        "actual_projection_api_process_restart_and_reorg",
+        "core_vectors",
+        "actual_asgi_in_fresh_lifecycle_stack",
+        "v1_core"
+      ],
+      "reported_result": {
+        "status": "PASS_SCOPED_WITH_MIXED_DIAGNOSTIC_FAILURE",
+        "fresh_groups_passed": 18,
+        "fresh_groups_failed": 0,
+        "mixed_groups_passed": 17,
+        "mixed_groups_failed": 1,
+        "browser_e2e": "NOT_RUN",
+        "group_ids": [
+          "two_types_comparison",
+          "mutation_permission_matrix",
+          "unregistered",
+          "ownership",
+          "operation_audit_reconciliation",
+          "suspended_new_issuance",
+          "rpc_outage_recovery",
+          "same_operation_recovery",
+          "private_fields",
+          "approval_chain_boundary",
+          "default_request_limit",
+          "default_login_limit",
+          "origin_body_boundaries",
+          "different_rpc_chain",
+          "same_chain_fresh_rpc_guard",
+          "projection_replay_process_restart_reorg",
+          "current_candidate_lifecycle_regression",
+          "legacy_v1_expiry"
+        ]
+      },
+      "limits": [
+        "API seed is not browser issuance/management",
+        "fresh empty alternate Anvil is RPC identity/deployment guard, not redeploy or signature submission to another Contract",
+        "known synthetic secret scan covers selected API responses, owned chain inputs/logs and tracked files; not full browser/log audit",
+        "mixed-stack lifecycle recovery failure remains for B/C diagnosis; no product fix or stage completion claim"
+      ],
+      "reports": [],
+      "report_paths": [
+        "docs/qa/w5-d-api-verification.md",
+        "docs/qa/w5-d-api-results.json"
+      ],
+      "executed_in_this_change": true
     }
   ],
   "cases": [
@@ -568,7 +657,15 @@
         "G02",
         "G03",
         "G04"
-      ]
+      ],
+      "candidate_api_evidence_refs": [
+        "W5-CANDIDATE-INDEPENDENT"
+      ],
+      "candidate_api_group_ids": [
+        "two_types_comparison",
+        "current_candidate_lifecycle_regression"
+      ],
+      "candidate_api_status": "PASS_SCOPED"
     },
     {
       "id": "F02",
@@ -592,7 +689,14 @@
       ],
       "blocker_refs": [
         "G01"
-      ]
+      ],
+      "candidate_api_evidence_refs": [
+        "W5-CANDIDATE-INDEPENDENT"
+      ],
+      "candidate_api_group_ids": [
+        "two_types_comparison"
+      ],
+      "candidate_api_status": "PASS_SCOPED"
     },
     {
       "id": "F03",
@@ -611,21 +715,29 @@
       "prior_coverage": "W4 실제 DB/chain + ASGI에서 만료 -1/0/+1초, EXPIRED와 consume 거부 확인. v1 만료 전용 D 실행 근거는 이 선택 자료에 매핑되지 않았습니다.",
       "w5_execution_status": "NOT_RUN",
       "remaining_d_checks": [
-        "통합 UI의 만료·사용 불가 표시를 검사합니다.",
-        "기존 v1 만료 회귀 파일/함수는 확인했습니다. 같은 후보에서 실행 명령·SHA·결과를 별도로 연결합니다. 정상/금액 변조 v1 결과로 만료를 대신하지 않습니다."
+        "통합 UI의 만료·사용 불가 표시를 검사합니다. 후보 fresh lifecycle과 v1 만료 회귀는 실제 실행됐으며 브라우저 결과와 분리합니다."
       ],
       "blocker_refs": [
         "G01",
         "G04"
       ],
-      "existing_unexecuted_test": {
+      "candidate_api_evidence_refs": [
+        "W5-CANDIDATE-INDEPENDENT"
+      ],
+      "candidate_api_group_ids": [
+        "current_candidate_lifecycle_regression",
+        "legacy_v1_expiry"
+      ],
+      "candidate_api_status": "PASS_SCOPED",
+      "initial_code_reference": {
         "sha": "3295a71c10a1a99c523d3cfefde91b5737b737ac",
         "path": "packages/python/tests/test_verification.py",
         "function": "test_expired_proof_is_not_reported_as_verified",
         "url": "https://github.com/OriginProof-3web/OriginProof/blob/3295a71c10a1a99c523d3cfefde91b5737b737ac/packages/python/tests/test_verification.py",
         "command": "UV_PROJECT_ENVIRONMENT=.uv-venv uv run --no-sync pytest -q packages/python/tests/test_verification.py::test_expired_proof_is_not_reported_as_verified",
-        "status": "CODE_ONLY_EXECUTION_NOT_MAPPED",
-        "note": "Existing test expects v1 INCONCLUSIVE/PROOF_EXPIRED/EXPIRED. It was read, not newly executed; prior aggregate make test output is not counted as an isolated mapped execution."
+        "status": "INITIAL_CODE_REFERENCE_SUPPLEMENTED",
+        "note": "Initial3295 reference was read-only. Candidate965 now has a separate named v1 expiry execution in W5-CANDIDATE-INDEPENDENT.",
+        "execution_evidence_ref": "W5-CANDIDATE-INDEPENDENT"
       }
     },
     {
@@ -652,7 +764,14 @@
       "blocker_refs": [
         "G01",
         "G04"
-      ]
+      ],
+      "candidate_api_evidence_refs": [
+        "W5-CANDIDATE-INDEPENDENT"
+      ],
+      "candidate_api_group_ids": [
+        "current_candidate_lifecycle_regression"
+      ],
+      "candidate_api_status": "PASS_SCOPED"
     },
     {
       "id": "F05",
@@ -684,7 +803,17 @@
         "G01",
         "G02",
         "G04"
-      ]
+      ],
+      "candidate_api_evidence_refs": [
+        "W5-CANDIDATE-INDEPENDENT"
+      ],
+      "candidate_api_group_ids": [
+        "mutation_permission_matrix",
+        "ownership",
+        "operation_audit_reconciliation",
+        "current_candidate_lifecycle_regression"
+      ],
+      "candidate_api_status": "PASS_SCOPED"
     },
     {
       "id": "F06",
@@ -704,12 +833,18 @@
       "prior_coverage": "W3 코어의 합성 issuer=None은 NOT_REGISTERED/ISSUER_NOT_FOUND. key=None은 INCONCLUSIVE/KEY_NOT_FOUND입니다. 실제 HTTP unknown Proof 검사는 D 선택 파일에 없습니다.",
       "w5_execution_status": "NOT_RUN",
       "remaining_d_checks": [
-        "실제 저장소에 없는 Proof ID와 미등록 발행자의 HTTP 결과·웹 문구를 확인합니다.",
-        "원 보고서의 F06 범위 문구만으로 실제 실행 통과를 선언하지 않습니다."
+        "후보 API unknown Proof와 미등록 issuer 근거를 기록했습니다. 통합 UI의 NOT_REGISTERED 문구·동선을 확인합니다."
       ],
       "blocker_refs": [
         "G01"
-      ]
+      ],
+      "candidate_api_evidence_refs": [
+        "W5-CANDIDATE-INDEPENDENT"
+      ],
+      "candidate_api_group_ids": [
+        "unregistered"
+      ],
+      "candidate_api_status": "PASS_SCOPED"
     },
     {
       "id": "F07",
@@ -733,7 +868,14 @@
       "blocker_refs": [
         "G01",
         "G04"
-      ]
+      ],
+      "candidate_api_evidence_refs": [
+        "W5-CANDIDATE-INDEPENDENT"
+      ],
+      "candidate_api_group_ids": [
+        "current_candidate_lifecycle_regression"
+      ],
+      "candidate_api_status": "PASS_SCOPED"
     },
     {
       "id": "F08",
@@ -758,7 +900,14 @@
       "blocker_refs": [
         "G01",
         "G04"
-      ]
+      ],
+      "candidate_api_evidence_refs": [
+        "W5-CANDIDATE-INDEPENDENT"
+      ],
+      "candidate_api_group_ids": [
+        "current_candidate_lifecycle_regression"
+      ],
+      "candidate_api_status": "PASS_SCOPED"
     },
     {
       "id": "F09",
@@ -784,13 +933,19 @@
       "prior_coverage": "미승인/반려/DB 승인 체인 미완료 키 등록 거부·Operations/sends 0 확인. W3 발행 권한 거부. W2 UI 활성화·키 경로 6개 capability 검사 실패가 남습니다.",
       "w5_execution_status": "NOT_RUN",
       "remaining_d_checks": [
-        "W5 UI 신청 → 검토 → 체인 활성화 → 키 등록 → 발행을 새 상태에서 완료합니다.",
-        "pending/rejected/approved_pending_chain 단계의 발행·키 등록 거부를 같은 후보 SHA에서 재검사합니다."
+        "W5 UI 신청 → 검토 → 체인 활성화 → 키 등록 → 발행을 완료합니다. 후보 API pending/rejected/approved_pending_chain 거부 검사는 통과했습니다."
       ],
       "blocker_refs": [
         "G01",
         "G02"
-      ]
+      ],
+      "candidate_api_evidence_refs": [
+        "W5-CANDIDATE-INDEPENDENT"
+      ],
+      "candidate_api_group_ids": [
+        "approval_chain_boundary"
+      ],
+      "candidate_api_status": "PASS_SCOPED"
     },
     {
       "id": "F10",
@@ -818,7 +973,16 @@
       "blocker_refs": [
         "G01",
         "G04"
-      ]
+      ],
+      "candidate_api_evidence_refs": [
+        "W5-CANDIDATE-INDEPENDENT"
+      ],
+      "candidate_api_group_ids": [
+        "mutation_permission_matrix",
+        "ownership",
+        "current_candidate_lifecycle_regression"
+      ],
+      "candidate_api_status": "PASS_SCOPED"
     },
     {
       "id": "F11",
@@ -838,13 +1002,19 @@
       "prior_coverage": "W4 실제 chain 중지 → 기존 문서 Proof VERIFIED + ISSUER_SUSPENDED → 복귀 ACTIVE 확인. 중지 중 새 발행 POST는 이 D 검사에 없습니다.",
       "w5_execution_status": "NOT_RUN",
       "remaining_d_checks": [
-        "중지 중 두 유형 새 발행을 직접 시도해 거부와 Proof/Operation/event 불변을 확인합니다.",
-        "새 브라우저 세션의 중지·복귀 표시를 검사합니다. 증거 부재를 API 미구현으로 단정하지 않습니다."
+        "후보 두 유형 중지 중 새 발행 거부·불변 검사를 통과했습니다. 새 브라우저 세션의 중지·복귀 표시를 검사합니다."
       ],
       "blocker_refs": [
         "G01",
         "G04"
-      ]
+      ],
+      "candidate_api_evidence_refs": [
+        "W5-CANDIDATE-INDEPENDENT"
+      ],
+      "candidate_api_group_ids": [
+        "suspended_new_issuance"
+      ],
+      "candidate_api_status": "PASS_SCOPED"
     },
     {
       "id": "F12",
@@ -875,7 +1045,15 @@
         "G01",
         "G02",
         "G04"
-      ]
+      ],
+      "candidate_api_evidence_refs": [
+        "W5-CANDIDATE-INDEPENDENT"
+      ],
+      "candidate_api_group_ids": [
+        "mutation_permission_matrix",
+        "same_operation_recovery"
+      ],
+      "candidate_api_status": "PASS_SCOPED"
     },
     {
       "id": "F13",
@@ -902,15 +1080,26 @@
       "prior_coverage": "W2 socket RPC/UNKNOWN/실제 프로세스 재시작·실패 receipt 구분, UI UNKNOWN 대기 표시. W4 실제 RPC 단절 → null/503 → ACTIVE 복구. Indexer/reorg 실제 D 연결 근거는 없습니다.",
       "w5_execution_status": "NOT_RUN",
       "remaining_d_checks": [
-        "같은 W5 배포의 UI pending/UNKNOWN/FAILED·복구 조회·현재 판정 보류를 재검사합니다.",
-        "B/C의 실제 Indexer 중복/restart/reorg·deployment mismatch 근거를 확인하고 D 재현을 연결합니다. projection만으로 현재 ACTIVE를 판정하지 않습니다."
+        "통합 UI pending/UNKNOWN/FAILED·복구 조회·현재 판정 보류를 검사합니다. 후보 실제 projection replay/API 프로세스 재시작/reorg는 통과했습니다.",
+        "G07 혼합 RPC/reorg 스택에서 재기동 후 Reader UNAVAILABLE 실패는 B/C 원인 확인·수정 인계 뒤 재검사합니다."
       ],
       "blocker_refs": [
         "G01",
         "G02",
         "G04",
-        "G06"
-      ]
+        "G06",
+        "G07"
+      ],
+      "candidate_api_evidence_refs": [
+        "W5-CANDIDATE-INDEPENDENT"
+      ],
+      "candidate_api_group_ids": [
+        "operation_audit_reconciliation",
+        "rpc_outage_recovery",
+        "same_operation_recovery",
+        "projection_replay_process_restart_reorg"
+      ],
+      "candidate_api_status": "PASS_SCOPED_WITH_MIXED_FAILURE"
     },
     {
       "id": "F14",
@@ -933,14 +1122,24 @@
       "prior_coverage": "코어 network/domain 오류, 실제 지정 수신자 제한 조회·잘못된 binding 체인 receipt 0/상태 불변 근거. 실제 두 번째 chain 재사용은 D 미실행입니다.",
       "w5_execution_status": "NOT_RUN",
       "remaining_d_checks": [
-        "실제 다른 chain/deployment에서 같은 서명 거부를 B 계약/배포 절차에 맞춰 재현합니다.",
-        "W5 지정 수신자·다른 수신자의 UI 비교/consume과 서버가 세션에서 도출한 binding을 확인합니다."
+        "후보의 실제 다른31338/새31337 RPC identity guard는 통과했습니다. 빈 RPC 검사와 다른 Contract로의 실제 서명 제출 거부는 분리하며 후자는 B의 배포/검사 경계 인계 후 확인합니다.",
+        "W5 지정/다른 수신자의 UI 비교/consume과 binding을 확인합니다."
       ],
       "blocker_refs": [
         "G01",
         "G04",
         "G06"
-      ]
+      ],
+      "candidate_api_evidence_refs": [
+        "W5-CANDIDATE-INDEPENDENT"
+      ],
+      "candidate_api_group_ids": [
+        "ownership",
+        "different_rpc_chain",
+        "same_chain_fresh_rpc_guard",
+        "current_candidate_lifecycle_regression"
+      ],
+      "candidate_api_status": "PASS_SCOPED"
     },
     {
       "id": "F15",
@@ -964,15 +1163,27 @@
       "prior_coverage": "W1 선택 화면 axe 0, W2 키 응답·W3 공개/제한 필드 비노출 근거. W2 approved 화면 definition-list 접근성 실패. 전체 보안·요청 제한 검사는 미매핑입니다.",
       "w5_execution_status": "NOT_RUN",
       "remaining_d_checks": [
-        "세 역할 핵심 경로의 키보드·focus·label·오류/결과 읽기·대비·작은 화면을 독립 검사합니다.",
-        "C가 제공한 한계와 응답 계약으로 요청 제한의 실제 거부·복구를 검사합니다. 임계치를 D가 임의 정책으로 만들지 않습니다.",
-        "응답·URL/QR·DOM/저장소·로그·Git·키 파일·체인 자료를 합성 환경에서 검사합니다. 의도된 보호 세션 저장과 허용 공개 signer를 노출 결함으로 혼동하지 않습니다."
+        "세 역할 키보드·focus·label·오류/결과 읽기·대비·작은 화면을 독립 검사합니다.",
+        "후보 기본 rate/Origin/body/time 제한과 선택 응답·signer·known synthetic secret의 Git/체인 검사는 통과했습니다. UI 요청 복구·URL/QR/DOM/저장소·전체 로그 감사는 연결 후 수행합니다."
       ],
       "blocker_refs": [
         "G01",
         "G02",
         "G05"
-      ]
+      ],
+      "candidate_api_evidence_refs": [
+        "W5-CANDIDATE-INDEPENDENT"
+      ],
+      "candidate_api_group_ids": [
+        "mutation_permission_matrix",
+        "ownership",
+        "operation_audit_reconciliation",
+        "private_fields",
+        "default_request_limit",
+        "default_login_limit",
+        "origin_body_boundaries"
+      ],
+      "candidate_api_status": "PASS_SCOPED"
     }
   ],
   "blockers": [
@@ -1046,12 +1257,12 @@
         "W5-A2",
         "W5-D2"
       ],
-      "summary": "F15 요청 제한/전체 비밀정보 감사와 핵심 키보드·접근성에 대한 현재 D 통합 실행 근거가 없습니다.",
+      "summary": "후보 API 요청 제한·선택 응답/서명기·known synthetic secret Git/체인 검사 통과. 전체 통합 웹 접근성·DOM/로그/저장소 감사는 미실행입니다.",
       "references": [
         "https://github.com/OriginProof-3web/OriginProof/pull/37",
         "https://github.com/OriginProof-3web/OriginProof/pull/51"
       ],
-      "d_next": "C의 요청 제한 계약·보호 설정과 A 화면을 사용해 D가 검사합니다."
+      "d_next": "A/C 화면 인계 뒤 UI 한계/복구·접근성과 전체 공개 surface를 검사합니다."
     },
     {
       "id": "G06",
@@ -1064,11 +1275,26 @@
         "W5-C2",
         "W5-D2"
       ],
-      "summary": "실제 Indexer/reorg·다른 chain 서명 재사용의 D 연결 증거가 이 선택 자료에 없습니다.",
+      "summary": "후보 실제 projection replay/API process restart/reorg와 다른 RPC identity guard 통과. 다른 Contract 실제 서명 제출은 별도 B 경계 인계가 필요합니다.",
       "references": [
         "https://github.com/OriginProof-3web/OriginProof/pull/37"
       ],
-      "d_next": "B/C 소유자의 배포/상태 계약·실행 절차와 근거를 받은 뒤 D 독립 결과를 연결합니다."
+      "d_next": "현재 scoped 결과를 소비하고 통합 후보·직접 서명 재사용의 범위를 B/C와 대조합니다."
+    },
+    {
+      "id": "G07",
+      "type": "REPRODUCED_MIXED_ENVIRONMENT_FAILURE",
+      "owner_task_ids": [
+        "W5-B1",
+        "W5-B2",
+        "W5-C2"
+      ],
+      "summary": "같은 QA SHA의 MIXED_DIAGNOSTIC에서 원래 W4 lifecycle 함수의 재기동 후 verify가 INCONCLUSIVE/null/DEPENDENCY_UNAVAILABLE. 기본 fresh18PASS와 구분; 원인·제품 결함 여부 미확정.",
+      "references": [
+        "https://github.com/OriginProof-3web/OriginProof/pull/37",
+        "https://github.com/OriginProof-3web/OriginProof/blob/a3f55c6991061ac445d2223f19ff1b2a48acab0e/fixtures/finals/w5_p0_api_qa.py"
+      ],
+      "d_next": "B/C 원인 확인·수정 인계 뒤 동일 mixed opt-in 명령으로 재검사합니다."
     }
   ],
   "preparation_validation": {
