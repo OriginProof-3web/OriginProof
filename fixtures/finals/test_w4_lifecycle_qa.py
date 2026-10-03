@@ -651,6 +651,10 @@ async def test_w4_real_database_and_chain(disposable_stack, monkeypatch):
             for offset in (-1, 0, 1):
                 await move_clock(origin + timedelta(seconds=300 + offset))
                 for role, proof in expires.items():
+                    state = await manager.reader(accounts[role].issuer_id).get_proof_state(
+                        proof["proof_id"], clock[0]
+                    )
+                    assert state.consumable_at == (role == "bank" and offset < 0)
                     await verify(
                         proof,
                         "ACTIVE" if offset < 0 else "EXPIRED",
