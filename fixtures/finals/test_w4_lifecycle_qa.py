@@ -4,6 +4,7 @@ import asyncio
 import json
 import os
 import secrets
+import socket
 import subprocess
 import sys
 import time
@@ -117,6 +118,11 @@ def disposable_stack(tmp_path):
     network_created = False
     env_file = tmp_path / "postgres.env"
     password = secrets.token_hex(24)
+    # Docker reassigns an unspecified host port on restart. Reserve a free local
+    # port for this new Anvil so the API retains the same endpoint after recovery.
+    with socket.socket() as available:
+        available.bind(("127.0.0.1", 0))
+        anvil_port = available.getsockname()[1]
     env_file.write_text(
         f"POSTGRES_USER=originproof\nPOSTGRES_PASSWORD={password}\n"
         "POSTGRES_DB=originproof_w4_d_qa\n"
@@ -156,7 +162,7 @@ def disposable_stack(tmp_path):
                 "--network-alias",
                 "anvil",
                 "-p",
-                "127.0.0.1::8545",
+                f"127.0.0.1:{anvil_port}:8545",
                 "--entrypoint",
                 "anvil",
                 FOUNDRY,
