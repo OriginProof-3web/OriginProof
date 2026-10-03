@@ -5,14 +5,16 @@
     "build": "node build.mjs"
   },
   "dependencies": {
+    "lucide-react": "^0.577.0",
+    "qrcode": "^1.5.4",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "lucide-react": "^0.577.0"
+    "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "esbuild": "^0.25.0",
-    "tailwindcss": "^4.0.0",
     "@tailwindcss/cli": "^4.0.0",
-    "shadow-plugin": "2.1.1"
+    "@types/qrcode": "^1.5.6",
+    "esbuild": "^0.25.0",
+    "shadow-plugin": "2.1.1",
+    "tailwindcss": "^4.0.0"
   }
 }

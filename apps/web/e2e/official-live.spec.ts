@@ -1,5 +1,8 @@
 import {test,expect,type Page} from '@playwright/test';
-import {readFileSync} from 'node:fs';
+import {readFileSync,mkdtempSync,writeFileSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {execFileSync} from 'node:child_process';
 const credentials=process.env.ORIGINPROOF_TEST_ACCOUNTS;
 test.use({trace:'off',video:'off',screenshot:'off'});
 test.skip(!credentials,'Explicit isolated local account file required; no credentials committed.');
@@ -23,6 +26,12 @@ for(const [issuer,type,mismatch] of [['bank','PAYMENT_REQUEST','AMOUNT_MISMATCH'
   await page.getByRole('button',{name:'발행 목록',exact:true}).last().click();
   await expect(page.getByRole('heading',{name:'Proof 상세'})).toBeVisible();
   const href=await page.getByRole('link',{name:'사용자 조회 화면'}).getAttribute('href');expect(new URL(href!,'http://127.0.0.1:3000').searchParams.get('proof_id')).toBe(id);
+  await page.getByRole('button',{name:'검증 QR 보기'}).click();
+  const qr=page.getByRole('img',{name:'공개 Proof 조회 화면으로 이동하는 QR 코드'});await expect(qr).toBeVisible();
+  if(process.env.ORIGINPROOF_QR_DECODER){
+   const directory=mkdtempSync(join(tmpdir(),'originproof-live-qr-'));
+   try{const path=join(directory,'qr.png');const source=await qr.getAttribute('src');writeFileSync(path,Buffer.from(source!.split(',')[1],'base64'));expect(execFileSync(process.env.ORIGINPROOF_QR_DECODER,[path],{encoding:'utf8'}).trim()).toBe(href);}finally{rmSync(directory,{recursive:true});}
+  }
   const anonymous=await browser.newContext({reducedMotion:"reduce"});const publicPage=await anonymous.newPage();await publicPage.goto(href!);
   await expect(publicPage.getByText('PROOF_ONLY',{exact:true})).toBeVisible();await expect(publicPage.getByText('미확인',{exact:true})).toBeVisible();
   await login(publicPage,'recipient');await publicPage.getByLabel('Proof ID / 검증 링크').fill(id);await publicPage.getByRole('button',{name:'조회',exact:true}).click();

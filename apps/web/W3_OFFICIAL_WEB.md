@@ -79,3 +79,10 @@ ORIGINPROOF_TEST_ACCOUNTS=/private/path/accounts.json pnpm --filter originproof-
 
 최신 CI 보완 결과와 과거 live 결과의 구분은 `W3_VALIDATION.md`를 참고합니다.
 D의 독립 실제 재현과 QR·팀 단계 완료는 후속 작업입니다.
+
+## 2026-10-03 QR 후속
+
+발행 목록 → Proof 상세 → **검증 QR 보기**에서 QR을 표시하고 **QR PNG 저장**으로 다운로드합니다.
+QR 링크는 현재 접속 host/port를 사용합니다. 휴대폰용은 PC에서 LAN 주소로 접속하여 생성해야 합니다.
+PC 브라우저·실제 두 유형 QR 해독 검사를 통과했으며 휴대폰 스캔은 미실행입니다.
+[후속 검사 기록](W3_QR_VALIDATION.md)을 참고하세요.

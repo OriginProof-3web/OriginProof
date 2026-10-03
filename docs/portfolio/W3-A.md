@@ -47,3 +47,16 @@ Python 318 passed/5 opt-in skipped입니다. 과거 실제 브라우저 10 passe
 생성 타입 snapshot 두 파일은 병합된 C 생성 원본과 byte 일치를 확인했습니다.
 QR/LAN·현재 통합 SHA의 실제 API 브라우저 재현·D 독립 검증·W4 화면은 완료로 기록하지 않습니다.
 앞 절의 리뷰/CI 대기는 최초 제출 당시 기록이며 최신 결과는 웹 검사 기록과 PR에 남깁니다.
+
+## 2026-10-03 QR 후속 구현·검사
+
+사용자님이 qrcode와 타입 추가를 승인하신 뒤, #44 병합 phase/W3@121e1ca에서
+`codex/w3-a-qr-followup`을 시작했습니다. W3-A2의 QR 보기·PNG 저장·공개 ID 링크 전달을
+추가했고 메인/Sidebar/WebGL 디자인은 보존했습니다. 기능 코드와 검사는 Codex가 작성했고,
+사용자님이 의존성 추가와 디자인 유지 판단을 하셨습니다. 기존 API/서명/권한은 C/B 구현을 재사용했습니다.
+
+component 18 passed, production browser 12 passed/0 skipped입니다. 기존 C #36 실제 API에서
+두 유형의 새 발행 QR을 macOS Vision으로 해독하고 익명 조회·수신자 비교·변조 거부를 확인했습니다.
+최신 phase backend/휴대폰 스캔/새 변경의 작성자 외 리뷰·CI는 완료로 기록하지 않습니다.
+[QR 후속 검사·환경·실패·한계](../../apps/web/W3_QR_VALIDATION.md)에 근거를 남겼습니다.
+앞의 QR 미완료·승인 대기는 당시 기록이며 이 절이 최신 QR 상태입니다.
