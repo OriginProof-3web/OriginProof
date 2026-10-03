@@ -4,6 +4,7 @@
 - 요청: W2 남은 일 3번 — 실제 브라우저, 새 세션, 권한·실패 및 별도 환경 재현.
 - 제품 기준: `phase/W2@6f508fe6ae5ce106999c171e8205978dd2201333`.
 - 검사 코드: `a66ac7205119369774c62466ae0ea4d3c5259aff`; 후속 변경은 보고 문서·이미지입니다.
+- 검토 초안: [PR #51](https://github.com/OriginProof-3web/OriginProof/pull/51), C 리뷰 요청; 전체 수용 조건 미충족으로 Draft입니다.
 - 상태: **연결 기능 6 passed / W2 수용 조건 6 failed / 0 skipped**. 전체 D2·W2는 미완료입니다.
 
 ## 실행 환경과 범위
@@ -68,6 +69,7 @@ ordinary failure이므로 전체 Playwright/runner exit code는 **1**입니다. 
 | PR #45 장애·재시작 opt-in 재실행 | 3 passed, 25.53초; wrapper 안 C live 3건/B local-EVM 1건 포함, 중복 합산하지 않음 |
 | `make test` | 171 passed / 6 live opt-in skipped, 기존 anyio deprecation warning 1개 |
 | 웹 component | 8 passed |
+| `make test-contracts` (별도 Compose 프로젝트) | 공식 Foundry 컨테이너 10 passed / 0 failed / 0 skipped, fuzz 512회; 이번 network 정리 |
 | `make bootstrap-check`, `make lint`, `make typecheck`, fixture Ruff | 통과; Python typecheck는 compileall |
 | production 웹 build | 두 clone에서 각각 통과; 각 실행 API origin으로 빌드 |
 | `make env-fingerprint`, diff·문서 링크 | 확인; Git 코드 SHA와 환경·컨테이너 설정·lockfile 해시 기록 |
