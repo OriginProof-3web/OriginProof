@@ -21,3 +21,9 @@ test('HTTP failure is shown without automatic request repetition',async()=>{
  const fetch=vi.fn().mockResolvedValue({ok:false,status:503,json:async()=>({detail:'CHAIN_UNAVAILABLE'})});vi.stubGlobal('fetch',fetch);
  await expect(verifyRead('/v2/proofs/prf_test/verify',{request_id:'req_test'},'/test-api/recipient')).rejects.toThrow('503');expect(fetch).toHaveBeenCalledTimes(1);
 });
+
+test('rate limit displays a wait message without retrying a request',async()=>{
+ const fetch=vi.fn().mockResolvedValue({ok:false,status:429,json:async()=>{throw new Error('local proxy HTML');}});vi.stubGlobal('fetch',fetch);
+ await expect(verifyRead('/v2/proofs/prf_test/verify',{request_id:'req_test'},'/api')).rejects.toThrow('429 · 요청이 많습니다. 잠시 후 다시 시도해 주세요.');
+ expect(fetch).toHaveBeenCalledTimes(1);
+});

@@ -1,5 +1,6 @@
 """Start only the isolated synthetic web/API/DB/EVM environment; never reset existing data."""
 import json
+import gzip
 import os
 import secrets
 import signal
@@ -59,8 +60,10 @@ def prepare():
         time.sleep(.2)
     try:rpc('eth_chainId',[])
     except OSError:
-        native_state_exists=(STATE/'anvil-state.json').exists()
-        CHILDREN.append(subprocess.Popen(['anvil','--host','127.0.0.1','--port','18546','--chain-id','31337','--block-time','1','--silent','--preserve-historical-states','--state-interval','5','--state',str(STATE/'anvil-state.json')]))
+        native_state=STATE/'anvil-current-state.json'
+        if not native_state.exists():native_state=STATE/'anvil-state.json'
+        native_state_exists=native_state.exists()
+        CHILDREN.append(subprocess.Popen(['anvil','--host','127.0.0.1','--port','18546','--chain-id','31337','--silent','--preserve-historical-states','--no-request-size-limit',*(['--load-state',str(native_state)] if native_state_exists else [])]))
         for _ in range(50):
             try:rpc('eth_chainId',[]);break
             except OSError:time.sleep(.2)
@@ -69,6 +72,9 @@ def prepare():
     latest=rpc('eth_getBlockByNumber',['latest',False])
     if int(latest['timestamp'],16)<int(time.time()):
         rpc('evm_setNextBlockTimestamp',[int(time.time())]);rpc('evm_mine',[])
+    # Automine writes; avoid unbounded empty-block historical snapshots during idle use.
+    rpc('evm_setIntervalMining',[0])
+    rpc('evm_setAutomine',[True])
     manifest=SOURCE/'packages/contracts/deployments/31337.local.json'
     saved_manifest=STATE/'deployment-manifest.json'
     if not manifest.exists() and saved_manifest.exists():
@@ -89,6 +95,10 @@ def prepare():
     if not accounts.exists():
         data=[dict(username=n,role=r,issuer_id=i,password=secrets.token_urlsafe(18)) for n,r,i in [('bank','issuer','iss_origin_mock_bank'),('office','issuer','iss_origin_mock_office'),('recipient','recipient',None),('other-recipient','recipient',None),('operator','operator',None)]]
         accounts.write_text(json.dumps(data));accounts.chmod(0o600)
+    # Keep the existing website's synthetic login credentials and account IDs.
+    website_accounts=Path.home()/'.local/share/originproof-web-test/accounts.json'
+    if website_accounts.exists():
+        accounts.write_text(website_accounts.read_text());accounts.chmod(0o600)
     seed=STATE/'seed.py'
     seed.write_text('''import asyncio,json,sys
 from sqlalchemy import select
@@ -99,7 +109,11 @@ async def main():
  db=Database(Settings().database_url)
  async with db.session_factory() as session:
   for a in json.load(open(sys.argv[1])):
-   if not await session.scalar(select(AccountRow).where(AccountRow.username==a['username'])):
+   row=await session.scalar(select(AccountRow).where(AccountRow.username==a['username']))
+   if row:
+    if row.role!=a['role'] or row.issuer_id!=a['issuer_id']:raise RuntimeError('Synthetic account identity mismatch')
+    row.password_hash=password_hash(a['password'])
+   else:
     session.add(AccountRow(account_id='acct_web_'+a['username'].replace('-','_'),username=a['username'],role=a['role'],issuer_id=a['issuer_id'],password_hash=password_hash(a['password'])))
   await session.commit()
  await db.dispose()
@@ -107,7 +121,7 @@ asyncio.run(main())
 ''')
     seed.chmod(0o600)
     run(['uv','run','python',str(seed),str(accounts)],cwd=SOURCE,env=env)
-    if not alive('http://127.0.0.1:8780/health/ready'):
+    if not alive('http://127.0.0.1:8780/health/live'):
         CHILDREN.append(subprocess.Popen(['uv','run','uvicorn','originproof_api.main:app','--host','127.0.0.1','--port','8780','--no-access-log'],cwd=SOURCE,env=env))
     if not alive('http://127.0.0.1:8781/health/live'):
         CHILDREN.append(subprocess.Popen(['uv','run','uvicorn','originproof_analyzer.main:app','--host','127.0.0.1','--port','8781','--no-access-log'],cwd=SOURCE,env=env))
@@ -119,7 +133,14 @@ asyncio.run(main())
 def checkpoint():
     try:
         target=STATE/'anvil-rpc-state.json';temporary=target.with_suffix('.tmp')
-        temporary.write_text(json.dumps(rpc('anvil_dumpState',[True])));temporary.chmod(0o600);temporary.replace(target)
+        snapshot=rpc('anvil_dumpState',[False])
+        # Persist current storage, block identities and receipts atomically. Saving every
+        # historical storage snapshot blocked RPC for >5s and grew to hundreds of MB.
+        native=gzip.decompress(bytes.fromhex(snapshot.removeprefix('0x')))
+        json.loads(native)
+        temporary.write_text(json.dumps(snapshot));temporary.chmod(0o600);temporary.replace(target)
+        target=STATE/'anvil-current-state.json';temporary=target.with_suffix('.tmp')
+        temporary.write_bytes(native);temporary.chmod(0o600);temporary.replace(target)
     except OSError:pass
 
 def shutdown(_signal,_frame):
@@ -127,13 +148,14 @@ def shutdown(_signal,_frame):
 
 if __name__=='__main__':
     signal.signal(signal.SIGTERM,shutdown)
+    prepared=False
     try:
         os.umask(0o077)
-        prepare();checkpoint()
-        while True:time.sleep(10);checkpoint()
+        prepare();prepared=True;checkpoint()
+        while True:time.sleep(60);checkpoint()
     except KeyboardInterrupt:pass
     finally:
-        checkpoint()
+        if prepared:checkpoint()
         for process in reversed(CHILDREN):
             process.terminate()
         for process in reversed(CHILDREN):

@@ -129,6 +129,6 @@ export default function UserWorkspace({lifecycleEnabled=false,apiPrefix}: {lifec
       </section>}
       {!proof && !error && <div className="uw-empty"><FileText size={29} /><h2>확인할 자료를 선택하세요</h2><p>발행기관에서 받은 ID를 입력하고 조회해 주세요.</p></div>}
     </>}
-    <footer className="uw-footnote"><RefreshCw size={13} />API의 검사 결과를 표시합니다. 현재 Proof 생명주기 검사는 NOT_RUN입니다.</footer>
+    <footer className="uw-footnote"><RefreshCw size={13} />{lifecycleEnabled?"현재 체인 상태와 API의 검사 결과를 표시합니다. ID 조회와 내용 비교는 별도입니다.":"API의 검사 결과를 표시합니다. 현재 Proof 생명주기 검사는 NOT_RUN입니다."}</footer>
   </div>;
 }

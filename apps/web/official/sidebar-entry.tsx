@@ -24,11 +24,11 @@ function WorkspaceSidebar() {
     onPick={(id) => actions.selectAction("verify", id)}
     onSignOut={() => { void logout(); }}
     footerLabel="도움말"
-    onFooterClick={() => alert("Proof ID 조회와 자료 내용 비교를 이용할 수 있습니다. 요청 사용 API는 제공 대기 중입니다.")}
+    onFooterClick={() => alert("Proof ID 조회와 자료 내용 비교를 이용할 수 있습니다. 지정 수신자는 1회 사용을 요청하고 미확인 거래 상태를 조회할 수 있습니다.")}
     recents={[]}
   />;
 }
 
 createRoot(document.getElementById("sidebar-root")!).render(<WorkspaceSidebar />);
 
-createRoot(document.getElementById("user-workspace-root")!).render(<UserWorkspace />);
+createRoot(document.getElementById("user-workspace-root")!).render(<UserWorkspace lifecycleEnabled apiPrefix="/api" />);

@@ -10,7 +10,7 @@ export async function api(path, body, prefix = window.originproofTestApi ?? '/ap
   const response = await fetch(prefix + path, {method: body === undefined ? 'GET' : 'POST', credentials:'same-origin', headers, ...(body === undefined ? {} : {body: JSON.stringify(body)})});
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const detail = data.detail ?? data.error ?? '서버 연결 실패';
+    const detail = data.detail ?? data.error ?? (response.status===429?'요청이 많습니다. 잠시 후 다시 시도해 주세요.':'서버 연결 실패');
     const error = new Error(`${response.status} · ${Array.isArray(detail) ? '입력값을 확인해 주세요.' : detail}`);
     Object.assign(error, {status:response.status, fieldErrors:validationErrors(detail)});
     throw error;

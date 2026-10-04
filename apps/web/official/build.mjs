@@ -9,5 +9,5 @@ for (const [entry, name] of [['sidebar-entry.tsx','sidebar'], ['business-entry.t
  execFileSync(root+'node_modules/.bin/tailwindcss',['-i',root+name+'.css','-o',out+name+'.bundle.css','--minify'],{stdio:'inherit',cwd:root});
 }
 for (const name of readdirSync(root)) {
- if (/\.(html|css|js)$/.test(name) && !name.endsWith('.test.js')) copyFileSync(root+name,out+name);
+ if ((/\.(html|css|js)$/.test(name) || name==='github-update.json') && !name.endsWith('.test.js')) copyFileSync(root+name,out+name);
 }

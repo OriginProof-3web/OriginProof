@@ -1,0 +1,433 @@
+{
+  "recorded_at": "2026-10-04T08:28:29.061292+00:00",
+  "web_source_sha": "576832905cb50e8e29873a89d891f48706ea8f2d",
+  "web_worktree_modified": true,
+  "web_fingerprint": "4a8533348f094c64b16394bc14ac9ece084cd3c201f1f71a8fa2975296b3ef3b",
+  "api_sha": "3ef1fd40943914c1450e8bc05047119ab7eabbc0",
+  "environment": "macOS; localhost:8768; API:8780; PostgreSQL:55434; Anvil:18546 chain 31337; Analyzer:8781 mock; synthetic bank/office",
+  "admin": {
+    "finished_at": "2026-10-04T08:05:48.721133+00:00",
+    "cases": [
+      {
+        "name": "bank 기관 승인·실제 Registry 활성화",
+        "group": "8768 관리자 · 실제 PostgreSQL/Anvil",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "name": "bank 발행·등록·현재 검증·DB/체인 일치",
+        "group": "8768 관리자 · 실제 PostgreSQL/Anvil",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "name": "bank 정상·변조 내용 비교",
+        "group": "8768 관리자 · 실제 PostgreSQL/Anvil",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "name": "bank 타 기관 폐기 거부",
+        "group": "8768 관리자 · 실제 PostgreSQL/Anvil",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "name": "지정 수신자·조회 비소모·1회 사용·중복 사용 거부",
+        "group": "8768 관리자 · 실제 PostgreSQL/Anvil",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "name": "bank Proof 폐기·Operation 조회",
+        "group": "8768 관리자 · 실제 PostgreSQL/Anvil",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "name": "bank 정상 키 교체·이전 Proof 유지·유출 키 폐기 반영",
+        "group": "8768 관리자 · 실제 PostgreSQL/Anvil",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "name": "bank 기관 중지·재활성화",
+        "group": "8768 관리자 · 실제 PostgreSQL/Anvil",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "name": "office 기관 승인·실제 Registry 활성화",
+        "group": "8768 관리자 · 실제 PostgreSQL/Anvil",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "name": "office 발행·등록·현재 검증·DB/체인 일치",
+        "group": "8768 관리자 · 실제 PostgreSQL/Anvil",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "name": "office 정상·변조 내용 비교",
+        "group": "8768 관리자 · 실제 PostgreSQL/Anvil",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "name": "office 타 기관 폐기 거부",
+        "group": "8768 관리자 · 실제 PostgreSQL/Anvil",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "name": "문서 consume 거부",
+        "group": "8768 관리자 · 실제 PostgreSQL/Anvil",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "name": "office Proof 폐기·Operation 조회",
+        "group": "8768 관리자 · 실제 PostgreSQL/Anvil",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "name": "office 정상 키 교체·이전 Proof 유지·유출 키 폐기 반영",
+        "group": "8768 관리자 · 실제 PostgreSQL/Anvil",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "name": "office 기관 중지·재활성화",
+        "group": "8768 관리자 · 실제 PostgreSQL/Anvil",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "name": "거래 receipt 미확인·같은 tx 복구·중복 재전송 방지",
+        "group": "8768 관리자 · 실제 PostgreSQL/Anvil",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "name": "체인 동기화 읽기·최종 권위 분리",
+        "group": "8768 관리자 · 실제 PostgreSQL/Anvil",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "name": "기존 AI 후보 추출 mock·금액 추출",
+        "group": "8768 관리자 · 실제 PostgreSQL/Anvil",
+        "status": "passed",
+        "detail": ""
+      }
+    ]
+  },
+  "web": {
+    "finished_at": "2026-10-04T08:28:29.061292+00:00",
+    "cases": [
+      {
+        "group": "현재 GitHub 웹 소스",
+        "name": "python3 test/test_admin_runtime.py -v",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "현재 GitHub 웹 소스",
+        "name": "pnpm lint",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "현재 GitHub 웹 소스",
+        "name": "pnpm typecheck",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "현재 GitHub 웹 소스",
+        "name": "pnpm test",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "현재 GitHub 웹 소스",
+        "name": "pnpm build",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "현재 GitHub 웹 소스",
+        "name": "Playwright 최종 사례 결과 (전체 실행 + 2개 재검사)",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "app/api-client.test.tsx",
+        "name": "admin verification retries only an unavailable moving snapshot",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "app/api-client.test.tsx",
+        "name": "persistent snapshot failure remains inconclusive after four reads",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "app/api-client.test.tsx",
+        "name": "tampered comparison is never retried into success",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "app/api-client.test.tsx",
+        "name": "HTTP failure is shown without automatic request repetition",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "app/api-client.test.tsx",
+        "name": "rate limit displays a wait message without retrying a request",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "app/official.test.tsx",
+        "name": "required fields, positive integer, currency and future expiry are explained",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "app/official.test.tsx",
+        "name": "FastAPI validation loc maps to a field, not an object string",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "app/official.test.tsx",
+        "name": "public verification link contains only Proof ID",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "app/official.test.tsx",
+        "name": "empty issue form shows field errors without sending a mutation",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "app/official.test.tsx",
+        "name": "duplicate click sends once; a retry keeps request ID and successful ID",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "app/official.test.tsx",
+        "name": "422 server error is shown beside amount field",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "app/official.test.tsx",
+        "name": "public lookup reports scope and NOT_RUN without claiming current use",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "app/proof-qr.test.tsx",
+        "name": "QR encodes only public ID link and offers PNG download",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "app/proof-qr.test.tsx",
+        "name": "generation failure exposes error and no broken image",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "app/proof-qr.test.tsx",
+        "name": "late response for an old Proof cannot replace the current QR",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "app/finals/page.test.tsx",
+        "name": "issuer login loads the server role and submits only the institution name",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "app/finals/page.test.tsx",
+        "name": "operator decision keeps chain activation separate from database approval",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "app/finals/page.test.tsx",
+        "name": "an expired session returns to login instead of reporting an application result",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "app/finals/page.test.tsx",
+        "name": "logout sends the in-memory CSRF token and returns to login",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "app/finals/page.test.tsx",
+        "name": "operator can inspect a chain operation and its audit trail without triggering a write",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "app/mvp/page.test.tsx",
+        "name": "normal preset submits the generated API contract and displays the response",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "app/finals/keys/page.test.tsx",
+        "name": "issuer sees contract-pending key state and no private-key input",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "app/finals/keys/page.test.tsx",
+        "name": "operator cannot use issuer key management controls",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "admin-console.spec.ts",
+        "name": "8768 administrator combines real issuer, recipient and operator tests",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "admin-console.spec.ts",
+        "name": "administrator shows latest GitHub progress without claiming team QA as local passes",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "demo.spec.ts",
+        "name": "amount-tampered preset calls the API and shows its deterministic result",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "demo.spec.ts",
+        "name": "issuer can submit a synthetic application through the W1 browser flow",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "demo.spec.ts",
+        "name": "operator review remains pending on chain and issuer can re-query the decision",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "demo.spec.ts",
+        "name": "operator sees uncertain chain work and audit history without a false success",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "demo.spec.ts",
+        "name": "W2 key screen checks the date range but never submits without an API contract",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "official-live.spec.ts",
+        "name": "actual PAYMENT_REQUEST: issue, public QR, compare, tamper and lifecycle",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "official-live.spec.ts",
+        "name": "actual OFFICIAL_DOCUMENT: issue, public QR, compare, tamper and lifecycle",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "official-live.spec.ts",
+        "name": "actual business key rotation preserves previous key and records confirmed operation",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "official.spec.ts",
+        "name": "official landing and direct navigation preserve supplied design",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "official.spec.ts",
+        "name": "mobile quick navigation opens by keyboard and Escape restores focus",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "official.spec.ts",
+        "name": "anonymous Proof lookup is separated from restricted comparison",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "official.spec.ts",
+        "name": "sidebar collapse keeps dock centered and mobile viewport scrollable",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "proof-qr.spec.ts",
+        "name": "issued Proof QR generates a public-only PNG and opens anonymous lookup",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "런타임·운영자 권한 보호",
+        "name": "test_failed_prepare_keeps_checkpoint",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "런타임·운영자 권한 보호",
+        "name": "test_restore_enables_automine_after_interval_configuration",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "런타임·운영자 권한 보호",
+        "name": "test_rate_limit_does_not_look_like_permission_denial",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "런타임·운영자 권한 보호",
+        "name": "test_recipient_cannot_use_operator_proxy",
+        "status": "passed",
+        "detail": ""
+      },
+      {
+        "group": "런타임·운영자 권한 보호",
+        "name": "test_unavailable_api_never_grants_operator_access",
+        "status": "passed",
+        "detail": ""
+      }
+    ]
+  },
+  "browser_execution": "Full run: 13 passed / 2 failed; selector fixes followed by targeted rerun: 2 passed. Final per-case aggregation: 15 passed, not a single 15-pass run. Five cases use actual API, remaining cases use mock/design/MVP fixtures.",
+  "limitations": [
+    "Author-external review and independent D reproduction pending",
+    "C PR #38 API source unmerged; not phase/W4 final acceptance",
+    "No paid AI, production deployment, public signup or new two-type AI extraction acceptance",
+    "Compact current-state checkpoint does not guarantee historical storage replay; team G07 remains unresolved"
+  ]
+}

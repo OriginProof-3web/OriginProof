@@ -27,9 +27,9 @@ function BusinessSidebar() {
     onNavigate={(key) => actions.selectAction(key)}
     onPick={(id) => actions.selectAction("proofs", id)}
     onSignOut={() => { void logout(); }} footerLabel="도움말"
-    onFooterClick={() => alert("자기 기관 상태, 공개키 관리, Proof 발행·목록과 작업 이력을 확인할 수 있습니다. Proof 폐기·사용 API는 제공 대기 중입니다.")}
+    onFooterClick={() => alert("자기 기관 상태, 공개키 관리, Proof 발행·목록과 작업 이력을 확인할 수 있습니다. Proof 폐기·허가된 요청 사용과 기존 거래 상태 복구를 실행할 수 있습니다.")}
     recents={[]}
   />;
 }
 createRoot(document.getElementById("sidebar-root")!).render(<BusinessSidebar />);
-createRoot(document.getElementById("business-workspace-root")!).render(<BusinessWorkspace />);
+createRoot(document.getElementById("business-workspace-root")!).render(<BusinessWorkspace lifecycleEnabled apiPrefix="/api" />);

@@ -15,7 +15,7 @@ def call(prefix,path,body=None,expected=200):
  headers={'Content-Type':'application/json','Origin':BASE}
  if body is not None and 'auth/login' not in path and not path.endswith('/verify') and prefix!='/admin-analyzer':
   headers['X-CSRF-Token']=call(prefix,'/v1/auth/me')['csrf_token']
- time.sleep(.9)
+ time.sleep(1.2)
  req=urllib.request.Request(BASE+prefix+path,None if body is None else json.dumps(body).encode(),headers)
  try:
   with client.open(req,timeout=60) as r:code=r.status;data=json.load(r)
@@ -46,7 +46,9 @@ try:
   prefix='/test-api/'+role
   app=call(prefix,'/v1/issuer-applications/mine')
   if not app:app=call(prefix,'/v1/issuer-applications',{'issuer_name':label},201)
-  if app['status']=='SUSPENDED':call('/test-api/operator',f"/v1/operator/issuers/{app['issuer_id']}/reactivate",mutation(reason='Synthetic interrupted test recovery'))
+  if app['status']=='SUSPENDED':
+   restored=call('/test-api/operator',f"/v1/operator/issuers/{app['issuer_id']}/reactivate",mutation(reason='Synthetic interrupted test recovery'))
+   assert restored['status']=='CONFIRMED',restored
   if app['status']=='PENDING_REVIEW':call('/test-api/operator',f"/v1/operator/issuer-applications/{app['application_id']}/decision",dict(decision='APPROVE',reason='Synthetic administrator QA'))
   if app['status'] in ['PENDING_REVIEW','APPROVED_PENDING_CHAIN']:
    activated=call('/test-api/operator',f"/v1/operator/issuer-applications/{app['application_id']}/activate",mutation(reason='Synthetic administrator QA'))
@@ -106,8 +108,9 @@ try:
   def suspension():
    issuer='iss_origin_mock_'+role
    op=call('/test-api/operator',f'/v1/operator/issuers/{issuer}/suspend',mutation(reason='Synthetic suspension'));assert op['status']=='CONFIRMED'
-   assert call(prefix,'/v1/issuer/status')['status']=='SUSPENDED'
-   op=call('/test-api/operator',f'/v1/operator/issuers/{issuer}/reactivate',mutation(reason='Synthetic reactivate'));assert op['status']=='CONFIRMED'
+   try:assert call(prefix,'/v1/issuer/status')['status']=='SUSPENDED'
+   finally:
+    op=call('/test-api/operator',f'/v1/operator/issuers/{issuer}/reactivate',mutation(reason='Synthetic reactivate'));assert op['status']=='CONFIRMED'
    assert call(prefix,'/v1/issuer/status')['status']=='ACTIVE'
   record(role+' 기관 중지·재활성화',suspension)
  def recovery():
@@ -128,7 +131,7 @@ try:
    recovered=call(prefix,f"/v1/operations/{op['operation_id']}/recover",{})
    assert recovered['status']=='CONFIRMED' and recovered['tx_hash']==op['tx_hash'],recovered
    assert verify(proof['proof_id'])['lifecycle_status']=='PROOF_REVOKED'
-  finally:rpc('evm_setAutomine',[True]);rpc('evm_setIntervalMining',[1])
+  finally:rpc('evm_setIntervalMining',[0]);rpc('evm_setAutomine',[True])
  record('거래 receipt 미확인·같은 tx 복구·중복 재전송 방지',recovery)
  def sync():
   result=call('/test-api/operator','/v1/chain-sync');assert result['authority']=='HISTORICAL_EVENTS_ONLY' and result['status']!='DISABLED',result
@@ -138,6 +141,10 @@ try:
   candidate=call('/admin-analyzer','/v1/analyze/card-payment-notice',{'text':'issuer: Origin Mock Bank\ncard: ****1234\namount: 85,000원\nmerchant: Synthetic Shop\napproved_at: 2026-10-03T09:00:00+09:00\ntransaction_id: SYNTHETIC-001'})
   assert candidate['amount_minor']==85000,candidate
  record('기존 AI 후보 추출 mock·금액 추출',ai)
+except Exception as error:
+ if not any(case['status']=='failure' for case in cases):
+  cases.append({'name':'관리자 검사 준비·실행 중단','group':'8768 관리자 · 실제 PostgreSQL/Anvil','status':'failure','detail':str(error)})
+ raise
 finally:
  report={'sha':'3ef1fd40943914c1450e8bc05047119ab7eabbc0','title':'최신 관리자 기능 · 실제 API/체인 · mock AI','status':'passed' if cases and all(c['status']=='passed' for c in cases) else 'failed','cases':cases,'finished_at':datetime.now(timezone.utc).isoformat()}
  Path('/tmp/originproof-admin-lifecycle.json').write_text(json.dumps(report,ensure_ascii=False,indent=2))

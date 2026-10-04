@@ -23,6 +23,7 @@ SUITES = {
 }
 SUITES['38']={'sha':'3ef1fd40943914c1450e8bc05047119ab7eabbc0','title':'C W6 최신 · API/Adapter/Analyzer 회귀','path':['apps/api/tests','services/indexer/tests','services/analyzer/tests']}
 SUITES['admin']={'sha':'3ef1fd40943914c1450e8bc05047119ab7eabbc0','title':'최신 관리자 기능 · 실제 API/체인 · mock AI','path':'test/admin-lifecycle-check.py'}
+SUITES['49']={'sha':'f2e9774003badb692fb4de6b89de640a155c1fa6','title':'D W4 최신 · 정책 QA (실제 DB/체인 opt-in·D3 브라우저 제외)','path':'fixtures/finals/test_w4_lifecycle_qa.py'}
 REPORT = ROOT / 'collaboration-results.json'
 LOCK = threading.Lock()
 BUSY = set()
@@ -128,13 +129,16 @@ def run_web_suite(result, logs):
     result['worktree_modified']=bool(subprocess.check_output(['git','status','--porcelain','--','apps/web'],cwd=WEB_SOURCE.parent.parent,text=True).strip())
     (ROOT/'w3-junit.xml').unlink(missing_ok=True)
     (ROOT/'w3-components.xml').unlink(missing_ok=True)
-    commands=[['pnpm','lint'],['pnpm','typecheck'],['pnpm','test','--reporter=default','--reporter=junit',f'--outputFile={ROOT / "w3-components.xml"}'],['pnpm','exec','playwright','test','--reporter=line,junit']]
+    commands=[['python3','test/test_admin_runtime.py','-v'],['pnpm','lint'],['pnpm','typecheck'],['pnpm','test','--reporter=default','--reporter=junit',f'--outputFile={ROOT / "w3-components.xml"}'],['pnpm','exec','playwright','test','--workers=1','--reporter=line,junit']]
     for command in commands:
-        process=subprocess.run(command,cwd=WEB_SOURCE,env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=300)
+        process=subprocess.run(command,cwd=WEB_SOURCE,env=env,text=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,timeout=600)
         label=' '.join(command)
         # Live tests disable trace/screenshots; redact ANSI for readable local reports.
         logs.append(re.sub(r'\x1b\[[0-9;]*m','',process.stdout))
         result['cases'].append({'group':'현재 GitHub 웹 소스','name':label,'status':'passed' if process.returncode==0 else 'failure','detail':''})
+        if command[0]=='python3':
+            for name,group in re.findall(r'^(test_\w+) \(([^)]+)\) \.\.\. ok$',process.stdout,re.M):
+                result['cases'].append({'group':group,'name':name,'status':'passed','detail':''})
         if process.returncode:break
     for report in (ROOT/'w3-components.xml',ROOT/'w3-junit.xml'):
       if report.exists():
@@ -165,7 +169,7 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_error(413); return
         body = self.rfile.read(size) if size else None
         headers = {k: v for k, v in self.headers.items() if k.lower() in ('cookie','content-type','x-csrf-token','x-request-id')}
-        connection = http.client.HTTPConnection('127.0.0.1', 8770, timeout=45)
+        connection = http.client.HTTPConnection('127.0.0.1', 8780, timeout=45)
         try:
             connection.request(self.command, self.path[4:], body, headers)
             upstream = connection.getresponse()
@@ -182,18 +186,22 @@ class Handler(SimpleHTTPRequestHandler):
             connection.close()
 
     def local_operator(self):
+        self.operator_error=403
         if self.headers.get('Host') != f'127.0.0.1:{PORT}':return False
-        connection=http.client.HTTPConnection('127.0.0.1',8770,timeout=10)
+        connection=http.client.HTTPConnection('127.0.0.1',8780,timeout=10)
         try:
             connection.request('GET','/v1/auth/me',headers={'Cookie':self.headers.get('Cookie','')})
             response=connection.getresponse()
+            if response.status in (429,503):self.operator_error=response.status
             return response.status==200 and json.loads(response.read()).get('role')=='operator'
-        except (OSError,ValueError,http.client.HTTPException):return False
+        except (OSError,ValueError,http.client.HTTPException):
+            self.operator_error=503
+            return False
         finally:connection.close()
 
     def test_proxy(self):
         from http.cookies import SimpleCookie
-        if not self.local_operator():self.send_error(403);return
+        if not self.local_operator():self.send_error(self.operator_error);return
         if self.command=='POST' and self.headers.get('Origin')!=f'http://127.0.0.1:{PORT}':self.send_error(403);return
         parts=self.path.split('/',3)
         role=parts[2] if len(parts)>3 else ''
@@ -231,7 +239,7 @@ class Handler(SimpleHTTPRequestHandler):
         finally:connection.close()
 
     def analyzer_proxy(self):
-        if not self.local_operator():self.send_error(403);return
+        if not self.local_operator():self.send_error(self.operator_error);return
         if self.command=='POST' and self.headers.get('Origin')!=f'http://127.0.0.1:{PORT}':self.send_error(403);return
         path=self.path.removeprefix('/admin-analyzer')
         if (self.command,path) not in [('GET','/v1/capabilities'),('POST','/v1/analyze/card-payment-notice')]:self.send_error(404);return
@@ -262,7 +270,7 @@ class Handler(SimpleHTTPRequestHandler):
     def do_GET(self):
         if self.path=='/':
             self.send_response(302);self.send_header('Location','/index.html');self.end_headers();return
-        if self.path.split('?')[0] in ('/collaboration-results.json','/collaboration-results.js','/w3-junit.xml','/w3-components.xml') and not self.local_operator():self.send_error(403);return
+        if self.path.split('?')[0] in ('/collaboration-results.json','/collaboration-results.js','/w3-junit.xml','/w3-components.xml') and not self.local_operator():self.send_error(self.operator_error);return
         if self.path.startswith("/admin-analyzer/"):self.analyzer_proxy();return
         if self.path.startswith("/test-api/"):self.test_proxy();return
         if self.path.startswith('/api/v1/') or self.path.startswith('/api/v2/') or self.path.startswith('/api/health/'):
@@ -283,10 +291,10 @@ class Handler(SimpleHTTPRequestHandler):
         if self.path != f'/run-pr/{key}' or key not in SUITES:
             self.send_error(404)
             return
-        if not self.local_operator():self.send_error(403);return
+        if not self.local_operator():self.send_error(self.operator_error);return
         with LOCK:
-            if key in BUSY:
-                self.send_error(409, 'Already running')
+            if key in BUSY or (key in ('admin','w3') and BUSY.intersection(('admin','w3'))):
+                self.send_error(409, 'Shared synthetic environment test already running')
                 return
             BUSY.add(key)
         threading.Thread(target=run_suite, args=(key,), daemon=True).start()
