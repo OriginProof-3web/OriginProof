@@ -179,7 +179,7 @@ class JsonRpcBlockchainWriter:
             or deployed.get("hash", "").lower() != self._manifest.deployment_block_hash
         ):
             raise ValueError("deployment identity mismatch")
-        for name in ("IssuerRegistry", "IssuerKeyRegistry"):
+        for name in self._manifest.contracts:
             code = await self._rpc(
                 client,
                 "eth_getCode",
@@ -466,10 +466,7 @@ class JsonRpcBlockchainWriter:
             or prepared.deployment_id != self._manifest.deployment_id
             or prepared.chain_id != self._manifest.chain_id
             or prepared.contract
-            not in {
-                self._manifest.contract("IssuerRegistry").address.lower(),
-                self._manifest.contract("IssuerKeyRegistry").address.lower(),
-            }
+            not in {entry.address.lower() for entry in self._manifest.contracts.values()}
         ):
             raise ValueError("prepared transaction does not match deployment")
 
@@ -723,3 +720,104 @@ class JsonRpcBlockchainWriter:
         if submitted.state != ChainOperationState.SUBMITTED:
             return submitted
         return await self.confirm_prepared(prepared, submitted.tx_hash)
+
+    def _proof_contract(self):
+        return self._manifest.contract("ProofStatusRegistry").address
+
+    async def prepare_register_proof(
+        self,
+        sender,
+        proof_id,
+        issuer_id,
+        key_id,
+        signing_digest,
+        subject_binding_hash,
+        issued_at,
+        expires_at,
+        single_use,
+        *,
+        nonce=None,
+    ):
+        self._proof_contract()
+        if (
+            type(issued_at) is not int
+            or type(expires_at) is not int
+            or not 0 <= issued_at < expires_at < 2**64
+            or type(single_use) is not bool
+        ):
+            raise ValueError("invalid proof period or single-use flag")
+        expected = (
+            _identifier(issuer_id, "iss_"),
+            _identifier(key_id, "key_"),
+            _bytes32(signing_digest),
+            _bytes32(subject_binding_hash),
+            _word(issued_at),
+            _word(expires_at),
+            _word(int(single_use)),
+        )
+        data = _call_data(
+            "registerProof(bytes32,bytes32,bytes32,bytes32,bytes32,uint64,uint64,bool)",
+            _identifier(proof_id, "prf_"),
+            *expected,
+        )
+
+        async def verify(client, block):
+            stored = await self._eth_call(
+                client,
+                self._proof_contract(),
+                _call_data("getProof(bytes32)", _identifier(proof_id, "prf_")),
+                block,
+                9,
+            )
+            return tuple(stored[:7]) == expected
+
+        return await self._prepare(
+            sender, "ProofStatusRegistry", data, "register_proof", verify, nonce
+        )
+
+    async def prepare_revoke_proof(self, sender, proof_id, *, nonce=None):
+        self._proof_contract()
+        identifier = _identifier(proof_id, "prf_")
+        data = _call_data("revokeProof(bytes32)", identifier)
+
+        async def verify(client, block):
+            (status,) = await self._eth_call(
+                client,
+                self._proof_contract(),
+                _call_data("proofStatus(bytes32)", identifier),
+                block,
+                1,
+            )
+            return uint(status, 8) == 2
+
+        return await self._prepare(
+            sender, "ProofStatusRegistry", data, "revoke_proof", verify, nonce
+        )
+
+    async def prepare_consume_proof(
+        self, sender, proof_id, actor_kind, actor_binding, *, nonce=None
+    ):
+        self._proof_contract()
+        if type(actor_kind) is not int or actor_kind not in (0, 1):
+            raise ValueError("invalid actor kind")
+        identifier = _identifier(proof_id, "prf_")
+        data = _call_data(
+            "consumeProof(bytes32,uint8,bytes32)",
+            identifier,
+            _word(actor_kind),
+            _bytes32(actor_binding),
+        )
+
+        async def verify(client, block):
+            stored = await self._eth_call(
+                client,
+                self._proof_contract(),
+                _call_data("getProof(bytes32)", identifier),
+                block,
+                9,
+            )
+            return uint(stored[8], 64) > 0
+
+        return await self._prepare(
+            sender, "ProofStatusRegistry", data, "consume_proof", verify, nonce
+        )

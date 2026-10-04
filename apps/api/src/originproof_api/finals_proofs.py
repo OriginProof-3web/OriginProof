@@ -1,4 +1,4 @@
-"""W3 issuance and read-only verification; Proof lifecycle/consume is a W4 dependency."""
+"""Authenticated issuance and chain-backed lifecycle; reads never consume."""
 
 import secrets
 from datetime import UTC, datetime
@@ -6,6 +6,7 @@ from typing import Annotated, Literal, Self
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from infrastructure.blockchain.reader import digest
 from originproof_core import DependencyUnavailableError, payload_hash
 from originproof_core.finals import (
     CheckState,
@@ -21,23 +22,24 @@ from originproof_core.finals import (
     target_binding,
 )
 from originproof_core.finals_verification import evaluate_finals
-from originproof_core.models import SignatureScheme, VerificationStatus
+from originproof_core.models import LifecycleStatus, SignatureScheme, VerificationStatus
 from originproof_core.signatures import signing_digest
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from . import chain_management
-from .accounts import COOKIE, current_session
+from .accounts import COOKIE, current_session, require_csrf
 from .database import (
     AccountRow,
     AuditEventRow,
     FinalsProofRow,
     IssuerKeyRow,
+    OperationRow,
     RecipientTokenRow,
     SessionRow,
 )
-from .operations import input_fingerprint
+from .operations import OperationStatus, OperationView, input_fingerprint, reserve_operation
 from .signers import verify_signer
 
 router = APIRouter(prefix="/v2", tags=["finals-proofs"])
@@ -98,6 +100,8 @@ class ProofView(BaseModel):
     schema_version: Literal["2.0.0"]
     issued_at: datetime
     expires_at: datetime
+    registration_status: OperationStatus | Literal["NOT_REGISTERED"] = "NOT_REGISTERED"
+    registration_operation_id: str | None = None
     verification_path: str
 
 
@@ -140,7 +144,14 @@ class VerifyInput(BaseModel):
     candidate: ComparisonInput | None = None
 
 
-def view(row):
+async def view(row, request):
+    async with request.app.state.database.session_factory() as db:
+        operation = await db.scalar(
+            select(OperationRow)
+            .where(OperationRow.action == "register_proof", OperationRow.target_id == row.proof_id)
+            .order_by(OperationRow.created_at.desc())
+            .limit(1)
+        )
     envelope = FinalsSignedProofEnvelope.model_validate(row.envelope)
     return ProofView(
         **envelope.model_dump(
@@ -154,6 +165,8 @@ def view(row):
                 "expires_at",
             }
         ),
+        registration_status=operation.status if operation else "NOT_REGISTERED",
+        registration_operation_id=operation.operation_id if operation else None,
         verification_path=f"/v2/proofs/{row.proof_id}",
     )
 
@@ -165,7 +178,10 @@ async def authorized_content(request, row, identity):
     if account.role == "recipient" and account.account_id == row.recipient_account_id:
         async with request.app.state.database.session_factory() as db:
             token = await db.get(RecipientTokenRow, account.account_id)
-        envelope = FinalsSignedProofEnvelope.model_validate(row.envelope)
+        try:
+            envelope = checked_envelope(row)
+        except (ValidationError, ValueError):
+            raise HTTPException(404, "PROOF_NOT_FOUND") from None
         if (
             token
             and recipient_binding(row.proof_id, token.token, row.recipient_salt, envelope.chain_id)
@@ -202,7 +218,8 @@ async def issue(body: IssueInput, request: Request, identity: Identity):
             if existing:
                 if existing.input_hash != fingerprint or existing.issuer_id != account.issuer_id:
                     raise HTTPException(409, "REQUEST_ID_CONFLICT")
-                return view(existing)
+                await register_saved(manager, existing, account, body.request_id)
+                return await view(existing, request)
             settings = manager.settings
             allowed = {
                 settings.finals_payment_issuer_id: "PAYMENT_REQUEST",
@@ -217,7 +234,6 @@ async def issue(body: IssueInput, request: Request, identity: Identity):
             recipient = await db.get(AccountRow, body.recipient_id)
             if recipient is None or recipient.role != "recipient":
                 raise HTTPException(422, "INVALID_RECIPIENT")
-            await manager.active_issuer(account.issuer_id)
             selected = list(
                 await db.scalars(
                     select(IssuerKeyRow).where(
@@ -229,26 +245,24 @@ async def issue(body: IssueInput, request: Request, identity: Identity):
             if len(selected) != 1:
                 raise HTTPException(409, "ISSUING_KEY_UNAVAILABLE")
             key = selected[0]
-            try:
-                public = await manager.key_view(key)
-            except DependencyUnavailableError:
-                raise HTTPException(503, "CHAIN_UNAVAILABLE") from None
-            if not public.selected or public.status != "ACTIVE":
+            if key.status != "ACTIVE" or key.deployment_id != manager.manifest.deployment_id:
                 raise HTTPException(409, "ISSUING_KEY_UNAVAILABLE")
-            # Check chain periods as well as the durable local key record.
-            try:
-                chain_key = await manager.reader(account.issuer_id).get_key(key.key_id)
-            except DependencyUnavailableError:
-                raise HTTPException(503, "CHAIN_UNAVAILABLE") from None
             now = datetime.now(UTC).replace(microsecond=0)
             if body.expires_at <= now:
                 raise HTTPException(422, "EXPIRY_IN_PAST")
+            try:
+                snapshot = await manager.reader(account.issuer_id).get_issuer_key_snapshot(
+                    account.issuer_id, key.key_id, now
+                )
+            except DependencyUnavailableError:
+                raise HTTPException(503, "CHAIN_UNAVAILABLE") from None
+            if snapshot.issuer is None or snapshot.issuer.status != "ACTIVE":
+                raise HTTPException(409, "ISSUER_NOT_ACTIVE")
+            chain_key = snapshot.key
             if (
-                chain_key is None
-                or chain_key.status != "ACTIVE"
-                or chain_key.issuer_id != account.issuer_id
+                not snapshot.key_valid_at
+                or chain_key is None
                 or chain_key.signer.lower() != key.signer.lower()
-                or not chain_key.valid_from <= now < chain_key.valid_until
             ):
                 raise HTTPException(409, "ISSUING_KEY_UNAVAILABLE")
             try:
@@ -327,7 +341,8 @@ async def issue(body: IssueInput, request: Request, identity: Identity):
             except IntegrityError:
                 await db.rollback()
                 raise HTTPException(409, "REQUEST_ID_CONFLICT") from None
-            return view(row)
+        await register_saved(manager, row, account, body.request_id)
+        return await view(row, request)
 
 
 @router.get("/issuer/proofs", response_model=list[ProofView])
@@ -342,7 +357,7 @@ async def issuer_proofs(request: Request, identity: Identity):
             .order_by(FinalsProofRow.created_at.desc())
             .limit(100)
         )
-        return [view(row) for row in rows]
+        return [await view(row, request) for row in rows]
 
 
 async def proof_row(request, proof_id):
@@ -355,7 +370,7 @@ async def proof_row(request, proof_id):
 
 @router.get("/proofs/{proof_id}", response_model=ProofView)
 async def public_proof(proof_id: str, request: Request):
-    return view(await proof_row(request, proof_id))
+    return await view(await proof_row(request, proof_id), request)
 
 
 @router.get("/proofs/{proof_id}/content", response_model=ProofContent)
@@ -415,17 +430,16 @@ async def verify(
             raise HTTPException(401, "AUTH_REQUIRED")
         await authorized_content(request, row, identity)
     try:
-        envelope = FinalsSignedProofEnvelope.model_validate(row.envelope)
-    except ValidationError:
+        checked_envelope(row)
+    except (ValidationError, ValueError):
         return unavailable_result(body.request_id, FinalsReasonCode.SCHEMA_UNSUPPORTED)
     candidate = None
     if body.candidate is not None:
         candidate = body.candidate.model_dump(exclude_none=True)
         if "target_ref" in candidate:
             candidate["target_hash"] = target_binding(candidate.pop("target_ref"))
-    # Contract/hash failures precede RPC calls, as specified in ADR 0001.
     preliminary = evaluate_finals(
-        envelope,
+        checked_envelope(row),
         request_id=body.request_id,
         chain_id=request.app.state.settings.blockchain_chain_id,
         issuer=None,
@@ -438,22 +452,400 @@ async def verify(
         return preliminary
     try:
         manager = chain_management.service(request)
+    except HTTPException:
+        return unavailable_result(body.request_id, FinalsReasonCode.DEPENDENCY_UNAVAILABLE)
+    return await evaluate_saved(manager, row, body.request_id, candidate)
+
+
+def checked_envelope(row):
+    envelope = FinalsSignedProofEnvelope.model_validate(row.envelope)
+    if (envelope.proof_id, envelope.issuer_id, envelope.key_id) != (
+        row.proof_id,
+        row.issuer_id,
+        row.key_id,
+    ):
+        raise ValueError("stored proof identity mismatch")
+    return envelope
+
+
+async def evaluate_saved(manager, row, request_id, candidate=None, *, lifecycle=True):
+    try:
+        envelope = checked_envelope(row)
+    except (ValidationError, ValueError):
+        return unavailable_result(request_id, FinalsReasonCode.SCHEMA_UNSUPPORTED)
+    preliminary = evaluate_finals(
+        envelope,
+        request_id=request_id,
+        chain_id=manager.manifest.chain_id,
+        issuer=None,
+        key=None,
+        candidate=candidate,
+    )
+    if preliminary.checks["contract"] == CheckState.FAIL or (
+        preliminary.checks["payload_hash"] == CheckState.FAIL
+    ):
+        return preliminary
+    try:
         if row.deployment_id != manager.manifest.deployment_id:
             raise DependencyUnavailableError("deployment changed")
         reader = manager.reader(row.issuer_id)
-        issuer = await reader.get_issuer(row.issuer_id)
-        key = await reader.get_key(row.key_id) if issuer is not None else None
-    except (DependencyUnavailableError, HTTPException):
-        result = unavailable_result(body.request_id, FinalsReasonCode.DEPENDENCY_UNAVAILABLE)
+        snapshot = await reader.get_issuer_key_snapshot(
+            row.issuer_id, row.key_id, envelope.issued_at
+        )
+    except DependencyUnavailableError:
+        result = unavailable_result(request_id, FinalsReasonCode.DEPENDENCY_UNAVAILABLE)
         result.checks.update(
             contract=CheckState.PASS, payload_hash=CheckState.PASS, issuer=CheckState.UNAVAILABLE
         )
         return result
+    now = datetime.now(UTC)
+    result = evaluate_finals(
+        envelope,
+        request_id=request_id,
+        chain_id=manager.manifest.chain_id,
+        issuer=snapshot.issuer,
+        key=snapshot.key,
+        candidate=candidate,
+        now=now,
+    )
+    if result.checks["signature"] != CheckState.PASS or not lifecycle:
+        return result
+    try:
+        state = await reader.get_proof_state(row.proof_id, now)
+        if state is None:
+            return result.model_copy(
+                update={
+                    "verification_status": VerificationStatus.NOT_REGISTERED,
+                    "lifecycle_status": None,
+                    "reason_codes": [FinalsReasonCode.PROOF_NOT_FOUND],
+                    "checks": result.checks | {"proof_status": CheckState.FAIL},
+                }
+            )
+        if (state.deployment_id, state.chain_id, state.block_number, state.block_hash) != (
+            snapshot.deployment_id,
+            snapshot.chain_id,
+            snapshot.block_number,
+            snapshot.block_hash,
+        ):
+            raise DependencyUnavailableError("snapshot changed")
+        if not matches_commitment(state, envelope):
+            return result.model_copy(
+                update={
+                    "verification_status": VerificationStatus.INCONCLUSIVE,
+                    "lifecycle_status": None,
+                    "reason_codes": [FinalsReasonCode.CHAIN_COMMITMENT_MISMATCH],
+                    "checks": result.checks | {"proof_status": CheckState.FAIL},
+                }
+            )
+    except DependencyUnavailableError:
+        return result.model_copy(
+            update={
+                "verification_status": VerificationStatus.INCONCLUSIVE,
+                "lifecycle_status": None,
+                "reason_codes": [FinalsReasonCode.DEPENDENCY_UNAVAILABLE],
+                "checks": result.checks | {"proof_status": CheckState.UNAVAILABLE},
+            }
+        )
+    async with manager.database.session_factory() as db:
+        registration = await db.scalar(
+            select(OperationRow)
+            .where(
+                OperationRow.action == "register_proof",
+                OperationRow.target_id == row.proof_id,
+                OperationRow.status == "CONFIRMED",
+                OperationRow.deployment_id == manager.manifest.deployment_id,
+            )
+            .limit(1)
+        )
+    if registration is None:
+        return result.model_copy(
+            update={
+                "verification_status": VerificationStatus.INCONCLUSIVE,
+                "lifecycle_status": None,
+                "reason_codes": [FinalsReasonCode.REGISTRATION_PENDING],
+                "checks": result.checks | {"proof_status": CheckState.UNAVAILABLE},
+            }
+        )
+    states = set()
+    if state.revoked_at is not None:
+        states.add(LifecycleStatus.PROOF_REVOKED)
+    if state.consumed_at is not None:
+        states.add(LifecycleStatus.CONSUMED)
     return evaluate_finals(
         envelope,
-        request_id=body.request_id,
+        request_id=request_id,
         chain_id=manager.manifest.chain_id,
-        issuer=issuer,
-        key=key,
+        issuer=snapshot.issuer,
+        key=snapshot.key,
         candidate=candidate,
+        proof_states=states,
+        now=now,
     )
+
+
+def matches_commitment(state, envelope):
+    return (
+        state.proof_id == envelope.proof_id
+        and state.issuer_id_hash == "0x" + digest(envelope.issuer_id).hex()
+        and state.key_id_hash == "0x" + digest(envelope.key_id).hex()
+        and state.signing_digest == signing_digest(envelope)
+        and state.subject_binding_hash == envelope.subject_binding_hash
+        and state.issued_at == envelope.issued_at
+        and state.expires_at == envelope.expires_at
+        and state.single_use == envelope.single_use
+    )
+
+
+class ProofMutation(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    request_id: str = Field(pattern=r"^req_[A-Za-z0-9_-]{1,124}$")
+
+
+async def existing_operation(manager, account, action, body, row):
+    async with manager.database.session_factory() as db:
+        operation = await db.scalar(
+            select(OperationRow).where(
+                OperationRow.account_id == account.account_id,
+                OperationRow.action == action,
+                OperationRow.request_id == body["request_id"],
+            )
+        )
+    if operation and (
+        operation.input_hash != input_fingerprint(body) or operation.issuer_id != row.issuer_id
+    ):
+        raise HTTPException(409, "REQUEST_ID_CONFLICT")
+    return operation
+
+
+async def register_saved(manager, row, account, request_id):
+    body = {"request_id": request_id, "proof_id": row.proof_id}
+    existing = await existing_operation(manager, account, "register_proof", body, row)
+    if existing:
+        return await manager.run(existing)
+    if row.deployment_id != manager.manifest.deployment_id:
+        raise HTTPException(409, "DEPLOYMENT_CHANGED")
+    # All requests for this immutable Proof share its original registration operation.
+    async with manager.database.session_factory() as db:
+        existing = await db.scalar(
+            select(OperationRow)
+            .where(OperationRow.action == "register_proof", OperationRow.target_id == row.proof_id)
+            .order_by(OperationRow.created_at.desc())
+            .limit(1)
+        )
+    if existing and existing.status != "FAILED":
+        # Bind the new request ID to the same transaction, never allocate another nonce.
+        if not existing.recovery_reference and existing.status != "CONFIRMED":
+            raise HTTPException(409, "PROOF_REGISTRATION_PENDING")
+        # Copy the recovery reference atomically with the alias reservation.
+        # A crash must never leave an alias that can allocate a fresh transaction.
+        alias = OperationRow(
+            operation_id=f"op_{uuid4().hex}",
+            account_id=account.account_id,
+            issuer_id=row.issuer_id,
+            action="register_proof",
+            request_id=request_id,
+            input_body=body,
+            input_hash=input_fingerprint(body),
+            target_id=row.proof_id,
+            **{
+                field: getattr(existing, field)
+                for field in (
+                    "status",
+                    "tx_hash",
+                    "error_code",
+                    "deployment_id",
+                    "recovery_reference",
+                    "chain_evidence",
+                )
+            },
+        )
+        async with manager.database.session_factory() as db:
+            db.add(alias)
+            await db.commit()
+            await db.refresh(alias)
+        return await manager.run(alias)
+    result = await evaluate_saved(manager, row, request_id, lifecycle=False)
+    if FinalsReasonCode.DEPENDENCY_UNAVAILABLE in result.reason_codes:
+        raise HTTPException(503, "CHAIN_UNAVAILABLE")
+    if result.verification_status != VerificationStatus.VERIFIED:
+        raise HTTPException(409, "PROOF_NOT_VERIFIED")
+    if any(
+        code in result.reason_codes
+        for code in (
+            FinalsReasonCode.ISSUER_SUSPENDED,
+            FinalsReasonCode.ISSUER_KEY_REVOKED,
+        )
+    ):
+        raise HTTPException(409, "PROOF_NOT_ACTIVE")
+    envelope = checked_envelope(row)
+    await require_binding(manager, row, envelope)
+    operation = await reserve_operation(
+        manager.database.session_factory,
+        account,
+        "register_proof",
+        request_id,
+        body,
+        issuer_id=row.issuer_id,
+        target_id=row.proof_id,
+    )
+    return await manager.run(operation)
+
+
+@router.post("/issuer/proofs/{proof_id}/register", response_model=OperationView)
+async def register(proof_id: str, body: ProofMutation, request: Request, identity: Identity):
+    account = chain_management.authorize(request, identity, "issuer")
+    manager = chain_management.service(request)
+    async with chain_management.chain_lock(manager.database):
+        row = await proof_row(request, proof_id)
+        if row.issuer_id != account.issuer_id:
+            raise HTTPException(404, "PROOF_NOT_FOUND")
+        return await register_saved(manager, row, account, body.request_id)
+
+
+@router.post("/issuer/proofs/{proof_id}/revoke", response_model=OperationView)
+async def revoke(
+    proof_id: str, body: chain_management.MutationInput, request: Request, identity: Identity
+):
+    account = chain_management.authorize(request, identity, "issuer")
+    manager = chain_management.service(request)
+    async with chain_management.chain_lock(manager.database):
+        row = await proof_row(request, proof_id)
+        if row.issuer_id != account.issuer_id:
+            raise HTTPException(404, "PROOF_NOT_FOUND")
+        inputs = body.model_dump(mode="json") | {"proof_id": proof_id}
+        existing = await existing_operation(manager, account, "revoke_proof", inputs, row)
+        if existing:
+            return await manager.run(existing)
+        result = await evaluate_saved(manager, row, body.request_id)
+        if FinalsReasonCode.DEPENDENCY_UNAVAILABLE in result.reason_codes:
+            raise HTTPException(503, "CHAIN_UNAVAILABLE")
+        if result.verification_status != VerificationStatus.VERIFIED:
+            raise HTTPException(409, "PROOF_NOT_VERIFIED")
+        state = await mutation_state(manager, row)
+        operation = await reserve_operation(
+            manager.database.session_factory,
+            account,
+            "revoke_proof",
+            body.request_id,
+            inputs,
+            issuer_id=row.issuer_id,
+            target_id=proof_id,
+        )
+        if state.revoked_at is not None:
+            # Observe the canonical state without another transaction or event.
+            async with manager.database.session_factory() as db:
+                stored = await db.get(OperationRow, operation.operation_id)
+                stored.status = "CONFIRMED"
+                stored.deployment_id = state.deployment_id
+                stored.chain_evidence = {
+                    "no_change": True,
+                    "block_number": state.block_number,
+                    "block_hash": state.block_hash,
+                    "consumed_at": state.consumed_at.isoformat() if state.consumed_at else None,
+                }
+                db.add(
+                    AuditEventRow(
+                        event_id=f"evt_{uuid4().hex}",
+                        actor_account_id=account.account_id,
+                        issuer_id=row.issuer_id,
+                        action="revoke_proof",
+                        target_id=proof_id,
+                        reason=body.reason,
+                        before_status="REVOKED",
+                        after_status="REVOKED",
+                    )
+                )
+                await db.commit()
+                await db.refresh(stored)
+                return OperationView.model_validate(stored)
+        return await manager.run(operation)
+
+
+async def mutation_state(manager, row):
+    if row.deployment_id != manager.manifest.deployment_id:
+        raise HTTPException(409, "DEPLOYMENT_CHANGED")
+    try:
+        envelope = checked_envelope(row)
+        state = await manager.reader(row.issuer_id).get_proof_state(row.proof_id, datetime.now(UTC))
+    except (ValueError, ValidationError):
+        raise HTTPException(409, "INVALID_STORED_PROOF") from None
+    except DependencyUnavailableError:
+        raise HTTPException(503, "CHAIN_UNAVAILABLE") from None
+    if state is None:
+        raise HTTPException(409, "PROOF_NOT_REGISTERED")
+    if not matches_commitment(state, envelope):
+        raise HTTPException(409, "CHAIN_COMMITMENT_MISMATCH")
+    return state
+
+
+@router.post("/proofs/{proof_id}/consume", response_model=OperationView)
+async def consume(proof_id: str, body: ProofMutation, request: Request, identity: Identity):
+    account, session = identity
+    require_csrf(request, session)
+    manager = chain_management.service(request)
+    async with chain_management.chain_lock(manager.database):
+        row = await proof_row(request, proof_id)
+        await authorized_content(request, row, identity)
+        try:
+            envelope = checked_envelope(row)
+        except (ValidationError, ValueError):
+            raise HTTPException(409, "INVALID_STORED_PROOF") from None
+        inputs = body.model_dump(mode="json") | {
+            "proof_id": proof_id,
+            "actor_kind": 0 if account.role == "issuer" else 1,
+            "actor_binding": "0x" + digest(row.issuer_id).hex()
+            if account.role == "issuer"
+            else envelope.subject_binding_hash,
+        }
+        existing = await existing_operation(manager, account, "consume_proof", inputs, row)
+        if existing:
+            return await manager.run(existing)
+        async with manager.database.session_factory() as db:
+            pending = await db.scalar(
+                select(OperationRow.operation_id)
+                .where(
+                    OperationRow.action == "consume_proof",
+                    OperationRow.target_id == proof_id,
+                    OperationRow.status.in_(("PENDING_SUBMISSION", "SUBMITTED", "UNKNOWN")),
+                )
+                .limit(1)
+            )
+        if pending:
+            raise HTTPException(409, "PROOF_OPERATION_PENDING")
+        result = await evaluate_saved(manager, row, body.request_id)
+        if FinalsReasonCode.DEPENDENCY_UNAVAILABLE in result.reason_codes:
+            raise HTTPException(503, "CHAIN_UNAVAILABLE")
+        if result.verification_status != VerificationStatus.VERIFIED:
+            raise HTTPException(409, "PROOF_NOT_VERIFIED")
+        if FinalsReasonCode.REPLAY_DETECTED in result.reason_codes:
+            raise HTTPException(409, "REPLAY_DETECTED")
+        if result.lifecycle_status != LifecycleStatus.ACTIVE:
+            raise HTTPException(409, "PROOF_NOT_ACTIVE")
+        envelope = checked_envelope(row)
+        if not envelope.single_use:
+            raise HTTPException(409, "PROOF_NOT_SINGLE_USE")
+        state = await mutation_state(manager, row)
+        if not state.consumable_at:
+            raise HTTPException(409, "PROOF_NOT_CONSUMABLE")
+        await require_binding(manager, row, envelope)
+        operation = await reserve_operation(
+            manager.database.session_factory,
+            account,
+            "consume_proof",
+            body.request_id,
+            inputs,
+            issuer_id=row.issuer_id,
+            target_id=proof_id,
+        )
+        return await manager.run(operation)
+
+
+async def require_binding(manager, row, envelope):
+    async with manager.database.session_factory() as db:
+        token = await db.get(RecipientTokenRow, row.recipient_account_id)
+    if (
+        token is None
+        or recipient_binding(row.proof_id, token.token, row.recipient_salt, envelope.chain_id)
+        != envelope.subject_binding_hash
+    ):
+        raise HTTPException(409, "SUBJECT_BINDING_MISMATCH")

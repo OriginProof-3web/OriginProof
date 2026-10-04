@@ -19,6 +19,7 @@ from .accounts import current_session, require_csrf
 from .database import (
     AccountRow,
     AuditEventRow,
+    FinalsProofRow,
     IssuerApplicationRow,
     IssuerKeyRow,
     OperationRow,
@@ -190,7 +191,7 @@ class ChainManagement:
                 operation.issuer_id,
                 nonce=nonce,
             )
-        elif operation.action == "register_key":
+        elif operation.action in ("register_key", "rotate_key"):
             key_id = "key_" + operation.operation_id.removeprefix("op_")
             async with self.database.session_factory() as db:
                 row = await db.get(IssuerKeyRow, key_id)
@@ -229,6 +230,43 @@ class ChainManagement:
                 operation.target_id,
                 nonce=nonce,
             )
+        elif operation.action in ("register_proof", "revoke_proof", "consume_proof"):
+            from originproof_core.signatures import signing_digest
+
+            from .finals_proofs import checked_envelope
+
+            async with self.database.session_factory() as db:
+                proof = await db.get(FinalsProofRow, operation.target_id)
+            if proof is None or proof.deployment_id != self.manifest.deployment_id:
+                raise ValueError("proof deployment mismatch")
+            envelope = checked_envelope(proof)
+            if operation.action == "register_proof":
+                prepared = await self.writer.prepare_register_proof(
+                    roles["gateway"],
+                    proof.proof_id,
+                    proof.issuer_id,
+                    proof.key_id,
+                    signing_digest(envelope),
+                    envelope.subject_binding_hash,
+                    int(envelope.issued_at.timestamp()),
+                    int(envelope.expires_at.timestamp()),
+                    envelope.single_use,
+                    nonce=nonce,
+                )
+            elif operation.action == "revoke_proof":
+                prepared = await self.writer.prepare_revoke_proof(
+                    roles["issuer_account"],
+                    proof.proof_id,
+                    nonce=nonce,
+                )
+            else:
+                prepared = await self.writer.prepare_consume_proof(
+                    roles["gateway"],
+                    proof.proof_id,
+                    body["actor_kind"],
+                    body["actor_binding"],
+                    nonce=nonce,
+                )
         else:
             raise ValueError("unsupported chain action")
         if not operation.recovery_reference and nonce_override is None:
@@ -283,7 +321,7 @@ class ChainManagement:
             }
             if row.status == "CONFIRMED":
                 await self.confirm_target(db, row)
-            elif row.action == "register_key" and row.status == "FAILED":
+            elif row.action in ("register_key", "rotate_key") and row.status == "FAILED":
                 key = await db.get(IssuerKeyRow, "key_" + row.operation_id[3:])
                 if key:
                     key.status = "REGISTRATION_FAILED"
@@ -319,8 +357,29 @@ class ChainManagement:
                 "reactivate_issuer": "ACTIVE",
                 "revoke_issuer": "REVOKED",
             }[row.action]
-        elif row.action == "register_key":
+        elif row.action in ("register_key", "rotate_key"):
             key = await db.get(IssuerKeyRow, "key_" + row.operation_id[3:])
+            key.status = "ACTIVE"
+            now = int(datetime.now(UTC).timestamp())
+            if not key.valid_from <= now < key.valid_until:
+                return  # Registered future/expired keys do not replace the current issuing key.
+            verify_signer(self.settings.signer_directory, key.secret_ref, key.signer)
+            selected = await db.scalar(
+                select(IssuerKeyRow).where(
+                    IssuerKeyRow.issuer_id == row.issuer_id, IssuerKeyRow.selected.is_(True)
+                )
+            )
+            if selected is not None and selected.key_id != key.key_id:
+                prior = await db.get(OperationRow, "op_" + selected.key_id.removeprefix("key_"))
+                previous_ref = prior.recovery_reference if prior else None
+                reference = row.recovery_reference
+                if (
+                    previous_ref
+                    and reference
+                    and previous_ref["sender"] == reference["sender"]
+                    and previous_ref["nonce"] > reference["nonce"]
+                ):
+                    return  # Recovering an older registration must not undo a later key switch.
             await db.execute(
                 update(IssuerKeyRow)
                 .where(IssuerKeyRow.issuer_id == row.issuer_id)
@@ -470,6 +529,7 @@ async def issuer_status(
     )
 
 
+@router.post("/v1/issuer/keys/rotate", response_model=OperationView)
 @router.post("/v1/issuer/keys", response_model=OperationView)
 async def register_key(
     body: KeyInput,
@@ -477,13 +537,26 @@ async def register_key(
     identity: Annotated[tuple[AccountRow, SessionRow], Depends(current_session)],
 ):
     account = authorize(request, identity, "issuer")
+    action = "rotate_key" if request.url.path.endswith("/rotate") else "register_key"
     manager = service(request)
     async with chain_lock(manager.database):
         await manager.active_issuer(account.issuer_id)
+        if action == "rotate_key":
+            async with manager.database.session_factory() as db:
+                existing = await db.scalar(
+                    select(OperationRow).where(
+                        OperationRow.account_id == account.account_id,
+                        OperationRow.action == action,
+                        OperationRow.request_id == body.request_id,
+                    )
+                )
+            now = datetime.now(UTC)
+            if existing is None and not body.valid_from <= now < body.valid_until:
+                raise HTTPException(422, "ROTATION_KEY_NOT_CURRENTLY_VALID")
         operation = await reserve_operation(
             manager.database.session_factory,
             account,
-            "register_key",
+            action,
             body.request_id,
             body.model_dump(mode="json"),
         )

@@ -1,11 +1,14 @@
 """Real SQLite/HTTP/signatures; synthetic chain is replaced by opt-in live tests."""
 
 import asyncio
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
+from types import SimpleNamespace
 
 import pytest
 import test_w2_chain_management as w2_tests
 from httpx import ASGITransport, AsyncClient
+from infrastructure.blockchain.reader import ProofChainState, digest
 from originproof_api.database import (
     AccountRow,
     FinalsProofRow,
@@ -41,12 +44,16 @@ async def finals(context):
         db.add_all(recipients)
         db.commit()
     manager.rpc_failure = False
+    manager.proof_states = {}
 
     class Reader:
         async def get_issuer(self, identifier):
             if manager.rpc_failure:
                 raise DependencyUnavailableError("synthetic RPC outage")
-            return IssuerRecord(issuer_id=identifier, status=IssuerTrustStatus.ACTIVE)
+            return IssuerRecord(
+                issuer_id=identifier,
+                status=IssuerTrustStatus.ACTIVE if manager.active else IssuerTrustStatus.SUSPENDED,
+            )
 
         async def get_key(self, identifier):
             if manager.rpc_failure:
@@ -66,7 +73,106 @@ async def finals(context):
                     else KeyTrustStatus.ACTIVE,
                 )
 
+        async def get_issuer_key_snapshot(self, issuer_id, key_id, at):
+            issuer, key = await self.get_issuer(issuer_id), await self.get_key(key_id)
+            return SimpleNamespace(
+                deployment_id=manager.manifest.deployment_id,
+                chain_id=31337,
+                block_number=2,
+                block_hash="0x" + "cc" * 32,
+                issuer=issuer,
+                key=key,
+                key_valid_at=bool(
+                    key
+                    and manager.active
+                    and key.status == KeyTrustStatus.ACTIVE
+                    and key.valid_from <= at < key.valid_until
+                ),
+            )
+
+        async def get_proof_state(self, proof_id, at):
+            if manager.rpc_failure:
+                raise DependencyUnavailableError("synthetic RPC outage")
+            return manager.proof_states.get(proof_id)
+
     manager.reader = lambda _: Reader()
+    manager.manifest.roles["gateway"] = "0x" + "33" * 20
+    effects = {}
+    writer = manager.writer
+    original_confirm, original_recover = writer.confirm_prepared, writer.recover_prepared
+
+    async def prepare_register(
+        sender,
+        proof_id,
+        issuer_id,
+        key_id,
+        signing_digest,
+        binding,
+        issued,
+        expires,
+        single_use,
+        **kwargs,
+    ):
+        prepared = await writer._prepared("register_proof", sender, proof_id, **kwargs)
+        effects[prepared.data] = ProofChainState(
+            manager.manifest.deployment_id,
+            31337,
+            2,
+            "0x" + "cc" * 32,
+            proof_id,
+            "0x" + digest(issuer_id).hex(),
+            "0x" + digest(key_id).hex(),
+            signing_digest,
+            binding,
+            datetime.fromtimestamp(issued, UTC),
+            datetime.fromtimestamp(expires, UTC),
+            single_use,
+            None,
+            None,
+            "ACTIVE",
+            single_use,
+        )
+        return prepared
+
+    async def prepare_revoke(sender, proof_id, **kwargs):
+        prepared = await writer._prepared("revoke_proof", sender, proof_id, **kwargs)
+        effects[prepared.data] = ("revoke", proof_id)
+        return prepared
+
+    async def prepare_consume(sender, proof_id, actor_kind, actor_binding, **kwargs):
+        prepared = await writer._prepared("consume_proof", sender, proof_id, **kwargs)
+        effects[prepared.data] = ("consume", proof_id)
+        return prepared
+
+    def apply(prepared, result):
+        effect = effects.get(prepared.data)
+        if effect is not None and result.state.value == "CONFIRMED":
+            if isinstance(effect, ProofChainState):
+                manager.proof_states[effect.proof_id] = effect
+            else:
+                action, identifier = effect
+                state = manager.proof_states[identifier]
+                manager.proof_states[identifier] = replace(
+                    state,
+                    consumable_at=False,
+                    **(
+                        {"revoked_at": datetime.now(UTC), "status": "REVOKED"}
+                        if action == "revoke"
+                        else {"consumed_at": datetime.now(UTC), "status": "CONSUMED"}
+                    ),
+                )
+        return result
+
+    async def confirm(prepared, tx_hash):
+        return apply(prepared, await original_confirm(prepared, tx_hash))
+
+    async def recover(prepared, tx_hash=None):
+        return apply(prepared, await original_recover(prepared, tx_hash))
+
+    writer.prepare_register_proof = prepare_register
+    writer.prepare_revoke_proof = prepare_revoke
+    writer.prepare_consume_proof = prepare_consume
+    writer.confirm_prepared, writer.recover_prepared = confirm, recover
 
     async def optional_session():
         return selected[0], SessionRow(csrf_token="csrf")
@@ -140,8 +246,8 @@ async def test_issue_both_types_idempotency_and_scopes(finals):
         )
         assert result.json()["verification_status"] == "VERIFIED", result.text
         assert result.json()["scope"] == "FULL_COMPARISON"
-        assert result.json()["checks"]["proof_status"] == "NOT_RUN"
-        assert result.json()["lifecycle_status"] is None
+        assert result.json()["checks"]["proof_status"] == "PASS"
+        assert result.json()["lifecycle_status"] == "ACTIVE"
         field = "amount_minor" if kind == "PAYMENT_REQUEST" else "document_number"
         changed = 999 if kind == "PAYMENT_REQUEST" else "CHANGED"
         result = await client.post(
