@@ -98,3 +98,7 @@ phase PR·작성자 외 리뷰·D 독립 재현·팀 전체 단계 완료는 별
 ## 게시 상태 — 2026-10-04
 
 사용자님 요청으로 [Draft PR #53](https://github.com/OriginProof-3web/OriginProof/pull/53)을 `codex/admin-latest-functions → phase/W4`로 게시했습니다. phase 기준은 8011f7fe3da033c9253894a9de0fd98aa7bbcc16, 제출 코드 head는 cdd0e189b0a4c0544132afc9b45c836c5b4c827d이며 그 뒤 이 링크 기록만 보충했습니다. 제출 직전 lint 및 중복 Next 생성 캐시 제거 후 typecheck·diff 검사는 통과했습니다. 웹 소스는 기능 검사 커밋 01b92e0과 동일함을 확인했습니다. 기능 시나리오는 게시 과정에서 재실행하지 않았습니다. 사람 리뷰·기여 사실 확인·clean clone 전체 연결 재현·D 독립 E2E·단계 승격은 여전히 PENDING입니다.
+
+## PR #53 CI 후속 검증 — 2026-10-06 재개
+
+CI run 37203297043은 Python 248 passed/4 skipped 및 contracts SUCCESS 뒤 웹 로컬 도구의 Ruff 272건으로 실패했습니다. 검사 규칙을 우회하지 않고 네 도구를 formatter/import 정리하고 기관별 즉시 실행 검사를 함수로 분리해 loop closure를 제거했습니다. AST 보호 검사는 소스 문자열 대신 AST를 읽습니다. 전체 Ruff PASS, 보호 unittest 5 PASS, locked 환경 동기화 후 pytest 248 PASS/4 live SKIP(2026-10-04 후속 실행)을 확인했습니다. 처음 로컬 pytest는 미동기화 환경에서 수집 실패했으며 locked sync 후 해결했습니다. 포맷 수정된 실제 lifecycle 검사도 2026-10-04T12:52:56Z에 19 PASS입니다. 2026-10-06 재개 후 Ruff/보호 5개를 다시 확인했으며 과거 19개를 오늘 새 실행으로 집계하지 않습니다.
