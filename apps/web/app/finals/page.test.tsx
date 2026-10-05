@@ -204,3 +204,31 @@ test("operator can inspect a chain operation and its audit trail without trigger
   expect(await screen.findByText("PENDING_REVIEW → APPROVED_PENDING_CHAIN")).toBeVisible();
   expect(fetchMock.mock.calls.map(([url]) => String(url))).not.toContain("/api/v1/operator/issuers/iss_demo_a/suspend");
 });
+
+test("operator activates an approved application using CSRF and only confirmed refresh shows ACTIVE", async () => {
+  let activated = false;
+  const row = { application_id: "app_activate", issuer_id: "iss_demo_a", issuer_name: "Synthetic Activate", status: "APPROVED_PENDING_CHAIN", decision_reason: "Synthetic review" };
+  const mock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const path = String(input);
+    if (path.endsWith("/auth/me")) return jsonResponse(account("operator"));
+    if (path.endsWith("/issuer-applications")) return jsonResponse([{ ...row, status: activated ? "ACTIVE" : row.status }]);
+    if (path.endsWith("/activate")) { activated = true; return jsonResponse({ operation_id: "op_activate", status: "CONFIRMED" }); }
+    throw new Error(`Unexpected ${path}`);
+  });
+  vi.stubGlobal("fetch", mock); render(<FinalsPage />);
+  await screen.findByRole("button", { name: "체인 활성화" });
+  fireEvent.change(screen.getByLabelText("활성화 사유"), { target: { value: "합성 활성화" } });
+  fireEvent.click(screen.getByRole("button", { name: "체인 활성화" }));
+  expect(await screen.findByText("활성화 완료")).toBeVisible();
+  const call = mock.mock.calls.find(([path]) => String(path).endsWith("/activate"))!;
+  expect(new Headers(call[1]?.headers).get("X-CSRF-Token")).toBe("csrf_test_token");
+  expect(JSON.parse(String(call[1]?.body))).toMatchObject({ reason: "합성 활성화" });
+});
+
+test("ACTIVE and pending chain notice remain semantic definition-list groups", async () => {
+  vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL) => String(input).endsWith("/auth/me") ? jsonResponse(account("issuer")) : jsonResponse({ issuer_name: "Synthetic Pending", status: "APPROVED_PENDING_CHAIN" })));
+  const { container } = render(<FinalsPage />);
+  await screen.findByText("승인됨 · 체인 활성화 대기");
+  const summary = container.querySelector(".application-summary")!;
+  expect([...summary.children].every(element => element.tagName === "DIV" && element.querySelector("dt") && element.querySelector("dd"))).toBe(true);
+});
