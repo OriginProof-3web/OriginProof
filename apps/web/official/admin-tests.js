@@ -36,7 +36,7 @@ async function refresh(){
     await showGitUpdate();
     for(const [id,report] of Object.entries(data)){
       const card=document.createElement('section');card.className='test-card';
-      const heading=document.createElement('h2');heading.textContent=`${id==='w5-a'?'W5 A 화면 검사':id==='admin'?'관리자 기능 검사':id==='web'?'웹 연결 검사':id==='w3'?'기업·개인·관리자 웹 검사':'PR #'+id} · ${report.title}`;card.append(heading);
+      const heading=document.createElement('h2');heading.textContent=`${id==='w5-final'?'W5 A 최종 자체 검사':id==='w5-api-latest'?'W5 API 후보 재검사':id==='w5-gate'?'W5 단계 완료 조건':id==='w5-a'?'W5 A 화면 검사':id==='admin'?'관리자 기능 검사':id==='web'?'웹 연결 검사':id==='w3'?'기업·개인·관리자 웹 검사':'PR #'+id} · ${report.title}`;card.append(heading);
       const summary=document.createElement('p');
       const commands=report.cases.filter(c=>c.group==='현재 GitHub 웹 소스');
       const cases=report.cases.filter(c=>c.group!=='현재 GitHub 웹 소스');

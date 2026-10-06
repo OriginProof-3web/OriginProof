@@ -1,0 +1,622 @@
+{
+  "recorded_at": "2026-10-06T08:47:22.838041+00:00",
+  "executor": "A / kimhyounjun assisted by Codex",
+  "independent_d_acceptance": false,
+  "stage_complete": false,
+  "ui_product_sha": "eb538a2cd19cea5786023834bc6be2c83609faf5",
+  "browser_test_sha": "407ea5a",
+  "accessibility_test_sha": "729142168368b5c394164ca1d4ef3621eb12f021",
+  "ui": "http://127.0.0.1:8768/admin.html",
+  "asset_sha256": {
+    "admin.bundle.js": "730235b63ef4bba1bfead225a6c3e22ad41396686c6cbda12c02f6d623164f02",
+    "business-workspace.css": "4c105ee44ae27b0966e02ba9216878ad77180488dd4d58a2e1824211bd50afb1",
+    "admin-console.css": "29121b8e2f891fee8561bbbe6bc93b6a5a74fdf0d7c5d90499087ca60bf01575",
+    "admin-operations.js": "fbc34d83811eb3139aff05b3f706db6edbaf4c6d50c23de58eadac30bb4650a0"
+  },
+  "browser": {
+    "fresh_accounts_only": {
+      "passed": 1,
+      "failed": 0,
+      "duration_seconds": 26.5,
+      "clean_clone": true,
+      "isolated_actual_api": true,
+      "receipt_and_chain_actual": true,
+      "fault_401_503": "explicit browser response injection, not real API outage",
+      "native_korean_rotate_option": "Playwright selectOption; manual keyboard verification remains"
+    },
+    "accessibility": {
+      "passed": 1,
+      "failed": 0,
+      "duration_seconds": 12.6,
+      "standard": "axe wcag2a/wcag2aa/wcag21aa",
+      "viewport": "desktop + 390x844 with collapsed sidebar",
+      "manual_screen_reader": "NOT_RUN",
+      "results_display_followup": {
+        "passed": 1,
+        "failed": 0,
+        "duration_seconds": 6.2,
+        "execution_base_sha": "6d159b6",
+        "worktree_modified": true,
+        "test_source_sha256": "69f8fbb84ebdd836465a2332ed1bdd49424973fd9e8acd3ed291a400e7948267",
+        "scope": "same8768 results display: fresh PASS, mixed17/1 and gate NOT_RUN shown"
+      }
+    }
+  },
+  "web_unit": {
+    "passed": 39,
+    "failed": 0,
+    "clean_clone": true,
+    "lint": "PASS",
+    "typecheck": "PASS",
+    "official_build": "PASS",
+    "next_build": "PASS"
+  },
+  "api_reexecutions": [
+    {
+      "mode": "FRESH",
+      "product_sha": "3ef1fd40943914c1450e8bc05047119ab7eabbc0",
+      "qa_git_head": "c0c3baae386bd462dfe730cf08682ba37376e5d7",
+      "qa_git_dirty": true,
+      "qa_source_sha256": "0682523df99e308dd57f6ed267c55d76ced6c08865406d20c71708cc3906c602",
+      "projection_source_sha256": "223e77b6f71fc95b71009a6cbf03395d7052c40a5506084d82331dab057e3dc0",
+      "raw_summary_sha256": "c989a6d0d4f53d8165bc21a35dff1b672c842ea496af02decb48145f5f56900e",
+      "results": [
+        {
+          "id": "two_types_comparison",
+          "f_ids": [
+            "F01",
+            "F02"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "mutation_permission_matrix",
+          "f_ids": [
+            "F05",
+            "F10",
+            "F12",
+            "F15"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "unregistered",
+          "f_ids": [
+            "F06"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "ownership",
+          "f_ids": [
+            "F05",
+            "F10",
+            "F14",
+            "F15"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "operation_audit_reconciliation",
+          "f_ids": [
+            "F05",
+            "F13",
+            "F15"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "suspended_new_issuance",
+          "f_ids": [
+            "F11"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "rpc_outage_recovery",
+          "f_ids": [
+            "F13"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "same_operation_recovery",
+          "f_ids": [
+            "F12",
+            "F13"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "private_fields",
+          "f_ids": [
+            "F15"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "approval_chain_boundary",
+          "f_ids": [
+            "F09"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "default_request_limit",
+          "f_ids": [
+            "F15"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "default_login_limit",
+          "f_ids": [
+            "F15"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "origin_body_boundaries",
+          "f_ids": [
+            "F15"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "different_rpc_chain",
+          "f_ids": [
+            "F14"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "same_chain_fresh_rpc_guard",
+          "f_ids": [
+            "F14"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "projection_replay_process_restart_reorg",
+          "f_ids": [
+            "F13"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "current_candidate_lifecycle_regression",
+          "f_ids": [
+            "F01",
+            "F03",
+            "F04",
+            "F05",
+            "F07",
+            "F08",
+            "F10",
+            "F14"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "legacy_v1_expiry",
+          "f_ids": [
+            "F03"
+          ],
+          "status": "PASS"
+        }
+      ],
+      "environment": {
+        "python": "3.13.15",
+        "required_python": "3.13.0",
+        "llm_provider": "mock",
+        "openai_model": "gpt-6-luna",
+        "paid_calls": 0,
+        "foundry_image": "ghcr.io/foundry-rs/foundry:v1.4.4@sha256:9584dfbb0e2e9bda80332b66a7cebed635fc9786638871df6b7594e39e678578",
+        "source_config_sha256": {
+          "uv.lock": "e5122f523c7bc1e1bedf6795244cbdd2baaaeec9dc9c7f3fb088e2f064806dd6",
+          ".tool-versions": "9e238d2a904c0fe8d489505fbe1e6a51185ba327ada08d34db8cf8d7bd9f94e2",
+          "docker-compose.yml": "ec2dd83ba35a0e2df0aa6d7dbe6086774034721561fd127101a73eebd0117c0d",
+          "infra/docker/api.Dockerfile": "0efa69ea5bc8bdec0061588014ea2bcb8ff5ba0899e7e97f06f0faa0abea80ed",
+          "infra/docker/deployer.Dockerfile": "b34edd32f46ea1cb2f05dc0fcbe42d3c7202a2f8c8c71b2f2e5867be53d5e5c7"
+        }
+      },
+      "resources_closed": true,
+      "resource_absence": {
+        "owned_containers_absent": true,
+        "owned_network_absent": true
+      },
+      "browser_e2e": "NOT_RUN"
+    },
+    {
+      "mode": "MIXED_DIAGNOSTIC",
+      "product_sha": "3ef1fd40943914c1450e8bc05047119ab7eabbc0",
+      "qa_git_head": "c0c3baae386bd462dfe730cf08682ba37376e5d7",
+      "qa_git_dirty": true,
+      "qa_source_sha256": "0682523df99e308dd57f6ed267c55d76ced6c08865406d20c71708cc3906c602",
+      "projection_source_sha256": "223e77b6f71fc95b71009a6cbf03395d7052c40a5506084d82331dab057e3dc0",
+      "raw_summary_sha256": "5ff4377011c7ea769b5fd175c2c547190d1d78aeaceb31db8eba79cb9b4d10ed",
+      "results": [
+        {
+          "id": "two_types_comparison",
+          "f_ids": [
+            "F01",
+            "F02"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "mutation_permission_matrix",
+          "f_ids": [
+            "F05",
+            "F10",
+            "F12",
+            "F15"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "unregistered",
+          "f_ids": [
+            "F06"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "ownership",
+          "f_ids": [
+            "F05",
+            "F10",
+            "F14",
+            "F15"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "operation_audit_reconciliation",
+          "f_ids": [
+            "F05",
+            "F13",
+            "F15"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "suspended_new_issuance",
+          "f_ids": [
+            "F11"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "rpc_outage_recovery",
+          "f_ids": [
+            "F13"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "same_operation_recovery",
+          "f_ids": [
+            "F12",
+            "F13"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "private_fields",
+          "f_ids": [
+            "F15"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "approval_chain_boundary",
+          "f_ids": [
+            "F09"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "default_request_limit",
+          "f_ids": [
+            "F15"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "default_login_limit",
+          "f_ids": [
+            "F15"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "origin_body_boundaries",
+          "f_ids": [
+            "F15"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "different_rpc_chain",
+          "f_ids": [
+            "F14"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "same_chain_fresh_rpc_guard",
+          "f_ids": [
+            "F14"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "projection_replay_process_restart_reorg",
+          "f_ids": [
+            "F13"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "current_candidate_lifecycle_regression",
+          "f_ids": [
+            "F01",
+            "F03",
+            "F04",
+            "F05",
+            "F07",
+            "F08",
+            "F10",
+            "F14"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "legacy_v1_expiry",
+          "f_ids": [
+            "F03"
+          ],
+          "status": "PASS"
+        }
+      ],
+      "environment": {
+        "python": "3.13.15",
+        "required_python": "3.13.0",
+        "llm_provider": "mock",
+        "openai_model": "gpt-6-luna",
+        "paid_calls": 0,
+        "foundry_image": "ghcr.io/foundry-rs/foundry:v1.4.4@sha256:9584dfbb0e2e9bda80332b66a7cebed635fc9786638871df6b7594e39e678578",
+        "source_config_sha256": {
+          "uv.lock": "e5122f523c7bc1e1bedf6795244cbdd2baaaeec9dc9c7f3fb088e2f064806dd6",
+          ".tool-versions": "9e238d2a904c0fe8d489505fbe1e6a51185ba327ada08d34db8cf8d7bd9f94e2",
+          "docker-compose.yml": "ec2dd83ba35a0e2df0aa6d7dbe6086774034721561fd127101a73eebd0117c0d",
+          "infra/docker/api.Dockerfile": "0efa69ea5bc8bdec0061588014ea2bcb8ff5ba0899e7e97f06f0faa0abea80ed",
+          "infra/docker/deployer.Dockerfile": "b34edd32f46ea1cb2f05dc0fcbe42d3c7202a2f8c8c71b2f2e5867be53d5e5c7"
+        }
+      },
+      "resources_closed": true,
+      "resource_absence": {
+        "owned_containers_absent": true,
+        "owned_network_absent": true
+      },
+      "browser_e2e": "NOT_RUN"
+    },
+    {
+      "mode": "MIXED_DIAGNOSTIC",
+      "product_sha": "3ef1fd40943914c1450e8bc05047119ab7eabbc0",
+      "qa_git_head": "6d159b66f1cb68e4af4b8715c94472e30c15dcf8",
+      "qa_git_dirty": false,
+      "qa_source_sha256": "0682523df99e308dd57f6ed267c55d76ced6c08865406d20c71708cc3906c602",
+      "projection_source_sha256": "223e77b6f71fc95b71009a6cbf03395d7052c40a5506084d82331dab057e3dc0",
+      "raw_summary_sha256": "68fe20cffd97631bd84d3ad4fbdc8feb27d587b8a6b4bbd458469a382e1c8179",
+      "results": [
+        {
+          "id": "two_types_comparison",
+          "f_ids": [
+            "F01",
+            "F02"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "mutation_permission_matrix",
+          "f_ids": [
+            "F05",
+            "F10",
+            "F12",
+            "F15"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "unregistered",
+          "f_ids": [
+            "F06"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "ownership",
+          "f_ids": [
+            "F05",
+            "F10",
+            "F14",
+            "F15"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "operation_audit_reconciliation",
+          "f_ids": [
+            "F05",
+            "F13",
+            "F15"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "suspended_new_issuance",
+          "f_ids": [
+            "F11"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "rpc_outage_recovery",
+          "f_ids": [
+            "F13"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "same_operation_recovery",
+          "f_ids": [
+            "F12",
+            "F13"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "private_fields",
+          "f_ids": [
+            "F15"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "approval_chain_boundary",
+          "f_ids": [
+            "F09"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "default_request_limit",
+          "f_ids": [
+            "F15"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "default_login_limit",
+          "f_ids": [
+            "F15"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "origin_body_boundaries",
+          "f_ids": [
+            "F15"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "different_rpc_chain",
+          "f_ids": [
+            "F14"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "same_chain_fresh_rpc_guard",
+          "f_ids": [
+            "F14"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "projection_replay_process_restart_reorg",
+          "f_ids": [
+            "F13"
+          ],
+          "status": "PASS"
+        },
+        {
+          "id": "current_candidate_lifecycle_regression",
+          "f_ids": [],
+          "status": "FAIL",
+          "error_type": "AssertionError",
+          "failure_line": 395,
+          "observed_issue_errors": [
+            {
+              "verification_status": "INCONCLUSIVE",
+              "lifecycle_status": null,
+              "reason_codes": [
+                "DEPENDENCY_UNAVAILABLE"
+              ],
+              "checks": {
+                "contract": "PASS",
+                "payload_hash": "PASS",
+                "issuer": "UNAVAILABLE",
+                "issuer_key": "NOT_RUN",
+                "signature": "NOT_RUN",
+                "proof_status": "NOT_RUN",
+                "candidate_match": "NOT_RUN"
+              }
+            },
+            {
+              "verification_status": "INCONCLUSIVE",
+              "lifecycle_status": null,
+              "reason_codes": [
+                "DEPENDENCY_UNAVAILABLE"
+              ],
+              "checks": {
+                "contract": "PASS",
+                "payload_hash": "PASS",
+                "issuer": "UNAVAILABLE",
+                "issuer_key": "NOT_RUN",
+                "signature": "NOT_RUN",
+                "proof_status": "NOT_RUN",
+                "candidate_match": "NOT_RUN"
+              }
+            }
+          ]
+        },
+        {
+          "id": "legacy_v1_expiry",
+          "f_ids": [
+            "F03"
+          ],
+          "status": "PASS"
+        }
+      ],
+      "environment": {
+        "python": "3.13.15",
+        "required_python": "3.13.0",
+        "llm_provider": "mock",
+        "openai_model": "gpt-6-luna",
+        "paid_calls": 0,
+        "foundry_image": "ghcr.io/foundry-rs/foundry:v1.4.4@sha256:9584dfbb0e2e9bda80332b66a7cebed635fc9786638871df6b7594e39e678578",
+        "source_config_sha256": {
+          "uv.lock": "e5122f523c7bc1e1bedf6795244cbdd2baaaeec9dc9c7f3fb088e2f064806dd6",
+          ".tool-versions": "9e238d2a904c0fe8d489505fbe1e6a51185ba327ada08d34db8cf8d7bd9f94e2",
+          "docker-compose.yml": "ec2dd83ba35a0e2df0aa6d7dbe6086774034721561fd127101a73eebd0117c0d",
+          "infra/docker/api.Dockerfile": "0efa69ea5bc8bdec0061588014ea2bcb8ff5ba0899e7e97f06f0faa0abea80ed",
+          "infra/docker/deployer.Dockerfile": "b34edd32f46ea1cb2f05dc0fcbe42d3c7202a2f8c8c71b2f2e5867be53d5e5c7"
+        }
+      },
+      "resources_closed": true,
+      "resource_absence": {
+        "owned_containers_absent": true,
+        "owned_network_absent": true
+      },
+      "browser_e2e": "NOT_RUN"
+    }
+  ],
+  "remaining": [
+    "G07 mixed current-candidate lifecycle regression recurred: INCONCLUSIVE/DEPENDENCY_UNAVAILABLE, issuer UNAVAILABLE; C/B diagnosis and D reexecution required",
+    "D W5-D2 independent same-candidate browser/accessibility reexecution",
+    "Designated non-author review and contribution confirmation",
+    "Final integrated phase/W5 SHA and all-owner acceptance",
+    "Pinned Node22.18/Python3.13.0 environment replay; current Node26.0/Python3.13.15"
+  ],
+  "first_failures": [
+    "axe low contrast and mobile operator input overflow fixed",
+    "Initial approval display conflated DB approval with chain state; partial read failure fixed",
+    "Clean clone dependency symlinks broke jest-dom; installed frozen locks instead",
+    "Docker Colima did not share private/tmp deployment evidence; use shared W5_ADMIN_OUTPUT_DIR and fail early if missing manifest"
+  ],
+  "paid_ai_calls": 0
+}

@@ -14,5 +14,7 @@ test('same administrator page: keyboard navigation, WCAG AA and narrow viewport'
   const result=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();
   expect(result.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>({target:n.target,summary:n.failureSummary}))})),section).toEqual([]);
  }
+ const resultsButton=page.getByRole('navigation',{name:'관리자 테스트 메뉴'}).getByRole('button',{name:'검사 결과',exact:true});await resultsButton.focus();await page.keyboard.press('Enter');
+ await expect(page.getByRole('heading',{name:/W5 A 최종 자체 검사/})).toBeVisible();await expect(page.getByRole('heading',{name:/W5 API 후보 재검사.*17 통과\/1 실패/})).toBeVisible();await expect(page.getByRole('heading',{name:/W5 단계 완료 조건/})).toBeVisible();
  await page.getByRole('button',{name:'사이드바 접기',exact:true}).focus();await page.keyboard.press('Enter');await expect.poll(async()=>(await page.locator('#sidebar-root').boundingBox())!.width).toBeLessThan(100);await page.setViewportSize({width:390,height:844});expect(await page.locator('body').evaluate(b=>b.scrollWidth)).toBeLessThanOrEqual(390);
 });

@@ -175,3 +175,31 @@ checkpoint/채굴 복원 순서 unittest 2 passed, lint/typecheck/build 통과.
 phase PR·작성자 외 리뷰·D 독립 재현·팀 전체 단계 완료는 별도입니다.
 이전 8770 DB/18545 체인 데이터는 보존합니다. 현재 `/api`의 과거 ID 조회는 8780 환경에 저장된 기록을 사용합니다.
 공개 회원가입, 지급 요청/공식 문서 AI 추출, 외부 운영 배포는 서버 계약/별도 수용 기준 대기입니다.
+
+## W5 추가 재현 (2026-10-06)
+
+[W5 검사와 잔여 실패](W5_UI_VALIDATION.md), [SHA·환경 요약](test/evidence/w5-20261006.json).
+기존 `http://127.0.0.1:8768/admin.html`을 그대로 사용합니다.
+`test/run-w5-admin.py`는 frozen C #38 API와 D disposable fixture를 읽기 전용 재사용하며
+계정만 seed합니다. browser request forwarding은 실제 별도 API의 응답을 전달하며
+신청·승인·키·Proof 성공을 mock하지 않습니다. 운영자/기업/수신자 계정 비밀은 공개 trace에 넣지 않습니다.
+기존 수동 테스트 데이터는 지우지 않고 helper가 만든 PG/Anvil/network만 정리합니다.
+
+재현 전 해당 Git 객체(C `3ef1fd4`, D `a3f55c6`, W4 QA `0bb5da4`, prep `78cce40`)를 fetch하고
+C lockfile로 설치한 Python 환경(pytest/uvicorn/httpx 포함)을 사용합니다. root는 pnpm lock 기반입니다.
+새 clone은 `pnpm install --frozen-lockfile --ignore-scripts`, official은 `npm --prefix apps/web/official ci --ignore-scripts` 후 빌드합니다.
+8768에 현재 admin bundle이 제공돼야 합니다. 임시 clone이 `/private/tmp`에 있으면
+Colima 공유 폴더의 절대 경로를 W5_ADMIN_OUTPUT_DIR로 지정해야 합니다. 배포 manifest 누락은 즉시 실패합니다.
+
+```sh
+W5_ADMIN_QA=1 W5_ADMIN_OUTPUT_DIR=/path/to/docker-shared/evidence /path/to/c-lock-venv/bin/python apps/web/test/run-w5-admin.py
+W5_D_API_QA=1 W5_D_MIXED_STACK_QA=1 /path/to/c-lock-venv/bin/python apps/web/test/run-w5-api.py
+# fresh API 검사는 W5_D_MIXED_STACK_QA를 지정하지 않습니다.
+cd apps/web
+ORIGINPROOF_TEST_ACCOUNTS=/path/to/private/accounts.json ORIGINPROOF_WEB_BASE_URL=http://127.0.0.1:8768 ./node_modules/.bin/playwright test e2e/w5-admin-accessibility.spec.ts --workers=1
+```
+
+두 Python 진입점은 A의 재실행이며 D 독립 승인과 별개입니다. API wrapper는 D SHA 전체를
+자신의 build 아래에 읽기 전용 export하고 C baseline uv.lock을 명시합니다. QA 원본·생성물을
+팀원 branch에서 바꾸지 않습니다. 요약의 product/QA SHA와 실제 A 실행 환경을 함께 기록합니다.
+W5 mixed 마지막 G07 실패를 성공으로 표시하지 않으며 원시 private evidence와 비밀 없는 요약을 구분합니다.
