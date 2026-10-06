@@ -263,7 +263,7 @@ test("W2 key screen rejects an invalid date range before a mutation", async ({ p
   await page.getByLabel("유효 종료 시각").fill("2026-10-01T10:00");
   await page.getByLabel("키 등록 사유").fill("synthetic invalid period");
   await page.getByRole("button", { name: "키 생성·등록", exact: true }).click();
-  await expect(page.getByRole("alert")).toHaveText("유효 종료 시각은 시작 시각보다 늦어야 합니다.");
+  await expect(page.getByRole("alert").filter({ hasText: "유효 종료" })).toHaveText("유효 종료 시각은 시작 시각보다 늦어야 합니다.");
   expect(writes).toEqual([]);
   const accessibility = await new AxeBuilder({ page }).analyze();
   expect(accessibility.violations).toEqual([]);
