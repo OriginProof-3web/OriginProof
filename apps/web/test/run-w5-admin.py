@@ -23,7 +23,7 @@ def main():
         raise SystemExit("Set W5_ADMIN_QA=1 to create a disposable synthetic stack.")
     os.environ["LLM_PROVIDER"] = "mock"
     os.environ.pop("OPENAI_API_KEY", None)
-    out = ROOT / "build" / "w5-admin" / uuid4().hex
+    out = Path(os.getenv("W5_ADMIN_OUTPUT_DIR", str(ROOT / "build" / "w5-admin"))) / uuid4().hex
     out.mkdir(parents=True, mode=0o700)
     source = out / "d-qa.py"
     source.write_bytes(subprocess.check_output(
@@ -47,6 +47,8 @@ def main():
     resources = helper.disposable_stack.__wrapped__(out)
     env = next(resources)
     try:
+        if not Path(env["manifest"]).is_file():
+            raise RuntimeError("Deployment manifest missing: use W5_ADMIN_OUTPUT_DIR under a Docker-shared directory.")
         from originproof_api.accounts import password_hash
         from originproof_api.database import AccountRow, Database
         from originproof_api.settings import Settings
