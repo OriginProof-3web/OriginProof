@@ -5,3 +5,5 @@
 @media(max-width:760px){.console-nav{position:static;transform:none;margin:24px auto 0}.console-actions{padding-top:14px}.main>.uw-shell{padding-top:24px}}
 
 #operator-panel textarea{display:block;width:100%;background:#19191f;color:#eeeaf5;border:1px solid #32323d;border-radius:8px;padding:12px;margin:12px 0}#operator-panel button{margin:4px}.uw-status{overflow-wrap:anywhere}
+
+#operator-panel input{max-width:100%;min-width:0}#operator-panel pre{overflow-wrap:anywhere;white-space:pre-wrap}#operator-panel button{max-width:100%;overflow-wrap:anywhere}

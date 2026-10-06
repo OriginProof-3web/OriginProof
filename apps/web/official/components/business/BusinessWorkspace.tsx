@@ -20,7 +20,7 @@ const samples = { payment: { amount_minor: "85000", currency: "KRW", target_ref:
 const date = (value: string) => value ? new Date(value).toLocaleString("ko-KR") : "—";
 const localTime=(offset:number)=>{const d=new Date(Date.now()+offset);return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);};
 
-export default function BusinessWorkspace({lifecycleEnabled=false,apiPrefix}: {lifecycleEnabled?:boolean;apiPrefix?:string}={}) {
+export default function BusinessWorkspace({lifecycleEnabled=false,apiPrefix,testOrg}: {lifecycleEnabled?:boolean;apiPrefix?:string;testOrg?:Org}={}) {
   const api=useCallback((path:string,body?:object)=>lifecycleEnabled&&path.endsWith('/verify')?verifyRead(path,body,apiPrefix):apiPrefix===undefined?(body===undefined?scopedApi(path):scopedApi(path,body)):scopedApi(path,body,apiPrefix),[apiPrefix,lifecycleEnabled]);
   const adminPreview=apiPrefix?.startsWith("/test-api/")??false;
   const [lifecycle,setLifecycle]=useState<ProofReconciliation["current_verification"]|null>(null);
@@ -76,24 +76,24 @@ export default function BusinessWorkspace({lifecycleEnabled=false,apiPrefix}: {l
     const me: AccountView=await api('/v1/auth/me');
     if(token!==refreshGeneration.current)return;
     if(me.role!=="issuer")throw new Error("기관 계정으로 로그인해 주세요.");
-    const next: Org=me.issuer_id===orgs.office.id?"office":"bank";
-    if(![orgs.bank.id,orgs.office.id].includes(me.issuer_id??""))throw new Error("두 합성 기관 전용 테스트 환경입니다.");
+    const next: Org=adminPreview&&testOrg?testOrg:me.issuer_id===orgs.office.id?"office":"bank";
+    if(!(adminPreview&&testOrg)&&![orgs.bank.id,orgs.office.id].includes(me.issuer_id??""))throw new Error("두 합성 기관 전용 테스트 환경입니다.");
     setOrg(next);if(accountId.current!==me.issuer_id){setFields(next==="bank"?defaults.payment:defaults.document);accountId.current=me.issuer_id??"";}
     const [state,keyRows,proofRows,recipientRows,audit,app] = await Promise.all([api('/v1/issuer/status').catch(error=>{if(error.status===401)throw error;return null;}),api('/v1/issuer/keys'),api('/v2/issuer/proofs'),api('/v2/issuer/recipients'),api('/v1/audit-events'),api('/v1/issuer-applications/mine')]);
     const chainRows=lifecycleEnabled?await api("/v1/operations"):[];
     if(token!==refreshGeneration.current)return;
     setChainOperations(chainRows);
-    setNetwork(state);setScenario(state?.status??app?.status??"PENDING_REVIEW");setApplication(app);
+    setNetwork(state);setScenario(app?.status??state?.status??"NOT_REGISTERED");setApplication(app);
     setKeys(keyRows.map((k:KeyView)=>({id:k.key_id,org:next,signer:k.signer,from:new Date(k.valid_from*1000).toISOString(),until:new Date(k.valid_until*1000).toISOString(),status:k.status,selected:k.selected})));
     setRecipients(recipientRows);
     setRecords(proofRows.map((p:ProofView)=>({id:p.proof_id,org:next,type:p.proof_type,recipient:"서버 binding",expiry:p.expires_at,fields:{},draft:false})));
     setOperations(audit.map((a:AuditView)=>({id:a.event_id,org:next,target:a.target_id,name:a.action,reason:a.reason??"",time:a.created_at,status:a.after_status})));
-  },[api,lifecycleEnabled]);
+  },[api,lifecycleEnabled,adminPreview,testOrg]);
   useEffect(()=>{refresh().catch(reportError).finally(()=>setLoading(false));},[refresh,reportError]);
   async function run(body:object,path:string) {
     if(submitting.current)return;submitting.current=true;setBusy(true);setError("");setMessage("");
     try {const result=await api(path,path==="/v1/issuer-applications"?body:{...body,request_id:stableId({path,...body})});
-      setMessage(`${result.operation_id??result.proof_id} · ${result.status??(lifecycleEnabled?`등록 ${result.registration_status??"미확인"}`:"발행 저장 완료")}${result.error_code?" · "+result.error_code:""}`);
+      setMessage(`${result.operation_id??result.proof_id??result.application_id} · ${result.status??(lifecycleEnabled?`등록 ${result.registration_status??"미확인"}`:"발행 저장 완료")}${result.error_code?" · "+result.error_code:""}`);
       if(result.operation_id){setOperationId(result.operation_id);setOperation(result);}
       if(result.operation_id)setMessage(`${result.operation_id} · ${result.status} · ${result.tx_hash??"tx 미확인"}`);
       try {await refresh();} catch(error) {reportError(error);}return result;
@@ -145,9 +145,9 @@ export default function BusinessWorkspace({lifecycleEnabled=false,apiPrefix}: {l
     <header className="uw-header"><span className="uw-eyebrow">BUSINESS SPACE</span><span className="uw-preview">실제 API · 로컬 테스트</span><h1>{labels[action]}</h1><p>{descriptions[action]}</p><button className="uw-secondary" disabled={busy} onClick={()=>{setError(null);void refresh().catch(reportError);}}>기관 정보 다시 조회</button></header>
     <div className="bw-context"><Building2 size={18} /><label>로그인 기관<select disabled value={org} onChange={(e) => changeOrg(e.target.value as Org)}><option value="bank">Origin Mock Bank</option><option value="office">Origin Mock Office</option></select></label><span>실제 기관 권한은 서버에서 확인합니다.</span></div>
     {action === "status" && <>
-      <section className="uw-card"><div className="uw-result-heading"><h2>{current.name}</h2><span className="bw-badge">합성 기관</span></div><dl className="uw-summary"><div><dt>기관 ID</dt><dd>{current.id}</dd></div><div><dt>담당 범위</dt><dd>{payment ? "지급 요청" : "공식 문서"}</dd></div><div><dt>환경</dt><dd>{network ? `로컬 EVM · ${network.chain_id} · ${network.deployment_id}` : "체인 상태 미확인"}</dd></div><div><dt>검토 사유</dt><dd>{application?.decision_reason ?? "검토 사유 없음"}</dd></div></dl>
-      <label className="bw-scenario">기관 상태<select disabled value={scenario} onChange={(e) => setScenario(e.target.value)}><option value="ACTIVE">체인 활성화</option><option value="PENDING_REVIEW">운영자 검토 대기 예시</option><option value="APPROVED_PENDING_CHAIN">승인·체인 활성화 대기 예시</option><option value="REJECTED">반려 예시</option><option value="SUSPENDED">기관 중지 예시</option></select></label>
-      <ol className="bw-steps"><li><span>01</span><div><strong>기관 신청</strong><small>합성 신청 정보</small></div><b>{application ? "접수" : "미신청"}</b></li><li><span>02</span><div><strong>운영자 검토 결정</strong><small>기관이 자기 신청을 승인할 수 없습니다</small></div><b>{scenario === "PENDING_REVIEW" ? "검토 대기" : scenario === "REJECTED" ? "반려 예시" : application ? "승인" : "검토 기록 없음"}</b></li><li><span>03</span><div><strong>Registry 활성화</strong><small>DB 승인과 별도로 receipt·현재 상태를 확인합니다</small></div><b>{active ? "ACTIVE" : scenario === "SUSPENDED" ? "중지 예시" : "확인 대기"}</b></li></ol>
+      <section className="uw-card"><div className="uw-result-heading"><h2>{current.name}</h2><span className="bw-badge">합성 기관</span></div><dl className="uw-summary"><div><dt>기관 ID</dt><dd>{network?.issuer_id??application?.issuer_id??accountId.current??current.id}</dd></div><div><dt>담당 범위</dt><dd>{payment ? "지급 요청" : "공식 문서"}</dd></div><div><dt>환경</dt><dd>{network ? `로컬 EVM · ${network.chain_id} · ${network.deployment_id}` : "체인 상태 미확인"}</dd></div><div><dt>검토 사유</dt><dd>{application?.decision_reason ?? "검토 사유 없음"}</dd></div></dl>
+      <label className="bw-scenario">기관 상태<select disabled value={scenario} onChange={(e) => setScenario(e.target.value)}><option value="NOT_REGISTERED">미등록</option><option value="ACTIVE">체인 활성화</option><option value="REVOKED">기관 폐기</option><option value="PENDING_REVIEW">운영자 검토 대기</option><option value="APPROVED_PENDING_CHAIN">승인·체인 활성화 대기</option><option value="REJECTED">반려</option><option value="SUSPENDED">기관 중지</option></select></label>
+      <ol className="bw-steps"><li><span>01</span><div><strong>기관 신청</strong><small>합성 신청 정보</small></div><b>{application ? "접수" : "미신청"}</b></li><li><span>02</span><div><strong>운영자 검토 결정</strong><small>기관이 자기 신청을 승인할 수 없습니다</small></div><b>{scenario === "PENDING_REVIEW" ? "검토 대기" : scenario === "REJECTED" ? "반려" : application ? "승인" : "검토 기록 없음"}</b></li><li><span>03</span><div><strong>Registry 활성화</strong><small>DB 승인과 별도로 receipt·현재 상태를 확인합니다</small></div><b>{active ? "ACTIVE" : scenario === "SUSPENDED" ? "중지" : "확인 대기"}</b></li></ol>
       <div className="uw-actions">{lifecycleEnabled&&!application&&<button className="uw-secondary" disabled={busy} onClick={()=>void run({issuer_name:current.name},"/v1/issuer-applications")}>기관 신청 접수</button>}<a className="uw-secondary" href="application-status.html">신청현황 페이지</a><button className="uw-primary" onClick={() => jump("keys")}>공개키 관리<ArrowRight size={16} /></button></div></section>
       <section className="bw-tiles">{([["keys", "공개키 관리", KeyRound], ["issue", "Proof 발행", FilePlus2], ["proofs", "발행 목록", FileText], ["operations", "작업 이력", History]] as const).map(([id, label, Icon]) => <button key={id} onClick={() => jump(id)}><Icon size={22} /><strong>{label}</strong><ArrowRight size={16} /></button>)}</section>
     </>}

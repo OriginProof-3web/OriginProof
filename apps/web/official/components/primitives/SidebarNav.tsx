@@ -358,7 +358,7 @@ export default function SidebarNav({
           <div className="sidebar-copy relative mx-2 mb-1 h-8">
             <div
               aria-hidden={searchOpen}
-              className={`absolute inset-0 flex items-center gap-1.5 px-2 text-[12.5px] font-medium text-ink-3 transition-[opacity,transform] ${searchOpen ? "pointer-events-none -translate-x-1 opacity-0" : "translate-x-0 opacity-100"}`}
+              className={`absolute inset-0 flex items-center gap-1.5 px-2 text-[12.5px] font-medium text-ink-2 transition-[opacity,transform] ${searchOpen ? "pointer-events-none -translate-x-1 opacity-0" : "translate-x-0 opacity-100"}`}
               style={{ transitionDuration: `${CHAT_SEARCH_MOTION.duration}ms`, transitionTimingFunction: CHAT_SEARCH_MOTION.easing }}
             >
               <IconChevronDownSmall size={16} />
@@ -440,7 +440,7 @@ export default function SidebarNav({
               );
             })}
             {query && visibleRecents.length === 0 && (
-              <div className="sidebar-copy mx-2 px-2 py-2 text-[12.5px] text-ink-3">확인 내역이 없습니다</div>
+              <div className="sidebar-copy mx-2 px-2 py-2 text-[12.5px] text-ink-2">확인 내역이 없습니다</div>
             )}
           </GlideGroup>
         </div>

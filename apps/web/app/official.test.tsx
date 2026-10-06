@@ -73,3 +73,16 @@ test('expired restricted content clears prior candidate values and offers login'
  fireEvent.click(screen.getByRole('button',{name:'조회'}));
  expect(await screen.findByRole('link',{name:'다시 로그인'})).toBeVisible();expect(screen.queryByText('PROOF_ONLY')).not.toBeInTheDocument();
 });
+test('pending application is not displayed as approved when the chain already has a seeded issuer',async()=>{
+ mock.mockImplementation(async(path)=>path==='/v1/issuer-applications/mine'?{application_id:'app_test',issuer_id:bank,status:'PENDING_REVIEW'}:defaults(path));
+ render(<BusinessWorkspace/>);
+ await waitFor(()=>expect(screen.getByRole('combobox',{name:'기관 상태'})).toHaveValue('PENDING_REVIEW'));
+ expect(screen.getByText('검토 대기',{exact:true})).toBeVisible();
+ expect(screen.queryByText('승인',{exact:true})).not.toBeInTheDocument();
+});
+test('fresh application confirmation uses application ID rather than undefined',async()=>{
+ mock.mockImplementation(async(path,body)=>path==='/v1/issuer-applications'&&body?{application_id:'app_test',status:'PENDING_REVIEW'}:defaults(path));
+ render(<BusinessWorkspace lifecycleEnabled/>);
+ fireEvent.click(await screen.findByRole('button',{name:'기관 신청 접수'}));
+ expect(await screen.findByText('app_test · PENDING_REVIEW')).toBeVisible();
+});
