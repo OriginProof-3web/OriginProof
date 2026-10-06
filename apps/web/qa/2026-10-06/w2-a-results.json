@@ -1,0 +1,153 @@
+{
+  "title": "W2 A · 키 등록/폐기·기관 활성화 · clean clone 실제 연결",
+  "status": "passed",
+  "sha": "84fb5f2c03868b050290ba3d1da0b234eb22fc7f",
+  "finished_at": "2026-10-06T00:08:40.605527+00:00",
+  "cases": [
+    {
+      "name": "[connected] actual application APPROVE, issuer refresh, fresh login and logout",
+      "status": "passed",
+      "group": "W2 실제 Chromium·API·DB·Anvil"
+    },
+    {
+      "name": "[connected] actual application REJECT, issuer refresh, fresh login and logout",
+      "status": "passed",
+      "group": "W2 실제 Chromium·API·DB·Anvil"
+    },
+    {
+      "name": "[connected] real confirmed Operation and own audit events are read through the UI",
+      "status": "passed",
+      "group": "W2 실제 Chromium·API·DB·Anvil"
+    },
+    {
+      "name": "[connected] real UNKNOWN Operation is shown without a confirmed success",
+      "status": "passed",
+      "group": "W2 실제 Chromium·API·DB·Anvil"
+    },
+    {
+      "name": "[connected] another issuer is denied another institution Operation through the actual UI",
+      "status": "passed",
+      "group": "W2 실제 Chromium·API·DB·Anvil"
+    },
+    {
+      "name": "[connected] anonymous, operator and recipient see the actual issuer-only key access gate",
+      "status": "passed",
+      "group": "W2 실제 Chromium·API·DB·Anvil"
+    },
+    {
+      "name": "[acceptance] ACTIVE is explained after actual refresh",
+      "status": "passed",
+      "group": "W2 실제 Chromium·API·DB·Anvil"
+    },
+    {
+      "name": "[acceptance] approved summary has valid definition-list structure",
+      "status": "passed",
+      "group": "W2 실제 Chromium·API·DB·Anvil"
+    },
+    {
+      "name": "[acceptance] current institution keys use actual GET",
+      "status": "passed",
+      "group": "W2 실제 Chromium·API·DB·Anvil"
+    },
+    {
+      "name": "[acceptance] registration sends actual POST and preserves key after fresh login",
+      "status": "passed",
+      "group": "W2 실제 Chromium·API·DB·Anvil"
+    },
+    {
+      "name": "[acceptance] revocation uses displayed key with explicit confirmation and reload",
+      "status": "passed",
+      "group": "W2 실제 Chromium·API·DB·Anvil"
+    },
+    {
+      "name": "[acceptance] approval activates chain through actual UI and fresh issuer sees ACTIVE",
+      "status": "passed",
+      "group": "W2 실제 Chromium·API·DB·Anvil"
+    }
+  ],
+  "command": "W2_BROWSER_QA=1 uv run python apps/web/test/run-w2-live.py",
+  "replayable": false,
+  "output": "실제 브라우저 12/12 통과. DB 최종 상태 일치 및 브라우저 변경 3건 CONFIRMED. 새 합성 자원 정리 완료. 같은 Mac clean clone 재현; 다른 PC 및 D 독립 확인 미실행. 재실행은 문서의 새 clone 절차를 따릅니다.",
+  "environment": {
+    "python": "3.13.15",
+    "postgres": "16-alpine (disposable tmpfs)",
+    "foundry": "v1.4.4 pinned digest",
+    "ai": "mock only"
+  },
+  "db_check": {
+    "application_statuses": {
+      "iss_w2_active": "ACTIVE",
+      "iss_w2_approve": "APPROVED_PENDING_CHAIN",
+      "iss_w2_reject": "REJECTED",
+      "iss_w2_approved": "ACTIVE"
+    },
+    "operation_count": 6,
+    "browser_operations": [
+      {
+        "action": "revoke_key",
+        "status": "CONFIRMED"
+      },
+      {
+        "action": "register_key",
+        "status": "CONFIRMED"
+      },
+      {
+        "action": "register_issuer",
+        "status": "CONFIRMED"
+      }
+    ],
+    "expected_match": true
+  },
+  "deployment": {
+    "chain_id": 31337,
+    "genesis_block_hash": "0xfabb172689860d95add91c53d015f7110b8a97c854298162914444dd0dee0a68",
+    "deployment_block": 1,
+    "deployment_block_hash": "0x5027b8c2ac5587f7070f94763099b604f53b904601221674bdc248ee9d3a7f15",
+    "source_commit_sha": "84fb5f2c03868b050290ba3d1da0b234eb22fc7f",
+    "contracts": {
+      "IssuerRegistry": {
+        "address": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+        "constructor_arguments": [
+          "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266"
+        ],
+        "abi_sha256": "259a6af346b1c4b0bc22cc014dacd7dcc8d0121a224c26e56cc78787c6213e72"
+      },
+      "IssuerKeyRegistry": {
+        "address": "0xe7f1725e7734ce288f8367e1bb143e90bb3f0512",
+        "constructor_arguments": [
+          "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+          "0x5fbdb2315678afecb367f032d93f642f64180aa3"
+        ],
+        "abi_sha256": "8e522d85f431134aa35400cfee693f6e8303aa05523774ad892807832d8b0e33"
+      }
+    },
+    "deployment_id": "dep_a24d168e91f1c83cd3559689726f497972ab646417449029ef30a4b1bab48fdf",
+    "roles": {
+      "registry_admin": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+      "issuer_manager": "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+      "key_manager": "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+      "issuer_account": "0x90f79bf6eb2c4f870365e785982e1f101e93b906"
+    }
+  },
+  "clean_clone": true,
+  "independent_review": false,
+  "component_tests": 16,
+  "browser_stats": {
+    "startTime": "2026-10-06T00:06:48.499Z",
+    "duration": 8770.397,
+    "expected": 12,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "qa_preparation_sha": "17f78e300b04aa9395fb20f6f76f5313d705db3d",
+  "api_base_sha": "6f508fe6ae5ce106999c171e8205978dd2201333",
+  "owned_resources_cleaned": true,
+  "regression_source_sha": "6385931",
+  "mock_browser_regression": {
+    "passed": 5,
+    "skipped_live_cases": 12,
+    "port": 53117,
+    "note": "Existing 3000 server caused wrong-page failure; isolated dev server verifies this clone. Previous placeholder assertion and Next announcer strict locator corrected. Actual live 12 PASS is a separate production-server run at 84fb5f2."
+  }
+}

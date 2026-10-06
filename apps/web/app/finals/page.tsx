@@ -2,6 +2,8 @@
 
 import { FormEvent, useEffect, useState } from "react";
 
+import { request } from "./api-client";
+
 type Role = "operator" | "issuer" | "recipient";
 
 type Account = {
@@ -45,7 +47,6 @@ type AuditEvent = {
   created_at: string;
 };
 
-type ApiFailure = { error?: string; detail?: string };
 
 const roleLabels: Record<Role, string> = {
   operator: "운영자",
@@ -57,6 +58,9 @@ const statusLabels: Record<string, string> = {
   PENDING_REVIEW: "검토 대기",
   APPROVED_PENDING_CHAIN: "승인됨 · 체인 활성화 대기",
   REJECTED: "반려됨",
+  ACTIVE: "활성화 완료",
+  SUSPENDED: "기관 중지",
+  REVOKED: "기관 폐기",
 };
 
 const operationLabels: Record<string, string> = {
@@ -82,21 +86,6 @@ function apiMessage(code: string): string {
   return messages[code] ?? "요청을 처리하지 못했습니다. 잠시 후 상태를 다시 확인해 주세요.";
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`/api${path}`, {
-    ...init,
-    headers: {
-      ...(init?.body ? { "Content-Type": "application/json" } : {}),
-      ...init?.headers,
-    },
-  });
-
-  const payload = (await response.json().catch(() => ({}))) as T & ApiFailure;
-  if (!response.ok) {
-    throw new Error(payload.detail ?? payload.error ?? `HTTP_${response.status}`);
-  }
-  return payload;
-}
 
 function isRole(value: string): value is Role {
   return value === "operator" || value === "issuer" || value === "recipient";
@@ -276,6 +265,24 @@ export default function FinalsPage() {
     }
   }
 
+  async function activate(event: FormEvent<HTMLFormElement>, row: Application) {
+    event.preventDefault();
+    if (!account || isSubmitting) return;
+    const form = new FormData(event.currentTarget);
+    setError(null);
+    setIsSubmitting(true);
+    try {
+      const operation = await request<Operation>(
+        `/v1/operator/issuer-applications/${encodeURIComponent(row.application_id)}/activate`,
+        { method: "POST", headers: { "X-CSRF-Token": account.csrf_token },
+          body: JSON.stringify({ request_id: `req_${crypto.randomUUID()}`, reason: String(form.get("reason") ?? "") }) },
+      );
+      setInfo(`${operationLabels[operation.status] ?? "상태 확인 필요"} · 작업 ID ${operation.operation_id}`);
+      await refreshRoleData();
+    } catch (reason) { reportFailure(reason); }
+    finally { setIsSubmitting(false); }
+  }
+
   return (
     <main className="finals-page">
       <header className="finals-header">
@@ -332,6 +339,12 @@ export default function FinalsPage() {
               {applications.map((row) => (
                 <li key={row.application_id} className="application-item">
                   <ApplicationSummary application={row} />
+                  {row.status === "APPROVED_PENDING_CHAIN" && (
+                    <form className="decision-form" onSubmit={(event) => activate(event, row)}>
+                      <label>활성화 사유<input name="reason" maxLength={500} required /></label>
+                      <button type="submit" disabled={isSubmitting}>체인 활성화</button>
+                    </form>
+                  )}
                   {row.status === "PENDING_REVIEW" && (
                     <form className="decision-form" onSubmit={(event) => decide(event, row)}>
                       <label>검토 사유<input name="reason" maxLength={500} required /></label>
@@ -429,7 +442,7 @@ function ApplicationSummary({ application }: { application: Application }) {
       <div><dt>기관</dt><dd>{application.issuer_name}</dd></div>
       <div><dt>신청 상태</dt><dd>{statusLabel(application.status)}</dd></div>
       {application.decision_reason && <div><dt>검토 사유</dt><dd>{application.decision_reason}</dd></div>}
-      {application.status === "APPROVED_PENDING_CHAIN" && <p className="chain-pending">운영자 검토는 승인됐지만 체인 활성화는 별도 확인이 필요합니다.</p>}
+      {application.status === "APPROVED_PENDING_CHAIN" && <div className="chain-pending"><dt>체인 활성화 안내</dt><dd>운영자 검토는 승인됐지만 체인 활성화는 별도 확인이 필요합니다.</dd></div>}
     </dl>
   );
 }
