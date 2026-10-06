@@ -37,12 +37,12 @@ test('fresh accounts only: keyboard application, approval, activation, keys, two
   for(const org of ['bank','office']){
    await enter(nav.getByRole('button',{name:'기업 기능',exact:true}));await select(page.getByLabel('테스트 기관',{exact:true}),org==='bank'?0:1);
    await expect(page.getByRole('button',{name:'기관 신청 접수'})).toBeVisible();await axe(page);
-   await enter(page.getByRole('button',{name:'기관 신청 접수'}));await expect(page.getByRole('combobox',{name:'기관 상태',exact:true})).toHaveValue('PENDING_REVIEW');
+   await enter(page.getByRole('button',{name:'기관 신청 접수'}));await expect(page.getByRole('combobox',{name:'신청 상태',exact:true})).toHaveValue('PENDING_REVIEW');
    await enter(nav.getByRole('button',{name:'기관 승인',exact:true}));
    let card=page.locator('#operator-controls .test-card').filter({has:page.getByRole('heading',{name:org==='bank'?'Origin Mock Bank':'Origin Mock Office',exact:true})});
    await expect(card.getByRole('button',{name:'승인',exact:true})).toBeVisible();await type(card.getByRole('textbox'),'Synthetic W5 keyboard approval');await enter(card.getByRole('button',{name:'승인',exact:true}));
    await expect(card).toContainText('APPROVED_PENDING_CHAIN');await type(card.getByRole('textbox'),'Synthetic W5 activation');await enter(card.getByRole('button',{name:'체인 활성화',exact:true}));await expect(card).toContainText('ACTIVE');await axe(page);
-   await enter(nav.getByRole('button',{name:'기업 기능',exact:true}));await expect(page.getByRole('combobox',{name:'기관 상태',exact:true})).toHaveValue('ACTIVE');
+   await enter(nav.getByRole('button',{name:'기업 기능',exact:true}));await expect(page.getByRole('combobox',{name:'신청 상태',exact:true})).toHaveValue('ACTIVE');
    await enter(actions.getByRole('button',{name:'공개키 관리',exact:true}));await type(page.getByLabel('작업 사유',{exact:true}),'Synthetic W5 initial key');await enter(page.getByRole('button',{name:'키 작업 실행',exact:true}));await expect(status).toContainText('CONFIRMED');
    await enter(actions.getByRole('button',{name:'Proof 발행',exact:true}));await enter(page.getByRole('button',{name:'합성 예시 채우기'}));await axe(page);await enter(page.getByRole('button',{name:'Proof 발행',exact:true}).last());await expect(status).toContainText('prf_');const id=(await status.innerText()).match(/prf_[A-Za-z0-9_-]+/)![0];
    await enter(nav.getByRole('button',{name:'개인 기능',exact:true}));await type(page.getByLabel('Proof ID / 검증 링크'),id);await enter(page.getByRole('button',{name:'조회',exact:true}));await expect(page.getByText('PROOF_ONLY',{exact:true})).toBeVisible();await axe(page);
