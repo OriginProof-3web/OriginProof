@@ -1,0 +1,218 @@
+{
+  "$defs": {
+    "FinalsProofType": {
+      "enum": [
+        "PAYMENT_REQUEST",
+        "OFFICIAL_DOCUMENT"
+      ],
+      "title": "FinalsProofType",
+      "type": "string"
+    },
+    "OfficialDocument": {
+      "additionalProperties": false,
+      "properties": {
+        "document_number": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Document Number",
+          "type": "string"
+        },
+        "document_type": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Document Type",
+          "type": "string"
+        },
+        "institution_code": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Institution Code",
+          "type": "string"
+        },
+        "subject_token": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Subject Token",
+          "type": "string"
+        },
+        "version": {
+          "exclusiveMinimum": 0,
+          "title": "Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "institution_code",
+        "document_type",
+        "document_number",
+        "subject_token",
+        "version"
+      ],
+      "title": "OfficialDocument",
+      "type": "object"
+    },
+    "PaymentRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "amount_minor": {
+          "exclusiveMinimum": 0,
+          "title": "Amount Minor",
+          "type": "integer"
+        },
+        "beneficiary_binding": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Beneficiary Binding",
+          "type": "string"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "payer_binding": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Payer Binding",
+          "type": "string"
+        },
+        "target_hash": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Target Hash",
+          "type": "string"
+        }
+      },
+      "required": [
+        "amount_minor",
+        "currency",
+        "payer_binding",
+        "beneficiary_binding",
+        "target_hash"
+      ],
+      "title": "PaymentRequest",
+      "type": "object"
+    },
+    "SignatureScheme": {
+      "enum": [
+        "ECDSA_SECP256K1_KECCAK256_V1"
+      ],
+      "title": "SignatureScheme",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "app_domain": {
+      "const": "originproof.finals",
+      "title": "App Domain",
+      "type": "string"
+    },
+    "chain_id": {
+      "exclusiveMinimum": 0,
+      "title": "Chain Id",
+      "type": "integer"
+    },
+    "expires_at": {
+      "format": "date-time",
+      "title": "Expires At",
+      "type": "string"
+    },
+    "issued_at": {
+      "format": "date-time",
+      "title": "Issued At",
+      "type": "string"
+    },
+    "issuer_id": {
+      "pattern": "^iss_[A-Za-z0-9_-]+$",
+      "title": "Issuer Id",
+      "type": "string"
+    },
+    "key_id": {
+      "pattern": "^key_[A-Za-z0-9_-]+$",
+      "title": "Key Id",
+      "type": "string"
+    },
+    "metadata_hash": {
+      "anyOf": [
+        {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Metadata Hash"
+    },
+    "nonce": {
+      "pattern": "^[0-9a-f]{32,64}$",
+      "title": "Nonce",
+      "type": "string"
+    },
+    "payload": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/PaymentRequest"
+        },
+        {
+          "$ref": "#/$defs/OfficialDocument"
+        }
+      ],
+      "title": "Payload"
+    },
+    "payload_hash": {
+      "pattern": "^0x[0-9a-f]{64}$",
+      "title": "Payload Hash",
+      "type": "string"
+    },
+    "proof_id": {
+      "pattern": "^prf_[A-Za-z0-9_-]+$",
+      "title": "Proof Id",
+      "type": "string"
+    },
+    "proof_type": {
+      "$ref": "#/$defs/FinalsProofType"
+    },
+    "schema_version": {
+      "const": "2.0.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "signature": {
+      "pattern": "^0x[0-9a-f]{130}$",
+      "title": "Signature",
+      "type": "string"
+    },
+    "signature_scheme": {
+      "$ref": "#/$defs/SignatureScheme"
+    },
+    "single_use": {
+      "title": "Single Use",
+      "type": "boolean"
+    },
+    "subject_binding_hash": {
+      "pattern": "^0x[0-9a-f]{64}$",
+      "title": "Subject Binding Hash",
+      "type": "string"
+    }
+  },
+  "required": [
+    "proof_id",
+    "issuer_id",
+    "key_id",
+    "proof_type",
+    "schema_version",
+    "signature_scheme",
+    "chain_id",
+    "app_domain",
+    "payload",
+    "payload_hash",
+    "subject_binding_hash",
+    "issued_at",
+    "expires_at",
+    "nonce",
+    "single_use",
+    "signature"
+  ],
+  "title": "FinalsSignedProofEnvelope",
+  "type": "object"
+}

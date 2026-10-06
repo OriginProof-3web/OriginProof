@@ -102,6 +102,8 @@ smoke:
 generate:
 	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run --package originproof-core python scripts/generate_schemas.py
 	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run --package originproof-core python scripts/generate_golden_fixture.py
+	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run --package originproof-core python scripts/generate_finals_golden.py
+	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run --package originproof-api python scripts/generate_api_contracts.py
 
 security:
 	@printf '%s\n' 'Run dependency and secret scans in CI after Bootstrap dependencies are locked.'

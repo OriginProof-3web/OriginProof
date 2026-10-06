@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OriginProof — Application Status</title><link rel="stylesheet" href="auth.css">
+</head>
+<body>
+<div class="auth-bg" aria-hidden="true"><canvas id="beyond-horizon-canvas"></canvas></div>
+<header class="auth-top"><a class="brand" href="index.html">OriginProof</a><a class="back-link" href="index.html">← 메인으로</a></header>
+<main class="auth-page"><section class="auth-card" aria-labelledby="page-title">
+  <p class="eyebrow">BUSINESS · APPLICATION</p><h1 id="page-title">Application Status</h1><p class="intro">신청에 사용한 계정으로 로그인하세요.</p>
+  <form data-status-lookup novalidate>
+    <div class="field"><label for="company-name">기업명</label><input id="company-name" name="company_name" autocomplete="organization" placeholder="신청한 기업명" required></div>
+    <div class="field"><label for="business-number">사업자등록번호</label><input id="business-number" name="business_number" inputmode="numeric" autocomplete="off" placeholder="000-00-00000" required></div>
+    <button class="primary-button" type="submit">신청현황 확인</button>
+  </form>
+  <nav class="auth-options" aria-label="계정 화면"><a href="business-login.html">Business Sign In</a></nav>
+</section></main>
+<script src="beyond-horizon.js"></script><script type="module" src="auth.js"></script>
+</body></html>

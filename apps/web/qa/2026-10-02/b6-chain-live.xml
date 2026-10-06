@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<testsuites name="pytest tests">
+  <testsuite name="pytest" errors="0" failures="0" skipped="0" tests="2" time="16.192" timestamp="2026-10-02T22:09:46.701798+09:00">
+    <testcase classname="services.indexer.tests.test_live_chain" name="test_live_reader_and_m1_api" time="6.320" />
+    <testcase classname="services.indexer.tests.test_chain_restart" name="test_same_chain_id_redeployment_invalidates_old_manifest" time="9.502" />
+  </testsuite>
+</testsuites>
