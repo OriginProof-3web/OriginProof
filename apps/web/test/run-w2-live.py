@@ -44,6 +44,26 @@ def main():
         code = code.replace(
             "../../fixtures/finals/w2_browser_qa.config.ts", "playwright.w2-live.config.ts"
         )
+        if target == runner:
+            code = code.replace(
+                'and all(row.request_id.startswith("req_w2_prepare_") for row in operations)',
+                'and statuses.get("iss_w2_approved") == "ACTIVE"\n'
+                "                and len(operations) == 6\n"
+                "                and sorted(\n"
+                "                    (row.action, row.status) for row in operations\n"
+                '                    if not row.request_id.startswith("req_w2_prepare_")\n'
+                '                ) == [("register_issuer", "CONFIRMED"),\n'
+                '                      ("register_key", "CONFIRMED"), ("revoke_key", "CONFIRMED")]',
+            )
+            code = code.replace(
+                '"operation_count": len(operations),',
+                '"operation_count": len(operations),\n'
+                '                "browser_operations": [\n'
+                '                    {"action": row.action, "status": row.status}\n'
+                "                    for row in operations\n"
+                '                    if not row.request_id.startswith("req_w2_prepare_")\n'
+                "                ],",
+            )
         target.write_text(code)
         target.chmod(0o600)
     environment = ROOT / ".env"
