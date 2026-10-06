@@ -101,7 +101,7 @@ export default function KeyManagementPage() {
     {!checked ? <p role="status">로그인 상태를 확인하고 있습니다.</p> : !account ? <section className="finals-card"><h2>로그인이 필요합니다</h2><a href="/finals">로그인 화면으로 이동</a></section> : account.role !== "issuer" ? <section className="finals-card"><h2>발행기관 권한이 필요합니다</h2><p>발행기관 계정으로 로그인해 주세요.</p></section> : <>
       <section className="finals-card"><h2>내 기관의 공개 키</h2><button disabled={busy} onClick={() => void refresh()}>키 목록 새로고침</button>
         {keys === null ? <p>키 목록 조회 결과가 없습니다.</p> : keys.length === 0 ? <p role="status">등록된 키가 없습니다.</p> : keys.map(key => <article key={key.key_id}>
-          <dl><div><dt>키 ID</dt><dd>{key.key_id}</dd></div><div><dt>공개 signer</dt><dd>{key.signer}</dd></div><div><dt>현재 상태</dt><dd>{key.status}</dd></div><div><dt>현재 발행 키</dt><dd>{key.selected ? "선택됨" : "선택 안 됨"}</dd></div></dl>
+          <dl><div><dt>키 ID</dt><dd>{key.key_id}</dd></div><div><dt>공개 signer</dt><dd>{key.signer}</dd></div><div><dt>유효 시작 (UTC)</dt><dd>{new Date(key.valid_from * 1000).toISOString()}</dd></div><div><dt>유효 종료 (UTC)</dt><dd>{new Date(key.valid_until * 1000).toISOString()}</dd></div><div><dt>배포 ID</dt><dd>{key.deployment_id}</dd></div><div><dt>현재 상태</dt><dd>{key.status}</dd></div><div><dt>현재 발행 키</dt><dd>{key.selected ? "선택됨" : "선택 안 됨"}</dd></div></dl>
           {key.status !== "REVOKED" && <form onSubmit={event => void mutate(event, key)}><label>키 폐기 사유<input name="reason" required maxLength={500} /></label><label><input type="checkbox" required />유출 키 폐기는 해당 키의 기존 Proof도 현재 사용 불가로 만듭니다.</label><button disabled={busy}>키 폐기</button></form>}
         </article>)}
       </section>

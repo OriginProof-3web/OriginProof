@@ -6,7 +6,7 @@ import KeyManagementPage from "./page";
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 const account = { role: "issuer", username: "demo-issuer-a", csrf_token: "csrf_test" };
-const key = { key_id: "key_test", signer: "0xsynthetic", status: "ACTIVE", selected: true };
+const key = { key_id: "key_test", signer: "0xsynthetic", status: "ACTIVE", selected: true, valid_from: 1790812800, valid_until: 1793491200, deployment_id: "dep_synthetic" };
 function response(payload: unknown, status = 200) { return { ok: status < 300, status, json: async () => payload }; }
 function setup(status = "CONFIRMED", failingStatus = 0) {
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
