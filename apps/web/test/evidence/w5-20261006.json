@@ -618,5 +618,62 @@
     "Clean clone dependency symlinks broke jest-dom; installed frozen locks instead",
     "Docker Colima did not share private/tmp deployment evidence; use shared W5_ADMIN_OUTPUT_DIR and fail early if missing manifest"
   ],
-  "paid_ai_calls": 0
+  "paid_ai_calls": 0,
+  "additional_mixed_diagnostic": {
+    "product_sha": "3ef1fd40943914c1450e8bc05047119ab7eabbc0",
+    "qa_git_head": "d8985892dc1f65c1248b217e5cecf87dc9e7bd0d",
+    "passed": 17,
+    "failed": 1,
+    "raw_summary_sha256": "23cf6fbb0c6b93d122d09fb58f8047ad0305caa629a1dc2ef88a08b3f81143de",
+    "resources_closed": true,
+    "failure": [
+      {
+        "id": "current_candidate_lifecycle_regression",
+        "status": "FAIL",
+        "error_type": "AssertionError",
+        "failure_line": 395,
+        "observed_issue_errors": [
+          {
+            "verification_status": "INCONCLUSIVE",
+            "lifecycle_status": null,
+            "reason_codes": [
+              "DEPENDENCY_UNAVAILABLE"
+            ],
+            "checks": {
+              "contract": "PASS",
+              "payload_hash": "PASS",
+              "issuer": "UNAVAILABLE",
+              "issuer_key": "NOT_RUN",
+              "signature": "NOT_RUN",
+              "proof_status": "NOT_RUN",
+              "candidate_match": "NOT_RUN"
+            }
+          },
+          {
+            "verification_status": "INCONCLUSIVE",
+            "lifecycle_status": null,
+            "reason_codes": [
+              "DEPENDENCY_UNAVAILABLE"
+            ],
+            "checks": {
+              "contract": "PASS",
+              "payload_hash": "PASS",
+              "issuer": "UNAVAILABLE",
+              "issuer_key": "NOT_RUN",
+              "signature": "NOT_RUN",
+              "proof_status": "NOT_RUN",
+              "candidate_match": "NOT_RUN"
+            }
+          }
+        ]
+      }
+    ],
+    "note": "A diagnostic tracing reexecution reproduced G07; no product source modification or root-cause confirmation"
+  },
+  "ci_followup": {
+    "initial_run": 37439226678,
+    "python_quality": "FAIL: six style/import errors in new A QA helpers; tests executed before lint",
+    "resolution": "unused import/import sort/format fixed; local ruff all paths and compile PASS; CI rerun required",
+    "contracts": "PASS"
+  }
 }

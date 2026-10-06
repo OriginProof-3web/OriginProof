@@ -24,7 +24,7 @@ A 웹 보완과 자체 브라우저 검사는 통과했습니다. **팀 W5 완�
 | `w5-admin-accessibility.spec.ts` | **1 PASS, 12.6초; 결과 표시 보강 재검사 1 PASS, 6.2초** | 기존 8768 실제 로그인·세 역할, axe WCAG A/AA |
 | D QA의 FRESH API 재실행 | **18 PASS / 0 FAIL** | 실제 HTTP·PostgreSQL·로컬 EVM, browser NOT_RUN |
 | D QA의 MIXED_DIAGNOSTIC 첫 재실행 | **18 PASS / 0 FAIL** | 실제 혼합 상태·재시작·reorg·RPC 장애 |
-| 재현 진입점 `run-w5-api.py`의 마지막 MIXED 재실행 | **17 PASS / 1 FAIL** | **G07 재발: issuer UNAVAILABLE**. 전체 통과/해결 판정 금지 |
+| 재현 진입점 `run-w5-api.py`의 마지막 MIXED 재실행 | **17 PASS / 1 FAIL, 진단 재실행도 17/1** | **G07 재발: issuer UNAVAILABLE**. 전체 통과/해결 판정 금지 |
 
 API 검사는 18개 그룹이며 18개의 브라우저 테스트라는 뜻이 아닙니다. 모든 재실행은 A가 수행했습니다. D의 검사 코드를 썼다는 이유로 D 독립 승인이라고 부르지 않습니다.
 
@@ -64,3 +64,7 @@ Owned 임시 PG/Anvil/network 정리 확인. 기존 8768/8780의 DB·사용자 �
 | W5 단계 완료 | **미완료** | G07 해결, A~D 동일 최종 SHA·F01~F15 매핑, D 독립 수용·리뷰·기여 사실 확인·phase/W5 승격 |
 
 phase/W5는 현재 미생성입니다. 자신의 PR을 스스로 승인하지 않았으며, 작성자 외 승인/팀원 완료를 가정하지 않습니다. W6/W7의 시연·RC·영상·리허설 완료도 주장하지 않습니다.
+
+## CI 후속
+
+첫 push `d898589`의 Quality Gate #37439226678은 Contract PASS, Python 테스트 실행 후 새 A 검사 도구의 import/형식 6개로 실패했습니다. unused import·import 정렬·format을 수정하고 전체 경로 ruff/compile을 통과했습니다. 후속 CI 결과는 PR의 최종 run에서 별도로 확인하며 G07 실제 장애 검사와 구분합니다.

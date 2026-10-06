@@ -1,11 +1,12 @@
 """A reexecutes frozen D QA against C #38; never represents D acceptance."""
+
 import importlib.util
 import io
 import os
-from pathlib import Path
 import subprocess
 import sys
 import tarfile
+from pathlib import Path
 from uuid import uuid4
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -20,15 +21,19 @@ if __name__ == "__main__":
     blob = subprocess.check_output(["git", "archive", D_SHA], cwd=ROOT)
     with tarfile.open(fileobj=io.BytesIO(blob)) as archive:
         archive.extractall(work, filter="data")
-    (work / "uv.lock").write_bytes(subprocess.check_output(["git", "show", f"{C_SHA}:uv.lock"], cwd=ROOT))
+    (work / "uv.lock").write_bytes(
+        subprocess.check_output(["git", "show", f"{C_SHA}:uv.lock"], cwd=ROOT)
+    )
     source = work / "fixtures/finals/w5_p0_api_qa.py"
     spec = importlib.util.spec_from_file_location("d_w5_reexecution", source)
     qa = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = qa
     spec.loader.exec_module(qa)
     original = qa.command
+
     def command(args, cwd=work, timeout=240):
         return original(args, cwd=ROOT if args[0] == "git" else cwd, timeout=timeout)
+
     qa.command = command
     qa.PRODUCT_SHA = C_SHA
     qa.DEPLOYER = "originproof-w5-a-admin-deployer:3ef1fd4"
