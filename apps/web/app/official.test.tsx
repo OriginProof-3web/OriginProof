@@ -86,3 +86,12 @@ test('fresh application confirmation uses application ID rather than undefined',
  fireEvent.click(await screen.findByRole('button',{name:'기관 신청 접수'}));
  expect(await screen.findByText('app_test · PENDING_REVIEW')).toBeVisible();
 });
+
+test('application review survives failed key listing without reporting chain activation',async()=>{
+ mock.mockImplementation(async(path)=>{if(path==='/v1/issuer/keys')throw Object.assign(new Error('503'),{status:503});if(path==='/v1/issuer-applications/mine')return {application_id:'app_pending',issuer_id:bank,status:'PENDING_REVIEW'};return defaults(path);});
+ render(<BusinessWorkspace/>);
+ await waitFor(()=>expect(screen.getByRole('combobox',{name:'신청 상태'})).toHaveValue('PENDING_REVIEW'));
+ expect(await screen.findByRole('alert')).toHaveTextContent('상태 코드: 503');
+ expect(screen.getByText('확인 대기',{exact:true})).toBeVisible();
+ expect(screen.queryByText('승인',{exact:true})).not.toBeInTheDocument();
+});
