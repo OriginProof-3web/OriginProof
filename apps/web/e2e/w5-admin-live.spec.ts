@@ -16,7 +16,7 @@ async function axe(page:Page){const result=await new AxeBuilder({page}).withTags
 test('fresh accounts only: keyboard application, approval, activation, keys, two types, compare and revoke',async({page,playwright})=>{
  const env=JSON.parse(readFileSync(process.env.W5_ADMIN_ENV!,'utf8'));
  const accounts=JSON.parse(readFileSync(env.accounts,'utf8'));
- const clients=new Map();let readFault=0;let faultResponses=0;
+ const clients=new Map();let readFault=0;let faultResponses=0;let lastProof='';
  try{
   for(const a of accounts){const client=await playwright.request.newContext({baseURL:env.api,extraHTTPHeaders:{Origin:'http://127.0.0.1:8768'}});expect((await client.post('/v1/auth/login',{data:{username:a.username,password:a.password}})).ok()).toBeTruthy();clients.set(a.username,client);}
   // Every response comes from the actual isolated API; no fabricated success.
@@ -44,7 +44,7 @@ test('fresh accounts only: keyboard application, approval, activation, keys, two
    await expect(card).toContainText('APPROVED_PENDING_CHAIN');await type(card.getByRole('textbox'),'Synthetic W5 activation');await enter(card.getByRole('button',{name:'체인 활성화',exact:true}));await expect(card).toContainText('ACTIVE');await axe(page);
    await enter(nav.getByRole('button',{name:'기업 기능',exact:true}));await expect(page.getByRole('combobox',{name:'신청 상태',exact:true})).toHaveValue('ACTIVE');
    await enter(actions.getByRole('button',{name:'공개키 관리',exact:true}));await type(page.getByLabel('작업 사유',{exact:true}),'Synthetic W5 initial key');await enter(page.getByRole('button',{name:'키 작업 실행',exact:true}));await expect(status).toContainText('CONFIRMED');
-   await enter(actions.getByRole('button',{name:'Proof 발행',exact:true}));await enter(page.getByRole('button',{name:'합성 예시 채우기'}));await axe(page);await enter(page.getByRole('button',{name:'Proof 발행',exact:true}).last());await expect(status).toContainText('prf_');const id=(await status.innerText()).match(/prf_[A-Za-z0-9_-]+/)![0];
+   await enter(actions.getByRole('button',{name:'Proof 발행',exact:true}));await enter(page.getByRole('button',{name:'합성 예시 채우기'}));await axe(page);await enter(page.getByRole('button',{name:'Proof 발행',exact:true}).last());await expect(status).toContainText('prf_');const id=(await status.innerText()).match(/prf_[A-Za-z0-9_-]+/)![0];lastProof=id;
    await enter(nav.getByRole('button',{name:'개인 기능',exact:true}));await type(page.getByLabel('Proof ID / 검증 링크'),id);await enter(page.getByRole('button',{name:'조회',exact:true}));await expect(page.getByText('PROOF_ONLY',{exact:true})).toBeVisible();await axe(page);
    if(org==='bank'){
     readFault=503;await enter(page.getByRole('button',{name:'조회',exact:true}));await expect(page.getByRole('alert')).toContainText('상태 코드: 503');expect(faultResponses).toBe(1);await expect(page.getByText('PROOF_ONLY',{exact:true})).toHaveCount(0);readFault=0;await enter(page.getByRole('button',{name:'현재 상태 다시 조회'}));await expect(page.getByText('PROOF_ONLY',{exact:true})).toBeVisible();
@@ -64,6 +64,12 @@ test('fresh accounts only: keyboard application, approval, activation, keys, two
    await type(page.getByLabel('작업 사유',{exact:true}),'Synthetic W5 proof revocation');await page.getByRole('checkbox').focus();await page.keyboard.press('Space');await enter(page.getByRole('button',{name:'확인한 관리 작업 실행',exact:true}));await expect(status).toContainText('CONFIRMED');
    await enter(nav.getByRole('button',{name:'개인 기능',exact:true}));await type(page.getByLabel('Proof ID / 검증 링크'),id);await enter(page.getByRole('button',{name:'조회',exact:true}));await expect(page.getByText('PROOF_REVOKED',{exact:true}).first()).toBeVisible();
   }
+  const beforeRefresh = new Map();
+  for(const org of ['bank','office'])beforeRefresh.set(org,await (await clients.get(org).get('/v2/issuer/proofs')).json());
+  await page.reload();await expect(page.getByRole('heading',{name:'기관 상태',exact:true})).toBeVisible();
+  await page.goto('/admin.html?w5_history=1');await expect(page.getByRole('heading',{name:'기관 상태',exact:true})).toBeVisible();await page.goBack();await expect(page.getByRole('heading',{name:'기관 상태',exact:true})).toBeVisible();
+  for(const org of ['bank','office'])expect(await (await clients.get(org).get('/v2/issuer/proofs')).json()).toEqual(beforeRefresh.get(org));
+  await enter(nav.getByRole('button',{name:'개인 기능',exact:true}));await type(page.getByLabel('Proof ID / 검증 링크'),lastProof);await enter(page.getByRole('button',{name:'조회',exact:true}));await expect(page.getByText('PROOF_REVOKED',{exact:true}).first()).toBeVisible();
   await enter(page.getByRole('button',{name:'사이드바 접기',exact:true}));await expect.poll(async()=>(await page.locator('#sidebar-root').boundingBox())!.width).toBeLessThan(100);readFault=401;await enter(page.getByRole('button',{name:'조회',exact:true}));await expect(page.getByRole('link',{name:'다시 로그인'})).toBeVisible();await expect(page.getByText('PROOF_ONLY',{exact:true})).toHaveCount(0);await page.setViewportSize({width:390,height:844});expect(await page.locator('body').evaluate(b=>b.scrollWidth)).toBeLessThanOrEqual(390);await axe(page);
  }finally{for(const client of clients.values())await client.dispose();}
 });
