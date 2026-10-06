@@ -7,6 +7,8 @@
 - branch: codex/w2-a-acceptance-fixes → phase/W2
 - 시작: 6f508fe6ae5ce106999c171e8205978dd2201333
 - 실행 코드: 84fb5f2c03868b050290ba3d1da0b234eb22fc7f
+- 작업 PR: https://github.com/OriginProof-3web/OriginProof/pull/54
+- 추가 mock 브라우저 회귀: 6385931 / 5 PASS, live 12 skip은 별도 실제 12 PASS와 구분
 - 단계 완료 PR: 미생성; 이번 PR은 단계 전체 완료 PR이 아닙니다.
 
 ## 목표와 실제 결과

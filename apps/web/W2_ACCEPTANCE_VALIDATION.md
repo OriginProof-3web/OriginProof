@@ -44,6 +44,10 @@ W2_BROWSER_QA=1 uv run python apps/web/test/run-w2-live.py
 - 작업 폴더의 ignored `.next/types/routes.d 2.ts` 중복 생성물 때문에 typecheck가 실패했습니다. 추적 소스 변경 없이 깨끗한 clone에서 typecheck를 통과했습니다.
 - local-origin clone에 origin/phase/W2 ref가 없어 준비가 실패했습니다. 실제 GitHub phase/D refs fetch 후 새 환경으로 재실행했습니다.
 
+## 기본 브라우저 회귀
+
+`6385931`에서 기본 E2E는 mock HTTP 5개 통과, 실제 준비 환경이 없는 live 12개 미실행입니다. 실제 연결 12개 통과는 위 `84fb5f2` production 실행의 별도 결과입니다. 기존 3000 서버 재사용으로 다른 메인 화면에 접속한 실패를 제외하기 위해 임시 ignored config에서 clone의 dev 서버를 53117로 띄웠습니다. 원본 설정의 다른 항목은 그대로 사용했습니다. 이전 placeholder 버튼 기대와 Next route announcer를 포함한 strict alert selector를 실제 UI에 맞게 보완했습니다.
+
 ## 결과와 제한
 
 실행 결과는 [보관된 요약](qa/2026-10-06/w2-a-results.json)을 따릅니다. mock AI만 사용했고 유료 호출은 없습니다. 실제 Chromium/HTTP/PostgreSQL/Anvil 검사이며 route mock은 없습니다. 같은 Mac의 clean clone 재현으로 다른 PC 재현을 주장하지 않습니다.

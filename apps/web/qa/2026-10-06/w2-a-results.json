@@ -142,5 +142,12 @@
   },
   "qa_preparation_sha": "17f78e300b04aa9395fb20f6f76f5313d705db3d",
   "api_base_sha": "6f508fe6ae5ce106999c171e8205978dd2201333",
-  "owned_resources_cleaned": true
+  "owned_resources_cleaned": true,
+  "regression_source_sha": "6385931",
+  "mock_browser_regression": {
+    "passed": 5,
+    "skipped_live_cases": 12,
+    "port": 53117,
+    "note": "Existing 3000 server caused wrong-page failure; isolated dev server verifies this clone. Previous placeholder assertion and Next announcer strict locator corrected. Actual live 12 PASS is a separate production-server run at 84fb5f2."
+  }
 }
