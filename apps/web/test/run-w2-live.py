@@ -22,7 +22,9 @@ def main():
         cwd=ROOT,
         check=True,
     )
-    for source in ("apps/api/src", "packages/python", "services/analyzer/src"):
+    sources = ("apps/api/src", "packages/python", "services/analyzer/src")
+    os.environ["PYTHONPATH"] = os.pathsep.join(str(ROOT / source) for source in sources)
+    for source in sources:
         sys.path.insert(0, str(ROOT / source))
     BUILD.mkdir(exist_ok=True)
     helper = BUILD / "w2-a-recovery-helper.py"
