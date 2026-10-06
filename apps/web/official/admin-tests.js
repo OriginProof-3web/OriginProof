@@ -36,7 +36,7 @@ async function refresh(){
     await showGitUpdate();
     for(const [id,report] of Object.entries(data)){
       const card=document.createElement('section');card.className='test-card';
-      const heading=document.createElement('h2');heading.textContent=`${id==='admin'?'관리자 기능 검사':id==='web'?'웹 연결 검사':id==='w3'?'기업·개인·관리자 웹 검사':'PR #'+id} · ${report.title}`;card.append(heading);
+      const heading=document.createElement('h2');heading.textContent=`${id==='w5-a'?'W5 A 화면 검사':id==='admin'?'관리자 기능 검사':id==='web'?'웹 연결 검사':id==='w3'?'기업·개인·관리자 웹 검사':'PR #'+id} · ${report.title}`;card.append(heading);
       const summary=document.createElement('p');
       const commands=report.cases.filter(c=>c.group==='현재 GitHub 웹 소스');
       const cases=report.cases.filter(c=>c.group!=='현재 GitHub 웹 소스');
@@ -46,7 +46,7 @@ async function refresh(){
       summary.textContent=`${labels[report.status]} · ${passed}개 통과 / ${failed}개 실패 / ${skipped}개 미실행${commands.length?' · 명령 '+commands.filter(c=>c.status==='passed').length+'/'+commands.length+' 통과':''}`;card.append(summary);
       const sha=document.createElement('p');sha.className='test-meta';sha.textContent=`검사 SHA: ${report.sha}${report.worktree_modified?' + 로컬 변경':''} · ${report.finished_at?new Date(report.finished_at).toLocaleString('ko-KR'):'진행 중'}`;card.append(sha);
       if(report.web_fingerprint){const fingerprint=document.createElement('p');fingerprint.className='test-meta';fingerprint.textContent='실행 화면 식별값: '+report.web_fingerprint;card.append(fingerprint);}
-      const button=document.createElement('button');button.textContent=id==='w3'?'웹 검사 다시 실행':id==='web'?'웹 연결 검사 다시 실행':id==='admin'?'관리자 기능 검사 다시 실행':'이 PR 검사 다시 실행';button.disabled=location.protocol!=='file:'&&report.status==='running';
+      const button=document.createElement('button');button.textContent=id==='w3'?'웹 검사 다시 실행':id==='web'?'웹 연결 검사 다시 실행':id==='admin'?'관리자 기능 검사 다시 실행':'이 PR 검사 다시 실행';button.disabled=report.replayable===false||(location.protocol!=='file:'&&report.status==='running');if(report.replayable===false)button.textContent='검사 기록 · 실행 명령으로 재현';
       button.addEventListener('click',async()=>{if(location.protocol==='file:'){location.href='http://127.0.0.1:8768/admin.html';return}button.disabled=true;try{const r=await fetch(`/run-pr/${id}`,{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});if(!r.ok)throw new Error(`실행 요청 실패: ${r.status}`);setTimeout(refresh,500)}catch(e){document.querySelector('#test-message').textContent=e.message;button.disabled=false}});card.append(button);
       const details=document.createElement('details');const title=document.createElement('summary');title.textContent='개별 검사 결과 보기';details.append(title);
       const list=document.createElement('ul');

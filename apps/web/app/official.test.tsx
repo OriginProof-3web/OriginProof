@@ -5,7 +5,7 @@ import BusinessWorkspace from '../official/components/business/BusinessWorkspace
 import UserWorkspace from '../official/components/user/UserWorkspace';
 import {issueErrors,validationErrors,proofLink} from '../official/w3-input.js';
 import {api} from '../official/api-client.js';
-vi.mock('../official/api-client.js',()=>({api:vi.fn(),requestId:()=> 'req_component_001',seconds:(s:string)=>new Date(s).toISOString().replace(/\.\d{3}Z$/,'Z')}));
+vi.mock('../official/api-client.js',async()=>({...await vi.importActual('../official/api-client.js'),api:vi.fn(),requestId:()=> 'req_component_001',seconds:(s:string)=>new Date(s).toISOString().replace(/\.\d{3}Z$/,'Z')}));
 const bank='iss_origin_mock_bank';
 const view={proof_id:'prf_example',issuer_id:bank,proof_type:'PAYMENT_REQUEST',issued_at:'2026-10-02T00:00:00Z',expires_at:'2026-12-01T00:00:00Z'};
 const result={verification_status:'VERIFIED',lifecycle_status:null,scope:'PROOF_ONLY',checks:{signature:'PASS',proof_status:'NOT_RUN'},reason_codes:[]};
@@ -56,4 +56,20 @@ test('public lookup reports scope and NOT_RUN without claiming current use',asyn
  render(<UserWorkspace/>);fireEvent.change(screen.getByLabelText('Proof ID / 검증 링크'),{target:{value:'prf_example'}});fireEvent.click(screen.getByRole('button',{name:'조회'}));
  expect(await screen.findByText('PROOF_ONLY')).toBeVisible();expect(screen.getByText('미확인')).toBeVisible();expect(screen.getByText('NOT_RUN')).toBeInTheDocument();expect(screen.getByText('ID 조회로 받은 자료의 내용 일치를 확인할 수는 없습니다.')).toBeVisible();
  expect(mock.mock.calls.find(([p,b])=>p.endsWith('/verify')&&b)?.[1]).not.toHaveProperty('candidate');
+});
+
+test('issuer session expiry removes protected keys and provides login recovery',async()=>{
+ render(<BusinessWorkspace/>);await screen.findByRole('button',{name:'기관 정보 다시 조회'});
+ await waitFor(()=>expect(mock).toHaveBeenCalledWith('/v1/issuer/keys'));
+ mock.mockImplementation(async()=>{throw Object.assign(new Error('401'),{status:401});});
+ fireEvent.click(screen.getByRole('button',{name:'기관 정보 다시 조회'}));
+ expect(await screen.findByRole('link',{name:'다시 로그인'})).toHaveAttribute('href','business-login.html');
+ expect(screen.queryByText('key_example')).not.toBeInTheDocument();
+});
+test('expired restricted content clears prior candidate values and offers login',async()=>{
+ render(<UserWorkspace/>);fireEvent.change(screen.getByLabelText('Proof ID / 검증 링크'),{target:{value:'prf_example'}});fireEvent.click(screen.getByRole('button',{name:'조회'}));
+ await screen.findByText('PROOF_ONLY');
+ mock.mockImplementation(async(path)=>{if(path.endsWith('/content'))throw Object.assign(new Error('401'),{status:401});return defaults(path);});
+ fireEvent.click(screen.getByRole('button',{name:'조회'}));
+ expect(await screen.findByRole('link',{name:'다시 로그인'})).toBeVisible();expect(screen.queryByText('PROOF_ONLY')).not.toBeInTheDocument();
 });

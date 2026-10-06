@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback, type FormEvent } from "react";
 import { Search, ArrowRight, Copy, Check, FileText, History, RefreshCw } from "lucide-react";
 
+import ErrorNotice from "../ErrorNotice";
 import ArtifactExtraction from "./ArtifactExtraction";
 import { api as scopedApi, verifyRead, requestId } from "../../api-client.js";
 import type { ProofView, ProofContent, OperationView } from "../api-types.generated";
@@ -40,7 +41,7 @@ export default function UserWorkspace({lifecycleEnabled=false,apiPrefix}: {lifec
   const [action, setAction] = useState<Action>("verify");
   const [input, setInput] = useState("");
   const [proof, setProof] = useState<Proof | null>(null);
-  const [error, setError] = useState("");
+  const [error, setError] = useState<unknown>(null);
   const [message, setMessage] = useState("");
   const [values, setValues] = useState<Record<string, string>>({});
   const [rows, setRows] = useState<{ key: string; state: string }[] | null>(null);
@@ -49,24 +50,29 @@ export default function UserWorkspace({lifecycleEnabled=false,apiPrefix}: {lifec
   const [historyAction, setHistoryAction] = useState("all");
   const [copied, setCopied] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const reportError=useCallback((error:unknown)=>{
+    if((error as {status?:number})?.status===401){setProof(null);setResult(null);setValues({});setRows(null);setOperation(null);setEntries([]);setConfirmed(false);consumeIds.current.clear();}
+    setError(error);
+  },[]);
   const record = useCallback((id: string, kind: string, summary: string) => {
     const entry = { id: crypto.randomUUID(), proof: id, action: kind, summary, time: new Date().toISOString() };
     setEntries(previous=>[entry,...previous].slice(0,50));
   }, []);
   const load = useCallback(async (id: string) => {
-    const token=++generation.current; setBusy(true);setError("");setResult(null);setProof(null);
+    const token=++generation.current; setBusy(true);setError("");setResult(null);setProof(null);setMessage("");
     try {
       const view: ProofView = await api(`/v2/proofs/${encodeURIComponent(id)}`);
       const verification: FinalsVerificationResult = await api(`/v2/proofs/${encodeURIComponent(id)}/verify`,{request_id:requestId()});
       let fields=Object.fromEntries((view.proof_type==="PAYMENT_REQUEST"?["amount_minor","currency","target_ref"]:["institution_code","document_type","document_number","version"]).map(name=>[name,""]));
       // Restricted content is never inferred from a public Proof ID.
-      try { const content: ProofContent=await api(`/v2/proofs/${encodeURIComponent(id)}/content`); const payload=content.envelope.payload; fields=Object.fromEntries(Object.keys(fields).map(name=>[name,String(name==="target_ref"?content.target_ref??"":(payload as any)[name]??"")])); } catch {}
+      try { const content: ProofContent=await api(`/v2/proofs/${encodeURIComponent(id)}/content`); const payload=content.envelope.payload; fields=Object.fromEntries(Object.keys(fields).map(name=>[name,String(name==="target_ref"?content.target_ref??"":(payload as any)[name]??"")])); } catch(error) {if((error as {status?:number})?.status===401)throw error;}
       if(token!==generation.current)return;
       setProof({id:view.proof_id,issuer:view.issuer_id,type:view.proof_type,issued:view.issued_at,expires:view.expires_at,fields});setResult(verification);
       record(id,"verify",`${verification.verification_status} · ${verification.scope}`);
-    } catch(error) {if(token===generation.current)setError((error as Error).message);} finally{if(token===generation.current)setBusy(false);}
-  }, [record,api]);
+    } catch(error) {if(token===generation.current)reportError(error);} finally{if(token===generation.current)setBusy(false);}
+  }, [record,api,reportError]);
   useEffect(() => {
+    const requestGeneration=generation;
     const linkedId = new URLSearchParams(location.search).get("proof_id");
     if (linkedId) {
       const id = parseProof(linkedId);
@@ -76,10 +82,10 @@ export default function UserWorkspace({lifecycleEnabled=false,apiPrefix}: {lifec
     const change = (event: Event) => {
       const detail = (event as CustomEvent).detail;
       const next = detail?.key === "home" ? "verify" : detail?.key;
-      if (Object.hasOwn(labels, next)) { setOperation(null);setAction(next); setError(""); setMessage(""); setRows(null); setConfirmed(false); setCopied(false); if (detail.proofId) { setInput(detail.proofId); void load(detail.proofId); setValues({}); } }
+      if (Object.hasOwn(labels, next)) { generation.current++;setBusy(false);setOperation(null);setAction(next); setError(""); setMessage(""); setRows(null); setConfirmed(false); setCopied(false); if (detail.proofId) { setInput(detail.proofId); void load(detail.proofId); setValues({}); } }
     };
     window.addEventListener("originproof-action", change);
-    return () => window.removeEventListener("originproof-action", change);
+    return () => {requestGeneration.current++;window.removeEventListener("originproof-action", change);};
   }, [load]);
   function lookup(event: FormEvent) {
     event.preventDefault();setOperation(null);setMessage("");setRows(null);setConfirmed(false);setValues({});setCopied(false);
@@ -93,15 +99,15 @@ export default function UserWorkspace({lifecycleEnabled=false,apiPrefix}: {lifec
       if(token!==generation.current)return;
       setResult(verdict);setMessage(`${verdict.verification_status} · ${verdict.scope} · ${verdict.reason_codes?.join(" · ")}`);
       setRows([]);record(proof.id,"compare",`${verdict.verification_status} · ${verdict.scope}`);
-    }catch(error){if(token===generation.current)setError((error as Error).message);}finally{pending.current=false;if(token===generation.current)setBusy(false);}
+    }catch(error){if(token===generation.current)reportError(error);}finally{pending.current=false;if(token===generation.current)setBusy(false);}
   }
   async function submitConsume() {
     if(!lifecycleEnabled||!proof||!confirmed||pending.current)return;
     pending.current=true;setBusy(true);setError("");
-    const id=proof.id;
+    const id=proof.id;const token=++generation.current;
     if(!consumeIds.current.has(id))consumeIds.current.set(id,requestId());
-    try{const op=await api(`/v2/proofs/${id}/consume`,{request_id:consumeIds.current.get(id)});setOperation(op);setMessage(`${op.operation_id} · ${op.status} · ${op.error_code??""}`);record(id,"consume",op.status);await load(id);setConfirmed(false);}
-    catch(error){setError((error as Error).message);}finally{pending.current=false;setBusy(false);}
+    try{const op=await api(`/v2/proofs/${id}/consume`,{request_id:consumeIds.current.get(id)});if(token!==generation.current)return;setOperation(op);setMessage(`${op.operation_id} · ${op.status} · ${op.error_code??""}`);record(id,"consume",op.status);await load(id);setConfirmed(false);}
+    catch(error){if(token===generation.current)reportError(error);}finally{pending.current=false;if(token===generation.current)setBusy(false);}
   }
   function jump(next: Action, id?: string) { (window as any).selectAction(next, id); }
   async function copy() {
@@ -109,7 +115,7 @@ export default function UserWorkspace({lifecycleEnabled=false,apiPrefix}: {lifec
     try { await navigator.clipboard.writeText(proof.id); setCopied(true); } catch { setMessage("복사를 사용할 수 없습니다. 표시된 Proof ID를 선택해 복사해 주세요."); }
   }
   const visible = entries.filter((entry) => (historyAction === "all" || entry.action === historyAction) && `${entry.proof} ${entry.summary}`.toLowerCase().includes(filter.trim().toLowerCase()));
-  return <div className="uw-shell">
+  return <div className="uw-shell" aria-busy={busy}>
     <header className="uw-header"><span className="uw-eyebrow">PERSONAL SPACE</span><span className="uw-preview">실제 API · 로컬 테스트</span><h1>{labels[action]}</h1><p>{descriptions[action]}</p></header>
     {action === "history" ? <section className="uw-card">
       <div className="uw-history-tools"><label className="uw-search"><Search size={17} /><input aria-label="검증 내역 검색" placeholder="Proof ID 또는 결과 검색" value={filter} onChange={(e) => setFilter(e.target.value)} /></label>
@@ -119,12 +125,13 @@ export default function UserWorkspace({lifecycleEnabled=false,apiPrefix}: {lifec
       <section className="uw-card"><form onSubmit={lookup} className="uw-lookup"><label htmlFor="uw-proof">Proof ID / 검증 링크</label><div><input id="uw-proof" placeholder="prf_… 또는 검증 링크" maxLength={2048} value={input} onChange={(e) => { generation.current++; setBusy(false); setResult(null); setInput(e.target.value); setProof(null); setRows(null); setMessage(""); setError(""); setConfirmed(false); }} required /><button className="uw-primary" disabled={busy} type="submit"><Search size={17} />조회</button></div></form>
 
       <p className="uw-note">QR에서 읽은 검증 링크도 입력할 수 있습니다.</p></section>
-      {error && <p role="alert" className="uw-error">{error}{/^(401|403|404)/.test(error) && <a className="uw-secondary" href={`user-login.html?next=${encodeURIComponent(`index.html?proof_id=${proof?.id??parseProof(input)}#user`)}`}>비교 계정 로그인</a>}</p>}
+      <ErrorNotice error={error} loginHref={`user-login.html?next=${encodeURIComponent(`index.html?proof_id=${proof?.id??parseProof(input)}#user`)}`} retry={()=>{const id=parseProof(input);if(id)void load(id);}}/>
+      {busy&&<p role="status">요청을 확인하고 있습니다. 변경 결과를 확인하기 전에 다시 전송하지 마세요.</p>}
       {proof && <section className="uw-card uw-result"><div className="uw-result-heading"><div><span className="uw-eyebrow">{proof.type}</span><h2>{action === "compare" ? "받은 자료의 내용" : action === "consume" ? "요청 사용 조건" : "발행 기록"}</h2></div><button className="uw-icon-button" title="Proof ID 복사" aria-label="Proof ID 복사" onClick={copy}>{copied ? <Check size={18} /> : <Copy size={18} />}</button></div><Summary proof={proof} />
-      {action === "verify" && <><div className="uw-status"><span>검증 판정 <b>{result?.verification_status ?? "미실행"}</b></span><span>현재 상태 <b>{result?.lifecycle_status ?? "미확인"}</b></span><span>조회 범위 <b>{result?.scope ?? "발행 기록"}</b></span></div><p className="uw-note">ID 조회로 받은 자료의 내용 일치를 확인할 수는 없습니다.</p><Checks result={result} /><div className="uw-actions"><button className="uw-primary" onClick={() => jump("compare", proof.id)}>내용 비교<ArrowRight size={16} /></button>{proof.type === "PAYMENT_REQUEST" && <button className="uw-secondary" onClick={() => jump("consume", proof.id)}>요청 사용</button>}</div></>}
-      {action === "compare" && <ArtifactExtraction key={proof.id} proofType={proof.type} fields={proof.fields} onApply={values=>{generation.current++;setBusy(false);setValues(values);setRows(null);setMessage("");setError("");}} />}
-      {action === "compare" && <form onSubmit={compare} className="uw-compare"><div className="uw-form-grid">{Object.keys(proof.fields).map((key) => <label key={key}>{fieldNames[key]}<input value={values[key] ?? ""} inputMode={["amount_minor", "version"].includes(key) ? "numeric" : "text"} maxLength={key === "target_ref" ? 500 : 120} onChange={(e) => { generation.current++; setBusy(false); setValues({ ...values, [key]: e.target.value }); setRows(null); setMessage(""); setError(""); }} /></label>)}</div><div className="uw-actions"><button type="button" className="uw-secondary" onClick={() => { setValues({ ...proof.fields }); setRows(null); setMessage(""); setError(""); }}>발행 값 채우기</button><button className="uw-primary" disabled={busy} type="submit">내용 비교<ArrowRight size={16} /></button></div><p className="uw-note">지정 수신자 또는 발행기관 계정으로 로그인해야 내용을 비교할 수 있습니다.</p>{rows && <div className="uw-comparison" aria-live="polite"><h3>{message}</h3>{rows.map((row) => <div key={row.key}><span>{fieldNames[row.key]}</span><b className={row.state === "불일치" ? "uw-mismatch" : ""}>{row.state}</b></div>)}<p className="uw-note">{result?.reason_codes?.join(" · ")}</p></div>}{result && <Checks result={result} />}</form>}
-      {action === "consume" && <>{proof.type === "OFFICIAL_DOCUMENT" ? <p className="uw-error">공식 문서는 사용 처리 대상이 아닙니다. 조회와 내용 비교를 이용해 주세요.</p> : <><ul className="uw-conditions"><li><span>1회성 요청 유형</span><b>지급 요청</b></li><li><span>지정 수신자 인증</span><b>서버에서 권한 확인</b></li><li><span>기간·폐기·사용 여부</span><b>{result?.lifecycle_status??"미확인"}</b></li></ul><label className="uw-confirm"><input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />조회와 별개인 1회성 사용 요청임을 확인했습니다.</label><button className="uw-primary" disabled={!lifecycleEnabled||!confirmed||busy||result?.lifecycle_status!=="ACTIVE"} onClick={()=>void submitConsume()}>{lifecycleEnabled?"1회 사용 요청 실행":"요청 사용 · API 제공 대기"}<ArrowRight size={16} /></button><p className="uw-note">{lifecycleEnabled?"CONFIRMED와 현재 체인 상태를 확인해야 사용 완료입니다.":"실제 요청은 전송되지 않으며 사용 완료로 처리하지 않습니다."}</p></>}{operation&&<div className="uw-status"><span>{operation.operation_id} · {operation.status}</span>{["UNKNOWN","SUBMITTED","PENDING_SUBMISSION"].includes(operation.status)&&<button className="uw-secondary" disabled={busy} onClick={async()=>{setBusy(true);try{setOperation(await api(`/v1/operations/${operation.operation_id}/recover`,{}));if(proof)await load(proof.id);}catch(e){setError((e as Error).message);}finally{setBusy(false);}}}>기존 사용 거래 복구</button>}</div>}{message && <p className="uw-notice" role="status">{message}</p>}</>}
+      {action === "verify" && <><div className="uw-status"><span>검증 판정 <b>{result?.verification_status ?? "미실행"}</b></span><span>현재 상태 <b>{result?.lifecycle_status ?? "미확인"}</b></span><span>조회 범위 <b>{result?.scope ?? "발행 기록"}</b></span></div><p className="uw-note">확인 시각: {result?.verified_at?time(result.verified_at):"미확인"}</p><p className="uw-note">미등록은 위조 판정이 아닙니다. VERIFIED도 기간·폐기·사용 여부에 따라 현재 사용이 제한될 수 있습니다.</p><p className="uw-note">ID 조회로 받은 자료의 내용 일치를 확인할 수는 없습니다.</p><Checks result={result} /><div className="uw-actions"><button className="uw-primary" onClick={() => jump("compare", proof.id)}>내용 비교<ArrowRight size={16} /></button>{proof.type === "PAYMENT_REQUEST" && <button className="uw-secondary" onClick={() => jump("consume", proof.id)}>요청 사용</button>}</div></>}
+      {action === "compare" && <ArtifactExtraction key={proof.id} proofType={proof.type} fields={proof.fields} onApply={values=>{generation.current++;setBusy(false);setValues(values);setResult(null);setRows(null);setMessage("");setError("");}} />}
+      {action === "compare" && <form onSubmit={compare} className="uw-compare"><div className="uw-form-grid">{Object.keys(proof.fields).map((key) => <label key={key}>{fieldNames[key]}<input value={values[key] ?? ""} inputMode={["amount_minor", "version"].includes(key) ? "numeric" : "text"} maxLength={key === "target_ref" ? 500 : 120} onChange={(e) => { generation.current++; setBusy(false); setValues({ ...values, [key]: e.target.value }); setResult(null); setRows(null); setMessage(""); setError(""); }} /></label>)}</div><div className="uw-actions"><button type="button" className="uw-secondary" onClick={() => { generation.current++;setBusy(false);setValues({ ...proof.fields }); setResult(null);setRows(null); setMessage(""); setError(""); }}>발행 값 채우기</button><button className="uw-primary" disabled={busy} type="submit">내용 비교<ArrowRight size={16} /></button></div><p className="uw-note">지정 수신자 또는 발행기관 계정으로 로그인해야 내용을 비교할 수 있습니다.</p>{rows && <div className="uw-comparison" aria-live="polite"><h3>{message}</h3>{rows.map((row) => <div key={row.key}><span>{fieldNames[row.key]}</span><b className={row.state === "불일치" ? "uw-mismatch" : ""}>{row.state}</b></div>)}<p className="uw-note">{result?.reason_codes?.join(" · ")}</p></div>}{result && <Checks result={result} />}</form>}
+      {action === "consume" && <>{proof.type === "OFFICIAL_DOCUMENT" ? <p className="uw-error">공식 문서는 사용 처리 대상이 아닙니다. 조회와 내용 비교를 이용해 주세요.</p> : <><ul className="uw-conditions"><li><span>1회성 요청 유형</span><b>지급 요청</b></li><li><span>지정 수신자 인증</span><b>서버에서 권한 확인</b></li><li><span>기간·폐기·사용 여부</span><b>{result?.lifecycle_status??"미확인"}</b></li></ul><label className="uw-confirm"><input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />조회와 별개인 1회성 사용 요청임을 확인했습니다.</label><button className="uw-primary" disabled={!lifecycleEnabled||!confirmed||busy||result?.lifecycle_status!=="ACTIVE"} onClick={()=>void submitConsume()}>{lifecycleEnabled?"1회 사용 요청 실행":"요청 사용 · API 제공 대기"}<ArrowRight size={16} /></button><p className="uw-note">{lifecycleEnabled?"CONFIRMED와 현재 체인 상태를 확인해야 사용 완료입니다.":"실제 요청은 전송되지 않으며 사용 완료로 처리하지 않습니다."}</p></>}{operation&&<div className="uw-status"><span>{operation.operation_id} · {operation.status}</span>{["UNKNOWN","SUBMITTED","PENDING_SUBMISSION"].includes(operation.status)&&<button className="uw-secondary" disabled={busy} onClick={async()=>{setBusy(true);try{setOperation(await api(`/v1/operations/${operation.operation_id}/recover`,{}));if(proof)await load(proof.id);}catch(e){reportError(e);}finally{setBusy(false);}}}>기존 사용 거래 복구</button>}</div>}{message && <p className="uw-notice" role="status">{message}</p>}</>}
       {action !== "compare" && message && action !== "consume" && <p className="uw-notice" role="status">{message}</p>}
       </section>}
       {!proof && !error && <div className="uw-empty"><FileText size={29} /><h2>확인할 자료를 선택하세요</h2><p>발행기관에서 받은 ID를 입력하고 조회해 주세요.</p></div>}

@@ -16,7 +16,7 @@ test('8768 administrator combines real issuer, recipient and operator tests',asy
   await page.getByLabel('테스트 기관',{exact:true}).selectOption('office');await expect(page.getByRole('heading',{name:'Origin Mock Office',exact:true})).toBeVisible();
   await page.getByLabel('테스트 기관',{exact:true}).selectOption('bank');await expect(page.getByRole('heading',{name:'Origin Mock Bank',exact:true})).toBeVisible();
   await page.getByRole('button',{name:'Proof 발행',exact:true}).first().click();await page.getByRole('button',{name:'합성 예시 채우기'}).click();await page.getByLabel('지정 수신자',{exact:true}).selectOption({label:'recipient'});await page.getByRole('button',{name:'Proof 발행',exact:true}).last().click();
-  const status=page.locator('.uw-shell [role=status]');await expect(status).toContainText('prf_');const id=(await status.innerText()).match(/prf_[A-Za-z0-9_-]+/)![0];
+  const status=page.locator('.uw-shell .uw-notice[role=status]');await expect(status).toContainText('prf_');const id=(await status.innerText()).match(/prf_[A-Za-z0-9_-]+/)![0];
   await page.getByRole('button',{name:'발행 목록',exact:true}).last().click();await page.getByRole('button',{name:'검증 QR 보기'}).click();await expect(page.getByRole('img',{name:'관리자 Proof 조회 화면으로 이동하는 QR 코드'})).toBeVisible();
   const nav=page.getByRole('navigation',{name:'관리자 테스트 메뉴'});
   await nav.getByRole('button',{name:'개인 기능',exact:true}).click();await page.getByLabel('Proof ID / 검증 링크').fill(id);await page.getByRole('button',{name:'조회',exact:true}).click();await expect(page.getByText('PROOF_ONLY',{exact:true})).toBeVisible();

@@ -14,21 +14,21 @@ async function refresh(){
   for(const row of rows){
    const card=document.createElement('section');card.className='test-card';card.append(text('h3',row.issuer_name),text('p',row.application_id+' · '+row.status),text('p',row.decision_reason??'검토 사유 없음'));
    const reason=document.createElement('input');reason.placeholder='검토·작업 사유';reason.setAttribute('aria-label','사유 '+row.issuer_name);card.append(reason);
-   for(const [label,path,body] of row.status==='PENDING_REVIEW'?[['승인','decision',{decision:'APPROVE'}],['반려','decision',{decision:'REJECT'}]]:row.status==='APPROVED_PENDING_CHAIN'?[['체인 활성화','activate',{request_id:requestId()}]]:[]){
+   for(const [label,path,body] of row.status==='PENDING_REVIEW'?[['승인','decision',{decision:'APPROVE'}],['반려','decision',{decision:'REJECT'}]]:row.status==='APPROVED_PENDING_CHAIN'?[['체인 활성화','activate',{}]]:[]){
     const button=text('button',label);button.onclick=async()=>{
       if(busy)return;if(!reason.value.trim()){card.append(text('p','사유를 입력해 주세요.'));return;}busy=true;button.disabled=true;
-      try {const result=await api(`/v1/operator/issuer-applications/${row.application_id}/${path}`,{...body,reason:reason.value.trim()});await refresh();root.append(text('p',`${result.operation_id??result.application_id} · ${result.status}`));}catch(error){card.append(text('p',error.message));}finally{busy=false;button.disabled=false;}
+      try {const result=await api(`/v1/operator/issuer-applications/${row.application_id}/${path}`,{...body,...(path==='activate'?{request_id:stable(JSON.stringify([row.application_id,path,reason.value.trim()]))}:{}),reason:reason.value.trim()});await refresh();root.append(text('p',`${result.operation_id??result.application_id} · ${result.status}`));}catch(error){if(error.status===401)await refresh();else card.append(text('p',error.message));}finally{busy=false;button.disabled=false;}
     };card.append(button);
    }
    if(['ACTIVE','SUSPENDED'].includes(row.status))for(const [label,action] of (row.status==='ACTIVE'?[['기관 중지','suspend'],['기관 영구 폐기','revoke']]:[['기관 재활성화','reactivate'],['기관 영구 폐기','revoke']])){
-    const button=text('button',label);button.onclick=async()=>{if(busy)return;if(!reason.value.trim()){card.append(text('p','작업 사유를 입력해 주세요.'));return;}if(!confirm(label+' 작업을 실행하시겠습니까?'))return;busy=true;button.disabled=true;try{const op=await api(`/v1/operator/issuers/${encodeURIComponent(row.issuer_id)}/${action}`,{request_id:stable(JSON.stringify([row.issuer_id,action,reason.value.trim()])),reason:reason.value.trim()});if(op.status==='CONFIRMED')requests.delete(JSON.stringify([row.issuer_id,action,reason.value.trim()]));await refresh();root.append(text('p',`${op.operation_id} · ${op.status}`));}catch(e){card.append(text('p',e.message));}finally{busy=false;button.disabled=false;}};card.append(button);
+    const button=text('button',label);button.onclick=async()=>{if(busy)return;if(!reason.value.trim()){card.append(text('p','작업 사유를 입력해 주세요.'));return;}if(!confirm(label+' 작업을 실행하시겠습니까?'))return;busy=true;button.disabled=true;try{const op=await api(`/v1/operator/issuers/${encodeURIComponent(row.issuer_id)}/${action}`,{request_id:stable(JSON.stringify([row.issuer_id,action,reason.value.trim()])),reason:reason.value.trim()});if(op.status==='CONFIRMED')requests.delete(JSON.stringify([row.issuer_id,action,reason.value.trim()]));await refresh();root.append(text('p',`${op.operation_id} · ${op.status}`));}catch(e){if(e.status===401)await refresh();else card.append(text('p',e.message));}finally{busy=false;button.disabled=false;}};card.append(button);
    }
    root.append(card);
   }
   if(!rows.length)root.append(text('p','접수된 기관 신청이 없습니다.'));
   const ops=await api('/v1/operations');
   const tasks=document.createElement('section');tasks.className='test-card';tasks.append(text('h3','체인 작업 · 조회와 복구'));
-  for(const op of ops){const item=document.createElement('div');item.append(text('p',`${op.action} · ${op.operation_id} · ${op.status} · ${op.next_action}`));if(['UNKNOWN','SUBMITTED','PENDING_SUBMISSION'].includes(op.status)){const recover=text('button','기존 거래 복구');recover.onclick=async()=>{if(busy)return;busy=true;recover.disabled=true;try{await api(`/v1/operations/${op.operation_id}/recover`,{});await refresh();}catch(e){item.append(text('p',e.message));}finally{busy=false;recover.disabled=false;}};item.append(recover);}tasks.append(item);}root.append(tasks);
+  for(const op of ops){const item=document.createElement('div');item.append(text('p',`${op.action} · ${op.operation_id} · ${op.status} · ${op.next_action}`));if(['UNKNOWN','SUBMITTED','PENDING_SUBMISSION'].includes(op.status)){const recover=text('button','기존 거래 복구');recover.onclick=async()=>{if(busy)return;busy=true;recover.disabled=true;try{await api(`/v1/operations/${op.operation_id}/recover`,{});await refresh();}catch(e){if(e.status===401)await refresh();else item.append(text('p',e.message));}finally{busy=false;recover.disabled=false;}};item.append(recover);}tasks.append(item);}root.append(tasks);
 
  }catch(error){root.append(text('p',error.message));}
 }
