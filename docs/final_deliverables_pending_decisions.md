@@ -2,7 +2,7 @@
 
 작성일: 2026-10-09 · 개정일: 2026-10-13 · 목록 버전: **0.2**
 
-[계획서 5.0](development_plan.md) 16.2절 V5-Q01~09를 [산출물 상세안 0.5](final_deliverables_draft.md) D01~D08과 연결합니다. 적용 결정은 [ADR 0004](adr/0004-v5-governance-wallet-versioning.md), 화면은 [UI/UX 1.1](ui_ux_design.md)을 따릅니다. 목록 작성·계약 선택·구현·실제 연결·제출 완료는 별도입니다.
+[최신 개발 계획서](development_plan.md) 16.2절 V5-Q01~09를 [산출물 상세안 0.5](final_deliverables_draft.md) D01~D08과 연결합니다. 적용 결정은 [ADR 0004](adr/0004-v5-governance-wallet-versioning.md), 화면은 [UI/UX 1.1](ui_ux_design.md)을 따릅니다. 목록 작성·계약 선택·구현·실제 연결·제출 완료는 별도입니다.
 
 L01~L14는 기존 항목의 추적 ID를 유지하고 V5-Q로 연결을 갱신했습니다. 입력 선정·지갑 운영·Decisions 검토·기존 PR 통합은 L15~L18로 추가했습니다. Wn은 개발 단계이며 달력 마감은 임의로 정하지 않습니다.
 

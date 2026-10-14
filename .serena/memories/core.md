@@ -1,6 +1,6 @@
 # OriginProof
 
-- 현재 기준: 루트 AGENTS.md → START_HERE.md → docs/development_plan.md 5.0 → docs/adr/0004-v5-governance-wallet-versioning.md → 경로별 AGENTS.md. 메모보다 원본 지침을 우선합니다.
+- 현재 기준: 루트 AGENTS.md → START_HERE.md → docs/development_plan.md 최신 버전 → docs/adr/0004-v5-governance-wallet-versioning.md → 경로별 AGENTS.md. 메모보다 원본 지침을 우선합니다.
 - 본선 W1~W7은 개발 단계입니다. 승인된 정책과 실제 구현·연결·단계 완료는 구분합니다.
 - 신규 기준: 두 합성 기관/안내 템플릿·세 역할 웹, 2-of-3·기관 지갑 서명·문서 버전·통합 결과. v1/v2 서명·binding·consume은 구버전 회귀입니다. 입력은 팀 결정 전 미정, Decisions API는 범위 밖 후속 검토입니다.
 - AI는 선정 입력의 추출·피싱 위험/근거 설명을 담당하며 발행·내용·현재 상태는 결정론적으로 확인합니다. 실제 개인정보를 사용하지 않습니다.
