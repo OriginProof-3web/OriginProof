@@ -1,0 +1,755 @@
+[
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "proposalId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "approve",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "documentId",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "uint64",
+        "name": "version",
+        "type": "uint64"
+      }
+    ],
+    "name": "getDocument",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "bytes32",
+            "name": "issuerId",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "docKey",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "uint64",
+            "name": "version",
+            "type": "uint64"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "keyId",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "originalHash",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "protectedHash",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "contentSchema",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "uint64",
+            "name": "issuedAt",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint64",
+            "name": "expiresAt",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint64",
+            "name": "publishedAt",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint64",
+            "name": "publishedBlock",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint8",
+            "name": "state",
+            "type": "uint8"
+          }
+        ],
+        "internalType": "struct IOriginProofWalletRegistry.DocumentVersion",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "issuerId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "getIssuer",
+    "outputs": [
+      {
+        "internalType": "uint8",
+        "name": "state",
+        "type": "uint8"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "keyId",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "address",
+        "name": "signer",
+        "type": "address"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "metadataHash",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "keyId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "getKey",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "bytes32",
+            "name": "issuerId",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "address",
+            "name": "signer",
+            "type": "address"
+          },
+          {
+            "internalType": "uint64",
+            "name": "registeredBlock",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint64",
+            "name": "retiredBlock",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint64",
+            "name": "compromiseBlock",
+            "type": "uint64"
+          }
+        ],
+        "internalType": "struct IOriginProofWalletRegistry.IssuerKey",
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "proposalId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "getProposal",
+    "outputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint8",
+            "name": "action",
+            "type": "uint8"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "issuerId",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "keyId",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "address",
+            "name": "signer",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "metadataHash",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "uint256",
+            "name": "nonce",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint64",
+            "name": "deadline",
+            "type": "uint64"
+          }
+        ],
+        "internalType": "struct IOriginProofWalletRegistry.GovernanceProposal",
+        "name": "proposal",
+        "type": "tuple"
+      },
+      {
+        "internalType": "uint8",
+        "name": "approvals",
+        "type": "uint8"
+      },
+      {
+        "internalType": "bool",
+        "name": "executed",
+        "type": "bool"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "issuerId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "governanceNonce",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "documentId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "latestVersion",
+    "outputs": [
+      {
+        "internalType": "uint64",
+        "name": "",
+        "type": "uint64"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "issuerId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "nextNonce",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint8",
+            "name": "action",
+            "type": "uint8"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "issuerId",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "keyId",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "address",
+            "name": "signer",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "metadataHash",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "uint256",
+            "name": "nonce",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint64",
+            "name": "deadline",
+            "type": "uint64"
+          }
+        ],
+        "internalType": "struct IOriginProofWalletRegistry.GovernanceProposal",
+        "name": "proposal",
+        "type": "tuple"
+      },
+      {
+        "components": [
+          {
+            "internalType": "uint8",
+            "name": "action",
+            "type": "uint8"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "applicationId",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "issuerId",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "address",
+            "name": "signer",
+            "type": "address"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "challengeNonce",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "uint64",
+            "name": "deadline",
+            "type": "uint64"
+          }
+        ],
+        "internalType": "struct IOriginProofWalletRegistry.KeyProof",
+        "name": "proof",
+        "type": "tuple"
+      },
+      {
+        "internalType": "bytes",
+        "name": "signature",
+        "type": "bytes"
+      }
+    ],
+    "name": "propose",
+    "outputs": [
+      {
+        "internalType": "bytes32",
+        "name": "proposalId",
+        "type": "bytes32"
+      }
+    ],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint8",
+            "name": "action",
+            "type": "uint8"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "issuerId",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "docKey",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "documentId",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "uint64",
+            "name": "version",
+            "type": "uint64"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "keyId",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "originalHash",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "protectedHash",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "contentSchema",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "signatureSchema",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "uint8",
+            "name": "originalHashAlgorithm",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint8",
+            "name": "protectedHashAlgorithm",
+            "type": "uint8"
+          },
+          {
+            "internalType": "uint64",
+            "name": "issuedAt",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint64",
+            "name": "expiresAt",
+            "type": "uint64"
+          },
+          {
+            "internalType": "uint256",
+            "name": "nonce",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint64",
+            "name": "deadline",
+            "type": "uint64"
+          }
+        ],
+        "internalType": "struct IOriginProofWalletRegistry.Publish",
+        "name": "message",
+        "type": "tuple"
+      },
+      {
+        "internalType": "bytes",
+        "name": "signature",
+        "type": "bytes"
+      }
+    ],
+    "name": "publish",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "components": [
+          {
+            "internalType": "uint8",
+            "name": "action",
+            "type": "uint8"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "issuerId",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "docKey",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "documentId",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "uint64",
+            "name": "version",
+            "type": "uint64"
+          },
+          {
+            "internalType": "bytes32",
+            "name": "keyId",
+            "type": "bytes32"
+          },
+          {
+            "internalType": "uint256",
+            "name": "nonce",
+            "type": "uint256"
+          },
+          {
+            "internalType": "uint64",
+            "name": "deadline",
+            "type": "uint64"
+          }
+        ],
+        "internalType": "struct IOriginProofWalletRegistry.Revoke",
+        "name": "message",
+        "type": "tuple"
+      },
+      {
+        "internalType": "bytes",
+        "name": "signature",
+        "type": "bytes"
+      }
+    ],
+    "name": "revoke",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "bytes32",
+        "name": "issuerId",
+        "type": "bytes32"
+      },
+      {
+        "internalType": "bytes32",
+        "name": "reasonCode",
+        "type": "bytes32"
+      }
+    ],
+    "name": "suspendIssuer",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "documentId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint64",
+        "name": "version",
+        "type": "uint64"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "issuerId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "DocumentPublished",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "documentId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint64",
+        "name": "version",
+        "type": "uint64"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "issuerId",
+        "type": "bytes32"
+      }
+    ],
+    "name": "DocumentRevoked",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "documentId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "uint64",
+        "name": "version",
+        "type": "uint64"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint64",
+        "name": "replacement",
+        "type": "uint64"
+      }
+    ],
+    "name": "DocumentSuperseded",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "issuerId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "actor",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "bytes32",
+        "name": "reasonCode",
+        "type": "bytes32"
+      }
+    ],
+    "name": "IssuerSuspended",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "proposalId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "address",
+        "name": "approver",
+        "type": "address"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "count",
+        "type": "uint8"
+      }
+    ],
+    "name": "ProposalApproved",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "proposalId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "issuerId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "action",
+        "type": "uint8"
+      }
+    ],
+    "name": "ProposalCreated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "proposalId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": true,
+        "internalType": "bytes32",
+        "name": "issuerId",
+        "type": "bytes32"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint8",
+        "name": "action",
+        "type": "uint8"
+      }
+    ],
+    "name": "ProposalExecuted",
+    "type": "event"
+  }
+]
