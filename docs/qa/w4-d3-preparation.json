@@ -1,0 +1,75 @@
+{
+  "purpose": "W4-D3 execution preparation, not browser acceptance",
+  "synthetic": true,
+  "date": "2026-10-03",
+  "product_sha": "8011f7fe3da033c9253894a9de0fd98aa7bbcc16",
+  "preparation_code_sha": "78cce405357ae1f509a9bfebdbb07af4b02b2411",
+  "verification": "PASS: owned environment and read-only evidence preparation",
+  "d3_browser_status": "NOT_RUN",
+  "scenario_count": 12,
+  "command": "W4_D3_PREPARE=1 PYTHONPATH=apps/api/src:packages/python:services/analyzer/src:services/indexer/src .uv-venv/bin/python fixtures/finals/prepare_w4_d3.py --serve",
+  "source_sha256": {
+    "fixtures/finals/prepare_w4_d3.py": "07c54b01aa94456162d1a2b66a39bbf514511e69c41325318e9ad370cce7a842",
+    "fixtures/finals/w4_d3_cases.json": "40a30e4946385495c3363d561b607ffd4e9b35d92cd8b22eccf02ab1eb8a76f5",
+    "uv.lock": "10ad0e9c32643eaba3405234ccf7fead6ef120f7f7626e3b69b1b2589760fa75"
+  },
+  "environment": {
+    "python": "3.13.7",
+    "database_image": "postgres:16.4-alpine",
+    "chain_id": 31337,
+    "deployment_id": "dep_eae95a35879c7faded28dd0704f4b73461f8dda4170713b4ccb4466ee64679d1",
+    "foundry": "pinned official v1.4.4 container",
+    "provider": "mock",
+    "model": "gpt-6-luna",
+    "node_browser_used": false,
+    "new_clone": true,
+    "frozen_python_install_reused": true,
+    "same_product_deployer_image_reused": true,
+    "same_computer": true
+  },
+  "initial_baseline": {
+    "accounts": 5,
+    "issuers": 2,
+    "selected_keys": 2,
+    "historical_proofs": 2,
+    "operations": 6,
+    "audit_events": 10,
+    "fresh_socket_http_verdicts": "2 VERIFIED + ACTIVE",
+    "receipts": "6 confirmed status=0x1",
+    "proof_events": "one register event per Proof"
+  },
+  "checks": {
+    "initial_http_db_chain_preparation": "PASS",
+    "fresh_clone_preparation": "PASS",
+    "healthy_snapshot_db_invariance": "PASS",
+    "rpc_outage_snapshot_unavailable_and_db_unchanged": "PASS",
+    "recovered_same_state_and_fresh_http_initial_verdicts": "PASS",
+    "private_json_permissions_and_password_omission": "PASS",
+    "server_and_owned_resource_cleanup": "PASS",
+    "ruff": "PASS",
+    "python_syntax": "PASS",
+    "case_json_and_ids": "PASS",
+    "local_document_links": "PASS",
+    "git_diff_check": "PASS",
+    "make_bootstrap_check": "PASS: finals-v3 structure and environment"
+  },
+  "not_run": [
+    "browser UI rotation/issuance/revoke/consume/replay",
+    "web build/Playwright",
+    "D1/D2 or product regression suites repeated for this preparation",
+    "submitted-transaction response loss/failure receipt injection",
+    "other physical computer reproduction",
+    "paid models/production deployment"
+  ],
+  "limitations": [
+    "A W4-A1/A2/A3 UI is not connected in this phase",
+    "UI locators and submitted-transaction fault injection are applied after the connected screen is available",
+    "Initial API seeding is not browser issuance/rotation/revocation/consume evidence",
+    "RPC outage snapshot is evidence collector validation, not browser outage acceptance"
+  ],
+  "attempts": [
+    "First Make bootstrap invocation stopped at sandbox UV cache access; no product failure.",
+    "Dedicated cache retry inside sandbox stopped at macOS uv system-configuration panic.",
+    "Same Make command with dedicated cache outside sandbox passed; personal cache/settings unchanged."
+  ]
+}
