@@ -1,6 +1,6 @@
 # OriginProof Analyzer
 
-현재 담당은 D이며 기존 카드 알림을 `originproof_core.CardPaymentNoticeCandidate`로 구조화합니다. 진위 판정·Proof 조회·Registry 접근은 검증 코어/API가 담당합니다. 본선 P0는 AI 없이 동작하고 새 유형 OCR·추출은 P1입니다.
+현재 담당은 D이며 기존 카드 알림을 `originproof_core.CardPaymentNoticeCandidate`로 구조화합니다. 진위 판정·Proof 조회·Registry 접근은 검증 코어/API가 담당합니다. 5.0의 발행/내용 검증은 AI 없이 동작하며, AI 위험·근거 분석은 별도 필수 기능입니다. 입력 종류·우선순위는 팀 회의 후 확정하고 선정된 입력의 변환/분석을 구현합니다. 신규 범위는 [ADR 0004](../../docs/adr/0004-v5-governance-wallet-versioning.md)를 따르며 Decisions API는 후속 검토입니다.
 
 현재 작업 기준은 [개발 계획서](../../docs/development_plan.md)와 [해당 경로 지침](AGENTS.md)입니다. [MVP handoff](HANDOFF.md)는 당시 개발·검사 기록이며 현재 병합 기준이나 남은 작업 목록이 아닙니다. 아래는 지금 존재하는 카드 추출 endpoint의 사용 안내입니다.
 
