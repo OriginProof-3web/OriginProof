@@ -70,3 +70,15 @@ receipt, confirmation과 상태 재조회를 분리하고 결과 미확인을 �
 
 - 본인 확인: `@hamin1228` / 2026-10-01 / 작업 내용과 기여 기록 확인 대기
 - 작성자 외 리뷰어: 미확인; C Operation 소비자와 B 경로 검토 필요
+
+
+## 2026-10-03 — PR #33 경계 리뷰 후 nonce 예약 보완
+
+- B/C 경계 사후 리뷰: [PR #33 리뷰](https://github.com/OriginProof-3web/OriginProof/pull/33#pullrequestreview-5399742667). 과거 병합 전 승인으로 소급하지 않습니다.
+- 기준: `phase/W2@6f508fe6ae5ce106999c171e8205978dd2201333`; branch: `codex/w2-b-nonce-cleanup`.
+- B 수정: Writer의 전송 전 `save_prepared` 실패/취소 시 메모리 nonce 예약을 해제하고 원래 예외를 전달합니다. 전송 후 불명확 결과의 예약은 유지합니다. API/ABI/Schema는 변경하지 않았습니다.
+- 실제 Writer와 MockTransport로 저장 실패/취소 → 동일 nonce 재준비 → 단 한 번 성공 제출을 확인했습니다. 수정 전 두 사례는 nonce 5 대신 6을 반환해 실패했습니다. 모호한 전송 후 다음 prepare는 기존 nonce를 재사용하지 않는 검사도 보강했습니다.
+- C 기존 테스트 mock에 부모 Writer 예약 필드 초기화 한 줄을 추가했습니다. C 제품 orchestration은 수정하지 않았으며 이 테스트 변경은 C 소비자 리뷰 대상입니다.
+- Python 3.13.14, lockfile frozen 의존성 환경에서 API/core/Analyzer/Indexer/CI 회귀 **232 passed, 7 opt-in skipped**, 기존 deprecation warning 1개. 변경 Python Ruff check/format과 diff check 통과.
+- 이번 검사는 합성 RPC/저장 실패 검사입니다. 실제 PostgreSQL/Anvil 및 Foundry를 재실행하지 않았습니다. Contract 변경은 없습니다. 운영 배포·기존 DB 초기화·유료 호출은 없습니다.
+- Codex가 사용자 승인에 따라 수정·검사를 수행했습니다. 후속 PR의 C 소비자 리뷰와 phase 반영은 별도이며 W2 단계 전체 완료를 선언하지 않습니다.

@@ -59,7 +59,10 @@ result = await writer.confirm_prepared(prepared, submitted.tx_hash)
 ```
 
 `execute_prepared(prepared, operation_store)`는 이 순서를 수행하는 최소 orchestration
-helper다. `save_prepared` 실패 시 RPC 전송을 호출하지 않는다. tx hash 저장 실패 시
+helper다. `save_prepared` 실패 또는 취소 시 RPC 전송을 호출하지 않고 프로세스의
+nonce 예약을 해제한 뒤 원래 예외를 전달한다. 저장 commit 결과가 불명확하면 C는
+DB의 durable recovery reference를 먼저 재조회하고 기존 nonce 예약을 존중해야 한다.
+전송을 시작한 뒤 결과가 불명확하면 nonce 예약을 유지한다. tx hash 저장 실패 시
 `UNKNOWN/SUBMISSION_PERSISTENCE_FAILED`를 반환하고 성공으로 진행하지 않는다.
 프로세스 재시작 시 원래 Operation 입력과 저장 nonce로 같은 `prepare_*`를 다시
 구성하고 `restore_prepared(prepared, recovery_reference)`로 원래 검색 시작 block과
