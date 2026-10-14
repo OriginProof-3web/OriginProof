@@ -29,3 +29,10 @@
 B는 ABI/키 이력/공동승인/nonce·버전 전이를 검토하고 Registry를 구현합니다. A는 동일 타입으로 원본 재계산·지갑 연결·거절/만료 UI를 검토합니다. D는 선정 입력과 SG01~16을 실제 연결 검사에 적용합니다. C는 검토된 원본으로 새 API·DB·복구를 연결합니다. 각 담당자는 별도 공유 계약 사본을 정의하지 않습니다.
 
 소유자/소비 리뷰: 미확인. 사용자 입력·지갑 운영·공개 네트워크·모델·Decisions 미정 결정은 계획서 V5-Q01~09를 따릅니다. 기존 완료 phase를 수정하거나 W1 전체 완료로 표시하지 않았습니다.
+
+## 실제 공유·CI 근거
+
+- Draft PR: [#56](https://github.com/OriginProof-3web/OriginProof/pull/56), 대상 integration, 소유자/소비 리뷰 미확인.
+- 검증한 코드 SHA: `8f1fcac6ed2b4d98d815f2b7e935facff06a0d77`. 이후 이 절을 추가하는 문서 커밋은 기능 코드를 바꾸지 않습니다.
+- GitHub [Quality Gate](https://github.com/OriginProof-3web/OriginProof/actions/runs/38547258859): 위 코드 SHA의 python-quality/contracts 모두 SUCCESS 확인.
+- 세 로컬 작업 폴더의 공통 문서·준비 모델/생성물은 동기화했고 각각 신규 검사 24개를 통과했습니다. 해당 폴더의 원래 구현/HEAD를 보존했으며 팀원 PC의 반영 완료를 대신 주장하지 않습니다.
