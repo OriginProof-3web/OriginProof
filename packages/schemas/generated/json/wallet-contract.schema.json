@@ -1,0 +1,1656 @@
+{
+  "$defs": {
+    "AnalysisEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "end_ms": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Ms"
+        },
+        "end_offset": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Offset"
+        },
+        "page": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Page"
+        },
+        "quote": {
+          "maxLength": 500,
+          "title": "Quote",
+          "type": "string"
+        },
+        "rule_id": {
+          "title": "Rule Id",
+          "type": "string"
+        },
+        "source": {
+          "enum": [
+            "RULE",
+            "LLM"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "start_ms": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start Ms"
+        },
+        "start_offset": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start Offset"
+        }
+      },
+      "required": [
+        "rule_id",
+        "quote",
+        "source"
+      ],
+      "title": "AnalysisEvidence",
+      "type": "object"
+    },
+    "AnalysisJob": {
+      "additionalProperties": false,
+      "properties": {
+        "analysis_id": {
+          "pattern": "^ana_[A-Za-z0-9_-]+$",
+          "title": "Analysis Id",
+          "type": "string"
+        },
+        "error_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error Code"
+        },
+        "original_expires_at": {
+          "anyOf": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Original Expires At"
+        },
+        "report": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AnalysisReport"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "result_expires_at": {
+          "anyOf": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Result Expires At"
+        },
+        "retain_original": {
+          "title": "Retain Original",
+          "type": "boolean"
+        },
+        "retain_report": {
+          "title": "Retain Report",
+          "type": "boolean"
+        },
+        "status": {
+          "enum": [
+            "QUEUED",
+            "RUNNING",
+            "COMPLETED",
+            "FAILED",
+            "CANCELLED",
+            "EXPIRED"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "analysis_id",
+        "status",
+        "retain_report",
+        "retain_original"
+      ],
+      "title": "AnalysisJob",
+      "type": "object"
+    },
+    "AnalysisList": {
+      "additionalProperties": false,
+      "properties": {
+        "items": {
+          "items": {
+            "$ref": "#/$defs/AnalysisJob"
+          },
+          "title": "Items",
+          "type": "array"
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Next Cursor"
+        }
+      },
+      "required": [
+        "items"
+      ],
+      "title": "AnalysisList",
+      "type": "object"
+    },
+    "AnalysisReport": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/AnalysisEvidence"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        },
+        "risk_level": {
+          "enum": [
+            "HIGH",
+            "CAUTION",
+            "NO_CLEAR_INDICATORS",
+            "UNDETERMINED"
+          ],
+          "title": "Risk Level",
+          "type": "string"
+        },
+        "verification": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VerificationResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "verification_not_run_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Verification Not Run Reason"
+        }
+      },
+      "required": [
+        "risk_level",
+        "evidence",
+        "limitations"
+      ],
+      "title": "AnalysisReport",
+      "type": "object"
+    },
+    "AnalysisRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "input_ref": {
+          "title": "Input Ref",
+          "type": "string"
+        },
+        "request_id": {
+          "pattern": "^req_[A-Za-z0-9_-]{1,124}$",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "retain_original": {
+          "default": false,
+          "title": "Retain Original",
+          "type": "boolean"
+        },
+        "retain_report": {
+          "default": false,
+          "title": "Retain Report",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "request_id",
+        "input_ref"
+      ],
+      "title": "AnalysisRequest",
+      "type": "object"
+    },
+    "CheckResult": {
+      "additionalProperties": false,
+      "properties": {
+        "field_path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Field Path"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "reason_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason Code"
+        },
+        "status": {
+          "enum": [
+            "PASSED",
+            "FAILED",
+            "NOT_RUN",
+            "UNAVAILABLE"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "status"
+      ],
+      "title": "CheckResult",
+      "type": "object"
+    },
+    "DirectTransaction": {
+      "additionalProperties": false,
+      "properties": {
+        "request_id": {
+          "pattern": "^req_[A-Za-z0-9_-]{1,124}$",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "signing_request_id": {
+          "pattern": "^wsr_[A-Za-z0-9_-]+$",
+          "title": "Signing Request Id",
+          "type": "string"
+        },
+        "tx_hash": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Tx Hash",
+          "type": "string"
+        }
+      },
+      "required": [
+        "request_id",
+        "signing_request_id",
+        "tx_hash"
+      ],
+      "title": "DirectTransaction",
+      "type": "object"
+    },
+    "DocumentDraftRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "content": {
+          "discriminator": {
+            "mapping": {
+              "OFFICIAL_DOCUMENT": "#/$defs/OfficialContent",
+              "PAYMENT_REQUEST": "#/$defs/PaymentContent"
+            },
+            "propertyName": "notice_type"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/PaymentContent"
+            },
+            {
+              "$ref": "#/$defs/OfficialContent"
+            }
+          ],
+          "title": "Content"
+        },
+        "doc_key": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Doc Key",
+          "type": "string"
+        },
+        "expected_version": {
+          "maximum": 9007199254740991,
+          "minimum": 1,
+          "title": "Expected Version",
+          "type": "integer"
+        },
+        "expires_at": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Expires At",
+          "type": "integer"
+        },
+        "request_id": {
+          "pattern": "^req_[A-Za-z0-9_-]{1,124}$",
+          "title": "Request Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "request_id",
+        "doc_key",
+        "expected_version",
+        "expires_at",
+        "content"
+      ],
+      "title": "DocumentDraftRequest",
+      "type": "object"
+    },
+    "DocumentView": {
+      "additionalProperties": false,
+      "properties": {
+        "content_schema": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Content Schema",
+          "type": "string"
+        },
+        "doc_key": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Doc Key",
+          "type": "string"
+        },
+        "document_id": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Document Id",
+          "type": "string"
+        },
+        "expires_at": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Expires At",
+          "type": "integer"
+        },
+        "issued_at": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Issued At",
+          "type": "integer"
+        },
+        "issuer_id": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Issuer Id",
+          "type": "string"
+        },
+        "key_id": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Key Id",
+          "type": "string"
+        },
+        "latest_version": {
+          "maximum": 9007199254740991,
+          "minimum": 1,
+          "title": "Latest Version",
+          "type": "integer"
+        },
+        "original_available": {
+          "title": "Original Available",
+          "type": "boolean"
+        },
+        "original_hash": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Original Hash",
+          "type": "string"
+        },
+        "protected_hash": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Protected Hash",
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "ACTIVE",
+            "REVOKED",
+            "SUPERSEDED",
+            "EXPIRED"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "version": {
+          "maximum": 9007199254740991,
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        },
+        "warnings": {
+          "items": {
+            "enum": [
+              "ISSUER_SUSPENDED",
+              "KEY_COMPROMISED",
+              "CHAIN_UNAVAILABLE"
+            ],
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "document_id",
+        "issuer_id",
+        "doc_key",
+        "key_id",
+        "version",
+        "latest_version",
+        "state",
+        "warnings",
+        "original_hash",
+        "protected_hash",
+        "content_schema",
+        "issued_at",
+        "expires_at",
+        "original_available"
+      ],
+      "title": "DocumentView",
+      "type": "object"
+    },
+    "ErrorResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "detail": {
+          "title": "Detail",
+          "type": "string"
+        },
+        "field_paths": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Field Paths",
+          "type": "array"
+        },
+        "request_id": {
+          "anyOf": [
+            {
+              "pattern": "^req_[A-Za-z0-9_-]{1,124}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Request Id"
+        },
+        "retry_after_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retry After Seconds"
+        }
+      },
+      "required": [
+        "detail"
+      ],
+      "title": "ErrorResponse",
+      "type": "object"
+    },
+    "GovernanceProposal": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "enum": [
+            1,
+            2,
+            3
+          ],
+          "title": "Action",
+          "type": "integer"
+        },
+        "deadline": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Deadline",
+          "type": "integer"
+        },
+        "issuerId": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Issuerid",
+          "type": "string"
+        },
+        "keyId": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Keyid",
+          "type": "string"
+        },
+        "metadataHash": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Metadatahash",
+          "type": "string"
+        },
+        "nonce": {
+          "pattern": "^(0|[1-9][0-9]{0,77})$",
+          "title": "Nonce",
+          "type": "string"
+        },
+        "signer": {
+          "pattern": "^0x[0-9a-fA-F]{40}$",
+          "title": "Signer",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action",
+        "issuerId",
+        "keyId",
+        "signer",
+        "metadataHash",
+        "nonce",
+        "deadline"
+      ],
+      "title": "GovernanceProposal",
+      "type": "object"
+    },
+    "GovernanceTransaction": {
+      "additionalProperties": false,
+      "properties": {
+        "request_id": {
+          "pattern": "^req_[A-Za-z0-9_-]{1,124}$",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "tx_hash": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Tx Hash",
+          "type": "string"
+        }
+      },
+      "required": [
+        "request_id",
+        "tx_hash"
+      ],
+      "title": "GovernanceTransaction",
+      "type": "object"
+    },
+    "KeyChallengeRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "application_id": {
+          "pattern": "^app_[A-Za-z0-9_-]+$",
+          "title": "Application Id",
+          "type": "string"
+        },
+        "request_id": {
+          "pattern": "^req_[A-Za-z0-9_-]{1,124}$",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "signer": {
+          "pattern": "^0x[0-9a-fA-F]{40}$",
+          "title": "Signer",
+          "type": "string"
+        }
+      },
+      "required": [
+        "request_id",
+        "application_id",
+        "signer"
+      ],
+      "title": "KeyChallengeRequest",
+      "type": "object"
+    },
+    "KeyProofMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "const": 3,
+          "default": 3,
+          "title": "Action",
+          "type": "integer"
+        },
+        "applicationId": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Applicationid",
+          "type": "string"
+        },
+        "challengeNonce": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Challengenonce",
+          "type": "string"
+        },
+        "deadline": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Deadline",
+          "type": "integer"
+        },
+        "issuerId": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Issuerid",
+          "type": "string"
+        },
+        "signer": {
+          "pattern": "^0x[0-9a-fA-F]{40}$",
+          "title": "Signer",
+          "type": "string"
+        }
+      },
+      "required": [
+        "applicationId",
+        "issuerId",
+        "signer",
+        "challengeNonce",
+        "deadline"
+      ],
+      "title": "KeyProofMessage",
+      "type": "object"
+    },
+    "KeyProofReceipt": {
+      "additionalProperties": false,
+      "properties": {
+        "expires_at": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Expires At",
+          "type": "integer"
+        },
+        "signing_request_id": {
+          "title": "Signing Request Id",
+          "type": "string"
+        },
+        "verified_at": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Verified At",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "signing_request_id",
+        "verified_at",
+        "expires_at"
+      ],
+      "title": "KeyProofReceipt",
+      "type": "object"
+    },
+    "OfficialContent": {
+      "additionalProperties": false,
+      "properties": {
+        "document_number": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Document Number",
+          "type": "string"
+        },
+        "document_type": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Document Type",
+          "type": "string"
+        },
+        "institution_code": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Institution Code",
+          "type": "string"
+        },
+        "notice_type": {
+          "const": "OFFICIAL_DOCUMENT",
+          "title": "Notice Type",
+          "type": "string"
+        },
+        "official_url": {
+          "anyOf": [
+            {
+              "maxLength": 2048,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Official Url"
+        },
+        "summary": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Summary",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "notice_type",
+        "institution_code",
+        "document_type",
+        "document_number",
+        "title",
+        "summary"
+      ],
+      "title": "OfficialContent",
+      "type": "object"
+    },
+    "OperationView": {
+      "additionalProperties": false,
+      "properties": {
+        "document_id": {
+          "anyOf": [
+            {
+              "pattern": "^0x[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Document Id"
+        },
+        "next_action": {
+          "enum": [
+            "WAIT",
+            "RECONCILE",
+            "RESIGN",
+            "NONE"
+          ],
+          "title": "Next Action",
+          "type": "string"
+        },
+        "operation_id": {
+          "pattern": "^op_[A-Za-z0-9_-]+$",
+          "title": "Operation Id",
+          "type": "string"
+        },
+        "recovery_required": {
+          "title": "Recovery Required",
+          "type": "boolean"
+        },
+        "request_id": {
+          "pattern": "^req_[A-Za-z0-9_-]{1,124}$",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "PENDING_SUBMISSION",
+            "SUBMITTED",
+            "CONFIRMED",
+            "FAILED",
+            "UNKNOWN"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "tx_hash": {
+          "anyOf": [
+            {
+              "pattern": "^0x[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tx Hash"
+        },
+        "version": {
+          "anyOf": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version"
+        }
+      },
+      "required": [
+        "operation_id",
+        "request_id",
+        "status",
+        "recovery_required",
+        "next_action"
+      ],
+      "title": "OperationView",
+      "type": "object"
+    },
+    "PaymentContent": {
+      "additionalProperties": false,
+      "properties": {
+        "amount_minor": {
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991,
+          "title": "Amount Minor",
+          "type": "integer"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "due_at": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Due At",
+          "type": "integer"
+        },
+        "notice_type": {
+          "const": "PAYMENT_REQUEST",
+          "title": "Notice Type",
+          "type": "string"
+        },
+        "official_url": {
+          "anyOf": [
+            {
+              "maxLength": 2048,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Official Url"
+        },
+        "payee_account_holder": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Payee Account Holder",
+          "type": "string"
+        },
+        "payee_account_number": {
+          "pattern": "^[0-9]{6,32}$",
+          "title": "Payee Account Number",
+          "type": "string"
+        },
+        "payee_bank_name": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Payee Bank Name",
+          "type": "string"
+        },
+        "payment_purpose": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Payment Purpose",
+          "type": "string"
+        }
+      },
+      "required": [
+        "notice_type",
+        "amount_minor",
+        "currency",
+        "payee_bank_name",
+        "payee_account_number",
+        "payee_account_holder",
+        "payment_purpose",
+        "due_at"
+      ],
+      "title": "PaymentContent",
+      "type": "object"
+    },
+    "ProposalRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "key_proof_request_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Key Proof Request Id"
+        },
+        "proposal": {
+          "$ref": "#/$defs/GovernanceProposal"
+        },
+        "request_id": {
+          "pattern": "^req_[A-Za-z0-9_-]{1,124}$",
+          "title": "Request Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "request_id",
+        "proposal"
+      ],
+      "title": "ProposalRequest",
+      "type": "object"
+    },
+    "ProposalView": {
+      "additionalProperties": false,
+      "properties": {
+        "approvals": {
+          "items": {
+            "pattern": "^0x[0-9a-fA-F]{40}$",
+            "type": "string"
+          },
+          "title": "Approvals",
+          "type": "array"
+        },
+        "key_proof": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/KeyProofMessage"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "key_proof_signature": {
+          "anyOf": [
+            {
+              "pattern": "^0x[0-9a-f]{130}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Key Proof Signature"
+        },
+        "operation_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Operation Id"
+        },
+        "proposal": {
+          "$ref": "#/$defs/GovernanceProposal"
+        },
+        "proposal_id": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Proposal Id",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "PREPARED",
+            "PENDING",
+            "EXECUTED",
+            "EXPIRED",
+            "STALE"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "threshold": {
+          "const": 2,
+          "default": 2,
+          "title": "Threshold",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "proposal_id",
+        "proposal",
+        "status",
+        "approvals"
+      ],
+      "title": "ProposalView",
+      "type": "object"
+    },
+    "PublishMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "const": 1,
+          "default": 1,
+          "title": "Action",
+          "type": "integer"
+        },
+        "contentSchema": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Contentschema",
+          "type": "string"
+        },
+        "deadline": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Deadline",
+          "type": "integer"
+        },
+        "docKey": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Dockey",
+          "type": "string"
+        },
+        "documentId": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Documentid",
+          "type": "string"
+        },
+        "expiresAt": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Expiresat",
+          "type": "integer"
+        },
+        "issuedAt": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Issuedat",
+          "type": "integer"
+        },
+        "issuerId": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Issuerid",
+          "type": "string"
+        },
+        "keyId": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Keyid",
+          "type": "string"
+        },
+        "nonce": {
+          "pattern": "^(0|[1-9][0-9]{0,77})$",
+          "title": "Nonce",
+          "type": "string"
+        },
+        "originalHash": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Originalhash",
+          "type": "string"
+        },
+        "originalHashAlgorithm": {
+          "const": 1,
+          "default": 1,
+          "title": "Originalhashalgorithm",
+          "type": "integer"
+        },
+        "protectedHash": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Protectedhash",
+          "type": "string"
+        },
+        "protectedHashAlgorithm": {
+          "const": 1,
+          "default": 1,
+          "title": "Protectedhashalgorithm",
+          "type": "integer"
+        },
+        "signatureSchema": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Signatureschema",
+          "type": "string"
+        },
+        "version": {
+          "maximum": 9007199254740991,
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "issuerId",
+        "docKey",
+        "documentId",
+        "version",
+        "keyId",
+        "originalHash",
+        "protectedHash",
+        "contentSchema",
+        "signatureSchema",
+        "issuedAt",
+        "expiresAt",
+        "nonce",
+        "deadline"
+      ],
+      "title": "PublishMessage",
+      "type": "object"
+    },
+    "RevokeDraftRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "document_id": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Document Id",
+          "type": "string"
+        },
+        "request_id": {
+          "pattern": "^req_[A-Za-z0-9_-]{1,124}$",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "version": {
+          "maximum": 9007199254740991,
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "request_id",
+        "document_id",
+        "version"
+      ],
+      "title": "RevokeDraftRequest",
+      "type": "object"
+    },
+    "RevokeMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "action": {
+          "const": 2,
+          "default": 2,
+          "title": "Action",
+          "type": "integer"
+        },
+        "deadline": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Deadline",
+          "type": "integer"
+        },
+        "docKey": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Dockey",
+          "type": "string"
+        },
+        "documentId": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Documentid",
+          "type": "string"
+        },
+        "issuerId": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Issuerid",
+          "type": "string"
+        },
+        "keyId": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Keyid",
+          "type": "string"
+        },
+        "nonce": {
+          "pattern": "^(0|[1-9][0-9]{0,77})$",
+          "title": "Nonce",
+          "type": "string"
+        },
+        "version": {
+          "maximum": 9007199254740991,
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "issuerId",
+        "docKey",
+        "documentId",
+        "version",
+        "keyId",
+        "nonce",
+        "deadline"
+      ],
+      "title": "RevokeMessage",
+      "type": "object"
+    },
+    "SignedSubmission": {
+      "additionalProperties": false,
+      "properties": {
+        "request_id": {
+          "pattern": "^req_[A-Za-z0-9_-]{1,124}$",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "signature": {
+          "pattern": "^0x[0-9a-f]{130}$",
+          "title": "Signature",
+          "type": "string"
+        },
+        "signing_request_id": {
+          "pattern": "^wsr_[A-Za-z0-9_-]+$",
+          "title": "Signing Request Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "request_id",
+        "signing_request_id",
+        "signature"
+      ],
+      "title": "SignedSubmission",
+      "type": "object"
+    },
+    "SigningRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "content": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "OFFICIAL_DOCUMENT": "#/$defs/OfficialContent",
+                  "PAYMENT_REQUEST": "#/$defs/PaymentContent"
+                },
+                "propertyName": "notice_type"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/PaymentContent"
+                },
+                {
+                  "$ref": "#/$defs/OfficialContent"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Content"
+        },
+        "domain": {
+          "$ref": "#/$defs/WalletDomain"
+        },
+        "expected_signer": {
+          "pattern": "^0x[0-9a-fA-F]{40}$",
+          "title": "Expected Signer",
+          "type": "string"
+        },
+        "message": {
+          "discriminator": {
+            "mapping": {
+              "1": "#/$defs/PublishMessage",
+              "2": "#/$defs/RevokeMessage",
+              "3": "#/$defs/KeyProofMessage"
+            },
+            "propertyName": "action"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/PublishMessage"
+            },
+            {
+              "$ref": "#/$defs/RevokeMessage"
+            },
+            {
+              "$ref": "#/$defs/KeyProofMessage"
+            }
+          ],
+          "title": "Message"
+        },
+        "original_base64": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Original Base64"
+        },
+        "primary_type": {
+          "enum": [
+            "Publish",
+            "Revoke",
+            "KeyProof"
+          ],
+          "title": "Primary Type",
+          "type": "string"
+        },
+        "signing_request_id": {
+          "pattern": "^wsr_[A-Za-z0-9_-]+$",
+          "title": "Signing Request Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "signing_request_id",
+        "primary_type",
+        "domain",
+        "message",
+        "expected_signer"
+      ],
+      "title": "SigningRequest",
+      "type": "object"
+    },
+    "VerificationRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate"
+        },
+        "document_id": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Document Id",
+          "type": "string"
+        },
+        "original_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Original Ref"
+        },
+        "request_id": {
+          "pattern": "^req_[A-Za-z0-9_-]{1,124}$",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "scope": {
+          "enum": [
+            "ID_ONLY",
+            "PROTECTED_FIELDS",
+            "ORIGINAL_BYTES"
+          ],
+          "title": "Scope",
+          "type": "string"
+        },
+        "version": {
+          "anyOf": [
+            {
+              "maximum": 9007199254740991,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version"
+        }
+      },
+      "required": [
+        "request_id",
+        "document_id",
+        "scope"
+      ],
+      "title": "VerificationRequest",
+      "type": "object"
+    },
+    "VerificationResult": {
+      "additionalProperties": false,
+      "properties": {
+        "block_hash": {
+          "anyOf": [
+            {
+              "pattern": "^0x[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Block Hash"
+        },
+        "block_number": {
+          "anyOf": [
+            {
+              "pattern": "^(0|[1-9][0-9]{0,77})$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Block Number"
+        },
+        "chain_id": {
+          "pattern": "^(0|[1-9][0-9]{0,77})$",
+          "title": "Chain Id",
+          "type": "string"
+        },
+        "checked_at": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "title": "Checked At",
+          "type": "integer"
+        },
+        "checks": {
+          "items": {
+            "$ref": "#/$defs/CheckResult"
+          },
+          "title": "Checks",
+          "type": "array"
+        },
+        "comparison_scope": {
+          "enum": [
+            "ID_ONLY",
+            "FULL_COMPARISON",
+            "PARTIAL_COMPARISON",
+            "NONE"
+          ],
+          "title": "Comparison Scope",
+          "type": "string"
+        },
+        "document": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DocumentView"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "reason_codes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reason Codes",
+          "type": "array"
+        },
+        "session_id": {
+          "pattern": "^vsn_[A-Za-z0-9_-]+$",
+          "title": "Session Id",
+          "type": "string"
+        },
+        "verification_status": {
+          "enum": [
+            "VERIFIED",
+            "NOT_REGISTERED",
+            "TAMPERED",
+            "INCONCLUSIVE",
+            "ERROR"
+          ],
+          "title": "Verification Status",
+          "type": "string"
+        },
+        "verifying_contract": {
+          "pattern": "^0x[0-9a-fA-F]{40}$",
+          "title": "Verifying Contract",
+          "type": "string"
+        }
+      },
+      "required": [
+        "session_id",
+        "verification_status",
+        "comparison_scope",
+        "checks",
+        "reason_codes",
+        "checked_at",
+        "chain_id",
+        "verifying_contract"
+      ],
+      "title": "VerificationResult",
+      "type": "object"
+    },
+    "WalletDomain": {
+      "additionalProperties": false,
+      "properties": {
+        "chainId": {
+          "pattern": "^(0|[1-9][0-9]{0,77})$",
+          "title": "Chainid",
+          "type": "string"
+        },
+        "name": {
+          "const": "OriginProof",
+          "default": "OriginProof",
+          "title": "Name",
+          "type": "string"
+        },
+        "verifyingContract": {
+          "pattern": "^0x[0-9a-fA-F]{40}$",
+          "title": "Verifyingcontract",
+          "type": "string"
+        },
+        "version": {
+          "const": "1",
+          "default": "1",
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "chainId",
+        "verifyingContract"
+      ],
+      "title": "WalletDomain",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "OriginProof wallet shared contract",
+  "x-implementation-status": "PREPARATION_REVIEW_REQUIRED",
+  "x-revision": "v5-shared-0.1"
+}

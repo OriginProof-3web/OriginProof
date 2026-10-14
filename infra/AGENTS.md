@@ -8,7 +8,7 @@ C가 API·DB·Redis·웹 기동 공통 설정을 조율하고 B가 로컬 EVM·�
 
 ## 2. 구현·계약 규칙
 
-기존 Compose·Makefile·.env.example·healthcheck·고정 의존성을 재사용합니다. 공개 호스팅·테스트넷은 P0가 아닙니다. secret·운영 credential·불필요한 공개 port를 추가하지 않습니다. 서명기 파일/볼륨의 접근권한·재시작 복구를 보호합니다.
+기존 Compose·Makefile·.env.example·healthcheck·고정 의존성을 재사용합니다. 인터넷 웹 호스팅은 자동 필수가 아닙니다. 공개 EVM은 별도 달성 목표이며 네트워크·배포 범위·비용·확정 기준은 V5-Q04에서 결정합니다. secret·운영 credential·불필요한 공개 port를 추가하지 않습니다. 기존 서버 서명기 파일/볼륨은 레거시 복구용으로 보호합니다. 신규 기관키는 기관 지갑에 두고 서버 백업 대상으로 만들지 않으며 가스 중계키는 별도 보호합니다.
 
 make mvp-up·make demo-reset 등 기존 인터페이스 이름을 유지합니다. reset은 볼륨 삭제를 포함하므로 폐기 가능한 합성 환경에서만 실행합니다. DB/서명기/manifest/chain 상태를 서로 다른 배포에서 섞지 않습니다.
 

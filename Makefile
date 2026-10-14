@@ -103,6 +103,7 @@ smoke:
 generate:
 	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run --package originproof-core python scripts/generate_schemas.py
 	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run --package originproof-core python scripts/generate_golden_fixture.py
+	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run --package originproof-core python scripts/generate_wallet_contracts.py
 	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run --package originproof-core python scripts/generate_finals_golden.py
 	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run --package originproof-api python scripts/generate_api_contracts.py
 
