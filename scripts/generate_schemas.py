@@ -39,7 +39,9 @@ def typescript_type(schema: dict) -> str:
     if "const" in schema:
         return json.dumps(schema["const"])
     if "anyOf" in schema or "oneOf" in schema:
-        return " | ".join(typescript_type(item) for item in schema.get("anyOf", schema.get("oneOf")))
+        return " | ".join(
+            typescript_type(item) for item in schema.get("anyOf", schema.get("oneOf"))
+        )
     if "enum" in schema:
         return " | ".join(json.dumps(value) for value in schema["enum"])
 

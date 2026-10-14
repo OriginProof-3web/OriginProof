@@ -8,7 +8,7 @@
 선행 작업·관련 PR:
 작업 branch·PR 대상 phase/Wn:
 
-루트 AGENTS.md → START_HERE.md → 개발 계획서 5.0의 12장 작업·14장 수용 기준과 ADR 0004 →
+루트 AGENTS.md → START_HERE.md → 최신 개발 계획서의 12장 작업·14장 수용 기준과 ADR 0004 →
 수정 경로의 하위 AGENTS.md → 현재 모델/API/ABI/테스트를 읽어 주세요.
 현재 branch·SHA·사용자 변경·수정 범위·검증 명령을 먼저 보고해 주세요.
 

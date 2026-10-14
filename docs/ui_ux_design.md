@@ -2,7 +2,7 @@
 
 작성일: 2026-10-09 · 개정일: 2026-10-13 · 상태: **권장 설계 작성 완료 / 제품 구현·팀 리뷰·사용성 검증 전**
 
-[개발 계획서 5.0](development_plan.md), [ADR 0004](adr/0004-v5-governance-wallet-versioning.md), [산출물 상세안 0.5](final_deliverables_draft.md)의 D01~D03/D06을 화면으로 연결합니다. 기존 15개 템플릿·색상·접근성 기준을 재사용하고 공동승인·기관 지갑·문서 버전을 반영했습니다. 입력 종류·우선순위는 팀 회의 후 확정하며 Decisions API는 후속 검토입니다. A가 구현하고 C는 권한/API, B는 지갑·체인, D는 근거/실패·접근성을 검토합니다. 제안 URL·상태는 현재 route/API 지원이나 제품 검증 완료를 뜻하지 않습니다.
+[최신 개발 계획서](development_plan.md), [ADR 0004](adr/0004-v5-governance-wallet-versioning.md), [산출물 상세안 0.5](final_deliverables_draft.md)의 D01~D03/D06을 화면으로 연결합니다. 기존 15개 템플릿·색상·접근성 기준을 재사용하고 공동승인·기관 지갑·문서 버전을 반영했습니다. 입력 종류·우선순위는 팀 회의 후 확정하며 Decisions API는 후속 검토입니다. A가 구현하고 C는 권한/API, B는 지갑·체인, D는 근거/실패·접근성을 검토합니다. 제안 URL·상태는 현재 route/API 지원이나 제품 검증 완료를 뜻하지 않습니다.
 
 ## 1. 이번에 정한 9가지
 
