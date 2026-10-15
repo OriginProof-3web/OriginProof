@@ -39,7 +39,7 @@
 | [#47](https://github.com/OriginProof-3web/OriginProof/pull/47) | `phase/W3` | [`69db3680ee8a2779a48e58ec775bd29009f7aa4c`](https://github.com/OriginProof-3web/OriginProof/commit/69db3680ee8a2779a48e58ec775bd29009f7aa4c) | 기존 W3 독립 QA |
 | [#49](https://github.com/OriginProof-3web/OriginProof/pull/49) | `phase/W4` | [`374074744613b37ae91051c3f57a7c9222037506`](https://github.com/OriginProof-3web/OriginProof/commit/374074744613b37ae91051c3f57a7c9222037506) | 기존 W4 정책·상태 QA/D3 준비 |
 
-[#56](https://github.com/OriginProof-3web/OriginProof/pull/56)은 OPEN/Draft이며 계획·지침·v5-shared-0.1 준비 계약을 담습니다. Registry/API/DB/브라우저 지갑 실제 구현·연결을 완료한 PR은 아닙니다. 새 통합 PR과 재사용 적용 완료의 근거는 아직 없습니다.
+[#56](https://github.com/OriginProof-3web/OriginProof/pull/56)은 **2026-10-15 01:48 한국시간**에 `integration`의 `33bc4f4e7456c5ef7c2df8c8bf09f8014e0169f8`로 **MERGED**됐으며 계획·지침·v5-shared-0.1 준비 계약을 담습니다. Registry/API/DB/브라우저 지갑 실제 구현·연결을 완료한 PR은 아닙니다. 새 통합 PR과 재사용 적용 완료의 근거는 아직 없습니다.
 
 ## 3. 활성 재사용 인계
 
