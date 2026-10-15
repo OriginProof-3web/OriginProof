@@ -1,0 +1,180 @@
+{
+  "error": {
+    "detail": "REQUEST_ID_CONFLICT",
+    "field_paths": [],
+    "request_id": "req_publish_001",
+    "retry_after_seconds": null
+  },
+  "integration_cases": [
+    {
+      "execution_status": "NOT_EXECUTED",
+      "expected": "DUPLICATE_APPROVAL",
+      "given": "approvals=[A], caller=A; count remains 1",
+      "id": "SG01",
+      "scenario": "duplicate approver"
+    },
+    {
+      "execution_status": "NOT_EXECUTED",
+      "expected": "PROPOSAL_EXPIRED",
+      "given": "block.timestamp == proposal.deadline",
+      "id": "SG02",
+      "scenario": "proposal deadline boundary"
+    },
+    {
+      "execution_status": "NOT_EXECUTED",
+      "expected": "PROPOSAL_STALE",
+      "given": "another proposal at this nonce already executed",
+      "id": "SG03",
+      "scenario": "consumed governance nonce"
+    },
+    {
+      "execution_status": "NOT_EXECUTED",
+      "expected": "SIGNATURE_EXPIRED",
+      "given": "block.timestamp == message.deadline",
+      "id": "SG04",
+      "scenario": "publish deadline boundary"
+    },
+    {
+      "execution_status": "NOT_EXECUTED",
+      "expected": "NONCE_ALREADY_USED",
+      "given": "stored nextNonce > message.nonce",
+      "id": "SG05",
+      "scenario": "replayed business nonce"
+    },
+    {
+      "execution_status": "NOT_EXECUTED",
+      "expected": "VERSION_CONFLICT",
+      "given": "latest=1; two distinct requests publish version=2",
+      "id": "SG06",
+      "scenario": "concurrent next version"
+    },
+    {
+      "execution_status": "NOT_EXECUTED",
+      "expected": "DOCUMENT_OWNER_MISMATCH",
+      "given": "message issuer differs from stored owner",
+      "id": "SG07",
+      "scenario": "another issuer owns document"
+    },
+    {
+      "execution_status": "NOT_EXECUTED",
+      "expected": "KEY_NOT_ACTIVE",
+      "given": "new publication signed by previous key",
+      "id": "SG08",
+      "scenario": "retired key issues again"
+    },
+    {
+      "execution_status": "NOT_EXECUTED",
+      "expected": "ISSUER_SUSPENDED",
+      "given": "issuer=SUSPENDED, action=publish",
+      "id": "SG09",
+      "scenario": "suspended issuer publishes"
+    },
+    {
+      "execution_status": "NOT_EXECUTED",
+      "expected": "REVOKED",
+      "given": "issuer=SUSPENDED, current key signs own version",
+      "id": "SG10",
+      "scenario": "suspended issuer revokes"
+    },
+    {
+      "execution_status": "NOT_EXECUTED",
+      "expected": "NO_REVIVAL",
+      "given": "version 2 revoked; version 1 stays SUPERSEDED",
+      "id": "SG11",
+      "scenario": "latest version revoked"
+    },
+    {
+      "execution_status": "NOT_EXECUTED",
+      "expected": "DIRECT_TX_MISMATCH",
+      "given": "receipt belongs to different document/version/hash",
+      "id": "SG12",
+      "scenario": "direct tx mismatch"
+    },
+    {
+      "execution_status": "NOT_EXECUTED",
+      "expected": "REQUEST_ID_CONFLICT",
+      "given": "same actor/action/request_id with changed content",
+      "id": "SG13",
+      "scenario": "idempotency conflict"
+    },
+    {
+      "execution_status": "NOT_EXECUTED",
+      "expected": "INCONCLUSIVE",
+      "given": "current_state=UNAVAILABLE; cached ACTIVE is insufficient",
+      "id": "SG14",
+      "scenario": "RPC unavailable"
+    },
+    {
+      "execution_status": "NOT_EXECUTED",
+      "expected": "ORIGINAL_UNAVAILABLE",
+      "given": "original/signature missing; no full VERIFIED",
+      "id": "SG15",
+      "scenario": "original retention ended"
+    },
+    {
+      "execution_status": "NOT_EXECUTED",
+      "expected": "INCONCLUSIVE",
+      "given": "candidate has only amount; account not compared",
+      "id": "SG16",
+      "scenario": "partial protected fields"
+    }
+  ],
+  "revision": "v5-shared-0.1",
+  "signing_request": {
+    "content": {
+      "amount_minor": 154000,
+      "currency": "KRW",
+      "due_at": 1792454400,
+      "notice_type": "PAYMENT_REQUEST",
+      "official_url": "https://example.invalid/notice/001",
+      "payee_account_holder": "합성 공공기관",
+      "payee_account_number": "001234567890",
+      "payee_bank_name": "합성 시연 은행",
+      "payment_purpose": "합성 행사 참가비"
+    },
+    "domain": {
+      "chainId": "31337",
+      "name": "OriginProof",
+      "verifyingContract": "0x1212121212121212121212121212121212121212",
+      "version": "1"
+    },
+    "expected_signer": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+    "message": {
+      "action": 1,
+      "contentSchema": "0x6d5e6ba9932463c01f2e104c5a6938d42a1452acd79b9f6581760dc400206886",
+      "deadline": 1791936300,
+      "docKey": "0x976b50b13f54d1fcaa9f95bf3c4c866fd890a8d4dcfadc98ed49bca056f384a3",
+      "documentId": "0x68c5251187d8bd723e65f1ec68b7d00ccb45d81f0774701048aa873d926bb329",
+      "expiresAt": 1792540800,
+      "issuedAt": 1791936000,
+      "issuerId": "0x1e8de44791e8958864b0d708b3c198c04ccb592dfca9c3a7de026bd7f2b1dec5",
+      "keyId": "0xe1066573cf284450539d190654a2ddbb1565d035964e37c8a02b44fb29e52da2",
+      "nonce": "0",
+      "originalHash": "0x43c98150d5d475b0b8f427005c0eaf321057a193a57076c5bb096b6209ff99b8",
+      "originalHashAlgorithm": 1,
+      "protectedHash": "0x0d41285f379e0f05ac1c810b68b4edd9558e1786c31cca0017268cd578b177ea",
+      "protectedHashAlgorithm": 1,
+      "signatureSchema": "0xf4bd1f52e8b2d7d25f437fd4c465fa850b19a255da060c865bfc4d6ce34e0bde",
+      "version": 1
+    },
+    "original_base64": "eyJjb250ZW50Ijp7ImFtb3VudF9taW5vciI6MTU0MDAwLCJjdXJyZW5jeSI6IktSVyIsImR1ZV9hdCI6MTc5MjQ1NDQwMCwibm90aWNlX3R5cGUiOiJQQVlNRU5UX1JFUVVFU1QiLCJvZmZpY2lhbF91cmwiOiJodHRwczovL2V4YW1wbGUuaW52YWxpZC9ub3RpY2UvMDAxIiwicGF5ZWVfYWNjb3VudF9ob2xkZXIiOiLtlanshLEg6rO16rO16riw6rSAIiwicGF5ZWVfYWNjb3VudF9udW1iZXIiOiIwMDEyMzQ1Njc4OTAiLCJwYXllZV9iYW5rX25hbWUiOiLtlanshLEg7Iuc7JewIOydgO2WiSIsInBheW1lbnRfcHVycG9zZSI6Iu2VqeyEsSDtlonsgqwg7LC46rCA67mEIn0sImRvY19rZXkiOiIweDk3NmI1MGIxM2Y1NGQxZmNhYTlmOTViZjNjNGM4NjZmZDg5MGE4ZDRkY2ZhZGM5OGVkNDliY2EwNTZmMzg0YTMiLCJkb2N1bWVudF9pZCI6IjB4NjhjNTI1MTE4N2Q4YmQ3MjNlNjVmMWVjNjhiN2QwMGNjYjQ1ZDgxZjA3NzQ3MDEwNDhhYTg3M2Q5MjZiYjMyOSIsImV4cGlyZXNfYXQiOjE3OTI1NDA4MDAsImZvcm1hdCI6Im9yaWdpbnByb29mLm9yaWdpbmFsLnYxIiwiaXNzdWVkX2F0IjoxNzkxOTM2MDAwLCJpc3N1ZXJfaWQiOiIweDFlOGRlNDQ3OTFlODk1ODg2NGIwZDcwOGIzYzE5OGMwNGNjYjU5MmRmY2E5YzNhN2RlMDI2YmQ3ZjJiMWRlYzUiLCJ2ZXJzaW9uIjoxfQ==",
+    "primary_type": "Publish",
+    "signing_request_id": "wsr_synthetic_001"
+  },
+  "submission": {
+    "request_id": "req_publish_001",
+    "signature": "0x3f0f67a4c67f52e556457651114d48b234cdd0b95203584bf1d2396733b2ee360cb4e487bff717cd0b5ed4ad65664b6a91f28c9513985e655985aef6f1ff4e291c",
+    "signing_request_id": "wsr_synthetic_001"
+  },
+  "synthetic": true,
+  "unknown_operation": {
+    "document_id": "0x68c5251187d8bd723e65f1ec68b7d00ccb45d81f0774701048aa873d926bb329",
+    "next_action": "RECONCILE",
+    "operation_id": "op_synthetic_001",
+    "recovery_required": true,
+    "request_id": "req_publish_001",
+    "status": "UNKNOWN",
+    "tx_hash": "0xabababababababababababababababababababababababababababababababab",
+    "version": 1
+  }
+}
