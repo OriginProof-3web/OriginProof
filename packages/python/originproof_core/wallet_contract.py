@@ -457,3 +457,38 @@ class ErrorResponse(ContractModel):
     request_id: RequestId | None = None
     retry_after_seconds: Annotated[int, Field(strict=True, ge=0)] | None = None
     field_paths: list[str] = Field(default_factory=list)
+
+
+class DemoEmailRequest(ContractModel):
+    email: Annotated[str, Field(min_length=3, max_length=254)]
+
+
+class DemoEmailCode(ContractModel):
+    code: Annotated[str, Field(pattern=r"^[0-9]{6}$")]
+
+
+class OnboardingView(ContractModel):
+    application_id: str
+    roster_matched: bool
+    demo_only: Literal[True] = True
+    email_verified: bool
+    internally_approved: bool
+    metadata: dict
+    metadata_hash: Hex32
+    code_expires_at: Seconds | None = None
+
+
+class DemoInbox(ContractModel):
+    demo_only: Literal[True] = True
+    code: str | None
+    expires_at: Seconds
+
+
+class TextInputRequest(ContractModel):
+    kind: Literal["TEXT"]
+    text: Annotated[str, Field(min_length=1, max_length=10000)]
+
+
+class InputReceipt(ContractModel):
+    input_ref: str
+    expires_at: Seconds

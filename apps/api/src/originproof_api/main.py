@@ -28,6 +28,9 @@ from .projection import router as projection_router
 from .repositories import SqlAlchemyProofRepository
 from .security import RequestSecurity
 from .settings import Settings
+from .wallet_governance import router as wallet_governance_router
+from .wallet_onboarding import router as wallet_onboarding_router
+from .wallet_runtime import WalletRuntime
 
 
 class UnavailableBlockchainReader(BlockchainReader):
@@ -66,6 +69,7 @@ def create_app(
     verification_service: VerificationService | None = None,
     database: Database | None = None,
     settings: Settings | None = None,
+    wallet_chain=None,
 ) -> FastAPI:
     app_settings = settings or Settings()
     app_database = database or Database(app_settings.database_url)
@@ -98,6 +102,7 @@ def create_app(
     app.add_middleware(RequestSecurity, settings=app_settings)
     app.state.database = app_database
     app.state.settings = app_settings
+    app.state.wallet_runtime = WalletRuntime(app_database, app_settings, wallet_chain)
     app.state.projection = SyncView(
         status="STARTING" if app_settings.projection_enabled else "DISABLED"
     )
@@ -107,14 +112,26 @@ def create_app(
     app.include_router(operations_router)
     app.include_router(chain_router)
     app.include_router(finals_router)
+    app.include_router(wallet_onboarding_router)
+    app.include_router(wallet_governance_router)
     app.state.verification_service = verification_service or VerificationService(
         SqlAlchemyProofRepository(app_database.session_factory),
         configured_blockchain_reader(app_settings),
     )
 
     @app.exception_handler(RequestValidationError)
-    async def invalid_request(request: Request, _: RequestValidationError) -> JSONResponse:
+    async def invalid_request(request: Request, error: RequestValidationError) -> JSONResponse:
         request_id = _request_id(request)
+        if request.url.path.startswith("/v3/"):
+            return JSONResponse(
+                status_code=422,
+                content={
+                    "detail": "MALFORMED_INPUT",
+                    "request_id": request_id,
+                    "field_paths": [".".join(str(x) for x in e["loc"][1:]) for e in error.errors()],
+                },
+                headers={"X-Request-ID": request_id},
+            )
         return JSONResponse(
             status_code=422,
             content={"error": "MALFORMED_INPUT", "request_id": request_id},

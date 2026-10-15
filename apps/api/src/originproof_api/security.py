@@ -33,7 +33,7 @@ class RequestSecurity:
         return 0
 
     async def __call__(self, scope, receive, send):
-        if scope["type"] != "http" or not scope["path"].startswith(("/v1/", "/v2/")):
+        if scope["type"] != "http" or not scope["path"].startswith(("/v1/", "/v2/", "/v3/")):
             return await self.app(scope, receive, send)
 
         async def protected_send(message):
@@ -44,7 +44,8 @@ class RequestSecurity:
             await send(message)
 
         async def reject(status, error, headers=None):
-            await JSONResponse({"error": error}, status_code=status, headers=headers)(
+            key = "detail" if scope["path"].startswith("/v3/") else "error"
+            await JSONResponse({key: error}, status_code=status, headers=headers)(
                 scope, receive, protected_send
             )
 

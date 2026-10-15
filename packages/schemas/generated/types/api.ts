@@ -202,7 +202,7 @@ export interface IssueInput {
   request_id: string;
   recipient_id: string;
   expires_at: string;
-  content: unknown;
+  content: PaymentIssue | DocumentIssue;
 }
 
 export interface ProofView {
