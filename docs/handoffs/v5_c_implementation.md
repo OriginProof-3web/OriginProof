@@ -32,3 +32,9 @@
 합성 명부·데모 메일 코드·지정 내부 승인·키 challenge/서명 증명·공동승인 준비/조회·실제 tx 대조 API와 추가 migration `20261015_0007`을 구현했습니다. 신규 기관 개인키를 생성하거나 단일 운영자로 활성화하지 않습니다. `WalletRegistry` port는 B가 실제 ABI/배포·canonical receipt/event/state 검증 Adapter로 연결하며, 미연결 시 503입니다.
 
 신규 HTTP/SQLite/EIP-712 6개 검사와 기존 회귀를 포함해 454 PASS/6 live SKIP입니다. 임시 PostgreSQL에서 전체 upgrade·schema check·0007→0006→0007 왕복을 통과했습니다. 기존 Alembic 대상에서 빠졌던 projection metadata를 함께 등록해 자동생성이 기존 체인 테이블 삭제를 제안하지 않도록 했습니다. 실제 Registry·브라우저·작성자 외 리뷰는 후속입니다.
+
+### W3 C 독립 구현
+
+초안 원본·EIP-712 검증·기관 서명/Operation의 제출 전 저장, 중계 또는 기관 직접 제출의 tx 대조·UNKNOWN 재조회, 공개 문서·원본/필드/ID 검사와 독립 검증 자료 API를 구현했습니다. 발행은 직접 제출을 기본으로 하며 원본·서명 접수만으로 체인 확정을 표시하지 않습니다. 직접 거래의 request ID 충돌과 잘못된 txHash가 정상 서명 요청을 영구 무효화하지 않는지도 검사합니다.
+
+신규 HTTP 사례 15개를 포함한 해당 API/코어 회귀 65 PASS입니다. 임시 PostgreSQL에서 `0008` upgrade/schema check를 통과했습니다. 원본 bytes·보호 필드·기관 메타데이터/표시명 조작을 분리 검출하고, ID 단독/부분 비교와 RPC 미확인은 INCONCLUSIVE입니다. 새 Registry Adapter는 미연결이며 실제 체인/브라우저 E2E·B/A/D 리뷰는 아직 없습니다.

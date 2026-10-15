@@ -1593,6 +1593,37 @@
         "title": "TextInputRequest",
         "type": "object"
       },
+      "VerificationMaterial": {
+        "additionalProperties": false,
+        "properties": {
+          "block_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Block Hash",
+            "type": "string"
+          },
+          "block_number": {
+            "pattern": "^(0|[1-9][0-9]{0,77})$",
+            "title": "Block Number",
+            "type": "string"
+          },
+          "signature": {
+            "pattern": "^0x[0-9a-f]{130}$",
+            "title": "Signature",
+            "type": "string"
+          },
+          "signing_request": {
+            "$ref": "#/components/schemas/SigningRequest"
+          }
+        },
+        "required": [
+          "signing_request",
+          "signature",
+          "block_number",
+          "block_hash"
+        ],
+        "title": "VerificationMaterial",
+        "type": "object"
+      },
       "VerificationRequest": {
         "additionalProperties": false,
         "properties": {

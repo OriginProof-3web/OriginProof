@@ -98,3 +98,19 @@ class WalletAnalysisRow(Base):
     original_expires_at: Mapped[int | None] = mapped_column(BigInteger)
     report: Mapped[dict | None] = mapped_column(JSON)
     error_code: Mapped[str | None] = mapped_column(String(64))
+
+
+class WalletRequestRow(Base):
+    __tablename__ = "wallet_request_claims"
+    account_id: Mapped[str] = mapped_column(ForeignKey("accounts.account_id"), primary_key=True)
+    action: Mapped[str] = mapped_column(String(32), primary_key=True)
+    request_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    input_hash: Mapped[str] = mapped_column(String(64))
+    resource_id: Mapped[str] = mapped_column(String(128))
+
+
+class WalletVerificationRow(Base):
+    __tablename__ = "wallet_verification_sessions"
+    session_id: Mapped[str] = mapped_column(String(64), primary_key=True)
+    expires_at: Mapped[int] = mapped_column(BigInteger)
+    result: Mapped[dict] = mapped_column(JSON)

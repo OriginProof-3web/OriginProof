@@ -11,6 +11,7 @@ from originproof_api.database import AccountRow, Base, IssuerApplicationRow
 from originproof_api.main import create_app
 from originproof_api.settings import Settings
 from originproof_api.wallet_database import WalletOnboardingRow
+from originproof_api.wallet_documents import optional_session
 from originproof_core.wallet_contract import SigningRequest, WalletDomain
 from originproof_core.wallet_ports import WalletProposal, WalletTransaction
 from originproof_core.wallet_signatures import identifier_hash, wallet_digest
@@ -132,6 +133,7 @@ async def wallet():
         return accounts[who["name"]], SimpleNamespace(csrf_token="csrf")
 
     app.dependency_overrides[current_session] = identity
+    app.dependency_overrides[optional_session] = identity
     async with AsyncClient(
         transport=ASGITransport(app=app), base_url="http://test", headers={"X-CSRF-Token": "csrf"}
     ) as client:
@@ -318,3 +320,314 @@ async def test_v3_security_and_unavailable_adapter_do_not_claim_success(wallet):
     wallet.who["name"] = "issuer"
     malformed = await wallet.client.post("/v3/key-challenges", json={"secret": "DO_NOT_ECHO"})
     assert malformed.status_code == 422 and "DO_NOT_ECHO" not in malformed.text
+
+
+async def activated(w):
+    from originproof_core.wallet_ports import WalletIssuer, WalletKey
+
+    checks = await onboarding(w)
+    kid = identifier_hash("key_active")
+    w.chain.issuers[ISSUER_HASH] = WalletIssuer(
+        **BLOCK,
+        issuer_id=ISSUER_HASH,
+        state="ACTIVE",
+        key_id=kid,
+        signer=SIGNER,
+        metadata_hash=checks["metadata_hash"],
+        next_nonce="0",
+        governance_nonce="1",
+    )
+    w.chain.keys[kid] = WalletKey(
+        **BLOCK, key_id=kid, issuer_id=ISSUER_HASH, signer=SIGNER, registered_block="2"
+    )
+
+
+def payment_content():
+    import time
+
+    return {
+        "notice_type": "PAYMENT_REQUEST",
+        "amount_minor": 154000,
+        "currency": "KRW",
+        "payee_bank_name": "합성 은행",
+        "payee_account_number": "001234567890",
+        "payee_account_holder": "합성 기관",
+        "payment_purpose": "합성 납부 안내",
+        "due_at": int(time.time()) + 3600,
+        "official_url": "https://bank.example.invalid/pay",
+    }
+
+
+async def draft(w, *, request_id="req_draft", version=1, content=None):
+    import time
+
+    response = await w.client.post(
+        "/v3/document-drafts",
+        json={
+            "request_id": request_id,
+            "doc_key": identifier_hash("public_notice"),
+            "expected_version": version,
+            "expires_at": int(time.time()) + 86400,
+            "content": content or payment_content(),
+        },
+    )
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
+async def confirmed_publication(w, signing, *, req="req_publish", tx_byte="67"):
+    from originproof_core.wallet_contract import DocumentView
+    from originproof_core.wallet_ports import WalletDocument
+
+    submitted = await w.client.post(
+        "/v3/publications",
+        json={
+            "request_id": req,
+            "signing_request_id": signing["signing_request_id"],
+            "signature": sign(signing),
+        },
+    )
+    assert submitted.status_code == 202, submitted.text
+    assert submitted.json()["status"] in ("PENDING_SUBMISSION", "UNKNOWN")
+    message = SigningRequest.model_validate(signing).message
+    fields = {
+        k: getattr(message, k)
+        for k in (
+            "document_id",
+            "issuer_id",
+            "doc_key",
+            "key_id",
+            "version",
+            "original_hash",
+            "protected_hash",
+            "content_schema",
+            "issued_at",
+            "expires_at",
+        )
+    }
+    doc = DocumentView(
+        **fields,
+        latest_version=message.version,
+        state="ACTIVE",
+        warnings=[],
+        original_available=False,
+    )
+    w.chain.documents[(message.document_id, message.version)] = WalletDocument(
+        **BLOCK,
+        document=doc,
+        published_at=message.issued_at,
+        published_block="10",
+    )
+    w.chain.issuers[ISSUER_HASH] = w.chain.issuers[ISSUER_HASH].model_copy(
+        update={"next_nonce": str(int(message.nonce) + 1)}
+    )
+    tx_hash = "0x" + tx_byte * 32
+    w.chain.transactions[tx_hash] = WalletTransaction(
+        **BLOCK,
+        tx_hash=tx_hash,
+        sender=APPROVERS[0],
+        action="Publish",
+        status="CONFIRMED",
+        arguments={"message": message.model_dump(by_alias=True), "signature": sign(signing)},
+    )
+    confirmed = await w.client.post(
+        f"/v3/signing-requests/{signing['signing_request_id']}/transactions",
+        json={
+            "request_id": "req_direct_" + req,
+            "signing_request_id": signing["signing_request_id"],
+            "tx_hash": tx_hash,
+        },
+    )
+    assert confirmed.status_code == 202, confirmed.text
+    assert confirmed.json()["status"] == "CONFIRMED"
+    return doc, confirmed.json()
+
+
+async def test_publication_original_signature_and_operation_are_durable_without_server_key(wallet):
+    import base64
+
+    from originproof_api.wallet_database import WalletDocumentRow, WalletSigningRow
+    from originproof_core.wallet_signatures import wallet_signer
+
+    await activated(wallet)
+    signing = await draft(wallet)
+    doc, op = await confirmed_publication(wallet, signing)
+    with Session(wallet.engine) as db:
+        saved = db.get(WalletSigningRow, signing["signing_request_id"])
+        row = db.get(WalletDocumentRow, ("31337", DOMAIN.verifying_contract, doc.document_id, 1))
+        assert row.original == base64.b64decode(signing["original_base64"])
+        assert saved.signature == row.signature == sign(signing)
+    assert wallet.chain.sends == []
+    viewed = await wallet.client.get(f"/v3/documents/{doc.document_id}")
+    assert viewed.json()["version"] == 1 and viewed.json()["original_available"]
+    material = await wallet.client.get(f"/v3/documents/{doc.document_id}/verification-material")
+    assert material.status_code == 200, material.text
+    payload = SigningRequest.model_validate(material.json()["signing_request"])
+    assert wallet_signer(payload.domain, payload.message, material.json()["signature"]) == SIGNER
+    assert (await wallet.client.get(f"/v3/operations/{op['operation_id']}")).json()[
+        "status"
+    ] == "CONFIRMED"
+
+
+async def test_verification_id_partial_full_and_tampered_fields_remain_distinct(wallet):
+    await activated(wallet)
+    signing = await draft(wallet)
+    doc, _ = await confirmed_publication(wallet, signing)
+    body = {"request_id": "req_verify", "document_id": doc.document_id, "scope": "ID_ONLY"}
+    lookup = await wallet.client.post("/v3/verifications", json=body)
+    assert lookup.json()["verification_status"] == "INCONCLUSIVE"
+    partial = await wallet.client.post(
+        "/v3/verifications",
+        json={**body, "scope": "PROTECTED_FIELDS", "candidate": {"amount_minor": 154000}},
+    )
+    assert partial.json()["comparison_scope"] == "PARTIAL_COMPARISON"
+    assert partial.json()["verification_status"] == "INCONCLUSIVE"
+    full = await wallet.client.post(
+        "/v3/verifications",
+        json={**body, "scope": "PROTECTED_FIELDS", "candidate": signing["content"]},
+    )
+    assert full.status_code == 200, full.text
+    assert full.json()["verification_status"] == "VERIFIED"
+    for field, value in [
+        ("amount_minor", 154001),
+        ("payee_account_number", "99999999"),
+        ("official_url", "https://attacker.invalid"),
+    ]:
+        changed = await wallet.client.post(
+            "/v3/verifications",
+            json={**body, "scope": "PROTECTED_FIELDS", "candidate": {field: value}},
+        )
+        assert changed.json()["verification_status"] == "TAMPERED", changed.text
+
+
+@pytest.mark.parametrize("change", ["original", "content", "metadata", "name"])
+async def test_database_changes_are_detected_against_chain(wallet, change):
+    from originproof_api.wallet_database import WalletDocumentRow
+
+    await activated(wallet)
+    signing = await draft(wallet)
+    doc, _ = await confirmed_publication(wallet, signing)
+    with Session(wallet.engine) as db:
+        row = db.get(WalletDocumentRow, ("31337", DOMAIN.verifying_contract, doc.document_id, 1))
+        if change == "original":
+            row.original += b"\n"
+        elif change == "content":
+            row.content = row.content | {"amount_minor": 999}
+        elif change == "metadata":
+            checks = db.get(WalletOnboardingRow, "app_test")
+            checks.metadata_value = checks.metadata_value | {"domain": "attacker.invalid"}
+        else:
+            db.get(IssuerApplicationRow, "app_test").issuer_name = "attacker"
+        db.commit()
+    result = await wallet.client.post(
+        "/v3/verifications",
+        json={
+            "request_id": "req_changed",
+            "document_id": doc.document_id,
+            "scope": "PROTECTED_FIELDS",
+            "candidate": signing["content"],
+        },
+    )
+    assert result.json()["verification_status"] == "TAMPERED", result.text
+
+
+async def test_original_comparison_requires_owner_and_checks_exact_bytes(wallet):
+    import base64
+    import time
+
+    from originproof_api.wallet_database import WalletInputRow
+
+    await activated(wallet)
+    signing = await draft(wallet)
+    doc, _ = await confirmed_publication(wallet, signing)
+    with Session(wallet.engine) as db:
+        for suffix, extra in [("same", b""), ("changed", b"\n")]:
+            db.add(
+                WalletInputRow(
+                    input_id="inp_" + suffix,
+                    account_id="acct_i",
+                    kind="TEXT",
+                    original=base64.b64decode(signing["original_base64"]) + extra,
+                    accepted_at=int(time.time()),
+                    expires_at=int(time.time()) + 3600,
+                )
+            )
+        db.commit()
+    body = {
+        "request_id": "req_bytes",
+        "document_id": doc.document_id,
+        "scope": "ORIGINAL_BYTES",
+        "original_ref": "inp_same",
+    }
+    assert (await wallet.client.post("/v3/verifications", json=body)).json()[
+        "verification_status"
+    ] == "VERIFIED"
+    changed = await wallet.client.post(
+        "/v3/verifications", json={**body, "original_ref": "inp_changed"}
+    )
+    assert changed.json()["verification_status"] == "TAMPERED"
+    wallet.who["name"] = "other"
+    assert (await wallet.client.post("/v3/verifications", json=body)).status_code == 404
+
+
+async def test_submission_replay_conflict_and_rpc_failure_never_resend(wallet):
+    await activated(wallet)
+    signing = await draft(wallet)
+    body = {
+        "request_id": "req_submit",
+        "signing_request_id": signing["signing_request_id"],
+        "signature": sign(signing),
+    }
+    wallet.app.state.settings.wallet_relay_enabled = True
+    accepted = await wallet.client.post("/v3/publications", json=body)
+    assert accepted.json()["status"] == "UNKNOWN"
+    retry = await wallet.client.post("/v3/publications", json=body)
+    assert retry.json()["operation_id"] == accepted.json()["operation_id"]
+    assert len(wallet.chain.sends) == 1
+    replay = await wallet.client.post(
+        "/v3/publications", json={**body, "signature": "0x" + "00" * 65}
+    )
+    assert replay.status_code == 409
+    wallet.app.state.wallet_runtime.chain = None
+    failed = await wallet.client.post(
+        "/v3/verifications",
+        json={
+            "request_id": "req_rpc",
+            "document_id": signing["message"]["documentId"],
+            "scope": "ID_ONLY",
+        },
+    )
+    assert failed.status_code == 200 and failed.json()["verification_status"] == "INCONCLUSIVE"
+
+
+async def test_wrong_receipt_cannot_poison_a_signing_request(wallet):
+    await activated(wallet)
+    signing = await draft(wallet)
+    body = {
+        "request_id": "req_publish",
+        "signing_request_id": signing["signing_request_id"],
+        "signature": sign(signing),
+    }
+    await wallet.client.post("/v3/publications", json=body)
+    tx_hash = "0x" + "79" * 32
+    wallet.chain.transactions[tx_hash] = WalletTransaction(
+        **BLOCK,
+        tx_hash=tx_hash,
+        sender=APPROVERS[0],
+        action="Publish",
+        status="CONFIRMED",
+        arguments={},
+    )
+    path = f"/v3/signing-requests/{signing['signing_request_id']}/transactions"
+    wrong = await wallet.client.post(
+        path,
+        json={
+            "request_id": "req_bad_receipt",
+            "signing_request_id": signing["signing_request_id"],
+            "tx_hash": tx_hash,
+        },
+    )
+    assert wrong.status_code == 422
+    # A verified actual transaction can still reconcile the original immutable request.
+    _, confirmed = await confirmed_publication(wallet, signing)
+    assert confirmed["status"] == "CONFIRMED"

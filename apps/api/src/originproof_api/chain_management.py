@@ -657,6 +657,14 @@ async def recover(
 ):
     account, session = identity
     require_csrf(request, session)
+    async with request.app.state.database.session_factory() as db:
+        saved = await db.get(OperationRow, operation_id)
+        if (
+            saved
+            and saved.action.startswith("wallet_")
+            and (saved.account_id == account.account_id or account.role == "operator")
+        ):
+            raise HTTPException(409, "USE_V3_OPERATION_RECONCILE")
     manager = service(request)
     async with chain_lock(manager.database):
         async with manager.database.session_factory() as db:

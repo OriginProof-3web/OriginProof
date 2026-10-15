@@ -261,6 +261,13 @@ export interface TextInputRequest {
   text: string;
 }
 
+export interface VerificationMaterial {
+  signing_request: SigningRequest;
+  signature: string;
+  block_number: string;
+  block_hash: string;
+}
+
 export interface VerificationRequest {
   request_id: string;
   document_id: string;

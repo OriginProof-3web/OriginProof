@@ -1,5 +1,6 @@
 """Durable key proofs and governance tx intake; only verified chain evidence advances state."""
 
+import base64
 import secrets
 from typing import Annotated
 from uuid import uuid4
@@ -18,12 +19,13 @@ from originproof_core.wallet_contract import (
     SigningRequest,
 )
 from originproof_core.wallet_signatures import identifier_hash, proposal_id, wallet_signer
+from originproof_core.wallet_verification import matches_document
 from sqlalchemy import select
 
 from .accounts import current_session
 from .database import IssuerApplicationRow, OperationRow
 from .operations import input_fingerprint
-from .wallet_database import WalletProposalRow, WalletSigningRow
+from .wallet_database import WalletDocumentRow, WalletProposalRow, WalletSigningRow
 from .wallet_onboarding import approved_application
 from .wallet_runtime import now, runtime, sha256
 
@@ -243,15 +245,15 @@ def match_transaction(tx, intent):
 
 async def accept_transaction(service, db, row, tx_hash):
     # Persist the receipt lookup intent before any RPC; recovery never submits a transaction.
-    row.tx_hash, row.status = tx_hash, "UNKNOWN"
+    row.recovery_reference = row.recovery_reference | {"lookup_tx_hash": tx_hash}
+    row.status = "UNKNOWN"
     await service.commit(db)
     tx = await service.rpc("transaction", tx_hash)
     if tx is None:
         return service.operation_view(row)
     if tx.tx_hash != tx_hash or not match_transaction(tx, row.input_body):
-        row.status, row.error_code = "FAILED", "DIRECT_TX_MISMATCH"
-        await service.commit(db)
         raise HTTPException(422, "DIRECT_TX_MISMATCH")
+    row.tx_hash = tx_hash
     row.status = tx.status
     row.chain_evidence = {"block_number": tx.block_number, "block_hash": tx.block_hash}
     if row.status == "CONFIRMED" and row.input_body["action"] in ("Propose", "Approve"):
@@ -265,6 +267,44 @@ async def accept_transaction(service, db, row, tx_hash):
     if row.status == "CONFIRMED" and row.input_body["action"] == "Suspend":
         issuer = await service.rpc("issuer", row.target_id)
         if issuer is None or issuer.state != "SUSPENDED":
+            row.status = "UNKNOWN"
+    if row.status == "CONFIRMED" and row.input_body["action"] in ("Publish", "Revoke"):
+        saved = await db.get(WalletSigningRow, row.input_body["signing_request_id"])
+        signing = SigningRequest.model_validate(saved.payload)
+        message = signing.message
+        chain = await service.rpc("document", message.document_id, message.version)
+        if chain is None:
+            row.status = "UNKNOWN"
+        elif signing.primary_type == "Publish":
+            if not matches_document(message, chain.document):
+                row.status = "UNKNOWN"
+            else:
+                identity = (
+                    service.domain.chain_id,
+                    service.domain.verifying_contract,
+                    message.document_id,
+                    message.version,
+                )
+                existing = await db.get(WalletDocumentRow, identity)
+                if existing is None:
+                    db.add(
+                        WalletDocumentRow(
+                            chain_id=identity[0],
+                            verifying_contract=identity[1],
+                            document_id=message.document_id,
+                            version=message.version,
+                            issuer_id=message.issuer_id,
+                            signing_request_id=saved.signing_request_id,
+                            message=message.model_dump(by_alias=True),
+                            content=signing.content.model_dump(),
+                            original=base64.b64decode(signing.original_base64, validate=True),
+                            signature=saved.signature,
+                            retain_until=message.expires_at + 30 * 86400,
+                        )
+                    )
+                elif existing.message != message.model_dump(by_alias=True):
+                    row.status = "UNKNOWN"
+        elif chain.document.issuer_id != message.issuer_id or chain.document.state == "ACTIVE":
             row.status = "UNKNOWN"
     await service.commit(db)
     return service.operation_view(row)

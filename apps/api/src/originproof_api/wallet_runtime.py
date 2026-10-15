@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from fastapi import HTTPException
 from originproof_core import DependencyUnavailableError
-from originproof_core.wallet_contract import OperationView, SigningRequest, WalletDomain
+from originproof_core.wallet_contract import Hex32, OperationView, SigningRequest, WalletDomain
 from originproof_core.wallet_ports import (
     WalletDocument,
     WalletIssuer,
@@ -16,7 +16,7 @@ from originproof_core.wallet_ports import (
     WalletTransaction,
 )
 from originproof_core.wallet_signatures import identifier_hash
-from pydantic import ValidationError
+from pydantic import TypeAdapter, ValidationError
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
@@ -52,6 +52,8 @@ class WalletRuntime:
             raise HTTPException(503, "WALLET_REGISTRY_UNAVAILABLE")
         try:
             result = await asyncio.wait_for(getattr(self.chain, method)(*args), timeout=10)
+            if method == "submit" and result is not None:
+                result = TypeAdapter(Hex32).validate_python(result)
             model = {
                 "issuer": WalletIssuer,
                 "key": WalletKey,
