@@ -2169,6 +2169,34 @@
         "title": "RecipientView",
         "type": "object"
       },
+      "RevokeDraftRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "document_id": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Document Id",
+            "type": "string"
+          },
+          "request_id": {
+            "pattern": "^req_[A-Za-z0-9_-]{1,124}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "version": {
+            "maximum": 9007199254740991.0,
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "request_id",
+          "document_id",
+          "version"
+        ],
+        "title": "RevokeDraftRequest",
+        "type": "object"
+      },
       "RevokeMessage": {
         "additionalProperties": false,
         "properties": {
@@ -5561,6 +5589,100 @@
           }
         },
         "summary": "Publication",
+        "tags": [
+          "wallet documents"
+        ]
+      }
+    },
+    "/v3/revocations": {
+      "post": {
+        "operationId": "revocation_v3_revocations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignedSubmission"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/originproof_core__wallet_contract__OperationView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "Revocation",
+        "tags": [
+          "wallet documents"
+        ]
+      }
+    },
+    "/v3/revoke-drafts": {
+      "post": {
+        "operationId": "revoke_draft_v3_revoke_drafts_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevokeDraftRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SigningRequest"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "Revoke Draft",
         "tags": [
           "wallet documents"
         ]
