@@ -2,7 +2,7 @@ SHELL := /bin/sh
 COMPOSE := COMPOSE_PROJECT_NAME=originproof docker compose
 UV_ENV := .uv-venv
 UV := UV_PROJECT_ENVIRONMENT=$(UV_ENV) uv
-WORKSPACE_PYTHONPATH := apps/api/src:packages/python:services/analyzer/src
+WORKSPACE_PYTHONPATH := apps/api/src:packages/python:services/analyzer/src:services/indexer/src
 
 .DEFAULT_GOAL := help
 
@@ -106,3 +106,21 @@ generate:
 
 security:
 	@printf '%s\n' 'Run dependency and secret scans in CI after Bootstrap dependencies are locked.'
+
+# Retained local M3/M4 commands; deploy-local above remains the current MVP flow.
+FOUNDRY_BIN_DIR ?= $(HOME)/.foundry/bin
+.PHONY: bootstrap-contracts test-python chain deploy-local-legacy export-abi
+bootstrap-contracts:
+	./packages/contracts/script/bootstrap_dependencies.sh
+
+test-python:
+	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run pytest -q
+
+chain:
+	$(FOUNDRY_BIN_DIR)/anvil --chain-id 31337
+
+deploy-local-legacy:
+	./packages/contracts/script/deploy_local.sh
+
+export-abi:
+	./packages/contracts/script/export_abi.sh
