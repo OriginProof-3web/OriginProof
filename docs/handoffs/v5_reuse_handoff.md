@@ -1,6 +1,6 @@
 # 5.0 기능 기준의 기존 코드 재사용 인계
 
-- 문서 버전: **1.0** · 작성/PR 상태 확인: **2026-10-15, 한국시간**
+- 문서 버전: **1.1** · 최초 작성/PR 상태 확인: **2026-10-15, 한국시간** · B W1 검토 추가: **2026-10-16, 한국시간**
 - 계획 기준: [개발 계획서 5.1](../development_plan.md) 3·4·11.3·15장, V5-Q08.
 - 목적: 종료된 과거 PR의 코드를 재사용할 때 에이전트와 담당자가 같은 원본·범위·미완료를 확인하도록 합니다.
 - 현재 상태: **PR 정리·원본 보존·인계 문서 작성 완료 / 새 5.0 반영·실제 연결·기능 검증 미확인**.
@@ -39,7 +39,7 @@
 | [#47](https://github.com/OriginProof-3web/OriginProof/pull/47) | `phase/W3` | [`69db3680ee8a2779a48e58ec775bd29009f7aa4c`](https://github.com/OriginProof-3web/OriginProof/commit/69db3680ee8a2779a48e58ec775bd29009f7aa4c) | 기존 W3 독립 QA |
 | [#49](https://github.com/OriginProof-3web/OriginProof/pull/49) | `phase/W4` | [`374074744613b37ae91051c3f57a7c9222037506`](https://github.com/OriginProof-3web/OriginProof/commit/374074744613b37ae91051c3f57a7c9222037506) | 기존 W4 정책·상태 QA/D3 준비 |
 
-[#56](https://github.com/OriginProof-3web/OriginProof/pull/56)은 OPEN/Draft이며 계획·지침·v5-shared-0.1 준비 계약을 담습니다. Registry/API/DB/브라우저 지갑 실제 구현·연결을 완료한 PR은 아닙니다. 새 통합 PR과 재사용 적용 완료의 근거는 아직 없습니다.
+최초 작성 당시 [#56](https://github.com/OriginProof-3web/OriginProof/pull/56)은 OPEN/Draft였습니다. 2026-10-16 fetch/조회에서는 integration에 MERGED이며 병합 SHA는 `33bc4f4e7456c5ef7c2df8c8bf09f8014e0169f8`입니다. 계획·지침·v5-shared-0.1 준비 계약 반영이며 Registry/API/DB/브라우저 지갑 실제 연결 완료를 뜻하지 않습니다. 아래 과거 인계 상태와 후속 B 검토를 구분합니다.
 
 ## 3. 활성 재사용 인계
 
@@ -167,6 +167,55 @@
 - **구버전 보존:** 기존 v1/v2 서명·binding·consume·자료 읽기와 해당 회귀를 유지합니다. 서버 기관키 백업은 레거시 한정이며 신규 기관키를 서버에 수집/보관하지 않습니다.
 - **입력/AI:** 입력 지원은 팀 회의 후 확정하며 Decisions API는 현재 개발 범위 밖입니다. 과거 입력 코드의 존재나 높은 confidence를 입력 선정·grounding 성공으로 취급하지 않습니다.
 - **승인/기여:** PR 종료·문서 기록·Codex 기술 검토와 사람의 개인 기여 확인·소유자/소비 리뷰·단계 완료를 구분합니다. 담당자 이름은 기존 역할 기준이며 실제 착수/확인까지 완료로 표시하지 않습니다.
+
+## 4.1 V5-W1-B 계약 검토·독립 검사 (2026-10-16)
+
+- 담당: B 여하민님 `@hamin1228`; Codex가 비교·검사·기록을 보조했습니다. 사람의 소유자 승인과 C/A/D 리뷰는 미확인입니다.
+- 상태: **계약 차이 검토·독립 서명 검사 완료 / 후속 설계·소비자 리뷰·실제 연결 대기**. W1 단계 완료나 R39/R37/R38/R55 전체 인계 완료가 아닙니다.
+- 브랜치: `codex/v5-w1-b-contract-review`; 시작 기준 `9feec138bf3d6d8a379b211583f92db1716e54f2` (integration `33bc4f4` + 로컬 기여 보존).
+- 과거 phase/W1~W4는 보존합니다. 새 v5 단계 통합 브랜치가 정해질 때 PR 대상을 C와 조율하며 과거 phase를 다시 전진시키지 않습니다. 원격 push/PR은 이번 범위에서 미실행입니다.
+- 로컬 기준은 계획서 5.1·v5-shared-0.1입니다. C 비교 원본은 [#63의 고정 head](https://github.com/OriginProof-3web/OriginProof/tree/6e0e924c77e9a5b83a8522df4d3cfdc797e8822c), 계약 **v5-shared-0.2**이며 미병합 Draft 소비 계약으로만 대조했습니다. 다른 담당 브랜치를 병합하거나 0.2로 로컬 버전을 올리지 않았습니다.
+
+### 기존 구현과 신규 계약의 전환표
+
+| 영역 | 기존/재사용 | 신규 경계·필수 검사 | 작업 |
+| --- | --- | --- | --- |
+| 기관 권한 | IssuerRegistry의 상태 검사·실패 사례 | 서로 다른 고정 승인자 3명 중 2명; 단독 등록/재활성화·중복/만료 거부, 배포자 우회 없음 | W2-B / V5-F02~03 |
+| 키 | IssuerKeyRegistry·구배포 조회/검사 | KeyProof 일회성·issuer/signer 고정; 등록/교체/사고 block; 구키 신규 발행 차단과 과거 정상 서명 구분 | W2/W4-B / V5-F05,09 |
+| 서명 | 원본 canonical JSON·Golden·OpenZeppelin ECDSA | Publish/Revoke/KeyProof·domain·알고리즘/schema·nonce/deadline; 서명 검증과 실제 nonce 소비/만료 거부는 별도 | W1/W3-B / V5-F04~05 |
+| 문서 | 과거 ProofStatusRegistry는 고정 SHA의 레거시 원본 | documentId 소유 고정·최신+1·원자적 대체·철회 후 구버전 미복구; 신규 공개 안내에 consume 없음 | W3/W4-B / V5-F06,08,19 |
+| Reader/Writer | RPC 오류 분리·기존 Operation/UNKNOWN·manifest 자산 | 기존 issuerStatus/keyStatus selector·getKey 반환 해석을 새 ABI에 재사용하지 않음; 새 WalletRegistry Adapter와 배포 식별 | W3/W5-B / V5-F12~13 |
+| Indexer | 이벤트 중복·checkpoint·명시적 reorg 회복 검사 | 현재 저장 키에는 계약/배포 구분이 없음. 새 이벤트·배포 분리와 canonical 상태 직접 대조 필요 | W5/W6-B / V5-F13 |
+
+R39(`ab86892`), R37(`9651062`), R38(`3ef1fd4`), R55(`56dbd82`)는 앞선 고정 원본을 사용합니다. R38의 R37 포함과 R55의 A 누적 중복을 유지하고 과거 PR 전체를 재병합하지 않습니다. 기존 로컬 bytes Reader·SQLite projection·검사는 baseline에서 보존돼 있습니다. 현재 작업본에 없는 Writer/ProofStatusRegistry/consume 전체는 과거 원본을 참조하며 이번 W1 검사로 실행 완료를 주장하지 않습니다.
+
+### C 소비 계약 대조와 후속 설계 항목
+
+고정 C head의 [WalletRegistry port](https://github.com/OriginProof-3web/OriginProof/blob/6e0e924c77e9a5b83a8522df4d3cfdc797e8822c/packages/python/originproof_core/wallet_ports.py)와 [실행 API 인계](https://github.com/OriginProof-3web/OriginProof/blob/6e0e924c77e9a5b83a8522df4d3cfdc797e8822c/docs/api/v5_c_runtime.md)를 읽었습니다.
+
+- 공유 Solidity 인터페이스·커밋 ABI·Python wallet_signatures 원본은 로컬 0.1과 C 0.2가 byte 동일합니다. Golden도 revision을 제외한 domain/message/digest/signature/proposal 전체가 동일합니다. 0.2의 Operation 오류·분석 참조/제약 추가를 새로운 서명 규격으로 해석하지 않습니다.
+- `issuer/key/document/proposal`은 같은 canonical chain/contract/blockNumber/hash 근거를 반환해야 합니다. `getIssuer` 외 별도 nonce 조회를 포함한 RPC 호출은 동일 조회 위치로 고정합니다. 0 block sentinel은 port의 선택 block=None으로 변환하며 과거 키 이력을 보존합니다.
+- `transaction/find_transaction`은 실제 calldata 해독·sender·canonical receipt·필요 이벤트/현재 상태를 검증합니다. intent echo나 hash 존재만으로 CONFIRMED를 반환하지 않습니다. `find_transaction`은 검색만 하며 재전송하지 않습니다.
+- REACTIVATE는 ABI상 전 필드 0의 KeyProof와 빈 signature `0x`입니다. API의 선택 null을 ABI null로 넣지 않습니다. 철회 확정은 실제 REVOKED 상태가 필요합니다.
+- **B-C01 승인자 확인:** port의 `is_approver(address)`에 대응하는 조회 함수가 준비 ABI에 없습니다. 고정 승인자 manifest/검증된 배포 근거로 확인할지 additive getter를 둘지 C/B가 연결 전에 정해야 합니다. 이번에는 ABI를 임의 변경하지 않았습니다.
+- **B-C02 승인자 목록:** getProposal은 승인 수만 반환하지만 C ProposalView는 주소 목록을 소비합니다. ProposalApproved 이벤트의 중복 없는 canonical replay/조회 block 일치·count 대조가 필요합니다. 이벤트 복원/검색 범위는 B Adapter에서 정의하고 C와 확인합니다.
+- **B-C03 UNKNOWN/배포:** find_transaction의 검색 시작 block·로그/nonce 범위·RPC 불가 결과와 새 manifest/확정 기준은 B 구현과 C Operation 복구 검토가 필요합니다. G07과 신규 ABI 실제 연결은 미해결입니다.
+
+### 독립 검사와 근거
+
+검증한 코드 SHA: `dee70526af24c0878f00bac322d6670c97e5e427` (로컬 커밋, 원격 미공유). 이후 기록 커밋은 문서만 변경합니다. 검사 대상은 Solidity Golden 검사의 W1 보강본이며 생성 fixture는 수정하지 않았습니다. [개인 기록](../portfolio/W1-B.md)에 과거 기여와 이번 범위를 구분합니다.
+
+| 실행 | 결과 | 의미·한계 |
+| --- | --- | --- |
+| `forge test --root packages/contracts --offline` | **21 PASS**, 0 FAIL/SKIP | 기존 Registry 10 + Golden 11(기존 4/신규 7). 두 fuzz 각각 512회. 새 Registry 상태/실제 지갑 검사는 아님 |
+| `UV_PROJECT_ENVIRONMENT=.uv-venv uv run --locked --all-packages --all-groups pytest -q packages/python/tests/test_wallet_contract.py` | **24 PASS** | Python 모델/서명·기존 생성 ABI 검사 |
+| `node scripts/ci/check_wallet_browser_hashes.mjs` | PASS | 두 템플릿 원본·보호 필드 hash, 실제 브라우저 지갑 아님 |
+| `make generate` 및 생성물 diff | PASS, 생성물 변경 없음 | Schema/TypeScript/예정 OpenAPI·ABI·구/신규 Golden·합성 예시 보존 |
+| 변경 Solidity format·문서 링크·diff·사용자 원본 hash | PASS | 사용자 파일 5개 상태/내용 보존 |
+
+신규 검사는 Publish 두 템플릿의 16필드, Revoke 8필드, KeyProof 6필드를 각각 단독 변조해 기존 서명자의 불일치를 확인합니다. 제안 ID의 chain/address/7필드와 EIP domain name/version 변경, high-s·잘못된 v·잘못된 길이 거부, uint256 nonce/uint64 deadline fuzz를 추가했습니다. 만료 시각 비교·nonce의 원자적 소비·2-of-3 실행은 Registry가 없어 검증하지 않았습니다.
+
+SG01~16은 계속 NOT_EXECUTED입니다. 실제 Registry 배포/receipt·신규 DB/Adapter·브라우저·v2/consume 전체 회귀·G07 재현·공개 체인·유료 AI·C Draft CI/사람 리뷰는 이번 미실행입니다. 입력 종류는 회의 후 결정하고 Decisions API는 범위 밖입니다.
 
 ## 5. 완료 기록
 
