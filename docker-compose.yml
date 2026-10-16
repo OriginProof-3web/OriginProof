@@ -1,0 +1,91 @@
+services:
+  postgres:
+    image: postgres:16.4-alpine
+    environment:
+      POSTGRES_DB: originproof
+      POSTGRES_USER: originproof
+      POSTGRES_PASSWORD: originproof
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U originproof -d originproof"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7.4.1-alpine
+    command: redis-server --save '' --appendonly no
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  anvil:
+    image: ghcr.io/foundry-rs/foundry:v1.4.4@sha256:9584dfbb0e2e9bda80332b66a7cebed635fc9786638871df6b7594e39e678578
+    entrypoint: ["anvil"]
+    command: ["--host", "0.0.0.0", "--port", "8545", "--chain-id", "31337"]
+    healthcheck:
+      test: ["CMD-SHELL", "cast chain-id --rpc-url http://127.0.0.1:8545 >/dev/null"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  deployer:
+    build:
+      context: .
+      dockerfile: infra/docker/deployer.Dockerfile
+    depends_on:
+      anvil:
+        condition: service_healthy
+    environment:
+      PYTHONPATH: apps/api/src:packages/python
+    volumes:
+      - ./build:/workspace/build:ro
+      - ./packages/contracts/abi:/workspace/packages/contracts/abi
+      - ./packages/contracts/deployments:/workspace/packages/contracts/deployments
+
+  api:
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+    env_file: .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      anvil:
+        condition: service_healthy
+    volumes:
+      - ./packages/contracts/deployments:/app/packages/contracts/deployments:ro
+
+  analyzer:
+    build:
+      context: .
+      dockerfile: infra/docker/analyzer.Dockerfile
+    env_file: .env
+    ports:
+      - "8001:8001"
+
+  web:
+    build:
+      context: .
+      dockerfile: infra/docker/web.Dockerfile
+      args:
+        ORIGINPROOF_API_ORIGIN: http://api:8000
+    environment:
+      ORIGINPROOF_API_ORIGIN: http://api:8000
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      api:
+        condition: service_started
+
+volumes:
+  postgres-data:

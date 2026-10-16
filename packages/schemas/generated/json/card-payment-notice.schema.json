@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "amount_minor": {
+      "exclusiveMinimum": 0,
+      "title": "Amount Minor",
+      "type": "integer"
+    },
+    "approved_at": {
+      "format": "date-time",
+      "title": "Approved At",
+      "type": "string"
+    },
+    "currency": {
+      "pattern": "^[A-Z]{3}$",
+      "title": "Currency",
+      "type": "string"
+    },
+    "issuer_name": {
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Issuer Name",
+      "type": "string"
+    },
+    "masked_card": {
+      "pattern": "^\\d{4}$",
+      "title": "Masked Card",
+      "type": "string"
+    },
+    "merchant": {
+      "maxLength": 160,
+      "minLength": 1,
+      "title": "Merchant",
+      "type": "string"
+    },
+    "transaction_id": {
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Transaction Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "issuer_name",
+    "masked_card",
+    "amount_minor",
+    "currency",
+    "merchant",
+    "approved_at",
+    "transaction_id"
+  ],
+  "title": "CardPaymentNotice",
+  "type": "object"
+}

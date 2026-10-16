@@ -1,881 +1,98 @@
-# OriginProof — MVP 개발 가이드 (팀 내부 문서)
+# OriginProof — 본선 개발 안내
 
-> OriginProof 2일 MVP를 네 명(M1~M4)이 Codex 또는 Claude Code와 함께
-> **동일한 구조, 동일한 계약, 동일한 환경**에서 개발하기 위한 내부 가이드.
->
-> 사용법: 공통 규칙(1~18장)을 전원이 먼저 읽고, 이후 자신의 역할(M1~M4) 섹션(19~22장)만 읽어도
-> "무엇을 만들어야 하는지" 알 수 있도록 역할별 정보(Branch, 담당 경로, 금지 경로, 구현 항목, 테스트, 완료 조건, Agent Prompt)를
-> 각 섹션에 모아두었다.
+> **개발 기준은 최신 본선 계획서입니다.**
+> 전원 [통합 개발 계획서](docs/development_plan.md)를 확인하고, 팀에서 공유한 최신 커밋을 받아 **각자의 로컬 저장소·작업 계획·개인 개발 지침에 반영해주세요.**
+> 로컬 미커밋 작업을 먼저 보존하고 변경 내용을 비교해주세요. 저장소 밖의 예전 계획서를 수정하지 말고 `docs/development_plan.md`를 기준으로 개발해주세요.
 
----
+OriginProof는 받은 안내의 **피싱 의심 정황과 이유**를 설명하고, 등록 기관이 발행한 공식 안내의 **출처·검사한 내용·현재 상태**를 검증합니다. 사용자 입력 종류·우선순위는 팀 회의 후 확정합니다.
+기존 개발 성과를 포함한 **총 W1~W7의 7개 개발 단계**로 진행하며 실제 시작/마감 날짜는 팀이 정합니다.
 
-## 1. 전체 흐름 요약
+## 최종적으로 만들 서비스
 
-```
-M1 Bootstrap
-    ↓
-공통 Repository 구조 생성
-    ↓
-Bootstrap Commit 확정 → Commit SHA 공유
-    ↓
-네 명 모두 동일 SHA 확인
-    ↓
-각자 MVP Branch 생성 → 담당 영역 병렬 개발
-    ↓
-PR → 교차 검증 → mvp/integration
-    ↓
-MVP E2E
-```
+가상 기관 확인·내부 승인·지갑 키 보유 증명·2-of-3 공동승인부터 기관 서명·발행·버전 관리·사용자 검증까지 웹에서 연결하는 것이 목표입니다.
 
-최종적으로 하나의 흐름이 연결되어야 한다:
+| 화면 | 필수 기능 |
+| --- | --- |
+| 사용자 | 선정 입력의 AI 분석·근거, ID/QR 조회·원본/보호 필드 비교 범위·버전/현재 상태, 통합 보고서·별도 보관 |
+| 발행기관 | 가상 명부·데모 이메일·내부 승인, 지갑 등록·서명, 안내 발행·다음 버전·철회·키 교체·긴급 정지 |
+| 운영/승인자 | 신청 검토·고정 제안의 2-of-3 승인, 단독 긴급 정지·공동 재활성화·이력 |
 
-```
-Origin Mock Bank Proof 발행
-        ↓
-카드 결제 문자
-        ↓
-M2  AI 필드 구조화
-        ↓
-M1  Signed Proof 조회
-        ↓
-M4  Blockchain Reader
-        ↓
-M3  Registry Trust State 확인
-        ↓
-M1  Signature / Hash / 핵심 필드 비교
-        ↓
-VERIFIED 또는 TAMPERED
-```
+합성 기관 2곳과 납부 안내·공식 문서 두 템플릿을 제공합니다. 원본·서명·AI 결과는 보호된 체인 밖 저장소에, 공동승인·발행 hash·버전·현재 상태는 체인에 둡니다. 공개 체인·서비스 API 밖 검증은 목표이며 실제 달성 환경을 별도 표시합니다. 신규 안내 조회에는 consume을 붙이지 않고 기존 요청형 consume은 회귀로 보존합니다. **입력 미정이며 Decisions API는 후속 검토입니다.**
 
-- **AI(M2)는 정보를 읽는다.** 진위 판정을 하지 않는다.
-- **Blockchain(M3/M4)은 발행자와 Key의 신뢰 상태를 제공한다.** 개인정보·원문 Payload를 저장하지 않는다.
-- **Backend(M1)는 증거를 조합해 최종 판정한다.**
+**완료 상태 구분:** 계획 반영은 기능 구현 완료가 아닙니다. 기존 구현 근거와 남은 연결은 계획서 3장, 5.0 변경 작업은 12장 V5-Wn-A/B/C/D, 완료 검사는 14장 V5-F01~21에서 추적합니다. 코드·PR 상태는 실제 기준 SHA로 확인합니다.
 
-네 명의 코드가 각각 잘 동작하는 것보다 **하나의 E2E 흐름으로 정확히 연결되는 것**이 MVP 성공 기준이다.
+## 앞으로 할 일
 
----
+| 단계 | 개발 목표 | 완료 시 확인 결과 |
+| --- | --- | --- |
+| W1 | 기존 성과·PR 재사용 기준과 공유 계약·화면 변경표 | 구버전 호환표·서명/ABI Golden 초안·입력 결정 기록 |
+| W2 | 가상 인증·지갑 보유 증명·2-of-3·긴급 정지 | 한 명으로 활성화 불가, 서로 다른 두 승인 뒤 체인 확인 |
+| W3 | 기관 지갑 서명·두 템플릿 발행·QR·내용 비교 | 브라우저/Python/컨트랙트 일치와 실제 발행→검증 |
+| W4 | 다음 버전·대체·철회·키 사고/복구 | 원본 불변·과거 이력·공동 복구·구버전 회귀 |
+| W5 | 선정 입력·AI 근거·통합 UX·보관/삭제 | 세 역할의 실제 연결·AI/발행 결과 독립·실패 처리 |
+| W6 | 보안·장애·평가·다른 환경/독립 검증 | 새 계약의 실제 검사·복구·실측값·미달성 기록 |
+| W7 | 같은 RC 동결·자료·영상·리허설 | 전체 수용 근거·리허설 3회·D01~D08 인계 |
 
-## 2. 공통 개발 원칙
+표는 기존 작업을 포함한 전체 단계입니다. 담당별 기존 성과·보완·의존성은 계획서 12장, 검사는 14장, 시연/미정 사항은 16장을 따릅니다. [산출물 상세안 0.5](docs/final_deliverables_draft.md), [UI/UX 설계 1.1](docs/ui_ux_design.md), [후속 결정 목록](docs/final_deliverables_pending_decisions.md)을 함께 사용합니다.
 
-1. `main`에서 직접 개발하지 않는다.
-2. 공통 Scaffold는 한 번만 생성한다 (M1 Bootstrap).
-3. 네 명 모두 같은 Bootstrap Commit에서 시작한다.
-4. 자신의 담당 경로를 우선 수정한다.
-5. 다른 담당자 소유 영역을 임의로 수정하지 않는다.
-6. 공통 Schema 변경은 팀 합의 없이 진행하지 않는다.
-7. 실제 개인정보를 Fixture에 넣지 않는다.
-8. 실제 금융기관 로고와 상표를 사용하지 않는다.
-9. API Key와 Private Key를 Git에 Commit하지 않는다.
-10. 테스트하지 않은 기능을 완료했다고 기록하지 않는다.
-11. AI는 진위 판정을 하지 않는다.
-12. Blockchain에는 개인정보와 원문 Payload를 저장하지 않는다.
-13. 작업 완료 후 PR을 생성한다.
-14. 통합 Branch에는 한 번에 하나의 PR만 반영한다.
-15. 통합 직후 `make mvp-test`를 다시 실행한다.
+## 개발 시작 전과 협업
 
----
+1. [AGENTS.md](AGENTS.md), [시작 안내](START_HERE.md), 개발 계획서의 관련 범위, 담당 경로의 하위 지침을 읽어주세요.
+2. 팀에서 합의한 최신 기준 브랜치와 커밋을 확인해주세요. 예전 MVP bootstrap 커밋에서 새 개발을 시작하지 않습니다.
+3. 이슈에 담당자·작업 ID·수용 기준·의존 인터페이스를 적고 해당 `phase/Wn` 기준의 자기 작업 브랜치에서 개발해주세요. phase가 없으면 최신 integration에서 단계별 준비 브랜치를 사용합니다.
+4. 역할은 A 프런트, B 블록체인·Adapter, C 백엔드·공통 모델, D 합성 사례·평가·독립 검증입니다. 이미 승인된 정책은 재승인받지 않으며 공유 인터페이스 구현은 관련 소유자가 검토합니다.
+5. 작업 PR → phase/Wn → integration 순서로 검증·반영하고 완료 phase를 보존합니다. main 승격은 사용자님 별도 요청 뒤 진행합니다. PR에 실제 검사·개인 기여·미완료를 기록해주세요.
+6. 팀원 코드가 없어도 확정 정책·기존 계약으로 자기 영역 구현·mock 검사를 진행합니다. 독립 검사 완료, 실제 연결 대기, 연결 검증, 단계 완료를 구분해 공유해주세요.
 
-## 3. 역할 개요
+5.0의 결정·전환 기준은 [ADR 0004](docs/adr/0004-v5-governance-wallet-versioning.md), 과거 계약의 보존 범위는 ADR 0001~0003을 확인합니다. 모델 원본은 `packages/python/originproof_core`이며 Schema·타입·OpenAPI·ABI는 구현 원본과 함께 생성·검사합니다. 새 인터페이스는 관련 소유자가 예시·버전·전환과 함께 검토합니다.
 
-| 역할 | 담당 | Branch | 핵심 책임 |
-|----|----|----|----|
-| M1 | Backend / MVP Integration | `mvp/backend` | API, Verification, 공통 Core, 최종 통합 |
-| M2 | AI | `mvp/ai` | LLM Adapter, Prompt, 입력 구조화 |
-| M3 | Blockchain Core | `mvp/chain-core` | Registry Smart Contract |
-| M4 | Blockchain Integration | `mvp/chain-integration` | Deploy, ABI, Chain Adapter, Indexer |
+## 꼭 신경 쓸 사항
 
-MVP 기간에는 Frontend를 구현하지 않는다. 시연은 Swagger UI, CLI, JSON Report, Mock 카드 결제 문자 이미지를 사용한다.
-Frontend는 MVP 이후 전체 프로젝트 단계에서 다시 역할을 분리한다.
+- **신뢰와 권한:** 기관 신청만으로 신뢰 기관이 되지 않습니다. 기관 소속·객체 소유권을 서버에서 검사하고 체인 권한은 공동승인·기관 서명으로 확인합니다.
+- **키 관리:** 신규 기관키는 기관 지갑이 보유합니다. 앱·서버는 개인키를 수집하지 않고 공개 주소·상태·확인할 서명 대상만 표시합니다. 가스 중계키는 별도 보호합니다.
+- **판정 책임:** AI는 피싱 정황·근거를 분석하며 발행 검증 결과와 구분합니다. 발행 판정은 서명·내용·현재 신뢰 상태에 근거하며, `NOT_REGISTERED`를 위조라고 단정하지 않습니다.
+- **검증과 사용:** 일반 검증 조회는 Proof를 소비하지 않습니다. consume은 기존 요청형 계약의 회귀로 유지하며 신규 공개 안내에는 추가하지 않습니다.
+- **실제 상태:** 체인 제출 대기·확인·실패를 구분합니다. RPC 장애나 오래된 캐시를 정상 판정으로 바꾸지 않습니다. ID 조회만으로 받은 자료의 내용까지 일치한다고 표현하지 않습니다.
+- **범위와 데이터:** 합성 데이터만 사용합니다. P0 웹 흐름과 보안·재현을 우선하며, 실제 기관 연동이나 실제 모델 평가를 완료하지 않았다면 완료로 표시하지 않습니다.
 
----
+## 로컬 실행과 검증
 
-## 4. 공통 시작 조건 (전원 필수)
-
-역할 작업을 시작하기 전 아래를 모두 실행하고 확인한다.
+Docker 실행 환경과 저장소 기준의 Python·uv·Node.js·pnpm이 필요합니다. 최초 설치 또는 의존성 변경 후 저장소 루트에서 실행합니다. `.env`가 없다면 `.env.example`을 복사하고 필요한 로컬 값을 설정해주세요. 기존 `.env`는 자동 갱신되지 않으므로 모델 기본값을 따르려면 OPENAI_MODEL만 gpt-6-luna인지 확인하고 의도적으로 선택한 값·비밀정보는 유지해주세요. 기본 LLM_PROVIDER=mock에서는 유료 모델을 호출하지 않습니다.
 
 ```bash
-git rev-parse HEAD
-python scripts/ci/validate_structure.py
-make env-check
-make mvp-up
-make seed
-make smoke
-make env-fingerprint
+UV_PROJECT_ENVIRONMENT=.uv-venv uv sync --all-packages --all-groups --locked
+pnpm install --frozen-lockfile
+make demo
 ```
 
-반드시 확인할 것:
+현재 데모: [웹 화면](http://127.0.0.1:3000) · [API 문서](http://127.0.0.1:8000/docs)
 
-- 네 명 모두 동일한 Bootstrap Commit SHA
-- 동일한 Schema / lockfile / ABI(초기 Contract Interface)
-- 동일한 Docker Compose 정의
-- `build/environment_fingerprint.json`의 comparable 영역 일치
-  (Git SHA, Python/uv/Node/pnpm/Foundry version, Solidity compiler, lockfile hash, Schema hash, ABI hash)
-- 실제 개인정보, 실제 기관 데이터, API Key가 Git에 없음
+`make demo`는 현재 카드 알림 MVP를 기동·seed·로컬 체인 배포하고 정상/변조 HTTP 흐름을 검사합니다. 새 본선 기능 전체의 완료 검사는 아닙니다. 종료는 `make demo-stop`이며, `make demo-reset`은 프로젝트의 로컬 Docker 볼륨을 삭제하고 재생성하므로 초기화가 필요할 때만 사용해주세요.
 
-Host OS가 Windows/macOS로 다른 것은 허용된다. 공통 서비스는 Docker를 사용한다.
+| 대상 | 현재 검사 명령 |
+| --- | --- |
+| 기존 MVP 회귀 | `make mvp-test` |
+| 전체 Python 테스트 | `make test` |
+| 코드 품질·타입·빌드 | `make lint`, `make typecheck`, `make build` |
+| 인덱서 | `UV_PROJECT_ENVIRONMENT=.uv-venv uv run pytest services/indexer/tests` |
+| 웹 컴포넌트·E2E | `pnpm --filter originproof-demo-web test`, `pnpm --filter originproof-demo-web test:e2e` |
+| 실행 상태·공유 생성물 | `make smoke`, `make generate` |
 
-**환경이 다르면 기능 개발을 시작하지 않는다.**
+`make mvp-test`에는 웹·인덱서 전체 검사가 포함되지 않습니다. `make typecheck`의 Python 부분은 현재 구문 검사입니다. `make bootstrap-check`/`make env-check`는 Docker·Compose와 로컬 개발 명령을 확인합니다. 데모·계약 테스트는 저장소에 고정된 Foundry 컨테이너를 사용하므로 호스트 `forge`는 필수가 아닙니다. 실행한 검사 범위와 제한을 정확히 기록해주세요.
 
----
+본선 기능은 브라우저 조작 → API·DB·체인 반영 → 상태 재조회까지 확인해야 완료입니다. 변경 범위의 검사와 필요한 통합·회귀 검사, 담당자 리뷰 및 다른 환경 재현 증거를 남겨주세요.
 
-## 5. Bootstrap (M1 최초 1회)
+## 참고 문서
 
-- Branch: `bootstrap/mvp-v1`
-- Commit 메시지: `chore(repo): bootstrap mvp v1`
-- 완료 후 Commit SHA를 팀원에게 공유 (예: `Bootstrap SHA: 5f83ab1`)
-- 나머지 팀원은 개발 전 `git rev-parse HEAD`로 공유된 SHA와 일치하는지 반드시 확인한다. 다르면 개발을 시작하지 않는다.
+- [개발 계획서](docs/development_plan.md): 최종 범위, 권한, 단계별 산출물과 완료 기준
+- [본선 작업 프롬프트](prompts/10_finals_task.md): 에이전트 작업 지시 양식
+- [5.0 기술 결정](docs/adr/0004-v5-governance-wallet-versioning.md): 공동승인·기관 지갑·문서 버전·구버전 전환
+- [기존 기술 결정](docs/adr/0001-finals-contracts.md): 과거 두 유형·키·수신자·consume 규칙
+- [현재 서명 명세](docs/signing_spec.md): 서명·정규화·도메인 계약
+- [현재 MVP 검증 API](docs/api/mvp_verification.md): 기존 입력·응답
+- [현재 데모 실행 안내](docs/runbooks/mvp_demo.md): 실행·종료·초기화
+- [MVP 통합 기록](docs/runbooks/mvp_integration_sequence.md): 예선 개발 당시의 완료 기록
 
-Bootstrap 담당자 Prompt: `prompts/00_bootstrap_integrator.md`
-교차 검토 Prompt: `prompts/90_cross_review.md`
+이전 루트 README는 Git 이력에 보존되어 있습니다. 이후 개발은 이 안내와 저장소 안의 최신 계획서를 기준으로 진행해주세요.
 
----
-
-## 6. Git Branch / Commit / PR 규칙
-
-### Branch
-
-```
-mvp/backend
-mvp/ai
-mvp/chain-core
-mvp/chain-integration
-```
-
-통합 Branch: `mvp/integration` (M1이 관리, 다른 담당자는 직접 Push하지 않음)
-
-MVP 이후 일반 개발:
-
-```
-feature/<issue-number>-<short-name>
-fix/<issue-number>-<short-name>
-docs/<issue-number>-<short-name>
-chore/<issue-number>-<short-name>
-```
-
-### Commit (Conventional Commits)
-
-```
-feat(api): add card notice verification endpoint
-feat(analyzer): add card notice extractor
-feat(contracts): add issuer registry
-feat(blockchain): add chain reader
-fix(api): handle missing proof
-test(contracts): cover revoked issuer key
-docs(api): document verification response
-```
-
-### Pull Request 제목
-
-```
-[M번호/역할] 작업 내용
-```
-
-예:
-
-```
-[M1/Backend] Verification API 구현
-[M2/AI] Card Notice 필드 추출 구현
-[M3/Blockchain Core] Issuer Registry 구현
-[M4/Blockchain Integration] Chain Adapter 구현
-```
-
-역할 표기: `M1/Backend`, `M2/AI`, `M3/Blockchain Core`, `M4/Blockchain Integration`
-
-MVP 기간에는 이 형식을 통일한다. 일반 개발(MVP 이후)에서는 `base: main`을 사용한다.
-
-### PR 생성 과정
-
-```
-자기 Branch → 작업 → Test → Commit → Push → Pull Request → 교차 검토 → Integration
-```
-
-`mvp/integration`에 합칠 경우:
-
-```
-base: mvp/integration
-compare: mvp/backend  (또는 mvp/ai, mvp/chain-core, mvp/chain-integration)
-```
-
----
-
-## 7. Agent 사용 규칙
-
-각 담당자는 Codex 또는 Claude Code를 자신의 담당 Branch에서 실행한다.
-
-| 역할 | Prompt |
-|----|----|
-| Bootstrap | `prompts/00_bootstrap_integrator.md` |
-| M1 Backend | `prompts/01_mvp_backend.md` |
-| M2 AI | `prompts/02_mvp_ai.md` |
-| M3 Blockchain Core | `prompts/03_mvp_chain_core.md` |
-| M4 Blockchain Integration | `prompts/04_mvp_chain_integration.md` |
-| 교차 검토 | `prompts/90_cross_review.md` |
-
-### Agent가 작업 전 반드시 보고해야 하는 내용
-
-```
-Loaded instruction files:
-Current branch and commit:
-Owned paths:
-Prohibited paths:
-Planned files to change:
-Commands to verify:
-Blocking assumptions:
-```
-
-Branch, Bootstrap SHA, 담당 경로, 금지 경로, 테스트 명령 중 하나라도 틀리면 구현을 시작하지 않는다.
-
-### Agent가 작업 후 반드시 보고해야 하는 내용
-
-```
-Implemented:
-Files changed:
-Commands actually run and results:
-Contract or Schema impact:
-Security and privacy impact:
-Handoff requests:
-Remaining blockers:
-```
-
-실행하지 않은 명령/테스트를 성공했다고 기록하지 않는다.
-
----
-
-## 8. Handoff 형식
-
-다른 담당자의 수정이 필요하면 임의로 수정하지 않고 아래 형식으로 요청한다.
-
-```
-Requesting role:
-Target owner:
-Blocking issue:
-Exact file or interface:
-Current input and output:
-Expected input and output:
-Required test:
-Deadline:
-Source branch and commit:
-```
-
-예:
-
-```
-Requesting role: M1 Backend
-Target owner: M2 AI
-Blocking issue: Backend에서 merchant nullable 여부 확인 필요
-Exact interface: CardPaymentNoticeCandidate
-Current: merchant: str
-Expected: merchant: str | None
-Required test: missing merchant fixture
-Source branch: mvp/backend
-Commit: abc1234
-```
-
----
-
-## 9. 교차 검토
-
-자기 PC에서 성공했다고 작업이 완료된 것이 아니다. 가능하면 다른 담당자가 해당 Branch를 받아 다시 검증한다.
-
-| 작성자 | 검토자 | 주요 확인 |
-|----|----|----|
-| M1 Backend | M3 또는 M4 | Chain 결과가 API에 정확히 반영되는지 |
-| M2 AI | M1 | Candidate Schema와 API(Backend) 연결 |
-| M3 Blockchain Core | M4 | ABI와 배포 가능 여부 |
-| M4 Blockchain Integration | M1 | BlockchainReader와 Backend 연결 |
-
----
-
-## 10. MVP 통합 순서
-
-```
-1. M3 Blockchain Core
-       ↓
-2. M4 Blockchain Integration
-       ↓
-3. M2 AI
-       ↓
-4. M1 Backend
-       ↓
-5. 정상 Text 검증
-       ↓
-6. 정상 Image 검증
-       ↓
-7. 금액 변조 Image 검증
-       ↓
-8. Revoked / 미등록 Case
-       ↓
-9. Demo Smoke
-```
-
-통합 Branch: `mvp/integration` (M1이 관리). **한 번에 하나의 PR만 Merge**한다. 각 Merge 직후 `make mvp-test`를 실행한다.
-
----
-
-## 11. MVP 필수 결과
-
-### 정상 Case
-
-입력:
-
-```
-Origin Mock Bank
-****1234
-154,000원
-ORIGIN CAFE
-prf_demo_001
-```
-
-결과:
-
-```
-Verification Status: VERIFIED
-Lifecycle Status: ACTIVE
-```
-
-### 금액 변조 Case
-
-실제 Proof: `154,000원`
-입력: `1,540,000원`
-
-결과:
-
-```
-Verification Status: TAMPERED
-Reason: AMOUNT_MISMATCH
-```
-
----
-
-## 12. 전체 MVP 검증 명령
-
-```
-python scripts/ci/validate_structure.py
-make bootstrap-check
-make mvp-up
-make demo-reset
-make mvp-test
-make lint
-make typecheck
-make smoke
-```
-
-실행하지 않은 명령은 PASS로 기록하지 않는다.
-
----
-
-## 13. Environment Fingerprint
-
-비교 가능해야 하는 정보:
-
-```
-Git SHA, Python version, uv version, Node version, pnpm version,
-Foundry version, Solidity compiler, lockfile hash, Schema hash, ABI hash
-```
-
-출력: `build/environment_fingerprint.json`
-
-네 명의 `comparable` 영역이 일치해야 한다. Host OS(Windows/macOS)가 다른 것은 허용한다. 공통 서비스는 Docker를 사용한다.
-
----
-
-## 14. Discord 알림
-
-GitHub와 Discord가 연동되어 있다. 다음 활동은 Discord에서 확인한다: `Push`, `PR 생성`, `PR Close`, `PR Merge`.
-
-PR Merge 시 커스텀 알림 예시:
-
-```
-🟢 PR MERGED
-#12 [M1/Backend] Verification API 구현
-작성자: GitHub ID
-```
-
-향후 CI 구성 후 `🔴 CI FAILED`, `🚀 DEPLOYED` 알림 추가 가능. Discord 알림은 개발 편의를 위한 것이며 Git 기록이나 CI 결과를 대체하지 않는다.
-
----
-
-## 15. 금지 사항
-
-MVP에서도 다음은 금지한다.
-
-```
-main 직접 Push
-다른 담당자 코드를 이유 없이 수정
-테스트 실패를 Disable해서 해결
-Lint 또는 Type Check 비활성화
-실제 개인정보 사용
-실제 은행 로고 사용
-API Key Commit
-Private Key Commit
-AI 출력만으로 VERIFIED 결정
-Proof Payload 전체를 Blockchain에 저장
-실행하지 않은 테스트를 PASS라고 기록
-```
-
----
-
-## 16. 문제 발생 시 판단 순서
-
-```
-1. 현재 사용자 요구사항
-2. 루트 AGENTS.md
-3. 담당 경로의 AGENTS.md
-4. Schema / API 계약
-5. ADR
-6. 개발 실행 인스트럭션
-7. 담당자 Handoff
-```
-
-다른 담당자의 영역을 임의로 수정해서 해결하지 않는다.
-
----
-
-## 17. MVP 완료 체크리스트
-
-- [ ] 네 명이 동일 Bootstrap Commit에서 시작했다.
-- [ ] 구조 검사 결과가 동일하다.
-- [ ] Mock Bank가 Registry에 등록된다.
-- [ ] Active Key가 등록된다.
-- [ ] Analyzer가 카드 알림을 구조화한다.
-- [ ] AI가 진위 판정을 하지 않는다.
-- [ ] Signed Proof를 조회할 수 있다.
-- [ ] Signature를 검증한다.
-- [ ] Payload Hash를 비교한다.
-- [ ] Registry 상태를 확인한다.
-- [ ] 정상 알림이 `VERIFIED + ACTIVE`다.
-- [ ] 금액 변조 알림이 `TAMPERED + AMOUNT_MISMATCH`다.
-- [ ] 실제 개인정보가 없다.
-- [ ] Secret이 Git에 없다.
-- [ ] 다른 개발환경에서 재현된다.
-- [ ] `make mvp-test`가 통과한다.
-- [ ] 3분 안에 시연할 수 있다.
-
----
-
-## 18. 역할 요약
-
-| 역할 | 핵심 키워드 |
-|----|----|
-| M1 | Backend, Verification, Common Core, MVP Integration |
-| M2 | AI, LLM Adapter, Prompt, Field Extraction, Fixture |
-| M3 | Blockchain Core, Issuer Registry, Key Registry, Foundry Test |
-| M4 | Blockchain Integration, Deploy, ABI, Chain Reader, Indexer |
-
----
-
-## 19. M1 — Backend / MVP Integration
-
-### 역할
-
-M1은 MVP의 Backend 구현과 최종 통합을 담당한다. 최종 진위 판정은 Backend Verification Core에서 이루어진다. **AI 결과만으로 판정하지 않는다.**
-
-전체 흐름을 최종적으로 연결한다:
-
-```
-입력 → Analyzer 결과 → Signed Proof 조회 → Blockchain Issuer/Key 조회
-→ Signature 검증 → Payload Hash 비교 → 핵심 필드 비교 → Verification 결과 생성
-```
-
-### Branch
-
-- 작업 Branch: `mvp/backend`
-- 통합 Branch: `mvp/integration` (M1이 관리)
-
-### 담당 경로
-
-```
-apps/api
-packages/python/originproof_core
-```
-
-필요 시: `scripts/`, `tests/`, `docs/api/`
-
-### 개발 시작 순서
-
-1. 공유된 Bootstrap SHA 확인
-2. `mvp/backend` Branch 생성
-3. 루트 `AGENTS.md` 확인 → `apps/api/AGENTS.md` 확인 → `packages/python/AGENTS.md` 확인
-4. 환경 검사 실행 (4장 공통 시작 조건)
-5. `prompts/01_mvp_backend.md`를 Codex/Claude Code에 입력
-6. Agent가 보고한 Branch/SHA/수정 경로 확인 후 구현 시작
-
-### 주요 구현 항목
-
-**FastAPI**
-```
-POST /v1/mvp/card-notices/verify
-GET  /health/live
-GET  /health/ready
-```
-
-**Domain**: `CardPaymentNotice`, `SignedProofEnvelope`, Verification Result, Verification Status, Lifecycle Status, Reason Code
-
-**Proof 처리**: Proof 저장, Proof ID 조회, Issuer ID 확인, Key ID 확인, Payload 조회, Payload Hash 확인
-
-**Verification 파이프라인**
-
-```
-Schema → Proof lookup → Issuer → Key → Signature → Payload hash
-→ Lifecycle → Binding → 핵심 필드 → Replay
-```
-
-기타: Mock Analyzer 연결, Blockchain Reader 연결
-
-### 수정하지 않는 영역
-
-```
-packages/contracts/src
-packages/contracts/test
-services/analyzer 내부 Prompt
-services/analyzer Provider 내부 구현
-```
-
-M3 Contract 변경 필요 시 M3에게, M2 Analyzer 변경 필요 시 M2에게 Handoff (8장 형식 사용).
-
-### Agent Prompt
-
-`prompts/01_mvp_backend.md`
-
-### 필수 테스트
-
-```
-make test-api
-make test-integration
-make mvp-test
-make smoke
-```
-
-### 완료 조건
-
-- FastAPI가 실행된다.
-- Mock Analyzer 결과를 받을 수 있다.
-- Proof를 조회할 수 있다.
-- Blockchain Reader를 사용할 수 있다.
-- Signature 검증, Hash 비교가 가능하다.
-- 정상 Fixture가 `VERIFIED + ACTIVE`다.
-- 금액 변조 Fixture가 `TAMPERED + AMOUNT_MISMATCH`다.
-- AI 없이 Proof ID 기반 검증이 가능하다.
-- 실제 실행한 테스트 결과가 PR에 기록되어 있다.
-
----
-
-## 20. M2 — AI / Analyzer
-
-### 역할
-
-M2는 사용자가 제공한 문자 Text 또는 이미지에서 Verification에 필요한 **후보 필드를 구조화하는 역할**만 담당한다.
-
-```
-입력 → Text/Image 이해 → 필드 추출 → Pydantic Validation → Candidate 반환
-```
-
-AI는 `VERIFIED` / `TAMPERED` / `NOT_REGISTERED`를 직접 생성하지 않는다. **진위 판정은 Backend(M1)의 책임이다.**
-
-### Branch
-
-`mvp/ai`
-
-### 담당 경로
-
-```
-services/analyzer
-fixtures/mvp
-```
-
-### 개발 시작 순서
-
-1. 공유된 Bootstrap SHA 확인
-2. `mvp/ai` Branch 생성
-3. 루트 `AGENTS.md` → `services/analyzer/AGENTS.md` → `fixtures/AGENTS.md` 확인
-4. 환경 검사 실행
-5. `prompts/02_mvp_ai.md`를 Codex/Claude Code에 입력
-6. Agent가 담당 경로와 금지 경로를 정확히 인식했는지 확인 후 구현 시작
-
-### 주요 구현 항목
-
-**LLM Provider**: `LLMProvider`, `OpenAILLMProvider`, `MockLLMProvider`
-
-공통 인터페이스: `extract_card_payment_notice(input) → CardPaymentNoticeCandidate`
-
-**Provider 설정** (모델 이름을 코드 여러 곳에 직접 작성하지 않는다)
-
-```
-LLM_PROVIDER=openai
-OPENAI_MODEL=gpt-5.6-luna
-OPENAI_REASONING_EFFORT=low
-OPENAI_API_KEY=<secret>
-LLM_TIMEOUT_SECONDS=20
-LLM_MAX_RETRIES=2
-```
-
-**추출 필드**
-
-```
-issuer_name, masked_card, amount_minor, currency, merchant,
-approved_at, proof_id, confidence, missing_fields
-```
-
-**입력 예시**
-
-```
-[Origin Mock Bank]
-카드 승인
-카드 ****1234
-154,000원
-ORIGIN CAFE
-2026-09-03 12:14
-Proof ID: prf_demo_001
-```
-
-**Candidate 예시**
-
-```json
-{
-  "issuer_name": "Origin Mock Bank",
-  "masked_card": "1234",
-  "amount_minor": 154000,
-  "currency": "KRW",
-  "merchant": "ORIGIN CAFE",
-  "approved_at": "2026-09-03T03:14:00Z",
-  "proof_id": "prf_demo_001",
-  "confidence": 0.98,
-  "missing_fields": []
-}
-```
-
-이 결과 자체가 진짜라는 의미는 아니다.
-
-**필수 오류 처리**: refusal, timeout, rate limit, incomplete output, schema mismatch, low confidence — Provider 오류를 그대로 외부에 노출하지 않고 Domain Error로 변환한다.
-
-### 수정하지 않는 영역
-
-```
-packages/contracts
-apps/api Verification Rule
-최종 Verification Status 결정 로직
-```
-
-Backend에 새로운 Candidate Field가 필요하면 M1에게 Handoff.
-
-### Agent Prompt
-
-`prompts/02_mvp_ai.md`
-
-### 필수 테스트
-
-```
-make test-analyzer
-make mvp-test
-make smoke
-```
-
-기본 자동 테스트는 `MockLLMProvider`를 사용한다. 실제 OpenAI 호출은 기본 테스트의 필수 조건이 아니며, 개인 OpenAI API Key가 없어도 Unit/Integration Test가 깨지면 안 된다.
-
-### 완료 조건
-
-- Text/이미지 입력을 구조화한다.
-- 정상 Fixture가 예상 Candidate와 일치한다.
-- 금액 변경 Fixture가 변경된 금액을 정확히 추출한다.
-- Timeout, Refusal, Schema mismatch를 처리한다.
-- API Key가 Git에 없다.
-- AI가 Verification Status를 생성하지 않는다.
-
----
-
-## 21. M3 — Blockchain Core
-
-### 역할
-
-M3는 OriginProof에서 신뢰 상태를 저장하는 Smart Contract를 담당한다. 최소한 다음을 구현한다:
-
-```
-IssuerRegistry
-IssuerKeyRegistry
-```
-
-Blockchain은 전체 Proof Payload를 저장하는 DB가 아니다. Blockchain의 역할은 **Shared Trust State**다.
-
-### Branch
-
-`mvp/chain-core`
-
-### 담당 경로
-
-```
-packages/contracts/src
-packages/contracts/test
-```
-
-### 개발 시작 순서
-
-1. 공유된 Bootstrap SHA 확인
-2. `mvp/chain-core` Branch 생성
-3. 루트 `AGENTS.md` → `packages/contracts/AGENTS.md` 확인
-4. 환경 검사 실행
-5. `prompts/03_mvp_chain_core.md`를 Codex/Claude Code에 입력
-6. Agent가 Contract Core 외 영역을 수정하지 않는지 확인 후 구현 시작
-
-### 주요 구현 항목
-
-**Issuer Registry** — 최소 상태: `ACTIVE`, `SUSPENDED`
-- Issuer 등록 / 상태 조회 / 중복 등록 방지 / 관리자 권한 / 상태 변경 / Event
-
-**Issuer Key Registry**
-- Key 등록 / 조회 / 유효 기간 / 폐기 / 회전 / Revoked 상태
-
-### 필수 보안 테스트
-
-```
-정상 등록
-권한 없는 등록
-중복 등록
-zero address
-Key revoke
-중복 revoke
-상태 조회
-Event 발생
-```
-
-가능하면 Foundry fuzz test를 사용한다.
-
-### Blockchain에 저장하지 않는 데이터
-
-```
-카드 결제 문자, OCR 결과, 사용자 입력 원문, 개인정보,
-전체 Proof Payload, API Key, Private Key
-```
-
-### 수정하지 않는 영역
-
-```
-apps/api
-services/analyzer
-packages/contracts 최종 deployment 산출물
-```
-
-Deploy와 Backend 연결은 M4가 담당한다. Contract Interface가 바뀌면 M4에게 반드시 Handoff한다.
-
-**Handoff 예시 (M3 → M4)**
-
-```
-Requesting role: M3
-Target owner: M4
-Blocking issue: IssuerKeyRegistry interface changed
-Exact interface: getKeyStatus(bytes32 issuerId, bytes32 keyId)
-Current output: bool
-Expected output: KeyStatus enum
-Required test: Python BlockchainReader must return ACTIVE / REVOKED
-Source branch: mvp/chain-core
-Commit: <commit SHA>
-```
-
-### Agent Prompt
-
-`prompts/03_mvp_chain_core.md`
-
-### 필수 테스트
-
-```
-make test-contracts
-make mvp-test
-```
-
-### 완료 조건
-
-- Issuer 등록/상태 조회 가능
-- Key 등록/상태 조회/revoke 가능
-- Unauthorized 접근 차단, 중복 등록 차단
-- Event 발생
-- Foundry Test 통과
-- 개인정보가 Chain에 없음
-
----
-
-## 22. M4 — Blockchain Integration
-
-### 역할
-
-M4는 M3가 구현한 Smart Contract를 실제 Backend에서 사용할 수 있도록 연결한다.
-
-```
-M3 Smart Contract 구현 → M4 배포+ABI+Python 연결 → M1 Verification Engine 사용
-```
-
-### Branch
-
-`mvp/chain-integration`
-
-### 담당 경로
-
-```
-services/indexer
-packages/contracts/script
-packages/contracts/deployments
-packages/contracts/abi
-apps/api/src/infrastructure/blockchain
-local chain 관련 infra
-```
-
-### 개발 시작 순서
-
-1. 공유된 Bootstrap SHA 확인
-2. `mvp/chain-integration` Branch 생성
-3. 루트 `AGENTS.md` → `services/indexer/AGENTS.md` → `packages/contracts/AGENTS.md` 확인
-4. 환경 검사 실행
-5. `prompts/04_mvp_chain_integration.md`를 Codex/Claude Code에 입력
-6. M3 Contract Interface 상태 확인 후 Deploy/Adapter 구현 시작
-
-### 주요 구현 항목
-
-- **Local Chain**: 로컬 EVM 실행, Contract 배포, Mock Bank 등록, Mock Bank Key 등록
-- **Deployment Manifest** 기록: chain ID, contract address, commit SHA, constructor arguments
-- **ABI**: M3 Contract에서 생성 (임의로 손으로 작성하지 않음)
-- **Blockchain Reader**: 예) `get_issuer_status()`, `get_key_status()` — Backend가 Contract 내부 구조를 직접 알지 않아도 되도록 한다
-- **Indexer**: `block number + log index` 조합으로 Event 중복 처리 방지, 재시작해도 동일 Event 중복 반영 금지
-
-### 중요 규칙
-
-ABI를 직접 손으로 작성하지 않는다 (M3 Contract에서 생성). M3 Interface가 확정되지 않았다면 임의의 가짜 Contract Interface를 만들지 않고, 필요하면 명시적인 Mock Port를 사용한다.
-
-### 수정하지 않는 영역
-
-```
-packages/contracts/src
-packages/contracts/test
-services/analyzer
-공통 Pydantic Schema
-```
-
-Contract Core 수정이 필요하면 M3에게 Handoff한다.
-
-### Agent Prompt
-
-`prompts/04_mvp_chain_integration.md`
-
-### 필수 테스트
-
-```
-make test-integration
-make mvp-test
-make smoke
-```
-
-### 완료 조건
-
-- Local Chain 실행, Contract 배포
-- Mock Bank 등록, Key 등록
-- ABI 생성, Deployment Manifest 생성
-- Python에서 Issuer/Key/Revoked 상태 조회 가능
-- 재시작과 중복 Event 처리 가능
-- Backend에서 Blockchain Reader 사용 가능
-
----
-
-## 23. 최종 원칙
-
-OriginProof MVP의 목표는 많은 기능을 만드는 것이 아니다. 하나의 흐름을 네 명이 서로 다른 담당 영역에서 구현하고 마지막에 정확하게 연결하는 것이 목표다.
-
-**AI는 정보를 읽는다.**
-**Blockchain은 발행자와 Key의 신뢰 상태를 제공한다.**
-**Backend는 증거를 조합해 최종 판정한다.**
+공통 인터페이스 준비 자료: [공유 계약 v5-shared-0.1](docs/shared_contract_v5.md). 실제 지원 endpoint와 준비 OpenAPI를 구분합니다.

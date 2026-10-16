@@ -1,0 +1,101 @@
+{
+  "$defs": {
+    "LifecycleStatus": {
+      "enum": [
+        "ACTIVE",
+        "EXPIRED",
+        "CONSUMED",
+        "PROOF_REVOKED",
+        "ISSUER_SUSPENDED",
+        "ISSUER_KEY_REVOKED"
+      ],
+      "title": "LifecycleStatus",
+      "type": "string"
+    },
+    "ReasonCode": {
+      "enum": [
+        "INVALID_SIGNATURE",
+        "PAYLOAD_HASH_MISMATCH",
+        "AMOUNT_MISMATCH",
+        "FIELD_MISMATCH",
+        "PROOF_EXPIRED",
+        "PROOF_NOT_FOUND",
+        "ISSUER_NOT_FOUND",
+        "SCHEMA_UNSUPPORTED",
+        "LOW_OCR_CONFIDENCE",
+        "REPLAY_DETECTED",
+        "DEPENDENCY_UNAVAILABLE",
+        "MALFORMED_INPUT"
+      ],
+      "title": "ReasonCode",
+      "type": "string"
+    },
+    "VerificationStatus": {
+      "enum": [
+        "VERIFIED",
+        "NOT_REGISTERED",
+        "TAMPERED",
+        "INCONCLUSIVE",
+        "ERROR"
+      ],
+      "title": "VerificationStatus",
+      "type": "string"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "checks": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Checks",
+      "type": "object"
+    },
+    "lifecycle_status": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LifecycleStatus"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "reason_codes": {
+      "items": {
+        "$ref": "#/$defs/ReasonCode"
+      },
+      "title": "Reason Codes",
+      "type": "array"
+    },
+    "request_id": {
+      "pattern": "^req_[A-Za-z0-9_-]+$",
+      "title": "Request Id",
+      "type": "string"
+    },
+    "session_id": {
+      "pattern": "^vsn_[A-Za-z0-9_-]+$",
+      "title": "Session Id",
+      "type": "string"
+    },
+    "verification_status": {
+      "$ref": "#/$defs/VerificationStatus"
+    },
+    "verified_at": {
+      "format": "date-time",
+      "title": "Verified At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "session_id",
+    "verification_status",
+    "checks",
+    "verified_at",
+    "request_id"
+  ],
+  "title": "VerificationResult",
+  "type": "object"
+}

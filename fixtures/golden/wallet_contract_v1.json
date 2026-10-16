@@ -1,0 +1,454 @@
+{
+  "governance": {
+    "domain": {
+      "chainId": "31337",
+      "name": "OriginProof",
+      "verifyingContract": "0x1212121212121212121212121212121212121212",
+      "version": "1"
+    },
+    "proposal": {
+      "action": 1,
+      "deadline": 1791936300,
+      "issuerId": "0x1e8de44791e8958864b0d708b3c198c04ccb592dfca9c3a7de026bd7f2b1dec5",
+      "keyId": "0xe1066573cf284450539d190654a2ddbb1565d035964e37c8a02b44fb29e52da2",
+      "metadataHash": "0x190191e7bf41ef82fb26bbc9012591b81d1fe8e902cd4aace443005945bbb9ee",
+      "nonce": "0",
+      "signer": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf"
+    },
+    "proposal_id": "0xde82e5465542b26fe9480f61d757fab40c3aceb95fc390cc1097407eabe7f6d0"
+  },
+  "private_key": "NOT_INCLUDED",
+  "revision": "v5-shared-0.1",
+  "runtime_status": "SIGNING_ONLY_NO_REGISTRY_IMPLEMENTATION",
+  "synthetic": true,
+  "vectors": [
+    {
+      "digest": "0xed0fee76805c6cffad27c2ef6824d2ccb2038abc34777dbf216f8d06944da319",
+      "domain_separator": "0x18f71d25e5cbd2d8c46d9071584b8a644cac9de431a6f692ca466e902915a4dc",
+      "expected_signer": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+      "label": "PAYMENT_REQUEST",
+      "original_base64": "eyJjb250ZW50Ijp7ImFtb3VudF9taW5vciI6MTU0MDAwLCJjdXJyZW5jeSI6IktSVyIsImR1ZV9hdCI6MTc5MjQ1NDQwMCwibm90aWNlX3R5cGUiOiJQQVlNRU5UX1JFUVVFU1QiLCJvZmZpY2lhbF91cmwiOiJodHRwczovL2V4YW1wbGUuaW52YWxpZC9ub3RpY2UvMDAxIiwicGF5ZWVfYWNjb3VudF9ob2xkZXIiOiLtlanshLEg6rO16rO16riw6rSAIiwicGF5ZWVfYWNjb3VudF9udW1iZXIiOiIwMDEyMzQ1Njc4OTAiLCJwYXllZV9iYW5rX25hbWUiOiLtlanshLEg7Iuc7JewIOydgO2WiSIsInBheW1lbnRfcHVycG9zZSI6Iu2VqeyEsSDtlonsgqwg7LC46rCA67mEIn0sImRvY19rZXkiOiIweDk3NmI1MGIxM2Y1NGQxZmNhYTlmOTViZjNjNGM4NjZmZDg5MGE4ZDRkY2ZhZGM5OGVkNDliY2EwNTZmMzg0YTMiLCJkb2N1bWVudF9pZCI6IjB4NjhjNTI1MTE4N2Q4YmQ3MjNlNjVmMWVjNjhiN2QwMGNjYjQ1ZDgxZjA3NzQ3MDEwNDhhYTg3M2Q5MjZiYjMyOSIsImV4cGlyZXNfYXQiOjE3OTI1NDA4MDAsImZvcm1hdCI6Im9yaWdpbnByb29mLm9yaWdpbmFsLnYxIiwiaXNzdWVkX2F0IjoxNzkxOTM2MDAwLCJpc3N1ZXJfaWQiOiIweDFlOGRlNDQ3OTFlODk1ODg2NGIwZDcwOGIzYzE5OGMwNGNjYjU5MmRmY2E5YzNhN2RlMDI2YmQ3ZjJiMWRlYzUiLCJ2ZXJzaW9uIjoxfQ==",
+      "original_utf8": "{\"content\":{\"amount_minor\":154000,\"currency\":\"KRW\",\"due_at\":1792454400,\"notice_type\":\"PAYMENT_REQUEST\",\"official_url\":\"https://example.invalid/notice/001\",\"payee_account_holder\":\"합성 공공기관\",\"payee_account_number\":\"001234567890\",\"payee_bank_name\":\"합성 시연 은행\",\"payment_purpose\":\"합성 행사 참가비\"},\"doc_key\":\"0x976b50b13f54d1fcaa9f95bf3c4c866fd890a8d4dcfadc98ed49bca056f384a3\",\"document_id\":\"0x68c5251187d8bd723e65f1ec68b7d00ccb45d81f0774701048aa873d926bb329\",\"expires_at\":1792540800,\"format\":\"originproof.original.v1\",\"issued_at\":1791936000,\"issuer_id\":\"0x1e8de44791e8958864b0d708b3c198c04ccb592dfca9c3a7de026bd7f2b1dec5\",\"version\":1}",
+      "protected_canonical_utf8": "{\"amount_minor\":154000,\"currency\":\"KRW\",\"due_at\":1792454400,\"notice_type\":\"PAYMENT_REQUEST\",\"official_url\":\"https://example.invalid/notice/001\",\"payee_account_holder\":\"합성 공공기관\",\"payee_account_number\":\"001234567890\",\"payee_bank_name\":\"합성 시연 은행\",\"payment_purpose\":\"합성 행사 참가비\"}",
+      "protected_content": {
+        "amount_minor": 154000,
+        "currency": "KRW",
+        "due_at": 1792454400,
+        "notice_type": "PAYMENT_REQUEST",
+        "official_url": "https://example.invalid/notice/001",
+        "payee_account_holder": "합성 공공기관",
+        "payee_account_number": "001234567890",
+        "payee_bank_name": "합성 시연 은행",
+        "payment_purpose": "합성 행사 참가비"
+      },
+      "signature": "0x3f0f67a4c67f52e556457651114d48b234cdd0b95203584bf1d2396733b2ee360cb4e487bff717cd0b5ed4ad65664b6a91f28c9513985e655985aef6f1ff4e291c",
+      "struct_hash": "0x5e780e6159edaa5858486b14054b3158f8ce66e2bc10bfa2f894419df2e739cb",
+      "typed_data": {
+        "domain": {
+          "chainId": "31337",
+          "name": "OriginProof",
+          "verifyingContract": "0x1212121212121212121212121212121212121212",
+          "version": "1"
+        },
+        "message": {
+          "action": 1,
+          "contentSchema": "0x6d5e6ba9932463c01f2e104c5a6938d42a1452acd79b9f6581760dc400206886",
+          "deadline": 1791936300,
+          "docKey": "0x976b50b13f54d1fcaa9f95bf3c4c866fd890a8d4dcfadc98ed49bca056f384a3",
+          "documentId": "0x68c5251187d8bd723e65f1ec68b7d00ccb45d81f0774701048aa873d926bb329",
+          "expiresAt": 1792540800,
+          "issuedAt": 1791936000,
+          "issuerId": "0x1e8de44791e8958864b0d708b3c198c04ccb592dfca9c3a7de026bd7f2b1dec5",
+          "keyId": "0xe1066573cf284450539d190654a2ddbb1565d035964e37c8a02b44fb29e52da2",
+          "nonce": "0",
+          "originalHash": "0x43c98150d5d475b0b8f427005c0eaf321057a193a57076c5bb096b6209ff99b8",
+          "originalHashAlgorithm": 1,
+          "protectedHash": "0x0d41285f379e0f05ac1c810b68b4edd9558e1786c31cca0017268cd578b177ea",
+          "protectedHashAlgorithm": 1,
+          "signatureSchema": "0xf4bd1f52e8b2d7d25f437fd4c465fa850b19a255da060c865bfc4d6ce34e0bde",
+          "version": 1
+        },
+        "primaryType": "Publish",
+        "types": {
+          "EIP712Domain": [
+            {
+              "name": "name",
+              "type": "string"
+            },
+            {
+              "name": "version",
+              "type": "string"
+            },
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ],
+          "Publish": [
+            {
+              "name": "action",
+              "type": "uint8"
+            },
+            {
+              "name": "issuerId",
+              "type": "bytes32"
+            },
+            {
+              "name": "docKey",
+              "type": "bytes32"
+            },
+            {
+              "name": "documentId",
+              "type": "bytes32"
+            },
+            {
+              "name": "version",
+              "type": "uint64"
+            },
+            {
+              "name": "keyId",
+              "type": "bytes32"
+            },
+            {
+              "name": "originalHash",
+              "type": "bytes32"
+            },
+            {
+              "name": "protectedHash",
+              "type": "bytes32"
+            },
+            {
+              "name": "contentSchema",
+              "type": "bytes32"
+            },
+            {
+              "name": "signatureSchema",
+              "type": "bytes32"
+            },
+            {
+              "name": "originalHashAlgorithm",
+              "type": "uint8"
+            },
+            {
+              "name": "protectedHashAlgorithm",
+              "type": "uint8"
+            },
+            {
+              "name": "issuedAt",
+              "type": "uint64"
+            },
+            {
+              "name": "expiresAt",
+              "type": "uint64"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            },
+            {
+              "name": "deadline",
+              "type": "uint64"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "digest": "0x0195daee145637c8fad11b846f60038f2e81ab76870ea9f66680436e4e80e4ce",
+      "domain_separator": "0x18f71d25e5cbd2d8c46d9071584b8a644cac9de431a6f692ca466e902915a4dc",
+      "expected_signer": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+      "label": "OFFICIAL_DOCUMENT",
+      "original_base64": "eyJjb250ZW50Ijp7ImRvY3VtZW50X251bWJlciI6IlNZTi0yMDI2LTAwMSIsImRvY3VtZW50X3R5cGUiOiJQVUJMSUNfTk9USUNFIiwiaW5zdGl0dXRpb25fY29kZSI6IlNZTlRIRVRJQy0wMDEiLCJub3RpY2VfdHlwZSI6Ik9GRklDSUFMX0RPQ1VNRU5UIiwib2ZmaWNpYWxfdXJsIjoiaHR0cHM6Ly9leGFtcGxlLmludmFsaWQvbm90aWNlLzAwMSIsInN1bW1hcnkiOiLsi6TsoJwg6riw6rSA7J2064KYIOuCqeu2gCDsnZjrrLTsmYAg66y06rSA7ZWcIOyLnOyXsCDsnpDro4zsnoXri4jri6QuIiwidGl0bGUiOiLtlanshLEg7ZaJ7IKsIOyViOuCtCJ9LCJkb2Nfa2V5IjoiMHg5NzZiNTBiMTNmNTRkMWZjYWE5Zjk1YmYzYzRjODY2ZmQ4OTBhOGQ0ZGNmYWRjOThlZDQ5YmNhMDU2ZjM4NGEzIiwiZG9jdW1lbnRfaWQiOiIweDY4YzUyNTExODdkOGJkNzIzZTY1ZjFlYzY4YjdkMDBjY2I0NWQ4MWYwNzc0NzAxMDQ4YWE4NzNkOTI2YmIzMjkiLCJleHBpcmVzX2F0IjoxNzkyNTQwODAwLCJmb3JtYXQiOiJvcmlnaW5wcm9vZi5vcmlnaW5hbC52MSIsImlzc3VlZF9hdCI6MTc5MTkzNjAwMCwiaXNzdWVyX2lkIjoiMHgxZThkZTQ0NzkxZTg5NTg4NjRiMGQ3MDhiM2MxOThjMDRjY2I1OTJkZmNhOWMzYTdkZTAyNmJkN2YyYjFkZWM1IiwidmVyc2lvbiI6MX0=",
+      "original_utf8": "{\"content\":{\"document_number\":\"SYN-2026-001\",\"document_type\":\"PUBLIC_NOTICE\",\"institution_code\":\"SYNTHETIC-001\",\"notice_type\":\"OFFICIAL_DOCUMENT\",\"official_url\":\"https://example.invalid/notice/001\",\"summary\":\"실제 기관이나 납부 의무와 무관한 시연 자료입니다.\",\"title\":\"합성 행사 안내\"},\"doc_key\":\"0x976b50b13f54d1fcaa9f95bf3c4c866fd890a8d4dcfadc98ed49bca056f384a3\",\"document_id\":\"0x68c5251187d8bd723e65f1ec68b7d00ccb45d81f0774701048aa873d926bb329\",\"expires_at\":1792540800,\"format\":\"originproof.original.v1\",\"issued_at\":1791936000,\"issuer_id\":\"0x1e8de44791e8958864b0d708b3c198c04ccb592dfca9c3a7de026bd7f2b1dec5\",\"version\":1}",
+      "protected_canonical_utf8": "{\"document_number\":\"SYN-2026-001\",\"document_type\":\"PUBLIC_NOTICE\",\"institution_code\":\"SYNTHETIC-001\",\"notice_type\":\"OFFICIAL_DOCUMENT\",\"official_url\":\"https://example.invalid/notice/001\",\"summary\":\"실제 기관이나 납부 의무와 무관한 시연 자료입니다.\",\"title\":\"합성 행사 안내\"}",
+      "protected_content": {
+        "document_number": "SYN-2026-001",
+        "document_type": "PUBLIC_NOTICE",
+        "institution_code": "SYNTHETIC-001",
+        "notice_type": "OFFICIAL_DOCUMENT",
+        "official_url": "https://example.invalid/notice/001",
+        "summary": "실제 기관이나 납부 의무와 무관한 시연 자료입니다.",
+        "title": "합성 행사 안내"
+      },
+      "signature": "0x95c6f066e7a3740057e3d4ca400ca0aade304cbfba0e861b6b69d1da510c0f4f7b3c2aa2d9221aea1282e25ba8d00ab504f150734ff3ba06e843e4f684da39a61b",
+      "struct_hash": "0x22d68aefd3d2ffa1ce7ff10e16bf2c9d2a961941c58e78eff55f471f7860aab2",
+      "typed_data": {
+        "domain": {
+          "chainId": "31337",
+          "name": "OriginProof",
+          "verifyingContract": "0x1212121212121212121212121212121212121212",
+          "version": "1"
+        },
+        "message": {
+          "action": 1,
+          "contentSchema": "0x6545cf6438472b96c0c21b3eb585dfdaa096778ae8dd74746bd7b94ca8bca92c",
+          "deadline": 1791936300,
+          "docKey": "0x976b50b13f54d1fcaa9f95bf3c4c866fd890a8d4dcfadc98ed49bca056f384a3",
+          "documentId": "0x68c5251187d8bd723e65f1ec68b7d00ccb45d81f0774701048aa873d926bb329",
+          "expiresAt": 1792540800,
+          "issuedAt": 1791936000,
+          "issuerId": "0x1e8de44791e8958864b0d708b3c198c04ccb592dfca9c3a7de026bd7f2b1dec5",
+          "keyId": "0xe1066573cf284450539d190654a2ddbb1565d035964e37c8a02b44fb29e52da2",
+          "nonce": "0",
+          "originalHash": "0x74170ec86f0145a8cdc6c9e6b8176dae5c382204c42b9423e8ef7359820b109d",
+          "originalHashAlgorithm": 1,
+          "protectedHash": "0x48171d34375bc7d2c4cde3e8020a842e30724a1b8c196dbb1735a0ad7b50c01c",
+          "protectedHashAlgorithm": 1,
+          "signatureSchema": "0xf4bd1f52e8b2d7d25f437fd4c465fa850b19a255da060c865bfc4d6ce34e0bde",
+          "version": 1
+        },
+        "primaryType": "Publish",
+        "types": {
+          "EIP712Domain": [
+            {
+              "name": "name",
+              "type": "string"
+            },
+            {
+              "name": "version",
+              "type": "string"
+            },
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ],
+          "Publish": [
+            {
+              "name": "action",
+              "type": "uint8"
+            },
+            {
+              "name": "issuerId",
+              "type": "bytes32"
+            },
+            {
+              "name": "docKey",
+              "type": "bytes32"
+            },
+            {
+              "name": "documentId",
+              "type": "bytes32"
+            },
+            {
+              "name": "version",
+              "type": "uint64"
+            },
+            {
+              "name": "keyId",
+              "type": "bytes32"
+            },
+            {
+              "name": "originalHash",
+              "type": "bytes32"
+            },
+            {
+              "name": "protectedHash",
+              "type": "bytes32"
+            },
+            {
+              "name": "contentSchema",
+              "type": "bytes32"
+            },
+            {
+              "name": "signatureSchema",
+              "type": "bytes32"
+            },
+            {
+              "name": "originalHashAlgorithm",
+              "type": "uint8"
+            },
+            {
+              "name": "protectedHashAlgorithm",
+              "type": "uint8"
+            },
+            {
+              "name": "issuedAt",
+              "type": "uint64"
+            },
+            {
+              "name": "expiresAt",
+              "type": "uint64"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            },
+            {
+              "name": "deadline",
+              "type": "uint64"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "digest": "0xfda0d39e057d044d1755018ce3b19d234b546889139290971bd1958ed0500fd1",
+      "domain_separator": "0x18f71d25e5cbd2d8c46d9071584b8a644cac9de431a6f692ca466e902915a4dc",
+      "expected_signer": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+      "label": "REVOKE",
+      "original_base64": null,
+      "original_utf8": null,
+      "protected_canonical_utf8": null,
+      "protected_content": null,
+      "signature": "0xb428d9f2e0ef0a455976181fdba12b3ba5fdba61ff05c4c07068326007d6f7ee7b32f3067a3789c367fd4cfbe198ebbbcbd0692ad1aa4edd55179d184bae77671c",
+      "struct_hash": "0x08e1fb0ee567bfaddbdb18dfabe478bb1d36dc40b3624264ca49649bdc864157",
+      "typed_data": {
+        "domain": {
+          "chainId": "31337",
+          "name": "OriginProof",
+          "verifyingContract": "0x1212121212121212121212121212121212121212",
+          "version": "1"
+        },
+        "message": {
+          "action": 2,
+          "deadline": 1791936600,
+          "docKey": "0x976b50b13f54d1fcaa9f95bf3c4c866fd890a8d4dcfadc98ed49bca056f384a3",
+          "documentId": "0x68c5251187d8bd723e65f1ec68b7d00ccb45d81f0774701048aa873d926bb329",
+          "issuerId": "0x1e8de44791e8958864b0d708b3c198c04ccb592dfca9c3a7de026bd7f2b1dec5",
+          "keyId": "0xe1066573cf284450539d190654a2ddbb1565d035964e37c8a02b44fb29e52da2",
+          "nonce": "1",
+          "version": 1
+        },
+        "primaryType": "Revoke",
+        "types": {
+          "EIP712Domain": [
+            {
+              "name": "name",
+              "type": "string"
+            },
+            {
+              "name": "version",
+              "type": "string"
+            },
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ],
+          "Revoke": [
+            {
+              "name": "action",
+              "type": "uint8"
+            },
+            {
+              "name": "issuerId",
+              "type": "bytes32"
+            },
+            {
+              "name": "docKey",
+              "type": "bytes32"
+            },
+            {
+              "name": "documentId",
+              "type": "bytes32"
+            },
+            {
+              "name": "version",
+              "type": "uint64"
+            },
+            {
+              "name": "keyId",
+              "type": "bytes32"
+            },
+            {
+              "name": "nonce",
+              "type": "uint256"
+            },
+            {
+              "name": "deadline",
+              "type": "uint64"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "digest": "0x71db93a03a8379bffce4897eeff6b5fce4c63a81f8ac26cf8d845e66bcb29cc3",
+      "domain_separator": "0x18f71d25e5cbd2d8c46d9071584b8a644cac9de431a6f692ca466e902915a4dc",
+      "expected_signer": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+      "label": "KEY_PROOF",
+      "original_base64": null,
+      "original_utf8": null,
+      "protected_canonical_utf8": null,
+      "protected_content": null,
+      "signature": "0x60e2381663798c5656cdc326301d6e524b38732e8d410850b5bd95f4ea752c717b4b1690e01784e6b70b1d46548a59d2e726a1502d7e5b495aa316ee86e183ce1c",
+      "struct_hash": "0xfc842aadd783edbd44a2c9fe068d67a618d4abf54722182fde001a33aab24837",
+      "typed_data": {
+        "domain": {
+          "chainId": "31337",
+          "name": "OriginProof",
+          "verifyingContract": "0x1212121212121212121212121212121212121212",
+          "version": "1"
+        },
+        "message": {
+          "action": 3,
+          "applicationId": "0x0327eb4cada2b09808d2a066ee6673d58c52ec6c9304fdbca18cdb7fce763e70",
+          "challengeNonce": "0xcc39e60c24dd86da440f8913736d1f17e601e2c33cb2254917baa2f1ad28f730",
+          "deadline": 1791936300,
+          "issuerId": "0x1e8de44791e8958864b0d708b3c198c04ccb592dfca9c3a7de026bd7f2b1dec5",
+          "signer": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf"
+        },
+        "primaryType": "KeyProof",
+        "types": {
+          "EIP712Domain": [
+            {
+              "name": "name",
+              "type": "string"
+            },
+            {
+              "name": "version",
+              "type": "string"
+            },
+            {
+              "name": "chainId",
+              "type": "uint256"
+            },
+            {
+              "name": "verifyingContract",
+              "type": "address"
+            }
+          ],
+          "KeyProof": [
+            {
+              "name": "action",
+              "type": "uint8"
+            },
+            {
+              "name": "applicationId",
+              "type": "bytes32"
+            },
+            {
+              "name": "issuerId",
+              "type": "bytes32"
+            },
+            {
+              "name": "signer",
+              "type": "address"
+            },
+            {
+              "name": "challengeNonce",
+              "type": "bytes32"
+            },
+            {
+              "name": "deadline",
+              "type": "uint64"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

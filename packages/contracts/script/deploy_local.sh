@@ -11,10 +11,10 @@ cast_cmd="${foundry_bin_dir}/cast"
 rpc_url="${CHAIN_RPC_URL:-http://127.0.0.1:8545}"
 chain_id="$("$cast_cmd" chain-id --rpc-url "$rpc_url")"
 
-"$forge_cmd" script script/DeployLocal.s.sol:DeployLocal --rpc-url "$rpc_url" --broadcast
+"$forge_cmd" script script/LegacyDeployLocal.s.sol:LegacyDeployLocal --rpc-url "$rpc_url" --broadcast
 "$contract_dir/script/export_abi.sh"
 
-broadcast_file="broadcast/DeployLocal.s.sol/${chain_id}/run-latest.json"
+broadcast_file="broadcast/LegacyDeployLocal.s.sol/${chain_id}/run-latest.json"
 if [[ ! -f "$broadcast_file" ]]; then
   echo "missing Foundry broadcast output: $broadcast_file" >&2
   exit 1

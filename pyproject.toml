@@ -1,38 +1,31 @@
 [project]
-name = "originproof-blockchain"
+name = "originproof-workspace"
 version = "0.1.0"
-description = "OriginProof M3/M4 blockchain core and integration"
-requires-python = ">=3.11"
-dependencies = [
-  "eth-abi>=5.2,<6",
-  "eth-hash[pycryptodome]>=0.8,<1",
-  "eth-utils>=5.3,<6",
-  "httpx>=0.28,<1",
-]
+description = "OriginProof verification platform workspace"
+requires-python = ">=3.13,<3.14"
+dependencies = []
 
 [dependency-groups]
 dev = [
-  "pytest>=8.4,<9",
-  "pytest-asyncio>=1.1,<2",
+  "httpx>=0.28,<0.29",
+  "pytest>=8.3,<9",
+  "pytest-asyncio>=0.25,<0.26",
+  "ruff>=0.9,<0.10",
+  "eth-abi>=5.2,<6",
   "respx>=0.22,<1",
-  "ruff>=0.12,<1",
 ]
 
-[tool.uv]
-package = false
+[tool.uv.workspace]
+members = ["apps/api", "services/analyzer", "packages/python"]
 
 [tool.pytest.ini_options]
-pythonpath = ["apps/api/src", "services/indexer/src"]
-testpaths = ["apps/api/tests", "services/indexer/tests"]
+pythonpath = ["apps/api/src", "packages/python", "services/analyzer/src", "services/indexer/src"]
+testpaths = ["apps/api/tests", "packages/python/tests", "services/analyzer/tests", "scripts/ci", "services/indexer/tests"]
 asyncio_mode = "auto"
 
 [tool.ruff]
-target-version = "py311"
+target-version = "py313"
 line-length = 100
-exclude = [
-  ".venv",
-  "packages/contracts/broadcast",
-  "packages/contracts/cache",
-  "packages/contracts/lib",
-  "packages/contracts/out",
-]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
