@@ -3,6 +3,7 @@ pragma solidity 0.8.26;
 
 import {Test} from "forge-std/Test.sol";
 import {Vm} from "forge-std/Vm.sol";
+import {WalletGolden as Golden} from "./generated/WalletGolden.sol";
 import {OriginProofWalletGovernance as Governance} from "../src/OriginProofWalletGovernance.sol";
 import {IOriginProofWalletRegistry as Registry} from "../src/IOriginProofWalletRegistry.sol";
 
@@ -114,6 +115,29 @@ contract OriginProofWalletGovernanceTest is Test {
         assertEq(keyId, expectedKey);
         assertEq(signer, vm.addr(signerKey));
         assertEq(metadata, META);
+    }
+
+    function testPythonGoldenKeyProofAndProposalExecuteOnActualGovernanceCode() public {
+        // Etch only into the synthetic fixture address, so the original Python signature is used.
+        address target = address(0x1212121212121212121212121212121212121212);
+        vm.chainId(31337);
+        vm.warp(1791936000);
+        vm.etch(target, address(registry).code);
+        Governance goldenRegistry = Governance(target);
+        Registry.GovernanceProposal memory p = Golden.proposal();
+        vm.prank(a);
+        bytes32 id = goldenRegistry.propose(p, Golden.key_proof(), Golden.KEY_PROOF_SIGNATURE);
+        assertEq(id, Golden.PROPOSAL_ID);
+        vm.prank(a);
+        goldenRegistry.approve(id);
+        vm.prank(c);
+        goldenRegistry.approve(id);
+        (uint8 state, bytes32 keyId, address signer, bytes32 metadata) =
+            goldenRegistry.getIssuer(p.issuerId);
+        assertEq(state, 1);
+        assertEq(keyId, p.keyId);
+        assertEq(signer, p.signer);
+        assertEq(metadata, p.metadataHash);
     }
 
     function testConstructorRejectsZeroAndDuplicateApprovers() public {
