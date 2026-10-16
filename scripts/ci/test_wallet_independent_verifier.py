@@ -2,6 +2,7 @@
 
 import base64
 import hashlib
+import importlib.util
 import json
 import time
 from pathlib import Path
@@ -21,9 +22,12 @@ from originproof_core.wallet_contract import (
 )
 from originproof_core.wallet_signatures import keccak_bytes, original_bytes, wallet_digest
 
-from scripts import verify_wallet_document as module
-
 ROOT = Path(__file__).resolve().parents[2]
+spec = importlib.util.spec_from_file_location(
+    "verify_wallet_document", ROOT / "scripts/verify_wallet_document.py"
+)
+module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
 
 
 def word(value):
