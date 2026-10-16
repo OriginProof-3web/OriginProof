@@ -92,3 +92,10 @@ clean 사본은 git archive로 커밋 파일만 푼 뒤 개인 .env 없이 froze
 - [#62](https://github.com/OriginProof-3web/OriginProof/pull/62): `feat/v5-w5-c-analysis-retention` → `feat/v5-w4-c-document-lifecycle`, Draft.
 
 선행 순서대로 검토하며 코드 검증 SHA 650e85c 이후에는 문서·공유 기록만 추가했습니다. integration/main·과거 phase는 변경하지 않았습니다. 원격 CI·작성자 외 리뷰는 후속이며 단계 전체 완료로 판정하지 않습니다.
+
+
+### 원격 CI의 선행 생성물 보완
+
+최초 #57/#58 python-quality는 `make generate` 뒤 api.ts의 IssueInput.content가 unknown에서 PaymentIssue | DocumentIssue로 바뀌어 실패했습니다. 근거: [#57 초기 CI](https://github.com/OriginProof-3web/OriginProof/actions/runs/38847390740), [#58 초기 CI](https://github.com/OriginProof-3web/OriginProof/actions/runs/38847390636). 생성기로 한 줄을 갱신한 `b82a2d1`을 #57에 추가하고 뒤의 자기 브랜치에 순서대로 병합했습니다. 후속 최종 코드에는 이미 같은 생성 타입이 있어 Python/생성물/Golden은 검증 코드 650e85c와 동일합니다. 과거 단계·다른 담당 브랜치를 변경하거나 force push하지 않았습니다.
+
+선행 기준에서 다섯 생성기 재실행 일치·생성 API TypeScript 컴파일·diff 검사를 통과했습니다. 새 원격 CI 결과는 재실행 중이며 초기 실패를 전체 통과로 덮어쓰지 않습니다. 작성자 외 리뷰와 실제 B/A/D 연결은 계속 후속입니다.

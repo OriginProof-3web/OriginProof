@@ -71,3 +71,5 @@ W3 발행/현재 키 재검사와 W4 Proof lifecycle/consume은 다음 단계입
 - 작성자 외 리뷰·본인의 기여 사실 확인: 아직 미확인입니다. 실제 리뷰 후 해당 링크를 추가합니다.
 
 5.1 원격 공유: [#58](https://github.com/OriginProof-3web/OriginProof/pull/58), [#59](https://github.com/OriginProof-3web/OriginProof/pull/59) (Draft). 사용자 승인 후 자기 브랜치에 push하고 생성했습니다. 실제 원격 CI/작성자 외 리뷰·단계 완료는 별도입니다.
+
+초기 #57/#58 CI의 생성 api.ts 불일치는 b82a2d1에서 생성기로 갱신하고 자기 후속 브랜치에 반영했습니다. 다섯 생성기 일치·API TypeScript 컴파일은 통과했고 새 원격 CI는 확인 전입니다.
