@@ -3,7 +3,7 @@
 import socket
 
 import pytest
-from originproof_api.database import IssuerApplicationRow
+from originproof_api.database import AccountRow, IssuerApplicationRow
 from originproof_api.wallet_database import WalletDocumentRow, WalletOnboardingRow
 from sqlalchemy.orm import Session
 from test_wallet_runtime import DOMAIN, activated, confirmed_publication, draft
@@ -23,8 +23,20 @@ def offline(monkeypatch):
 
 
 async def publication(w, template="payment"):
-    await activated(w)
-    # This case varies the content template; a second independent institution is NOT claimed.
+    if template == "official":
+        office = "iss_origin_mock_office"
+        for name in ("issuer", "internal"):
+            w.accounts[name].issuer_id = office
+        w.app.state.settings.wallet_internal_approvers = {office: "acct_internal"}
+        with Session(w.engine) as db:
+            for aid in ("acct_i", "acct_internal"):
+                db.get(AccountRow, aid).issuer_id = office
+            application = db.get(IssuerApplicationRow, "app_test")
+            application.issuer_id, application.issuer_name = office, "Origin Mock Office"
+            db.commit()
+        await activated(w, issuer_id=office, domain="office")
+    else:
+        await activated(w)
     content = (
         None
         if template == "payment"

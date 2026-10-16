@@ -125,7 +125,11 @@ async def test_key_rotation_preserves_history_and_rejects_old_signer(wallet):
         update={"retired_block": "11"}
     )
     wallet.chain.keys[new_id] = WalletKey(
-        **BLOCK, key_id=new_id, issuer_id=ISSUER_HASH, signer=signer, registered_block="11"
+        **(BLOCK | {"block_number": "12"}),
+        key_id=new_id,
+        issuer_id=ISSUER_HASH,
+        signer=signer,
+        registered_block="11",
     )
     wallet.chain.issuers[ISSUER_HASH] = wallet.chain.issuers[ISSUER_HASH].model_copy(
         update={"key_id": new_id, "signer": signer}

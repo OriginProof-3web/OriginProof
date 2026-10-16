@@ -110,7 +110,9 @@ async def test_consumed_chain_approvals_are_distinct(wallet, approvals, state, s
     view = ProposalView.model_validate(proposal).model_copy(
         update={"approvals": approvals, "status": state}
     )
-    wallet.chain.proposals[pid] = WalletProposal(**BLOCK, proposal=view)
+    # Inject corruption after a valid port object; C must revalidate the consumed snapshot.
+    snapshot = WalletProposal(**BLOCK, proposal=ProposalView.model_validate(proposal))
+    wallet.chain.proposals[pid] = snapshot.model_copy(update={"proposal": view})
     response = await wallet.client.get(f"/v3/proposals/{pid}")
     assert response.status_code == status, response.text
     if status == 200:
