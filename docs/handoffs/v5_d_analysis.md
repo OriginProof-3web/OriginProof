@@ -21,7 +21,8 @@ OpenAI 구현은 [공식 Structured Outputs 문서](https://developers.openai.co
 
 ```python
 from originproof_analyzer.phishing import PhishingAnalyzer
-processor = PhishingAnalyzer()  # 기존 mock 기본값, 유료 요청 없음
+from originproof_analyzer.providers import MockLLMProvider
+processor = PhishingAnalyzer(MockLLMProvider())  # 환경 설정과 무관하게 유료 요청 없음
 # C 후보: create_app(analysis_processor=processor, ...)
 # wallet_text_input_enabled는 기본 false를 유지합니다.
 ```
@@ -54,3 +55,7 @@ CLI는 환경의 provider 설정과 무관하게 명시적 mock/rules를 사용�
 - 최초 새 SDK 검사 1 FAIL은 비동기 raw response의 parse를 await한 호출 오류였습니다. 설치 SDK의 raw.parse는 동기 메서드이므로 수정 후 새 SDK·기존 SDK 검사와 전체 회귀가 통과했습니다.
 - Ruff·diff 검사 PASS, 의존성·공통 모델·API·Schema 원본 변경 없음.
 - 실제 LLM·입력 변환·보류 분할 평가·브라우저/신규 Registry 연결·성능 목표·사람 리뷰는 미실행입니다. 보존 브랜치와 기존 사용자 작업을 유지하고 push/PR은 하지 않았습니다.
+
+## 후속 독립 QA
+
+[`codex/v5-d-independent-qa`](../qa/v5-d-independent-qa.md)에서 같은 분석 소스를 C #62 고정 후보에 주입해 ASGI/SQLite/합성 Registry 12개를 통과했습니다. C 후보 환경의 Analyzer 251개도 통과했습니다. 실제 신규 A/B/C 통합 완료와 구분합니다. 과거 고정 제품의 PostgreSQL/Anvil mixed 18그룹이 이번에 통과했지만 G07은 원인·수정 인계 전까지 미해결을 유지합니다. 상세 SHA/명령/실행 경계는 연결된 QA 보고서에 있습니다.

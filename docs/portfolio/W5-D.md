@@ -87,3 +87,14 @@ W5-D2의 실제 UI·QR·키 관리·consume·접근성은 A/C의 같은 통합 �
 - AI 활용: Codex가 구현·초안 라벨·검사를 수행했습니다. 사용자/타인의 라벨·코드 승인과 기여 비율을 대신 기록하지 않았습니다.
 
 [분석·평가 인계](../handoffs/v5_d_analysis.md), [개발 분할 실제 결과](../qa/v5-d-development-evaluation.json).
+
+## 2026-10-16 · V5 D 독립 연결 QA와 G07 재검사
+
+- D 신규 검사: C #62 `eaa0d166269833cf7ee49675cfa777b0208c3725`의 고정 archive에 실제 D callback을 주입했습니다. 보관 4조합·타인 접근·삭제 후 늦은 결과·AI/발행 독립 12 PASS입니다. ASGI/SQLite/합성 Registry/mock 범위이며 입력은 테스트 app에서만 켰습니다. C 환경 Analyzer는 251 PASS이고 전체 292개와 중복 합산하지 않습니다.
+- D 재사용: `a3f55c6991061ac445d2223f19ff1b2a48acab0e`에서 HTTP/projection QA 두 파일만 동일하게 채택했습니다. 그 도구가 과거 제품 `9651062c9f36e124b76796278c996764678e1c77`의 새 폐기용 PostgreSQL/Anvil을 만들어 mixed 18그룹 PASS를 확인했습니다. 원래 mixed 17 PASS/1 FAIL은 보존하고 G07은 미해결입니다. 이번 PASS는 원인 규명/제품 수정이나 신규 지갑 통합 성공이 아닙니다.
+- 검사 코드 수정: 처음 C 연결 QA의 결과 scope/삭제 task 취소 단언 3건은 공통 계약에 맞춰 바로잡았습니다. 제품 코드는 변경하지 않았으며 최종 12개가 통과했습니다.
+- 검사 QA 소스: `55431546711fa25fd77d7bebf3c05b63e5a6326d`; G07 실행 QA는 `5c06d26da2cfc91a93963a390938af3145d16179`, dirty=false. 실행 중 소유 자원만 사용했고 모두 정리했습니다. 원본 생성기 재생성 후 diff 없음, Ruff/compileall/diff PASS입니다.
+- 미완료: C 자체 DG12·G07 B/C 원인/수정, 신규 같은 A/B/C 통합 후보의 실제 웹/Registry/지갑·clean clone/다른 장비, 실제 LLM/보류36개·사람 라벨/코드 리뷰. 원격 push/PR/병합은 하지 않았습니다.
+- Codex가 D 검사·실행·인계를 작성했습니다. A/B/C 제품 구현·과거 D helper의 기여 이력과 사용자 원본 파일을 보존하며 사람의 승인·기여 비율을 만들지 않았습니다.
+
+[독립 QA 결과와 명령](../qa/v5-d-independent-qa.md), [구조화 근거](../qa/v5-d-independent-results.json).
