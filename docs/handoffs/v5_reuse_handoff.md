@@ -3,7 +3,7 @@
 - 문서 버전: **1.0** · 작성/PR 상태 확인: **2026-10-15, 한국시간**
 - 계획 기준: [개발 계획서 5.1](../development_plan.md) 3·4·11.3·15장, V5-Q08.
 - 목적: 종료된 과거 PR의 코드를 재사용할 때 에이전트와 담당자가 같은 원본·범위·미완료를 확인하도록 합니다.
-- 현재 상태: **PR 정리·원본 보존·인계 문서 작성 완료 / 새 5.0 반영·실제 연결·기능 검증 미확인**.
+- 현재 상태(2026-10-16): **C 누적본·#50 일부 재사용과 C 신규 DB/API 독립 검사 반영 / A/B/D 실제 연결·소유자 리뷰 미확인**. 적용한 정확한 범위·검사·후속 PR은 [C 구현 기록](v5_c_implementation.md)을 확인합니다. 아래 원본별 전체 인계 완료를 대신하지 않습니다.
 - GitHub [최초 통합 인계 댓글](https://github.com/OriginProof-3web/OriginProof/pull/56#issuecomment-6172682875)의 내용을 저장소 문서로 옮겼습니다. 이후 진행 상태는 이 문서에서 갱신하며 댓글의 과거 기록은 보존합니다.
 
 ## 1. 사용하는 방법과 완료 처리
@@ -39,7 +39,7 @@
 | [#47](https://github.com/OriginProof-3web/OriginProof/pull/47) | `phase/W3` | [`69db3680ee8a2779a48e58ec775bd29009f7aa4c`](https://github.com/OriginProof-3web/OriginProof/commit/69db3680ee8a2779a48e58ec775bd29009f7aa4c) | 기존 W3 독립 QA |
 | [#49](https://github.com/OriginProof-3web/OriginProof/pull/49) | `phase/W4` | [`374074744613b37ae91051c3f57a7c9222037506`](https://github.com/OriginProof-3web/OriginProof/commit/374074744613b37ae91051c3f57a7c9222037506) | 기존 W4 정책·상태 QA/D3 준비 |
 
-[#56](https://github.com/OriginProof-3web/OriginProof/pull/56)은 OPEN/Draft이며 계획·지침·v5-shared-0.1 준비 계약을 담습니다. Registry/API/DB/브라우저 지갑 실제 구현·연결을 완료한 PR은 아닙니다. 새 통합 PR과 재사용 적용 완료의 근거는 아직 없습니다.
+[#56](https://github.com/OriginProof-3web/OriginProof/pull/56)은 MERGED이며 merge SHA는 `33bc4f4e7456c5ef7c2df8c8bf09f8014e0169f8`입니다. 계획·지침·v5-shared-0.1 준비 계약을 담습니다. Registry/API/DB/브라우저 지갑 실제 구현·연결을 완료한 PR은 아닙니다. C 독립 후속 적용 근거는 위 구현 기록에 연결합니다. 새 통합·원본별 전체 인계 완료의 근거는 아직 없습니다.
 
 ## 3. 활성 재사용 인계
 
