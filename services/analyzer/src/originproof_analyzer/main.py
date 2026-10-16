@@ -1,9 +1,9 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
-from originproof_core import CardPaymentNoticeCandidate
+from originproof_core import CardPaymentNotice, CardPaymentNoticeCandidate
 
 from .errors import HTTP_STATUS, AnalyzerError, AnalyzerErrorCode
 from .inputs import SemanticInput
@@ -64,10 +64,39 @@ def create_app(
         "/v1/analyze/card-payment-notice",
         response_model=CardPaymentNoticeCandidate,
         tags=["analyzer"],
+        responses={
+            200: {
+                "headers": {
+                    name: {"description": description, "schema": {"type": "string"}}
+                    for name, description in {
+                        "X-OriginProof-Candidate-Source": "ai or mock; never user-confirmed.",
+                        "X-OriginProof-Confirmation-Required": (
+                            "Always true, even at high confidence."
+                        ),
+                        "X-OriginProof-Artifact-Comparison": "Always not-performed.",
+                        "X-OriginProof-Missing-Comparison-Fields": (
+                            "Comma-separated null CardPaymentNotice payload fields, or none. "
+                            "none does not establish correct values or complete artifact matching."
+                        ),
+                    }.items()
+                }
+            }
+        },
     )
-    def analyze(artifact: SemanticInput) -> CardPaymentNoticeCandidate:
+    def analyze(artifact: SemanticInput, response: Response) -> CardPaymentNoticeCandidate:
         # Sync endpoint: blocking provider calls run in FastAPI's worker threadpool.
-        return service.analyze_card_payment_notice(artifact)
+        candidate = service.analyze_card_payment_notice(artifact)
+        # Schema validity/confidence do not ground values in the artifact. These headers
+        # describe extraction; consumers still need to enforce confirmation before comparison.
+        response.headers["X-OriginProof-Candidate-Source"] = (
+            "mock" if service.provider.provider_name == "mock" else "ai"
+        )
+        response.headers["X-OriginProof-Confirmation-Required"] = "true"
+        response.headers["X-OriginProof-Artifact-Comparison"] = "not-performed"
+        response.headers["X-OriginProof-Missing-Comparison-Fields"] = ",".join(
+            name for name in CardPaymentNotice.model_fields if getattr(candidate, name) is None
+        ) or "none"
+        return candidate
 
     return application
 
