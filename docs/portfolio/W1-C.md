@@ -66,3 +66,11 @@ B는 ABI/키 이력/공동승인/nonce·버전 전이를 검토하고 Registry�
 - 검증한 코드 SHA: `8f1fcac6ed2b4d98d815f2b7e935facff06a0d77`. 이후 이 절을 추가하는 문서 커밋은 기능 코드를 바꾸지 않습니다.
 - GitHub [Quality Gate](https://github.com/OriginProof-3web/OriginProof/actions/runs/38547258859): 위 코드 SHA의 python-quality/contracts 모두 SUCCESS 확인.
 - 세 로컬 작업 폴더의 공통 문서·준비 모델/생성물은 동기화했고 각각 신규 검사 24개를 통과했습니다. 해당 폴더의 원래 구현/HEAD를 보존했으며 팀원 PC의 반영 완료를 대신 주장하지 않습니다.
+
+## 2026-10-17 — V5 재사용 기준·승인 대상 PR 통합 준비
+
+C의 통합 조율 범위에서 사용자 요청에 따라 Codex가 별도 `codex/v5-premerge-cbd` 후보를 구성했습니다. C #57·58, B #64–68, D #70–74의 원래 커밋·저자 이력을 보존하고 공용 설정·명령·Adapter export·잠금 파일과 기존/V5 기여 문서의 충돌을 해결했습니다. 다른 팀원의 기능 구현을 C의 신규 작성으로 합산하지 않았습니다.
+
+검증 코드 `f68799f88e75256ddaec4e19580e4430da4e27b2`에서 Python 500 PASS/8 SKIP, Contract 100 PASS, 기존 경로 실제 프로세스 재시작·DB 백업 복원 2 PASS, 웹 단위 8 PASS·mock 브라우저 E2E 5 PASS를 확인했습니다. 정적 검사·생성물 일치·Python 의존성 검사도 통과했습니다. 상세 명령·환경·고정 PR SHA·실행 한계는 [통합 검증 기록](../qa/v5_premerge_cbd.md)에 남겼습니다.
+
+원래 PR과 integration을 병합하지 않았으며 보류 PR 8개는 포함하지 않았습니다. 통합 후보의 작성자 외 리뷰·새 원격 CI, 실제 신규 지갑/Adapter/API 연결·G07·단계 완료는 별도입니다. 사용자 요청은 머지 전 준비이며 사람의 코드 승인·기여 비율은 대신 주장하지 않습니다.

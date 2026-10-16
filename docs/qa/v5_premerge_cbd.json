@@ -1,0 +1,144 @@
+{
+  "date_kst": "2026-10-17",
+  "kind": "premerge_validation_only",
+  "integration_base": "33bc4f4e7456c5ef7c2df8c8bf09f8014e0169f8",
+  "tested_code_sha": "f68799f88e75256ddaec4e19580e4430da4e27b2",
+  "baseline_candidate_sha": "5bfb098220763a05d45516b096e637aea5a599a8",
+  "selected_prs": [
+    {
+      "number": 57,
+      "head": "b82a2d1842c1ba9d03e21deff50c840841ab680a",
+      "base": "integration",
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/57"
+    },
+    {
+      "number": 58,
+      "head": "bfbf1fbf7d3fcacf4326e68c4a4878d3576b119d",
+      "base": "feat/v5-w1-c-reuse-baseline",
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/58"
+    },
+    {
+      "number": 64,
+      "head": "9feec138bf3d6d8a379b211583f92db1716e54f2",
+      "base": "integration",
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/64"
+    },
+    {
+      "number": 65,
+      "head": "c2111e379889d8550aa6ff893d44f576fb78189a",
+      "base": "codex/v5-b-baseline",
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/65"
+    },
+    {
+      "number": 66,
+      "head": "5f91ac8e3405ac2f3bbe9ae19e15b81dd1f58c6e",
+      "base": "codex/v5-w1-b-contract-review",
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/66"
+    },
+    {
+      "number": 67,
+      "head": "004f774e89a278ec8ab4c5dba233d0d7c3eb0a97",
+      "base": "codex/v5-w2-b-governance",
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/67"
+    },
+    {
+      "number": 68,
+      "head": "a4bfa22bf870f3bd5ae02e439636fbf8204444a7",
+      "base": "codex/v5-w3-b-publication",
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/68"
+    },
+    {
+      "number": 70,
+      "head": "854ee66274dea388b9c5608bd385d9e8a8d258f2",
+      "base": "integration",
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/70"
+    },
+    {
+      "number": 71,
+      "head": "1ac2169acfe5a92a0185010e9a27720ab9651be5",
+      "base": "codex/v5-1-d-baseline",
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/71"
+    },
+    {
+      "number": 72,
+      "head": "17774fb89d5c0efa70f548f697a320ad152ff632",
+      "base": "codex/v5-w1-d-safety-qa",
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/72"
+    },
+    {
+      "number": 73,
+      "head": "4b6f73bec57aa10f28b29901f86e74852dfd2ff6",
+      "base": "codex/v5-w2-d-governance-qa",
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/73"
+    },
+    {
+      "number": 74,
+      "head": "a6b8f04930e809cec8136e99a782c8fbdc8b1d7e",
+      "base": "codex/v5-w3-d-content-qa",
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/74"
+    }
+  ],
+  "excluded_prs": [
+    59,
+    60,
+    61,
+    62,
+    63,
+    69,
+    75,
+    76
+  ],
+  "local_checks": {
+    "baseline_python": {
+      "passed": 457,
+      "skipped": 8
+    },
+    "selected_python": {
+      "passed": 500,
+      "skipped": 8
+    },
+    "contracts": {
+      "passed": 100,
+      "skipped": 0
+    },
+    "legacy_actual_process_backup_restore": {
+      "passed": 2,
+      "skipped": 0
+    },
+    "web_unit": {
+      "passed": 8
+    },
+    "web_e2e_mock_http": {
+      "passed": 5
+    },
+    "ruff": "PASS",
+    "compileall": "PASS",
+    "structure": "PASS",
+    "generated_contracts": "UNCHANGED",
+    "python_dependency_audit": "NO_KNOWN_VULNERABILITIES",
+    "web_lint": "PASS",
+    "web_typecheck": "PASS",
+    "web_build": "PASS",
+    "exports": "14_EXPORTS_RETAINED",
+    "original_20_pr_heads_bases_drafts": "UNCHANGED"
+  },
+  "unverified": [
+    "new_wallet_api_adapter_connection",
+    "paid_model",
+    "G07_root_cause",
+    "phase_completion",
+    "independent_review_of_candidate"
+  ],
+  "environment": {
+    "os": "macOS arm64",
+    "python": "3.13.0",
+    "uv": "0.12.1",
+    "node": "22.14.0",
+    "pnpm_command": "corepack pnpm 11.19.0",
+    "pnpm_dependency_install": "11.25.0",
+    "forge": "1.4.4",
+    "solc": "0.8.26",
+    "openzeppelin_contracts": "v5.7.0",
+    "forge_std": "v1.16.2"
+  }
+}
