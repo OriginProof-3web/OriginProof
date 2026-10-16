@@ -1,0 +1,239 @@
+{
+  "source": "synthetic",
+  "corpus_version": "phishing-sources-draft-0.1",
+  "corpus_sha256": "944e6e1ec87b24510c6d1cad2e1a6aac4f51e373230bc387e66f542b265595e9",
+  "review_status": "DRAFT_REVIEW_REQUIRED",
+  "split": "development",
+  "total": 24,
+  "scope": "Draft risk labels; synthetic rules/mock baseline, not real-world accuracy.",
+  "live_model_evaluated": false,
+  "model": null,
+  "prompt_version": "phishing_analysis_v1",
+  "rule_version": "phishing-rules-0.1",
+  "acceptance_status": "DRAFT_REVIEW_REQUIRED",
+  "paid_cost": null,
+  "classification": {
+    "confusion_matrix": {
+      "HIGH": {
+        "HIGH": 6,
+        "CAUTION": 0,
+        "NO_CLEAR_INDICATORS": 0,
+        "UNDETERMINED": 0,
+        "ERROR": 0
+      },
+      "CAUTION": {
+        "HIGH": 0,
+        "CAUTION": 1,
+        "NO_CLEAR_INDICATORS": 0,
+        "UNDETERMINED": 5,
+        "ERROR": 0
+      },
+      "NO_CLEAR_INDICATORS": {
+        "HIGH": 0,
+        "CAUTION": 0,
+        "NO_CLEAR_INDICATORS": 0,
+        "UNDETERMINED": 6,
+        "ERROR": 0
+      },
+      "UNDETERMINED": {
+        "HIGH": 0,
+        "CAUTION": 0,
+        "NO_CLEAR_INDICATORS": 0,
+        "UNDETERMINED": 6,
+        "ERROR": 0
+      }
+    },
+    "per_class": {
+      "HIGH": {
+        "support": 6,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "CAUTION": {
+        "support": 6,
+        "precision": 1.0,
+        "recall": 0.16666666666666666,
+        "f1": 0.2857142857142857
+      },
+      "NO_CLEAR_INDICATORS": {
+        "support": 6,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      },
+      "UNDETERMINED": {
+        "support": 6,
+        "precision": 0.35294117647058826,
+        "recall": 1.0,
+        "f1": 0.5217391304347826
+      }
+    },
+    "macro_f1": 0.4518633540372671,
+    "high_recall": 1.0
+  },
+  "abstentions": 17,
+  "failures": 0,
+  "model_unavailable_or_rejected": 24,
+  "evidence": {
+    "validated_quote_count": 8,
+    "grounding_ratio": 1.0,
+    "expected_span_count": 12,
+    "covered_span_count": 7,
+    "location_recall": 0.5833333333333334
+  },
+  "protected_field_match": null,
+  "protected_field_scope": "NOT_EVALUATED_BY_RISK_ONLY_CORPUS",
+  "latency_seconds": {
+    "scope": "local synthetic processor only",
+    "p50": 1.8999999156221747e-05,
+    "p95": 0.0003866670303978026
+  },
+  "cases": [
+    {
+      "id": "DP-H01",
+      "expected": "HIGH",
+      "predicted": "HIGH",
+      "error_code": null
+    },
+    {
+      "id": "DP-H02",
+      "expected": "HIGH",
+      "predicted": "HIGH",
+      "error_code": null
+    },
+    {
+      "id": "DP-H03",
+      "expected": "HIGH",
+      "predicted": "HIGH",
+      "error_code": null
+    },
+    {
+      "id": "DP-H04",
+      "expected": "HIGH",
+      "predicted": "HIGH",
+      "error_code": null
+    },
+    {
+      "id": "DP-H05",
+      "expected": "HIGH",
+      "predicted": "HIGH",
+      "error_code": null
+    },
+    {
+      "id": "DP-H06",
+      "expected": "HIGH",
+      "predicted": "HIGH",
+      "error_code": null
+    },
+    {
+      "id": "DP-C01",
+      "expected": "CAUTION",
+      "predicted": "CAUTION",
+      "error_code": null
+    },
+    {
+      "id": "DP-C02",
+      "expected": "CAUTION",
+      "predicted": "UNDETERMINED",
+      "error_code": null
+    },
+    {
+      "id": "DP-C03",
+      "expected": "CAUTION",
+      "predicted": "UNDETERMINED",
+      "error_code": null
+    },
+    {
+      "id": "DP-C04",
+      "expected": "CAUTION",
+      "predicted": "UNDETERMINED",
+      "error_code": null
+    },
+    {
+      "id": "DP-C05",
+      "expected": "CAUTION",
+      "predicted": "UNDETERMINED",
+      "error_code": null
+    },
+    {
+      "id": "DP-C06",
+      "expected": "CAUTION",
+      "predicted": "UNDETERMINED",
+      "error_code": null
+    },
+    {
+      "id": "DP-N01",
+      "expected": "NO_CLEAR_INDICATORS",
+      "predicted": "UNDETERMINED",
+      "error_code": null
+    },
+    {
+      "id": "DP-N02",
+      "expected": "NO_CLEAR_INDICATORS",
+      "predicted": "UNDETERMINED",
+      "error_code": null
+    },
+    {
+      "id": "DP-N03",
+      "expected": "NO_CLEAR_INDICATORS",
+      "predicted": "UNDETERMINED",
+      "error_code": null
+    },
+    {
+      "id": "DP-N04",
+      "expected": "NO_CLEAR_INDICATORS",
+      "predicted": "UNDETERMINED",
+      "error_code": null
+    },
+    {
+      "id": "DP-N05",
+      "expected": "NO_CLEAR_INDICATORS",
+      "predicted": "UNDETERMINED",
+      "error_code": null
+    },
+    {
+      "id": "DP-N06",
+      "expected": "NO_CLEAR_INDICATORS",
+      "predicted": "UNDETERMINED",
+      "error_code": null
+    },
+    {
+      "id": "DP-U01",
+      "expected": "UNDETERMINED",
+      "predicted": "UNDETERMINED",
+      "error_code": null
+    },
+    {
+      "id": "DP-U02",
+      "expected": "UNDETERMINED",
+      "predicted": "UNDETERMINED",
+      "error_code": null
+    },
+    {
+      "id": "DP-U03",
+      "expected": "UNDETERMINED",
+      "predicted": "UNDETERMINED",
+      "error_code": null
+    },
+    {
+      "id": "DP-U04",
+      "expected": "UNDETERMINED",
+      "predicted": "UNDETERMINED",
+      "error_code": null
+    },
+    {
+      "id": "DP-U05",
+      "expected": "UNDETERMINED",
+      "predicted": "UNDETERMINED",
+      "error_code": null
+    },
+    {
+      "id": "DP-U06",
+      "expected": "UNDETERMINED",
+      "predicted": "UNDETERMINED",
+      "error_code": null
+    }
+  ],
+  "code_sha": "98d2c5400aa0e3e398dbb8df720b6d1445fae6db"
+}
