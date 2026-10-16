@@ -352,3 +352,13 @@ ABI 재생성 명령은 4.3절과 같습니다. B-C01 승인자 배포 근거·B
 ## 5. 완료 기록
 
 현재 새 5.0 코드 반영·실제 연결·회귀 검증이 확인되어 활성 목록에서 완료로 옮긴 항목은 없습니다. 완료되면 항목 ID·재사용 범위·반영 PR·검증 SHA/명령/결과·한계를 여기에 남깁니다. 앞선 네 PR 병합은 2절의 과거 변경 반영 기록으로 구분합니다.
+
+## 4.5 V5-W5-B 1차 ABI 증거·배포별 이벤트 journal (2026-10-16)
+
+`codex/v5-w5-b-chain-evidence`에서 자기 W4 `a4bfa22bf870f3bd5ae02e439636fbf8204444a7`를 기준으로 B 경로의 `wallet_rpc.py`, `wallet_projection.py`와 합성 검사 50개를 추가했습니다. 생성된 구현 ABI를 소비하며 ABI/공유 모델 원본을 변경하지 않습니다. 상세한 흐름·실제 명령·사용 경계는 [B 인계](../blockchain/v5_w5_chain_evidence.md), 기여 기록은 [W5-B](../portfolio/W5-B.md)입니다.
+
+**준비된 것:** chain/address/deployment hash/runtime code 확인, canonical hash-pinned view 조회, 생성 ABI의 이벤트 7종 해석, 배포별 journal/checkpoint 원자 저장·restart·명시 rewind, 실제 tx calldata/receipt 증거. projection은 현재 상태 조회에서 소비하지 않습니다. 직접 제출 증거는 C의 CONFIRMED 판정이 아닙니다.
+
+**미완료:** C 고정 Draft `6e0e924c77e9a5b83a8522df4d3cfdc797e8822c`의 원본 port는 이 브랜치에 없어 사본·임의 병합 없이 변환을 남겼습니다. B-C01 승인자 배포 provenance, B-C02 승인 목록/count·상태 대조, B-C03 intent별 receipt/event/state 대조·UNKNOWN 원본 검색·중계와 C Operation 연결, 누락 getter의 custom-error 구분·실제 배포 manifest/RPC·PostgreSQL/지갑 검사가 남습니다. **W5 전체 완료가 아닌 저수준 독립 구현/합성 검사 완료**입니다.
+
+Python **229 PASS/1 live SKIP**, 신규 50 PASS 포함. 공식 lint·구조·문법·Node hash·생성물 diff 통과. 외부 Foundry lib를 포함한 확장 lint는 기존 외부 오류 26건으로 실패하여 공식 범위와 구분했습니다. Solidity/ABI 무변경으로 Foundry 재실행은 생략했습니다. 실제 EVM/RPC/API/DB/지갑·D QA·G07 재현·v2/consume 전체 실환경·공개 체인·유료 AI는 미실행이며 SG01~16은 바꾸지 않았습니다. head 역행/reorg 방어 합성 통과로 **G07을 해결 처리하지 않습니다.** 사용자 변경 5개와 legacy/고정 과거 SHA를 보존합니다.
