@@ -35,3 +35,15 @@ PYTHONPATH=packages/python .uv-venv/bin/python fixtures/finals/build_cases.py
 현재 검사는 합성 자료의 binding/hash·변조 분리·기간 경계·ID/출처를 검사한다.
 로그인/신청 서버, v2 검증 코어, 브라우저 또는 실제 체인의 통과 증거가 아니다.
 F01~F15 전체 수용 사례는 [D 사례표](../../docs/qa/w1-acceptance-matrix.md)를 참조한다.
+
+## V5 D 분석 소비 QA
+
+기존 unsigned v2 사례와 별도로
+[`analysis_consumer_cases_v1.json`](../synthetic/analysis_consumer_cases_v1.json)은
+원문/모델 출력 30개의 합성 replay입니다. 실제 위험 분석 결과나 60개 원본 평가셋이 아닙니다.
+자료의 `NOT_RUN`은 정의 상태로 보존하고 실제 실행 결과는 별도 보고서에 기록합니다.
+
+`v5_analysis_consumer_qa.py`는 일반 pytest 경로에 포함되지 않으며, C 후보 고정 사본의
+`originproof_api.wallet_analyses.ground_report`를 직접 검사합니다. 네트워크·DB·LLM을
+호출하지 않고 후보의 공통 모델과 API 소스를 소비합니다. 대상 SHA·재현 명령·실패는
+[D 작업·소비 인계](../../docs/handoffs/v5_d_workplan.md)를 확인합니다.
