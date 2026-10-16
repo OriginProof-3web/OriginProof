@@ -1,6 +1,6 @@
 # 5.1 C 후속 구현·재사용 기준
 
-- 작업: V5-W1-C → V5-W2-C → V5-W3-C → V5-W4-C → V5-W5-C.
+- 작업: V5-W1-C → V5-W2-C → V5-W3-C → V5-W4-C → V5-W5-C, 후속 V5-W6-C 독립 복구·검증.
 - 사용자 요청: 재사용 기준 확정, #50 nonce 수정 반영, 공유 계약에 따른 신규 DB/API 개발.
 - 기준 integration: `33bc4f4e7456c5ef7c2df8c8bf09f8014e0169f8` (#56 MERGED).
 - 재사용 작업본: `ba8946ce1efaeb76946b77064490364a59f0d29e`. 기준 integration을 포함한 C 누적본이며 사용자 변경 없이 시작했습니다.
@@ -99,3 +99,20 @@ clean 사본은 git archive로 커밋 파일만 푼 뒤 개인 .env 없이 froze
 최초 #57/#58 python-quality는 `make generate` 뒤 api.ts의 IssueInput.content가 unknown에서 PaymentIssue | DocumentIssue로 바뀌어 실패했습니다. 근거: [#57 초기 CI](https://github.com/OriginProof-3web/OriginProof/actions/runs/38847390740), [#58 초기 CI](https://github.com/OriginProof-3web/OriginProof/actions/runs/38847390636). 생성기로 한 줄을 갱신한 `b82a2d1`을 #57에 추가하고 뒤의 자기 브랜치에 순서대로 병합했습니다. 후속 최종 코드에는 이미 같은 생성 타입이 있어 Python/생성물/Golden은 검증 코드 650e85c와 동일합니다. 과거 단계·다른 담당 브랜치를 변경하거나 force push하지 않았습니다.
 
 선행 기준에서 다섯 생성기 재실행 일치·생성 API TypeScript 컴파일·diff 검사를 통과했습니다. 새 원격 CI 결과는 재실행 중이며 초기 실패를 전체 통과로 덮어쓰지 않습니다. 작성자 외 리뷰와 실제 B/A/D 연결은 계속 후속입니다.
+
+## V5-W6-C 신규 지갑 복구·독립 검증 (2026-10-16)
+
+사용자 요청으로 잔여 C 작업을 진행했습니다. 사용자 확인과 원격 branch/PR 점검에서 새 B Registry/Adapter와 D 분석기는 아직 없으므로 실제 연결은 대기합니다. 기존 W1~W5 PR을 보존하고 `feat/v5-w6-c-recovery-integration`을 #62 head `eaa0d166269833cf7ee49675cfa777b0208c3725`에서 시작했습니다.
+
+- 검증 코드 SHA: `c17a8f573bc8f64b522637cd3178f893baec8316`. 이후 기록 커밋은 문서만 변경합니다.
+- 새 migration·서비스 API/기본 mock·의존성 변경은 없습니다. 기존 `test_w6_c_recovery`의 프로세스/HTTP 도구, C 앱 factory·검증 코어·공유 ABI·Golden·고정 lockfile을 재사용했습니다. B/D 소유 생산 코드는 수정하지 않았습니다.
+- `make test-v5-c-live`: 실제 PostgreSQL 16.4/uvicorn HTTP 프로세스 **5 PASS**. 0006 구자료를 유지한 head 적용·새 DB pg_restore·버전별 원본/서명·분석 동의/보관·SIGKILL·UNKNOWN 단일 제출·확정 저장 실패/재조회·worker 재시작/늦은 결과·동시 버전/권한·RPC 장애/만료를 확인했습니다. Registry/분석기 증거만 합성이며 전용 자원을 정리했습니다.
+- 독립 CLI `scripts/verify_wallet_document.py`: 로컬 자료와 별도로 지정한 신뢰 chain/address·직접 RPC만 사용합니다. 두 템플릿, 변경/누락 증거, 고정 block/reorg, 과거 키/사고, ABI 일치, 잘못된 로컬 입력을 포함해 **33 PASS**입니다. 실제 새 배포에서 V5-F20을 완료한 근거는 아닙니다.
+- 전체 Python 명시 경로 **527 PASS / 14 SKIP / 기존 warning 1**. 14개에는 opt-in 신규 live 5개와 기존 9개가 포함됩니다. 별도 기존 `W6_C_LIVE_TEST=1` 복구는 **2 PASS**이며 실제 Anvil을 포함합니다. 기존/신규 Registry 근거를 혼합하지 않습니다.
+- `c17a8f5` git archive 사본에 개인 `.env` 없이 `uv sync --all-packages --all-groups --frozen --offline` 후 전체 **527 PASS / 14 SKIP**를 재현했습니다. Makefile 범위 Ruff·신규 Python format·compileall·diff 검사도 통과했습니다.
+- 성능 기준: 실제 HTTP/PostgreSQL에서 서로 다른 request ID의 보호 필드 검증 100회 모두 VERIFIED. p50 **13.15ms**, p95 **14.22ms**. `build/v5-c-performance.json`/CI 로그에 범위를 남깁니다. 합성 Registry·단일 순차 실행 기준이며 실제 RPC/모델/부하 성능·개선율을 뜻하지 않습니다.
+- 환경: macOS arm64, Python 3.13.0, uv 0.8.17, PostgreSQL 16.4, FastAPI 0.142.2/Starlette 1.7.0/pytest 9.1.1. `uv.lock` SHA-256: `e5122f523c7bc1e1bedf6795244cbdd2baaaeec9dc9c7f3fb088e2f064806dd6`. 기존 `scripts/ci/environment_fingerprint.py`로 SHA·도구·잠금 파일도 기록했습니다.
+
+[복구·독립 검증 runbook](../api/v5_c_recovery_runbook.md)에 백업 자료/권한·빈 DB 복원·UNKNOWN 정책과 B/A/D의 실제 연결 지점을 정리했습니다. [W6 C 기여 기록](../portfolio/W6-C.md)의 5.1 절에 재사용·실패 분석·AI 활용·미완료를 연결합니다.
+
+다음 담당/조건: B의 실제 Registry·canonical Adapter/manifest·G07, D의 선정 입력/모델·독립 재현, A의 실제 지갑/화면 소비·소유자 리뷰가 준비되면 같은 후보로 연결합니다. C는 해당 연결의 API/DB 결함과 후보/lockfile/migration/manifest를 정리합니다. 실제 모델 평가·다른 PC·서비스 API 밖 실제 배포 검증·전체 리허설 3회가 없어 통합 RC 또는 W6/W7 전체 완료로 판정하지 않습니다.
