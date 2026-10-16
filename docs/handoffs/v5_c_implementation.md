@@ -102,7 +102,7 @@ clean 사본은 git archive로 커밋 파일만 푼 뒤 개인 .env 없이 froze
 
 ## V5-W6-C 신규 지갑 복구·독립 검증 (2026-10-16)
 
-사용자 요청으로 잔여 C 작업을 진행했습니다. 사용자 확인과 원격 branch/PR 점검에서 새 B Registry/Adapter와 D 분석기는 아직 없으므로 실제 연결은 대기합니다. 기존 W1~W5 PR을 보존하고 `feat/v5-w6-c-recovery-integration`을 #62 head `eaa0d166269833cf7ee49675cfa777b0208c3725`에서 시작했습니다.
+사용자 요청으로 잔여 C 작업을 진행했습니다. 사용자 확인과 원격 branch/PR 점검에서 새 B Registry/Adapter와 D 분석기는 아직 없으므로 실제 연결은 대기합니다. 기존 W1~W5 PR을 보존하고 `feat/v5-w6-c-recovery-integration`을 #62 head `eaa0d166269833cf7ee49675cfa777b0208c3725`에서 시작했습니다. 원격에 push하고 [Draft PR #63](https://github.com/OriginProof-3web/OriginProof/pull/63)을 #62 branch 대상으로 생성·대화에 첨부했습니다. 자동 병합/단계 승격은 하지 않았습니다.
 
 - 검증 코드 SHA: `c17a8f573bc8f64b522637cd3178f893baec8316`. 이후 기록 커밋은 문서만 변경합니다.
 - 새 migration·서비스 API/기본 mock·의존성 변경은 없습니다. 기존 `test_w6_c_recovery`의 프로세스/HTTP 도구, C 앱 factory·검증 코어·공유 ABI·Golden·고정 lockfile을 재사용했습니다. B/D 소유 생산 코드는 수정하지 않았습니다.

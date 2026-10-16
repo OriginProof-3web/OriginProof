@@ -74,7 +74,7 @@ CI에 보안 감사·실제 C 복구 job을 추가했습니다. Codex가 구현�
 
 ## 2026-10-16 — 5.1 신규 지갑 C 후속
 
-C / @Jordi2801K, V5-W6-C. 시작 기준은 #62 `eaa0d16`, 작업 branch는 `feat/v5-w6-c-recovery-integration`, 검증 코드 SHA는 `c17a8f573bc8f64b522637cd3178f893baec8316`입니다. 위 2026-10-03 결과는 구 Registry 경로의 과거 기록으로 유지합니다.
+C / @Jordi2801K, V5-W6-C. 시작 기준은 #62 `eaa0d16`, 작업 branch는 `feat/v5-w6-c-recovery-integration`, 검증 코드 SHA는 `c17a8f573bc8f64b522637cd3178f893baec8316`입니다. [Draft PR #63](https://github.com/OriginProof-3web/OriginProof/pull/63)을 생성·공유했습니다. 위 2026-10-03 결과는 구 Registry 경로의 과거 기록으로 유지합니다.
 
 기존 W1~W5에는 신규 지갑 API의 실제 프로세스 종료·복원 근거와 API 밖 검증 명령이 없었습니다. 기존 C 복구 helper와 API factory·검증 코어·공유 ABI를 재사용해 전용 PostgreSQL/HTTP 프로세스 검사와 직접 RPC CLI를 추가했습니다. 새 서비스·의존성·migration은 만들지 않았습니다. B Registry와 D 분석기는 아직 없다는 사용자 확인에 따라 테스트용 합성 증거만 주입했고 생산 Adapter/분석기는 구현하지 않았습니다.
 
