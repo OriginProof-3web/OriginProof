@@ -1,3 +1,4 @@
+import asyncio
 import re
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -16,8 +17,16 @@ from originproof_core import (
 )
 from originproof_core.ports import IssuerRecord, KeyRecord
 
+from .accounts import router as auth_router
+from .applications import router as applications_router
+from .chain_management import router as chain_router
 from .database import Database
+from .finals_proofs import router as finals_router
+from .operations import router as operations_router
+from .projection import SyncView, run_projection
+from .projection import router as projection_router
 from .repositories import SqlAlchemyProofRepository
+from .security import RequestSecurity
 from .settings import Settings
 
 
@@ -48,7 +57,7 @@ def configured_blockchain_reader(settings: Settings) -> BlockchainReader:
 
 def _request_id(request: Request) -> str:
     supplied = request.headers.get("X-Request-ID")
-    if supplied is not None and re.fullmatch(r"req_[A-Za-z0-9_-]+", supplied):
+    if supplied is not None and re.fullmatch(r"req_[A-Za-z0-9_-]{1,124}", supplied):
         return supplied
     return f"req_{uuid4().hex}"
 
@@ -63,11 +72,41 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
-        yield
-        await app_database.dispose()
+        stop = asyncio.Event()
+        task = (
+            asyncio.create_task(run_projection(app, stop))
+            if app_settings.projection_enabled
+            else None
+        )
+        try:
+            yield
+        finally:
+            stop.set()
+            if task:
+                await task
+            await app_database.dispose()
 
-    app = FastAPI(title="OriginProof API", version="0.1.0", lifespan=lifespan)
+    app = FastAPI(
+        title="OriginProof API",
+        version="0.1.0",
+        lifespan=lifespan,
+        responses={
+            413: {"description": "REQUEST_TOO_LARGE: request body exceeds configured limit"},
+            429: {"description": "RATE_LIMITED: retry after Retry-After seconds"},
+        },
+    )
+    app.add_middleware(RequestSecurity, settings=app_settings)
     app.state.database = app_database
+    app.state.settings = app_settings
+    app.state.projection = SyncView(
+        status="STARTING" if app_settings.projection_enabled else "DISABLED"
+    )
+    app.include_router(projection_router)
+    app.include_router(auth_router)
+    app.include_router(applications_router)
+    app.include_router(operations_router)
+    app.include_router(chain_router)
+    app.include_router(finals_router)
     app.state.verification_service = verification_service or VerificationService(
         SqlAlchemyProofRepository(app_database.session_factory),
         configured_blockchain_reader(app_settings),
@@ -88,7 +127,9 @@ def create_app(
 
     @app.get("/health/ready", tags=["health"])
     async def ready() -> dict[str, str]:
-        await app.state.database.ping()
+        from .readiness import check_ready
+
+        await check_ready(app)
         return {"status": "ready"}
 
     @app.post(
