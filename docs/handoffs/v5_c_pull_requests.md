@@ -1,17 +1,17 @@
 # 5.1 C 원격 공유 준비안
 
-대상 저장소: **OriginProof-3web/OriginProof** (`https://github.com/OriginProof-3web/OriginProof`). 현재 아래 여섯 브랜치는 로컬에만 있습니다. 자동 승인 검토가 사용자님의 원격 전송 대상·범위 명시 부족을 이유로 push를 거절해 원격 공유와 PR 생성은 보류했습니다. 로컬 구현·검사는 끝났으며 사용자 승인 후 이 범위로 push하고 Draft PR을 생성합니다. 단계 통합/병합·main 승격은 포함하지 않습니다.
+대상 저장소: **OriginProof-3web/OriginProof** (`https://github.com/OriginProof-3web/OriginProof`). 사용자님의 명시적 push/PR 생성 지시에 따라 아래 여섯 브랜치를 공유하고 Draft PR #57~#62를 생성했습니다. PR은 순서대로 선행 브랜치에 의존합니다. 단계 통합/병합·main 승격은 포함하지 않습니다.
 
 공통 실행 코드 근거는 `650e85cd939ac4be493e14b4004daf081f92afa9`, 문서 근거는 이 파일을 포함한 후속 커밋입니다. [구현/검사 기록](v5_c_implementation.md), [실행 API 인계](../api/v5_c_runtime.md), [공유 계약 0.2](../shared_contract_v5.md)를 함께 검토합니다.
 
-| 순서 | head: push할 브랜치 | Draft PR base | 제목 |
-| --- | --- | --- | --- |
-| 1 | feat/v5-w1-c-reuse-baseline | integration | V5 W1 C: 재사용 누적 기준과 5.1 전환 경계 |
-| 2 | fix/v5-w2-c-nonce-cleanup | feat/v5-w1-c-reuse-baseline | V5 W2 C: 제출 전 저장 실패·취소의 nonce 예약 해제 |
-| 3 | feat/v5-w2-c-governance | fix/v5-w2-c-nonce-cleanup | V5 W2 C: 기관 확인·키 증명·공동승인 DB/API |
-| 4 | feat/v5-w3-c-publication | feat/v5-w2-c-governance | V5 W3 C: 기관 서명 발행·직접 거래 대조·검증 API |
-| 5 | feat/v5-w4-c-document-lifecycle | feat/v5-w3-c-publication | V5 W4 C: 문서 버전·철회·키 이력과 사고 경고 |
-| 6 | feat/v5-w5-c-analysis-retention | feat/v5-w4-c-document-lifecycle | V5 W5 C: 분석 작업·보관/삭제·검증 결과 집계 |
+| 순서 | head: push할 브랜치 | Draft PR base | 제목 | PR |
+| --- | --- | --- | --- | --- |
+| 1 | feat/v5-w1-c-reuse-baseline | integration | V5 W1 C: 재사용 누적 기준과 5.1 전환 경계 | [#57](https://github.com/OriginProof-3web/OriginProof/pull/57) |
+| 2 | fix/v5-w2-c-nonce-cleanup | feat/v5-w1-c-reuse-baseline | V5 W2 C: 제출 전 저장 실패·취소의 nonce 예약 해제 | [#58](https://github.com/OriginProof-3web/OriginProof/pull/58) |
+| 3 | feat/v5-w2-c-governance | fix/v5-w2-c-nonce-cleanup | V5 W2 C: 기관 확인·키 증명·공동승인 DB/API | [#59](https://github.com/OriginProof-3web/OriginProof/pull/59) |
+| 4 | feat/v5-w3-c-publication | feat/v5-w2-c-governance | V5 W3 C: 기관 서명 발행·직접 거래 대조·검증 API | [#60](https://github.com/OriginProof-3web/OriginProof/pull/60) |
+| 5 | feat/v5-w4-c-document-lifecycle | feat/v5-w3-c-publication | V5 W4 C: 문서 버전·철회·키 이력과 사고 경고 | [#61](https://github.com/OriginProof-3web/OriginProof/pull/61) |
+| 6 | feat/v5-w5-c-analysis-retention | feat/v5-w4-c-document-lifecycle | V5 W5 C: 분석 작업·보관/삭제·검증 결과 집계 | [#62](https://github.com/OriginProof-3web/OriginProof/pull/62) |
 
 첫 PR은 integration에 아직 없는 C6 누적 소스(당시 A/B/D 자산 포함)도 담으므로 재사용과 신규 작성을 구분합니다. 후속 PR의 diff는 직전 자기 브랜치를 기준으로 합니다. 과거 phase는 보존하며 새 단계 통합 브랜치가 조율되면 base/선행 반영을 조정합니다. 여섯 PR은 검토용 Draft이고 단계 완료·타 담당자 승인으로 표현하지 않습니다.
 
@@ -120,4 +120,4 @@ PG readiness의 첫 실패는 개인 .env의 구 기관/projection 값이 합성
 
 - 개인·재사용·AI 기여와 실제 코드/검사 근거를 구분했습니다.
 - 원시 provider 응답·기관 개인키·실제 개인정보를 기록하지 않았으며 합성 검사를 사용했습니다.
-- 원격 push/PR URL·CI 상태·작성자 외 리뷰는 아직 없습니다. 생성 후 실제 값만 구현 기록에 추가합니다.
+- 여섯 브랜치의 원격 push와 Draft PR 생성·대화 첨부를 확인했습니다. 원격 CI와 작성자 외 리뷰는 생성 자체와 구분하며 전체 통과/승인을 가정하지 않습니다.

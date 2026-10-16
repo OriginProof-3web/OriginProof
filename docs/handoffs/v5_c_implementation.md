@@ -78,6 +78,17 @@
 | 버전·철회 | feat/v5-w4-c-document-lifecycle | 12ddb35 | C lifecycle, 실제 체인 전이는 후속 |
 | 분석·보관·집계 | feat/v5-w5-c-analysis-retention | 30002bc + 650e85c | C 독립 구현+위 경계 보완, 실제 D 모델은 후속 |
 
-clean 사본은 git archive로 커밋 파일만 푼 뒤 개인 .env 없이 frozen 의존성을 새 환경에 설치해 재현합니다. 최종 커밋 650e85c의 clean 사본에서 uv sync --all-packages --all-groups --frozen --offline 후 전체 494 PASS/9 SKIP·Ruff·구조 검사를 재현했습니다. 신규 의존성은 추가하지 않았습니다. 30002bc 사본에서 최초 frozen 설치 시 캐시에 없는 고정 패키지만 원래 배포처에서 받았고 최종 사본은 offline 설치했습니다. 원격 push와 PR 생성은 자동 승인 검토에서 원격 전송 범위의 명시적 사용자 승인 부족을 이유로 차단됐습니다. 코드·브랜치는 로컬에 보존돼 있으며 [저장소/여섯 head·base/PR 본문 준비안](v5_c_pull_requests.md)에 승인할 범위를 구체화했습니다. 원격 URL/CI는 아직 없습니다. 작성자 외 리뷰는 미확인입니다.
+clean 사본은 git archive로 커밋 파일만 푼 뒤 개인 .env 없이 frozen 의존성을 새 환경에 설치해 재현합니다. 최종 커밋 650e85c의 clean 사본에서 uv sync --all-packages --all-groups --frozen --offline 후 전체 494 PASS/9 SKIP·Ruff·구조 검사를 재현했습니다. 신규 의존성은 추가하지 않았습니다. 30002bc 사본에서 최초 frozen 설치 시 캐시에 없는 고정 패키지만 원래 배포처에서 받았고 최종 사본은 offline 설치했습니다. 사용자님의 명시적 승인 후 여섯 작업 브랜치를 원격에 push하고 Draft PR #57~#62를 생성·대화에 첨부했습니다. [여섯 PR의 URL·head/base·본문](v5_c_pull_requests.md)을 확인합니다. 원격 CI·소유자 리뷰 완료는 별도입니다. 작성자 외 리뷰는 미확인입니다.
 
 검증 전용 PostgreSQL 컨테이너는 검사 후 정리했습니다. 기존 사용자 서비스와 DB는 유지했습니다.
+
+## 원격 공유 결과
+
+- [#57](https://github.com/OriginProof-3web/OriginProof/pull/57): `feat/v5-w1-c-reuse-baseline` → `integration`, Draft.
+- [#58](https://github.com/OriginProof-3web/OriginProof/pull/58): `fix/v5-w2-c-nonce-cleanup` → `feat/v5-w1-c-reuse-baseline`, Draft.
+- [#59](https://github.com/OriginProof-3web/OriginProof/pull/59): `feat/v5-w2-c-governance` → `fix/v5-w2-c-nonce-cleanup`, Draft.
+- [#60](https://github.com/OriginProof-3web/OriginProof/pull/60): `feat/v5-w3-c-publication` → `feat/v5-w2-c-governance`, Draft.
+- [#61](https://github.com/OriginProof-3web/OriginProof/pull/61): `feat/v5-w4-c-document-lifecycle` → `feat/v5-w3-c-publication`, Draft.
+- [#62](https://github.com/OriginProof-3web/OriginProof/pull/62): `feat/v5-w5-c-analysis-retention` → `feat/v5-w4-c-document-lifecycle`, Draft.
+
+선행 순서대로 검토하며 코드 검증 SHA 650e85c 이후에는 문서·공유 기록만 추가했습니다. integration/main·과거 phase는 변경하지 않았습니다. 원격 CI·작성자 외 리뷰는 후속이며 단계 전체 완료로 판정하지 않습니다.
