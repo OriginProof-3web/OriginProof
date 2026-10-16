@@ -22,7 +22,7 @@ C의 `apps/api/tests/test_wallet_runtime.py`에 있는 ASGI/SQLite fixture와 on
 
 실제 두 기관 동시 운영·기관 격리·새 Registry/DB·브라우저 QR와 전달 메시지·원본 bytes 비교 및 기존 v1/v2 실제 회귀가 남습니다. 작성자 외 라벨/코드 리뷰를 받거나 단계 전체를 완료한 것으로 표시하지 않습니다.
 
-[전체 명령·결과·환경](../qa/v5-d-readiness.md), [구조화 실행 근거](../qa/v5-d-readiness-results.json).
+[전체 명령·결과·환경](https://github.com/OriginProof-3web/OriginProof/blob/52c80b8d974d0a0542680d687447bce7cba413f8/docs/qa/v5-d-readiness.md), [구조화 실행 근거](https://github.com/OriginProof-3web/OriginProof/blob/52c80b8d974d0a0542680d687447bce7cba413f8/docs/qa/v5-d-readiness-results.json).
 
 ## AI 활용과 사실 확인
 
