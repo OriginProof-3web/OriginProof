@@ -115,7 +115,7 @@ async def test_risk_and_issuance_are_independent(wallet, tampered):
     assert report["risk_level"] == ("NO_CLEAR_INDICATORS" if tampered else "HIGH")
     assert report["verification"] == snapshot
     assert snapshot["verification_status"] == ("TAMPERED" if tampered else "VERIFIED")
-    assert snapshot["comparison_scope"] == "PROTECTED_FIELDS"
+    assert snapshot["comparison_scope"] == "FULL_COMPARISON"
     assert report["verification_not_run_reason"] is None
     w.who["name"] = "other"
     ref = await input_ref(w, "다른 계정의 합성 입력")
@@ -182,19 +182,17 @@ async def test_overlapping_model_quote_is_quarantined_before_c_storage(wallet):
     assert "LLM_ANALYSIS_UNAVAILABLE:GROUNDING_MISMATCH" in report["limitations"]
 
 
-async def test_actual_d_cancellation_cannot_restore_deleted_original(wallet):
+async def test_actual_d_late_completion_cannot_restore_deleted_original(wallet):
     w = wallet
-    started, release, cancelled = asyncio.Event(), asyncio.Event(), asyncio.Event()
+    started, release, finished = asyncio.Event(), asyncio.Event(), asyncio.Event()
 
     class DelayedProvider(MockLLMProvider):
         async def analyze_phishing(self, text):
             started.set()
-            try:
-                await release.wait()
-                return await replay(text).analyze_phishing(text)
-            except asyncio.CancelledError:
-                cancelled.set()
-                raise
+            await release.wait()
+            value = await replay(text).analyze_phishing(text)
+            finished.set()
+            return value
 
     w.app.state.settings.wallet_text_input_enabled = True
     w.app.state.analysis_processor = PhishingAnalyzer(DelayedProvider())
@@ -214,7 +212,7 @@ async def test_actual_d_cancellation_cannot_restore_deleted_original(wallet):
     assert (await w.client.delete(f"/v3/analyses/{aid}")).status_code == 204
     release.set()
     await settle(w)
-    assert cancelled.is_set()
+    assert finished.is_set()  # C uses a durable deletion fence, not task cancellation.
     result = (await w.client.get(f"/v3/analyses/{aid}")).json()
     assert result["status"] == "CANCELLED" and result["report"] is None
     assert (await w.client.get(f"/v3/analyses/{aid}/original")).status_code == 410
