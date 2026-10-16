@@ -9,7 +9,7 @@ from sqlalchemy import select, text
 
 from .database import AccountRow
 
-REVISION = "20261016_0008"
+REVISION = "20261016_0009"
 
 
 async def check_ready(app):
@@ -19,6 +19,8 @@ async def check_ready(app):
             revision = await db.scalar(text("SELECT version_num FROM alembic_version"))
             accounts = list(await db.scalars(select(AccountRow)))
         settings = app.state.settings
+        if app.state.analysis_worker_error:
+            raise ValueError("wallet maintenance unavailable")
         roles = {row.role for row in accounts}
         issuers = {row.issuer_id for row in accounts if row.role == "issuer"}
         if (

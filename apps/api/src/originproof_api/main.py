@@ -28,6 +28,8 @@ from .projection import router as projection_router
 from .repositories import SqlAlchemyProofRepository
 from .security import RequestSecurity
 from .settings import Settings
+from .wallet_analyses import cleanup, launch, maintenance
+from .wallet_analyses import router as wallet_analyses_router
 from .wallet_documents import router as wallet_documents_router
 from .wallet_governance import router as wallet_governance_router
 from .wallet_onboarding import router as wallet_onboarding_router
@@ -71,6 +73,7 @@ def create_app(
     database: Database | None = None,
     settings: Settings | None = None,
     wallet_chain=None,
+    analysis_processor=None,
 ) -> FastAPI:
     app_settings = settings or Settings()
     app_database = database or Database(app_settings.database_url)
@@ -78,6 +81,15 @@ def create_app(
     @asynccontextmanager
     async def lifespan(_: FastAPI):
         stop = asyncio.Event()
+        wallet_enabled = (
+            app_settings.wallet_registry_address
+            or app_settings.wallet_text_input_enabled
+            or app_settings.wallet_demo_email_enabled
+        )
+        if wallet_enabled:
+            for analysis_id in await cleanup(app, restart=True):
+                launch(app, analysis_id)
+        maintenance_task = asyncio.create_task(maintenance(app, stop)) if wallet_enabled else None
         task = (
             asyncio.create_task(run_projection(app, stop))
             if app_settings.projection_enabled
@@ -89,6 +101,13 @@ def create_app(
             stop.set()
             if task:
                 await task
+            if maintenance_task:
+                await maintenance_task
+            pending = list(app.state.analysis_tasks)
+            for worker in pending:
+                worker.cancel()
+            if pending:
+                await asyncio.gather(*pending, return_exceptions=True)
             await app_database.dispose()
 
     app = FastAPI(
@@ -104,6 +123,9 @@ def create_app(
     app.state.database = app_database
     app.state.settings = app_settings
     app.state.wallet_runtime = WalletRuntime(app_database, app_settings, wallet_chain)
+    app.state.analysis_processor = analysis_processor
+    app.state.analysis_tasks = set()
+    app.state.analysis_worker_error = None
     app.state.projection = SyncView(
         status="STARTING" if app_settings.projection_enabled else "DISABLED"
     )
@@ -116,6 +138,7 @@ def create_app(
     app.include_router(wallet_onboarding_router)
     app.include_router(wallet_governance_router)
     app.include_router(wallet_documents_router)
+    app.include_router(wallet_analyses_router)
     app.state.verification_service = verification_service or VerificationService(
         SqlAlchemyProofRepository(app_database.session_factory),
         configured_blockchain_reader(app_settings),

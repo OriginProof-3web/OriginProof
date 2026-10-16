@@ -121,6 +121,8 @@ async def wallet():
     chain = Chain()
     database = SimpleNamespace(session_factory=lambda: AsyncSession(engine))
     settings = Settings(
+        _env_file=None,
+        projection_enabled=False,
         wallet_registry_address=DOMAIN.verifying_contract,
         wallet_operator_addresses={"acct_o": APPROVERS[0], "acct_o2": APPROVERS[1]},
         wallet_internal_approvers={ISSUER: "acct_internal"},
@@ -140,13 +142,21 @@ async def wallet():
         yield SimpleNamespace(
             client=client, engine=engine, chain=chain, app=app, who=who, accounts=accounts
         )
+    import asyncio
+
+    pending = list(app.state.analysis_tasks)
+    for task in pending:
+        task.cancel()
+    if pending:
+        await asyncio.gather(*pending, return_exceptions=True)
     engine.dispose()
 
 
-async def onboarding(w):
+async def onboarding(w, *, domain="bank"):
     c = w.client
     issued = await c.post(
-        "/v3/issuer-applications/app_test/email-codes", json={"email": "staff@bank.example.invalid"}
+        "/v3/issuer-applications/app_test/email-codes",
+        json={"email": f"staff@{domain}.example.invalid"},
     )
     assert issued.status_code == 201, issued.text
     inbox = await c.get("/v3/issuer-applications/app_test/demo-inbox")
@@ -322,14 +332,15 @@ async def test_v3_security_and_unavailable_adapter_do_not_claim_success(wallet):
     assert malformed.status_code == 422 and "DO_NOT_ECHO" not in malformed.text
 
 
-async def activated(w):
+async def activated(w, *, issuer_id=ISSUER, domain="bank"):
     from originproof_core.wallet_ports import WalletIssuer, WalletKey
 
-    checks = await onboarding(w)
+    checks = await onboarding(w, domain=domain)
+    issuer_hash = identifier_hash(issuer_id)
     kid = identifier_hash("key_active")
-    w.chain.issuers[ISSUER_HASH] = WalletIssuer(
+    w.chain.issuers[issuer_hash] = WalletIssuer(
         **BLOCK,
-        issuer_id=ISSUER_HASH,
+        issuer_id=issuer_hash,
         state="ACTIVE",
         key_id=kid,
         signer=SIGNER,
@@ -338,7 +349,7 @@ async def activated(w):
         governance_nonce="1",
     )
     w.chain.keys[kid] = WalletKey(
-        **BLOCK, key_id=kid, issuer_id=ISSUER_HASH, signer=SIGNER, registered_block="2"
+        **BLOCK, key_id=kid, issuer_id=issuer_hash, signer=SIGNER, registered_block="2"
     )
 
 
@@ -430,7 +441,7 @@ async def confirmed_publication(w, signing, *, req="req_publish", tx_byte="67"):
         published_at=message.issued_at,
         published_block="10",
     )
-    w.chain.issuers[ISSUER_HASH] = w.chain.issuers[ISSUER_HASH].model_copy(
+    w.chain.issuers[message.issuer_id] = w.chain.issuers[message.issuer_id].model_copy(
         update={"next_nonce": str(int(message.nonce) + 1)}
     )
     tx_hash = "0x" + tx_byte * 32
@@ -852,3 +863,243 @@ async def test_distinct_chain_approvals_are_separate_from_confirmation_of_one_ap
     bad = view.model_copy(update={"approvals": [APPROVERS[0], APPROVERS[0]]})
     wallet.chain.proposals[pid] = wallet.chain.proposals[pid].model_copy(update={"proposal": bad})
     assert (await wallet.client.get(f"/v3/proposals/{pid}")).status_code == 503
+
+
+async def test_expired_unsubmitted_operation_requires_new_signature_after_chain_lookup(
+    wallet, monkeypatch
+):
+    from originproof_api import wallet_documents
+
+    await activated(wallet)
+    signing = await draft(wallet)
+    response = await wallet.client.post(
+        "/v3/publications",
+        json={
+            "request_id": "req_expiring",
+            "signing_request_id": signing["signing_request_id"],
+            "signature": sign(signing),
+        },
+    )
+    operation = response.json()["operation_id"]
+    monkeypatch.setattr(wallet_documents, "now", lambda: signing["message"]["deadline"])
+    result = await wallet.client.post(f"/v3/operations/{operation}/reconcile")
+    assert result.status_code == 202, result.text
+    assert result.json()["status"] == "FAILED"
+    assert result.json()["error_code"] == "SIGNATURE_EXPIRED"
+    assert result.json()["next_action"] == "RESIGN" and not wallet.chain.sends
+
+
+async def test_reactivate_transaction_uses_zero_abi_proof_and_empty_bytes(wallet):
+    import time
+
+    from originproof_core.wallet_contract import ProposalView
+
+    await activated(wallet)
+    issuer = wallet.chain.issuers[ISSUER_HASH].model_copy(update={"state": "SUSPENDED"})
+    wallet.chain.issuers[ISSUER_HASH] = issuer
+    wallet.who["name"] = "operator"
+    response = await wallet.client.post(
+        "/v3/proposals",
+        json={
+            "request_id": "req_reactivate",
+            "proposal": {
+                "action": 3,
+                "issuerId": ISSUER_HASH,
+                "keyId": issuer.key_id,
+                "signer": issuer.signer,
+                "metadataHash": issuer.metadata_hash,
+                "nonce": issuer.governance_nonce,
+                "deadline": int(time.time()) + 3600,
+            },
+        },
+    )
+    assert response.status_code == 201, response.text
+    data = response.json()
+    pid, tx_hash = data["proposal_id"], "0x" + "91" * 32
+    wallet.chain.proposals[pid] = WalletProposal(
+        **BLOCK, proposal=ProposalView.model_validate(data).model_copy(update={"status": "PENDING"})
+    )
+    wallet.chain.transactions[tx_hash] = WalletTransaction(
+        **BLOCK,
+        tx_hash=tx_hash,
+        sender=APPROVERS[0],
+        action="Propose",
+        status="CONFIRMED",
+        arguments={
+            "proposal": body_proposal(data),
+            "proof": {
+                "action": 0,
+                "applicationId": "0x" + "00" * 32,
+                "issuerId": "0x" + "00" * 32,
+                "signer": "0x" + "00" * 20,
+                "challengeNonce": "0x" + "00" * 32,
+                "deadline": 0,
+            },
+            "signature": "0x",
+        },
+    )
+    accepted = await wallet.client.post(
+        f"/v3/proposals/{pid}/transactions",
+        json={"request_id": "req_reactivate_tx", "tx_hash": tx_hash},
+    )
+    assert accepted.status_code == 202 and accepted.json()["status"] == "CONFIRMED", accepted.text
+
+
+async def test_revocation_receipt_waits_for_revoked_state(wallet):
+    await activated(wallet)
+    signing = await draft(wallet)
+    doc, _ = await confirmed_publication(wallet, signing)
+    response = await wallet.client.post(
+        "/v3/revoke-drafts",
+        json={"request_id": "req_pending_revoke", "document_id": doc.document_id, "version": 1},
+    )
+    revoke = response.json()
+    await wallet.client.post(
+        "/v3/revocations",
+        json={
+            "request_id": "req_revoke",
+            "signing_request_id": revoke["signing_request_id"],
+            "signature": sign(revoke),
+        },
+    )
+    key = (doc.document_id, 1)
+    old = wallet.chain.documents[key]
+    wallet.chain.documents[key] = old.model_copy(
+        update={"document": old.document.model_copy(update={"state": "SUPERSEDED"})}
+    )
+    tx_hash = "0x" + "92" * 32
+    wallet.chain.transactions[tx_hash] = WalletTransaction(
+        **BLOCK,
+        tx_hash=tx_hash,
+        sender=APPROVERS[0],
+        action="Revoke",
+        status="CONFIRMED",
+        arguments={"message": revoke["message"], "signature": sign(revoke)},
+    )
+    result = await wallet.client.post(
+        f"/v3/signing-requests/{revoke['signing_request_id']}/transactions",
+        json={
+            "request_id": "req_revoke_tx",
+            "signing_request_id": revoke["signing_request_id"],
+            "tx_hash": tx_hash,
+        },
+    )
+    assert result.status_code == 202 and result.json()["status"] == "UNKNOWN", result.text
+    wallet.chain.documents[key] = old.model_copy(
+        update={"document": old.document.model_copy(update={"state": "REVOKED"})}
+    )
+    confirmed = await wallet.client.post(
+        f"/v3/operations/{result.json()['operation_id']}/reconcile"
+    )
+    assert confirmed.json()["status"] == "CONFIRMED"
+
+
+async def test_office_template_and_state_warnings_survive_original_expiry(wallet):
+    from originproof_api.wallet_database import WalletDocumentRow
+    from sqlalchemy.orm import Session
+
+    office = "iss_origin_mock_office"
+    for name in ("issuer", "internal"):
+        wallet.accounts[name].issuer_id = office
+    wallet.app.state.settings.wallet_internal_approvers = {office: "acct_internal"}
+    with Session(wallet.engine) as db:
+        for aid in ("acct_i", "acct_internal"):
+            db.get(AccountRow, aid).issuer_id = office
+        app = db.get(IssuerApplicationRow, "app_test")
+        app.issuer_id, app.issuer_name = office, "Origin Mock Office"
+        db.commit()
+    await activated(wallet, issuer_id=office, domain="office")
+    content = {
+        "notice_type": "OFFICIAL_DOCUMENT",
+        "institution_code": "ORIGIN_MOCK_OFFICE",
+        "document_type": "합성 공고",
+        "document_number": "DEMO-1",
+        "title": "합성 공식 안내",
+        "summary": "공식 창구를 확인하세요",
+        "official_url": "https://office.example.invalid",
+    }
+    signing = await draft(wallet, content=content)
+    doc, _ = await confirmed_publication(wallet, signing)
+    verified = await wallet.client.post(
+        "/v3/verifications",
+        json={
+            "request_id": "req_office_verify",
+            "document_id": doc.document_id,
+            "scope": "PROTECTED_FIELDS",
+            "candidate": content,
+        },
+    )
+    assert verified.json()["verification_status"] == "VERIFIED", verified.text
+    issuer_id = identifier_hash(office)
+    issuer = wallet.chain.issuers[issuer_id].model_copy(update={"state": "SUSPENDED"})
+    wallet.chain.issuers[issuer_id] = issuer
+    wallet.chain.keys[issuer.key_id] = wallet.chain.keys[issuer.key_id].model_copy(
+        update={"compromise_block": "10"}
+    )
+    with Session(wallet.engine) as db:
+        row = db.get(WalletDocumentRow, ("31337", DOMAIN.verifying_contract, doc.document_id, 1))
+        row.original = None
+        db.commit()
+    expired = await wallet.client.post(
+        "/v3/verifications",
+        json={"request_id": "req_office_state", "document_id": doc.document_id, "scope": "ID_ONLY"},
+    )
+    assert expired.json()["verification_status"] == "INCONCLUSIVE"
+    assert set(expired.json()["document"]["warnings"]) == {"ISSUER_SUSPENDED", "KEY_COMPROMISED"}
+
+
+async def test_adapter_cannot_substitute_another_issuer_or_key(wallet):
+    await activated(wallet)
+    issuer = wallet.chain.issuers[ISSUER_HASH]
+    wrong = identifier_hash("another_issuer")
+    wallet.chain.issuers[ISSUER_HASH] = issuer.model_copy(update={"issuer_id": wrong})
+    result = await wallet.client.post(
+        "/v3/document-drafts",
+        json={
+            "request_id": "req_wrong_issuer",
+            "doc_key": identifier_hash("wrong"),
+            "expected_version": 1,
+            "expires_at": 2000000000,
+            "content": payment_content(),
+        },
+    )
+    assert result.status_code == 503, result.text
+    wallet.chain.issuers[ISSUER_HASH] = issuer
+    wallet.chain.keys[issuer.key_id] = wallet.chain.keys[issuer.key_id].model_copy(
+        update={"key_id": wrong}
+    )
+    result = await wallet.client.post(
+        "/v3/document-drafts",
+        json={
+            "request_id": "req_wrong_key",
+            "doc_key": identifier_hash("wrong"),
+            "expected_version": 1,
+            "expires_at": 2000000000,
+            "content": payment_content(),
+        },
+    )
+    assert result.status_code == 503, result.text
+
+
+async def test_retained_revoke_request_cannot_reference_a_deleted_operation(wallet):
+    from originproof_api.database import OperationRow
+    from originproof_api.wallet_database import WalletSigningRow
+    from sqlalchemy import select
+
+    await activated(wallet)
+    doc, _ = await confirmed_publication(wallet, await draft(wallet))
+    await confirmed_revocation(wallet, doc.document_id, 1)
+    with Session(wallet.engine) as db:
+        source = db.scalar(select(WalletSigningRow).where(WalletSigningRow.kind == "Revoke"))
+        signing_id, signature = source.signing_request_id, source.signature
+        db.delete(db.get(OperationRow, source.consumed_by))
+        db.commit()
+    response = await wallet.client.post(
+        "/v3/revocations",
+        json={
+            "request_id": "req_after_retention",
+            "signing_request_id": signing_id,
+            "signature": signature,
+        },
+    )
+    assert response.status_code == 410 and response.json()["detail"] == "RESULT_EXPIRED"

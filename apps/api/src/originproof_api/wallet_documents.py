@@ -202,6 +202,8 @@ async def submit_signed(body, request, identity, kind):
         saved, signing = await service.owned_signing(db, account, body.signing_request_id, kind)
         if saved.consumed_by:
             operation = await db.get(OperationRow, saved.consumed_by)
+            if operation is None:
+                raise HTTPException(410, "RESULT_EXPIRED")
             if saved.signature != body.signature:
                 raise HTTPException(409, "SIGNATURE_ALREADY_SUBMITTED")
             return service.operation_view(operation)
@@ -379,7 +381,23 @@ async def reconcile(operation_id: str, request: Request, identity: Identity):
         if tx:
             return await accept_transaction(service, db, row, tx.tx_hash)
         if row.tx_hash:
-            return await accept_transaction(service, db, row, row.tx_hash)
+            result = await accept_transaction(service, db, row, row.tx_hash)
+            if result.status in ("CONFIRMED", "FAILED"):
+                return result
+        if row.input_body["action"] in ("Publish", "Revoke"):
+            message = row.input_body["arguments"]["message"]
+            if now() >= message["deadline"]:
+                issuer = await service.rpc("issuer", message["issuerId"])
+                chain = await service.rpc("document", message["documentId"], message["version"])
+                absent = (
+                    chain is None
+                    if row.input_body["action"] == "Publish"
+                    else (chain is not None and chain.document.state != "REVOKED")
+                )
+                if issuer and issuer.next_nonce == message["nonce"] and absent:
+                    row.status, row.error_code = "FAILED", "SIGNATURE_EXPIRED"
+                    row.recovery_reference = row.recovery_reference | {"resolved_at": now()}
+                    await service.commit(db)
         return service.operation_view(row)
 
 
@@ -438,6 +456,7 @@ async def verification_material(
         version is not None and chain.document.version != version
     ):
         raise HTTPException(503, "CHAIN_RECORD_MISMATCH")
+    key = await service.rpc("key", chain.document.key_id)
     async with service.database.session_factory() as db:
         row = await db.get(
             WalletDocumentRow, document_key(service, document_id, chain.document.version)
@@ -463,6 +482,17 @@ async def verification_material(
 
             if not matches_document(signing.message, chain.document):
                 raise ValueError("chain mismatch")
+            if (
+                signing.domain != service.domain
+                or key is None
+                or (
+                    key.issuer_id != signing.message.issuer_id
+                    or key.key_id != signing.message.key_id
+                    or signing.expected_signer != key.signer
+                    or wallet_signer(service.domain, signing.message, row.signature) != key.signer
+                )
+            ):
+                raise ValueError("signature mismatch")
         except ValueError:
             raise HTTPException(409, "STORED_CONTENT_MISMATCH") from None
         return VerificationMaterial(
@@ -546,6 +576,8 @@ async def verify_document(
                 session_id=result.session_id,
                 expires_at=now() + 86400,
                 result=result.model_dump(mode="json"),
+                account_id=identity[0].account_id if identity else None,
+                privacy_scope="OWNER" if identity else "PUBLIC",
             )
         )
         await service.commit(db)

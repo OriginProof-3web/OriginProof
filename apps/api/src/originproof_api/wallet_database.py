@@ -98,6 +98,7 @@ class WalletAnalysisRow(Base):
     original_expires_at: Mapped[int | None] = mapped_column(BigInteger)
     report: Mapped[dict | None] = mapped_column(JSON)
     error_code: Mapped[str | None] = mapped_column(String(64))
+    verification_result: Mapped[dict | None] = mapped_column(JSON)
 
 
 class WalletRequestRow(Base):
@@ -114,3 +115,5 @@ class WalletVerificationRow(Base):
     session_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     expires_at: Mapped[int] = mapped_column(BigInteger)
     result: Mapped[dict] = mapped_column(JSON)
+    account_id: Mapped[str | None] = mapped_column(ForeignKey("accounts.account_id"))
+    privacy_scope: Mapped[str] = mapped_column(String(16), default="LEGACY")
