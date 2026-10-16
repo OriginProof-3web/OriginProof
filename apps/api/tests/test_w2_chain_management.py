@@ -71,6 +71,7 @@ class AsyncSession:
 class Writer(JsonRpcBlockchainWriter):
     def __init__(self):
         self.state = ChainOperationState.CONFIRMED
+        self._reserved_nonces = {}
         self.submissions = []
         self.recoveries = []
         self.next_nonce = 0
