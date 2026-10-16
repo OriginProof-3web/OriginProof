@@ -1,5 +1,7 @@
 # D 작업 점검·재사용·분석 소비 인계
 
+> 현재 GitHub 공유 상태: [D Draft PR #70~#76 리뷰 목록](v5_d_review_index.md). 아래 실행 기록의 push/PR 미수행 표시는 당시 상태로 보존합니다.
+
 - 확인일: 2026-10-16, 한국시간. 담당은 사용자님의 **D(AI·합성 자료·평가·독립 QA)**입니다.
 - 첫 묶음 브랜치: `codex/v5-w1-d-safety-qa`, 시작 `854ee66274dea388b9c5608bd385d9e8a8d258f2`, 구현/검증 코드 `7e16a70da797311d1d25c50842ad5e7f734f16b5`.
 - 기준: [계획서 5.1](../development_plan.md) 8·12·14장, [ADR 0004](../adr/0004-v5-governance-wallet-versioning.md), [재사용 인계](v5_reuse_handoff.md). 본문은 D의 실행 계획이며 공통 계획서를 대체하지 않습니다.
