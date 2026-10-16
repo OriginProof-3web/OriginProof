@@ -123,7 +123,7 @@
 
 ### R43 — PR #43
 
-- 상태: **후속 반영·검증 미확인**
+- 상태: **D 코드 선별 재사용·로컬 회귀 확인 / 확인·신규 분석 연결·소유자 리뷰 대기**
 - 작업: V5-W5-D/C/A의 AI 결과·확인·통합 검사
 - 담당/검토 경계(기존 소유권 기준): D 여인준님(@yijun0330), C 확인/비교 계약·서버 검증, A 확인·정정 UI
 - 재사용: 기존 provider·prompt의 모호한 값 null·확인 필요 안내와 오추출/삽입 지시 안전성 회귀
@@ -132,7 +132,7 @@
 - 전환/미완료: 현재 헤더는 확인/grounding 강제가 아니며 이 한계는 유지합니다. 입력 선정은 회의 후 확정, Decisions API는 현 개발 범위 밖입니다. 구 v1/v2 판정을 조용히 바꾸지 않고 신규 5.0 응답·확인·검증 경계는 관련 원본과 검사로 연결합니다.
 - 주요 고정 원본: [services/analyzer/src/originproof_analyzer/service.py](https://github.com/OriginProof-3web/OriginProof/blob/c16de660914389ba8821612aa3d6c64708085185/services/analyzer/src/originproof_analyzer/service.py), [services/analyzer/src/originproof_analyzer/prompts/card_payment_notice_v4.md](https://github.com/OriginProof-3web/OriginProof/blob/c16de660914389ba8821612aa3d6c64708085185/services/analyzer/src/originproof_analyzer/prompts/card_payment_notice_v4.md), [services/analyzer/tests/test_extraction_safety.py](https://github.com/OriginProof-3web/OriginProof/blob/c16de660914389ba8821612aa3d6c64708085185/services/analyzer/tests/test_extraction_safety.py), [docs/handoffs/analyzer-confirmation-contract.md](https://github.com/OriginProof-3web/OriginProof/blob/c16de660914389ba8821612aa3d6c64708085185/docs/handoffs/analyzer-confirmation-contract.md)
 - 종료·상세 인계 근거: [PR 댓글](https://github.com/OriginProof-3web/OriginProof/pull/43#issuecomment-6172660336)
-- 후속 반영 PR / 검증 SHA·명령·결과: **미기록**
+- 후속 로컬 반영: D `codex/v5-w1-d-safety-qa@7e16a70`에서 D 소유 10개 경로를 선별 재사용했습니다. 전체 Python 213 PASS, C 후보 모델의 D 검사 172 PASS. 확인/정정·신규 실제 분석 연결과 소유자 리뷰는 후속이며 PR은 미생성입니다. [D 작업·소비 인계](v5_d_workplan.md)의 C 근거 검사 30 PASS/1 FAIL(DG12)을 포함해 추적하고 활성 상태는 유지합니다.
 
 ### R37 — PR #37
 

@@ -51,3 +51,15 @@ make test-analyzer
 `live_execution_status=NOT_RUN`은 실제 발행/DB/RPC/브라우저 미실행을 뜻합니다.
 코어 검사 통과로 이를 PASS로 바꾸지 않습니다. W3 모든 결과의 lifecycle은 null,
 Proof 상태 검사는 NOT_RUN이며 실제 현재 사용 가능 상태를 주장하지 않습니다.
+
+## V5 D 분석 소비 QA
+
+기존 unsigned v2 사례와 별도로
+[`analysis_consumer_cases_v1.json`](../synthetic/analysis_consumer_cases_v1.json)은
+원문/모델 출력 30개의 합성 replay입니다. 실제 위험 분석 결과나 60개 원본 평가셋이 아닙니다.
+자료의 `NOT_RUN`은 정의 상태로 보존하고 실제 실행 결과는 별도 보고서에 기록합니다.
+
+`v5_analysis_consumer_qa.py`는 일반 pytest 경로에 포함되지 않으며, C 후보 고정 사본의
+`originproof_api.wallet_analyses.ground_report`를 직접 검사합니다. 네트워크·DB·LLM을
+호출하지 않고 후보의 공통 모델과 API 소스를 소비합니다. 대상 SHA·재현 명령·실패는
+[D 작업·소비 인계](../../docs/handoffs/v5_d_workplan.md)를 확인합니다.
