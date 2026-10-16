@@ -74,7 +74,7 @@ CI에 보안 감사·실제 C 복구 job을 추가했습니다. Codex가 구현�
 
 ## 2026-10-16 — 5.1 신규 지갑 C 후속
 
-C / @Jordi2801K, V5-W6-C. 시작 기준은 #62 `eaa0d16`, 작업 branch는 `feat/v5-w6-c-recovery-integration`, 검증 코드 SHA는 `c17a8f573bc8f64b522637cd3178f893baec8316`입니다. [Draft PR #63](https://github.com/OriginProof-3web/OriginProof/pull/63)을 생성·공유했습니다. 위 2026-10-03 결과는 구 Registry 경로의 과거 기록으로 유지합니다.
+C / @Jordi2801K, V5-W6-C. 시작 기준은 #62 `eaa0d16`, 작업 branch는 `feat/v5-w6-c-recovery-integration`, 최종 검증 코드 SHA는 `b3c10a5e4d0358b7d0754260283853b0338e072f`입니다. 복구/CLI 구현은 `c17a8f5`, 후속 코드는 검사 import 보완입니다. [Draft PR #63](https://github.com/OriginProof-3web/OriginProof/pull/63)을 생성·공유했습니다. 위 2026-10-03 결과는 구 Registry 경로의 과거 기록으로 유지합니다.
 
 기존 W1~W5에는 신규 지갑 API의 실제 프로세스 종료·복원 근거와 API 밖 검증 명령이 없었습니다. 기존 C 복구 helper와 API factory·검증 코어·공유 ABI를 재사용해 전용 PostgreSQL/HTTP 프로세스 검사와 직접 RPC CLI를 추가했습니다. 새 서비스·의존성·migration은 만들지 않았습니다. B Registry와 D 분석기는 아직 없다는 사용자 확인에 따라 테스트용 합성 증거만 주입했고 생산 Adapter/분석기는 구현하지 않았습니다.
 
@@ -88,5 +88,7 @@ C / @Jordi2801K, V5-W6-C. 시작 기준은 #62 `eaa0d16`, 작업 branch는 `feat
 실제 신규 live **5 PASS**, 기존 PostgreSQL/Anvil 복구 **2 PASS**, 전체 Python **527 PASS / 14 SKIP / 기존 warning 1**입니다. 새 frozen/offline archive 환경에서도 전체 **527 PASS / 14 SKIP**를 재현했습니다. 100회 일반 검증의 로컬 p50/p95를 기록했지만 합성 Registry이며 성능 향상이나 실제 체인/모델 목표 달성을 주장하지 않습니다.
 
 늦은 분석 결과 검사에서 단순 상태 조회만으로는 worker의 최종 저장 시도 완료를 증명하지 못했습니다. 테스트 processor의 task 완료 marker를 기다린 뒤 DB를 확인하도록 보완해 CANCELLED/보고서 없음이 유지되는지 검사했습니다. production 동작을 테스트 편의에 맞춰 바꾸지 않았습니다. 독립 CLI는 누락 metadata·RPC/ABI 장애를 성공으로 대체하지 않고 INCONCLUSIVE로 반환하며 VERIFIED와 현재 상태/경고도 분리합니다.
+
+첫 원격 CI의 c-recovery/Contract는 통과했으나 새 검사 import가 `python -m pytest`의 cwd 경로에 의존해 python-quality가 수집 단계에서 실패했습니다. CI와 같은 `pytest` 실행으로 로컬 재현한 뒤 `importlib.util` 파일 로딩으로 보완했습니다. 수정 코드의 새 frozen/offline 사본에서도 직접 `pytest`로 전체 통과를 재현했으며 실패/재검사 근거는 위 구현 기록에 보존합니다.
 
 사용자님은 잔여 C 개발과 팀원 신규 구현 부재를 확인해 주셨습니다. Codex가 기존 흐름 조사·구현·검사·문서화를 수행했으며 사람이 코드를 별도 리뷰한 것으로 기록하지 않습니다. 작성자 외 기여/코드 확인은 미확인입니다. 실제 B Adapter/배포/G07, A 지갑/화면, D 모델/독립·다른 PC 재현, 동일 RC 리허설은 남아 있습니다. C의 독립 준비 결과이며 단계 전체 완료가 아닙니다.

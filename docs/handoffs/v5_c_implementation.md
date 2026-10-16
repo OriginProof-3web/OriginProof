@@ -104,15 +104,17 @@ clean 사본은 git archive로 커밋 파일만 푼 뒤 개인 .env 없이 froze
 
 사용자 요청으로 잔여 C 작업을 진행했습니다. 사용자 확인과 원격 branch/PR 점검에서 새 B Registry/Adapter와 D 분석기는 아직 없으므로 실제 연결은 대기합니다. 기존 W1~W5 PR을 보존하고 `feat/v5-w6-c-recovery-integration`을 #62 head `eaa0d166269833cf7ee49675cfa777b0208c3725`에서 시작했습니다. 원격에 push하고 [Draft PR #63](https://github.com/OriginProof-3web/OriginProof/pull/63)을 #62 branch 대상으로 생성·대화에 첨부했습니다. 자동 병합/단계 승격은 하지 않았습니다.
 
-- 검증 코드 SHA: `c17a8f573bc8f64b522637cd3178f893baec8316`. 이후 기록 커밋은 문서만 변경합니다.
+- 최종 검증 코드 SHA: `b3c10a5e4d0358b7d0754260283853b0338e072f`. 복구/CLI 구현 `c17a8f5`에서 검사 모듈의 로딩만 보완했으며 이후 기록 커밋은 문서만 변경합니다.
 - 새 migration·서비스 API/기본 mock·의존성 변경은 없습니다. 기존 `test_w6_c_recovery`의 프로세스/HTTP 도구, C 앱 factory·검증 코어·공유 ABI·Golden·고정 lockfile을 재사용했습니다. B/D 소유 생산 코드는 수정하지 않았습니다.
 - `make test-v5-c-live`: 실제 PostgreSQL 16.4/uvicorn HTTP 프로세스 **5 PASS**. 0006 구자료를 유지한 head 적용·새 DB pg_restore·버전별 원본/서명·분석 동의/보관·SIGKILL·UNKNOWN 단일 제출·확정 저장 실패/재조회·worker 재시작/늦은 결과·동시 버전/권한·RPC 장애/만료를 확인했습니다. Registry/분석기 증거만 합성이며 전용 자원을 정리했습니다.
 - 독립 CLI `scripts/verify_wallet_document.py`: 로컬 자료와 별도로 지정한 신뢰 chain/address·직접 RPC만 사용합니다. 두 템플릿, 변경/누락 증거, 고정 block/reorg, 과거 키/사고, ABI 일치, 잘못된 로컬 입력을 포함해 **33 PASS**입니다. 실제 새 배포에서 V5-F20을 완료한 근거는 아닙니다.
 - 전체 Python 명시 경로 **527 PASS / 14 SKIP / 기존 warning 1**. 14개에는 opt-in 신규 live 5개와 기존 9개가 포함됩니다. 별도 기존 `W6_C_LIVE_TEST=1` 복구는 **2 PASS**이며 실제 Anvil을 포함합니다. 기존/신규 Registry 근거를 혼합하지 않습니다.
-- `c17a8f5` git archive 사본에 개인 `.env` 없이 `uv sync --all-packages --all-groups --frozen --offline` 후 전체 **527 PASS / 14 SKIP**를 재현했습니다. Makefile 범위 Ruff·신규 Python format·compileall·diff 검사도 통과했습니다.
+- `c17a8f5` git archive 사본에 개인 `.env` 없이 `uv sync --all-packages --all-groups --frozen --offline` 후 전체 **527 PASS / 14 SKIP**를 재현했습니다. 이후 CI의 console-script import 차이를 보완한 `b3c10a5`도 같은 방식의 새 사본에서 `pytest` 직접 실행으로 전체 **527 PASS / 14 SKIP**를 재현했습니다. Makefile 범위 Ruff·신규 Python format·compileall·diff 검사도 통과했습니다.
 - 성능 기준: 실제 HTTP/PostgreSQL에서 서로 다른 request ID의 보호 필드 검증 100회 모두 VERIFIED. p50 **13.15ms**, p95 **14.22ms**. `build/v5-c-performance.json`/CI 로그에 범위를 남깁니다. 합성 Registry·단일 순차 실행 기준이며 실제 RPC/모델/부하 성능·개선율을 뜻하지 않습니다.
 - 환경: macOS arm64, Python 3.13.0, uv 0.8.17, PostgreSQL 16.4, FastAPI 0.142.2/Starlette 1.7.0/pytest 9.1.1. `uv.lock` SHA-256: `e5122f523c7bc1e1bedf6795244cbdd2baaaeec9dc9c7f3fb088e2f064806dd6`. 기존 `scripts/ci/environment_fingerprint.py`로 SHA·도구·잠금 파일도 기록했습니다.
 
 [복구·독립 검증 runbook](../api/v5_c_recovery_runbook.md)에 백업 자료/권한·빈 DB 복원·UNKNOWN 정책과 B/A/D의 실제 연결 지점을 정리했습니다. [W6 C 기여 기록](../portfolio/W6-C.md)의 5.1 절에 재사용·실패 분석·AI 활용·미완료를 연결합니다.
+
+최초 [원격 CI](https://github.com/OriginProof-3web/OriginProof/actions/runs/38870469663)는 c-recovery/Contract 검사를 통과했으나 python-quality의 새 검사 수집에서 실패했습니다. `python -m pytest`에만 있던 cwd import 경로에 의존한 원인이었고, 검사에서 CLI 파일을 `importlib.util`로 직접 로드하도록 `b3c10a5`에서 수정했습니다. 로컬에서도 CI와 같은 `pytest` 명령으로 실패를 재현한 뒤 전체 통과를 확인했습니다. 최종 head의 원격 재실행과 작성자 외 리뷰는 별도로 확인합니다.
 
 다음 담당/조건: B의 실제 Registry·canonical Adapter/manifest·G07, D의 선정 입력/모델·독립 재현, A의 실제 지갑/화면 소비·소유자 리뷰가 준비되면 같은 후보로 연결합니다. C는 해당 연결의 API/DB 결함과 후보/lockfile/migration/manifest를 정리합니다. 실제 모델 평가·다른 PC·서비스 API 밖 실제 배포 검증·전체 리허설 3회가 없어 통합 RC 또는 W6/W7 전체 완료로 판정하지 않습니다.
