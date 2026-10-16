@@ -172,8 +172,25 @@ async def process(app, analysis_id):
             if str(problem) in ("GROUNDING_MISMATCH", "ANALYZER_AUTHORITY_VIOLATION")
             else "ANALYZER_SCHEMA_MISMATCH"
         )
-    except Exception:
-        error = "ANALYZER_UNAVAILABLE"
+    except Exception as problem:
+        code = getattr(problem, "code", None)
+        error = (
+            code
+            if isinstance(code, str)
+            and code
+            in {
+                "REFUSAL",
+                "TIMEOUT",
+                "RATE_LIMIT",
+                "INCOMPLETE_OUTPUT",
+                "SCHEMA_MISMATCH",
+                "LOW_CONFIDENCE",
+                "PROVIDER_UNAVAILABLE",
+                "UNSUPPORTED_INPUT",
+                "MALFORMED_INPUT",
+            }
+            else "ANALYZER_UNAVAILABLE"
+        )
     await finish(app, analysis_id, report, error)
 
 

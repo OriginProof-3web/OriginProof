@@ -385,3 +385,25 @@ async def test_expiry_blocks_access_before_physical_cleanup_and_preserves_instit
     assert (
         await w.client.get(f"/v3/documents/{doc.document_id}/verification-material")
     ).status_code == 410
+
+
+@pytest.mark.parametrize("code", ["REFUSAL", "TIMEOUT", "RATE_LIMIT", "INCOMPLETE_OUTPUT"])
+async def test_known_analyzer_failure_codes_survive_without_provider_details(wallet, code):
+    class Failure(Exception):
+        pass
+
+    async def rejected(text):
+        problem = Failure("DO_NOT_ECHO_" + text)
+        problem.code = code
+        raise problem
+
+    wallet.app.state.settings.wallet_text_input_enabled = True
+    wallet.app.state.analysis_processor = rejected
+    source = await input_ref(wallet)
+    accepted = await wallet.client.post(
+        "/v3/analyses", json={"request_id": "req_provider_failure", "input_ref": source}
+    )
+    await settle(wallet)
+    result = await wallet.client.get(f"/v3/analyses/{accepted.json()['analysis_id']}")
+    assert result.json()["status"] == "FAILED" and result.json()["error_code"] == code
+    assert "DO_NOT_ECHO" not in result.text and result.json()["report"] is None
