@@ -73,4 +73,6 @@ C의 통합 조율 범위에서 사용자 요청에 따라 Codex가 별도 `code
 
 검증 코드 `f68799f88e75256ddaec4e19580e4430da4e27b2`에서 Python 500 PASS/8 SKIP, Contract 100 PASS, 기존 경로 실제 프로세스 재시작·DB 백업 복원 2 PASS, 웹 단위 8 PASS·mock 브라우저 E2E 5 PASS를 확인했습니다. 정적 검사·생성물 일치·Python 의존성 검사도 통과했습니다. 상세 명령·환경·고정 PR SHA·실행 한계는 [통합 검증 기록](../qa/v5_premerge_cbd.md)에 남겼습니다.
 
+최초 원격 CI에서 개발용 eth-abi가 API 실행 경로에도 필요한 점을 발견했습니다. `1d26f1043b3bc0fe9168c41f5c417ed0b08298aa`에서 같은 버전을 API 실행 의존성으로 옮겼고, 개발 패키지 없는 새 환경의 API import/OpenAPI/전체 생성과 Python 500 PASS/8 SKIP을 확인했습니다. 애플리케이션·Contract·웹 소스는 동일합니다.
+
 원래 PR과 integration을 병합하지 않았으며 보류 PR 8개는 포함하지 않았습니다. 통합 후보의 작성자 외 리뷰·새 원격 CI, 실제 신규 지갑/Adapter/API 연결·G07·단계 완료는 별도입니다. 사용자 요청은 머지 전 준비이며 사람의 코드 승인·기여 비율은 대신 주장하지 않습니다.

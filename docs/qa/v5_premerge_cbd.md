@@ -6,7 +6,8 @@
 
 - 담당: C `@Jordi2801K`의 통합 조율. 사용자가 승인한 범위에서 Codex가 충돌 해결·검사·기록을 수행했습니다. 다른 팀원의 구현·저자·사람 리뷰를 대신 주장하지 않습니다.
 - 브랜치: `codex/v5-premerge-cbd`; 시작 `integration@33bc4f4e7456c5ef7c2df8c8bf09f8014e0169f8`.
-- 기능 코드 검증 SHA: `f68799f88e75256ddaec4e19580e4430da4e27b2`. 이후 이 보고서·구조화 근거·C 기여 기록은 문서만 추가합니다.
+- 공용 소스·Contract·웹·실제 복구 검증 SHA: `f68799f88e75256ddaec4e19580e4430da4e27b2`. 최초 문서 head `4041ea484c654db43faca03b8283cff48081ff7a`의 CI에서 실행 의존성 누락을 발견했습니다.
+- 의존성 수정·Python 재검증 SHA: `1d26f1043b3bc0fe9168c41f5c417ed0b08298aa`. 이 수정은 API/root 의존성 선언과 lock 메타데이터만 바꾸며 소스·Contract·웹·생성물은 동일합니다. 이후 보고서·구조화 근거·C 기여 기록만 갱신합니다.
 - 기준 PR 3개 검증 SHA: `5bfb098220763a05d45516b096e637aea5a599a8`; 로컬 보존 브랜치 `codex/v5-premerge-baselines`.
 - merge commit으로 원래 커밋과 작성자 이력을 보존했습니다. 기존 20개 PR의 head/base/Draft 상태와 원격 integration은 바꾸지 않았습니다.
 - 제외: C #59–63, B #69, D #75–76. 이 8개 head가 후보의 조상이 아님을 검사했습니다. C #57에 이미 포함된 이전 계획의 누적 개발은 재사용 기준으로 포함됩니다.
@@ -53,6 +54,7 @@ B #64 → D #70 → C #57 순서로 별도 로컬 후보에 적용했습니다. 
 | 기존 C 실제 복구 | 2 PASS | 매 검사 임시 PostgreSQL·Anvil·별도 API 프로세스. 강제 재시작/UNKNOWN 복구와 pg_dump/restore·signer 보존·migration·배포 식별. |
 | Ruff·compileall·구조 | PASS | Python 정적/문법 및 저장소 구조. |
 | make generate + 생성물 diff | PASS / 변경 없음 | Schema·Golden·타입·OpenAPI가 원본과 일치. |
+| 개발 의존성 없는 API 전용 환경 | PASS | pytest/respx 없이 API·두 Reader·Writer import, OpenAPI 및 전체 생성 명령 성공. |
 | make security | 알려진 취약점 없음 | 통합 Python 잠금 파일의 pip-audit 결과. |
 | 웹 lint·typecheck·build | PASS | 생성 타입을 소비하는 기존 웹의 정적 검사·빌드. |
 | 웹 단위 | 8 PASS | 기존 화면 회귀. |
@@ -76,6 +78,7 @@ corepack pnpm --filter originproof-demo-web typecheck
 corepack pnpm --filter originproof-demo-web test
 corepack pnpm --filter originproof-demo-web build
 CI=1 corepack pnpm --filter originproof-demo-web test:e2e
+UV_FROZEN=1 UV_NO_DEV=1 UV_PYTHON=3.13.0 make generate UV_ENV=build/premerge/api-runtime-venv
 ```
 
 실제 복구 명령은 Docker와 고정 Foundry·Contract 라이브러리가 있는 폐기 가능한 합성 환경에서만 실행합니다. 기존 Compose/DB 볼륨은 사용하지 않았고, 검사에서 만든 컨테이너와 웹 서버가 종료됐음을 확인했습니다. 로컬 원시 로그/JUnit은 ignored `build/premerge/`, 지속되는 요약은 [구조화 근거](v5_premerge_cbd.json)입니다.
@@ -84,10 +87,13 @@ CI=1 corepack pnpm --filter originproof-demo-web test:e2e
 
 오프라인 uv/pnpm 설치는 패키지·레지스트리 메타데이터 캐시 부족으로 처음 실패했고, 고정 버전 그대로 온라인 재시도해 설치·정책 검사를 완료했습니다. Python 테스트의 기존 Starlette httpx deprecation 경고와 웹의 기존 CSS autoprefixer 경고가 있었으며 기능 검사는 통과했습니다.
 
+최초 [CI 실행](https://github.com/OriginProof-3web/OriginProof/actions/runs/38938875066)은 Contract·실제 복구 작업이 통과했지만 API 생성 명령에서 `ModuleNotFoundError: eth_abi`로 실패했습니다. B의 Legacy Reader를 공용 export에 보존하면 API import에도 eth-abi가 필요하지만 root dev에만 선언돼 있었기 때문입니다. 기존 버전 그대로 API 실행 의존성으로 옮기고 lock을 재생성했습니다. 개발 패키지가 없는 별도 환경에서 Makefile의 PYTHONPATH를 사용한 API import/OpenAPI/전체 생성 및 생성물 무변경을 확인하고 Python 500 PASS/8 SKIP을 재확인했습니다. 패키지 버전·애플리케이션 로직은 바꾸지 않았습니다.
+
 ## 남은 검토와 범위
 
 - 이 통합 후보 자체의 작성자 외 리뷰는 아직 없습니다. 원 PR의 승인 결과가 새 통합 후보의 승인으로 이전된 것으로 기록하지 않습니다.
 - 원래 C #57/#58은 작성자 본인 승인 불가로 다른 팀원의 확인이 남아 있습니다.
+- 원 PR을 개별 병합하는 경우에도 이 후보의 `1d26f1043b3bc0fe9168c41f5c417ed0b08298aa` 실행 의존성 수정을 함께 반영해야 합니다. 원 PR head 자체는 이번에 변경하지 않았습니다.
 - 실제 신규 WalletRegistry Adapter ↔ 신규 C API/DB ↔ A 지갑 화면 ↔ D 분석기의 연결 검증은 이번 범위 밖입니다. 현재 후보의 실제 2개 복구 검사는 이전 호환 경로입니다.
 - D의 `fixtures/finals/v5_d_w2_governance_qa.py` 등 명시 소비 검사는 제외한 C #62의 고정 API/helper가 필요합니다. 기본 pytest 500 PASS를 이 명시 검사나 신규 SG01–16 전체 통과로 보고하지 않습니다.
 - 보류 PR의 DG12·UnknownDocument 처리·선행 수정 누락, B 실제 Adapter 작업, G07 원인 검증·유료 모델 평가는 해결됐다고 표시하지 않습니다.

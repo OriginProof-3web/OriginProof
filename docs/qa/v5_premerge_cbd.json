@@ -2,7 +2,8 @@
   "date_kst": "2026-10-17",
   "kind": "premerge_validation_only",
   "integration_base": "33bc4f4e7456c5ef7c2df8c8bf09f8014e0169f8",
-  "tested_code_sha": "f68799f88e75256ddaec4e19580e4430da4e27b2",
+  "tested_code_sha": "1d26f1043b3bc0fe9168c41f5c417ed0b08298aa",
+  "prior_tested_code_sha": "f68799f88e75256ddaec4e19580e4430da4e27b2",
   "baseline_candidate_sha": "5bfb098220763a05d45516b096e637aea5a599a8",
   "selected_prs": [
     {
@@ -120,7 +121,9 @@
     "web_typecheck": "PASS",
     "web_build": "PASS",
     "exports": "14_EXPORTS_RETAINED",
-    "original_20_pr_heads_bases_drafts": "UNCHANGED"
+    "original_20_pr_heads_bases_drafts": "UNCHANGED",
+    "api_without_dev_dependencies": "PASS",
+    "selected_python_after_runtime_fix": {"passed": 500, "skipped": 8}
   },
   "unverified": [
     "new_wallet_api_adapter_connection",
@@ -140,5 +143,16 @@
     "solc": "0.8.26",
     "openzeppelin_contracts": "v5.7.0",
     "forge_std": "v1.16.2"
+  },
+  "initial_ci": {
+    "url": "https://github.com/OriginProof-3web/OriginProof/actions/runs/38938875066",
+    "python_quality": "FAIL_MISSING_RUNTIME_ETH_ABI",
+    "contracts": "SUCCESS",
+    "c_recovery": "SUCCESS"
+  },
+  "runtime_fix": {
+    "commit": "1d26f1043b3bc0fe9168c41f5c417ed0b08298aa",
+    "change": "Move existing eth-abi from root dev dependencies to API runtime dependencies; all package versions unchanged",
+    "remaining": "Original PRs have not been changed; apply this fix if merging those individually"
   }
 }
