@@ -1,6 +1,6 @@
 # 5.0 기능 기준의 기존 코드 재사용 인계
 
-- 문서 버전: **1.1** · 최초 작성/PR 상태 확인: **2026-10-15, 한국시간** · B W1 검토 추가: **2026-10-16, 한국시간**
+- 문서 버전: **1.1** · 최초 작성/PR 상태 확인: **2026-10-15, 한국시간** · B W1/W2 검토 추가: **2026-10-16, 한국시간**
 - 계획 기준: [개발 계획서 5.1](../development_plan.md) 3·4·11.3·15장, V5-Q08.
 - 목적: 종료된 과거 PR의 코드를 재사용할 때 에이전트와 담당자가 같은 원본·범위·미완료를 확인하도록 합니다.
 - 현재 상태: **PR 정리·원본 보존·인계 문서 작성 완료 / 새 5.0 반영·실제 연결·기능 검증 미확인**.
@@ -216,6 +216,50 @@ R39(`ab86892`), R37(`9651062`), R38(`3ef1fd4`), R55(`56dbd82`)는 앞선 고정 
 신규 검사는 Publish 두 템플릿의 16필드, Revoke 8필드, KeyProof 6필드를 각각 단독 변조해 기존 서명자의 불일치를 확인합니다. 제안 ID의 chain/address/7필드와 EIP domain name/version 변경, high-s·잘못된 v·잘못된 길이 거부, uint256 nonce/uint64 deadline fuzz를 추가했습니다. 만료 시각 비교·nonce의 원자적 소비·2-of-3 실행은 Registry가 없어 검증하지 않았습니다.
 
 SG01~16은 계속 NOT_EXECUTED입니다. 실제 Registry 배포/receipt·신규 DB/Adapter·브라우저·v2/consume 전체 회귀·G07 재현·공개 체인·유료 AI·C Draft CI/사람 리뷰는 이번 미실행입니다. 입력 종류는 회의 후 결정하고 Decisions API는 범위 밖입니다.
+
+## 4.2 V5-W2-B 공동승인·키 증명·정지 독립 구현 (2026-10-16)
+
+- 담당: B 여하민님 `@hamin1228`, Codex 구현·검사 보조. 상태: **W2 Contract 독립 구현·검사 완료 / 배포·Adapter·C/A/D 실제 연결·작성자 외 리뷰 대기**. W2 단계 완료가 아닙니다.
+- 브랜치: `codex/v5-w2-b-governance`; 시작 SHA `c2111e379889d8550aa6ff893d44f576fb78189a` (자기 W1 준비 결과). 구현 `fa333c699d33a223b0d00d97ea353a29fe058f75`; Golden 교차 검사를 포함한 최종 검증 코드 **`0f240dbd2ee42c059e26e4bdbb3d0dc843858fd7`**. 이후 기록 커밋은 문서만 변경합니다.
+- 범위: B의 Contract·컴파일 ABI·Foundry 검사와 인계/기여 기록만 수정했습니다. C API/모델·A 웹·D 분석기, 기존 사용자 변경·구배포·과거 phase는 변경하지 않았습니다. 원격 push/PR·새 환경 배포는 미실행입니다.
+
+### 산출물과 동작
+
+- [OriginProofWalletGovernance.sol](../../packages/contracts/src/OriginProofWalletGovernance.sol)은 **공유 Registry의 W2 부분 구현**입니다. 전체 IOriginProofWalletRegistry를 구현했다고 선언하지 않습니다. 발행/철회/문서/업무 nonce 함수는 아직 없으며 호출하면 성공하지 않습니다. 이 산출물을 새 발행 Registry로 연결하지 않습니다.
+- [실제 컴파일 ABI](../../packages/contracts/abi/OriginProofWalletGovernance.json)는 W2의 propose/approve/suspendIssuer/governanceNonce/getIssuer/getKey/getProposal 7개 함수와 4개 이벤트가 기존 준비 ABI와 완전히 같습니다. 상속한 OpenZeppelin EIP712의 표준 domain 조회·오류/생성자는 실제 ABI에 포함됩니다. isApprover·권한 변경·업그레이드·배포자 우회 함수는 추가하지 않았습니다. 공유 인터페이스/ABI·모델·서명·Golden 버전은 그대로입니다.
+- 배포 생성자에서 서로 다른 0이 아닌 승인자 3명을 고정합니다. 생성자는 추가 관리자가 아니며 세 주소 중 하나일 때만 동일한 한 표를 갖습니다. 승인자 교체/업그레이드 경로는 없습니다.
+- REGISTER/ROTATE 제안 생성은 승인으로 세지 않습니다. 기관·새 signer·application/challenge·만료에 묶인 EIP-712 KeyProof를 검증하고 challenge를 한 번 소비합니다. domain은 실제 chain/address, OriginProof/1이며 low-s·65 bytes·v=27/28을 검사합니다.
+- 제안은 chain/address와 모든 proposal 필드로 고정됩니다. 서로 다른 승인자 2명의 두 번째 승인에서만 실행·기관/키 이력·governance nonce 전이가 원자적으로 일어납니다. 중복/만료/같은 nonce 경쟁·이미 실행된 제안은 거부합니다. 두 번째 승인 중 실패하면 승인 수와 상태·nonce가 함께 되돌아갑니다.
+- 긴급 정지는 승인자 1명 또는 해당 기관의 현재 키만 수행합니다. OTHER/ABUSE_REPORT/KEY_COMPROMISE hash만 받습니다. 최초 정지는 governance nonce를 증가시켜 정지 전 제안을 무효화합니다. 반복 정지로 복구 제안 nonce를 계속 소모하지 않습니다. 이미 정지 중 새로 발견한 키 사고는 compromiseBlock을 기록하고 기존 재활성화 제안의 실행도 차단합니다.
+- 키 교체는 이전 registered/retired/compromise block을 보존하고, 정지 상태를 자동 해제하지 않습니다. keyId는 전역 재사용 불가이며 같은 기관에서 이미 사용한 signer 주소도 새 keyId로 다시 활성화하지 않습니다. 사고 키의 재활성화는 거부하고 새 키 공동 교체 후 공동 재활성화가 필요합니다. REACTIVATE의 proof는 전부 0이고 signature는 빈 bytes이며 현재 키/주소/메타데이터를 바꿀 수 없습니다.
+- 키 이력의 0 block은 미등록 sentinel이므로 block 0 실행은 거부하고, block은 SafeCast로 uint64 범위를 확인합니다. 정상 배포/이벤트 block은 새 manifest와 함께 소비해야 합니다.
+
+### 기존 검사·생성물과 결과
+
+[Foundry 검사](../../packages/contracts/test/OriginProofWalletGovernance.t.sol)에 정상·거부·재전송·시각 경계·동시 nonce 경쟁·실패 원자성·키 사고 복구·이벤트 재구성·fuzz를 추가했습니다.
+
+| 검사 | 실제 결과·범위 |
+| --- | --- |
+| `forge test --root packages/contracts --offline` | **48 PASS / 0 FAIL / 0 SKIP**. 기존 Registry 10 + 공유 Golden 11 + W2 27. W2의 승인자 쌍/비승인자와 기존 2개 fuzz 각각 512회 |
+| 기존 Python 생성 Golden 직접 소비 | 위 27개 중 1개. fixture의 합성 주소에 컨트랙트 runtime을 etch하고 chain/time을 고정하여 원본 Python 서명·제안 ID로 2-of-3 활성화 성공. 실제 RPC 배포/지갑 검사가 아님 |
+| Python 공유 계약 | `UV_PROJECT_ENVIRONMENT=.uv-venv uv run --locked --all-packages --all-groups pytest -q packages/python/tests/test_wallet_contract.py` **24 PASS** |
+| 브라우저 hash 교차 검사 | `node scripts/ci/check_wallet_browser_hashes.mjs` PASS, 두 합성 템플릿. 실제 브라우저 지갑 서명 아님 |
+| 생성 일관성 | `make generate` 후 기존 Schema/TS/예정 OpenAPI·공유 ABI·구/신규 Golden·예시 diff 없음. 신규 ABI는 out artifact와 JSON 동일·공유 7함수/4이벤트 동일 |
+| 변경 파일 품질·보존 | 두 Solidity format·문서 내부 링크·diff 검사 통과. 사용자 원본 5개 상태/내용 hash 동일. 의존성/lockfile 변경 없음 |
+
+신규 ABI 재생성은 저장소 루트에서 다음 명령을 사용합니다. forge 설치 위치에 맞춰 PATH를 설정하며 공유 ABI exporter나 C 생성기를 수정하지 않습니다.
+
+```sh
+forge inspect --root packages/contracts --offline OriginProofWalletGovernance abi --json > packages/contracts/abi/OriginProofWalletGovernance.json
+```
+
+### 소비자 인계와 남은 경계
+
+B-C01은 선택한 기존 ABI를 유지하므로 실제 is_approver 확인을 위한 고정 승인자 constructor/배포 근거·manifest 검증이 후속입니다. B-C02는 ProposalApproved의 proposalId/approver/count와 두 번째 ProposalExecuted 이벤트를 검사했습니다. canonical block 고정·이벤트 replay·getProposal count와 주소 목록 대조를 하는 실제 Adapter는 아직 없습니다. B-C03 UNKNOWN 검색·새 배포 식별과 G07은 미해결입니다.
+
+API가 W2 artifact에 nextNonce/document 등을 호출하거나 readiness 성공으로 처리해서는 안 됩니다. W3의 publish/업무 nonce, W4의 버전/철회가 추가된 실제 통합 Registry 및 새 manifest/Adapter 준비 뒤 C와 연결합니다. 이번 작업은 C Draft 0.2와 기존 준비 ABI의 W2 부분에 대한 B 구현이지 C의 API/DB나 A/D 동작을 검증한 것이 아닙니다.
+
+실제 RPC/receipt·API/DB·브라우저 지갑·공개 체인·배포/가스 실측·D 독립 QA·구 v2/consume 전체 회귀·G07 재현은 미실행입니다. SG01~16의 공유 실행 상태는 그대로 NOT_EXECUTED이며 이번 단위 검사 결과로 일괄 PASS로 바꾸지 않습니다. [W2 B 개인 기록](../portfolio/W2-B.md)에 과거 기여와 이번 결과를 구분합니다. W3 기능은 이번에 시작하지 않았습니다.
 
 ## 5. 완료 기록
 
