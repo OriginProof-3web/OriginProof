@@ -18,6 +18,8 @@ def test_evaluation_reports_mock_scope_and_real_denominators():
     assert report["passed"] == report["total"] == 10
     assert report["live_model_evaluated"] is False
     assert report["confidence_is_calibrated"] is False
+    assert report["candidate_outputs_are_unconfirmed"] is True
+    assert report["artifact_comparison_performed"] is False
     assert report["image_mode"] == "fixture_replay_only"
     assert report["fields"]["amount_minor"] == {
         "matched": 8,
