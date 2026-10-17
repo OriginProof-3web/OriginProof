@@ -17,9 +17,11 @@ from infrastructure.blockchain.errors import BlockchainDependencyError
 from infrastructure.blockchain.wallet_reconciliation import WalletReconciler
 from infrastructure.blockchain.wallet_recovery import WalletRecovery, calldata
 from infrastructure.blockchain.wallet_rpc import WalletRpc, hex_bytes, named
+from originproof_core.canonicalization import canonical_json_bytes
 from originproof_core.wallet_contract import (
     GovernanceProposal,
     KeyProofMessage,
+    OfficialContent,
     PublishMessage,
     RevokeMessage,
     WalletDomain,
@@ -29,8 +31,10 @@ from originproof_core.wallet_signatures import (
     SIGNATURE_SCHEMA,
     document_id,
     identifier_hash,
+    original_bytes,
     proposal_id,
     typed_data,
+    validate_content,
     wallet_signer,
 )
 from originproof_indexer.wallet_projection import WalletProjection
@@ -104,6 +108,7 @@ async def test_disposable_wallet_registry_recovery_and_reorg(tmp_path):
 
             for _ in range(100):
                 try:
+                    assert process.poll() is None, "disposable Anvil exited during startup"
                     assert await rpc("eth_chainId", []) == "0x7a69"
                     break
                 except httpx.TransportError:
@@ -159,6 +164,13 @@ async def test_disposable_wallet_registry_recovery_and_reorg(tmp_path):
                 name: subprocess.check_output([path, "--version"], text=True).splitlines()[0]
                 for name, path in [("anvil", anvil), ("forge", forge)]
             }
+            compiler_metadata = artifact["metadata"]
+            if isinstance(compiler_metadata, str):
+                compiler_metadata = json.loads(compiler_metadata)
+            report["toolchain"]["solc"] = compiler_metadata["compiler"]["version"]
+            report["toolchain"]["dependency_lock_sha256"] = hashlib.sha256(
+                (CONTRACTS / "dependencies.lock").read_bytes()
+            ).hexdigest()
             domain = WalletDomain(chain_id="31337", verifying_contract=address)
             issuer, key = identifier_hash("synthetic-wallet-live"), identifier_hash("live-key-1")
             metadata = identifier_hash("public-synthetic-metadata")
@@ -250,6 +262,15 @@ async def test_disposable_wallet_registry_recovery_and_reorg(tmp_path):
             report["scenarios"].append("real EIP712 KeyProof, 2-of-3 and canonical approvals")
 
             doc_key = identifier_hash("live-document-key")
+            content = OfficialContent(
+                notice_type="OFFICIAL_DOCUMENT",
+                institution_code="SYNTHETIC-LIVE",
+                document_type="NOTICE",
+                document_number="DEMO-001",
+                title="Synthetic notice",
+                summary="Disposable-chain fixture only",
+                official_url=None,
+            )
             publish = PublishMessage(
                 issuer_id=issuer,
                 doc_key=doc_key,
@@ -257,7 +278,7 @@ async def test_disposable_wallet_registry_recovery_and_reorg(tmp_path):
                 version=1,
                 key_id=key,
                 original_hash=identifier_hash("synthetic-original-1"),
-                protected_hash=identifier_hash("synthetic-protected-1"),
+                protected_hash="0x" + hashlib.sha256(canonical_json_bytes(content)).hexdigest(),
                 content_schema=CONTENT_SCHEMAS["OFFICIAL_DOCUMENT"],
                 signature_schema=SIGNATURE_SCHEMA,
                 issued_at=now - 1,
@@ -265,6 +286,13 @@ async def test_disposable_wallet_registry_recovery_and_reorg(tmp_path):
                 nonce="0",
                 deadline=deadline,
             )
+            publish = publish.model_copy(
+                update={
+                    "original_hash": "0x"
+                    + hashlib.sha256(original_bytes(publish, content)).hexdigest(),
+                }
+            )
+            validate_content(publish, content)
             args1 = arguments(
                 "publish", [model_tuple("publish", "message", publish), await sign(publish)]
             )
@@ -275,6 +303,19 @@ async def test_disposable_wallet_registry_recovery_and_reorg(tmp_path):
                     "nonce": "1",
                     "original_hash": identifier_hash("synthetic-original-2"),
                 }
+            )
+            content2 = content.model_copy(update={"summary": "Revised synthetic notice"})
+            publish2 = publish2.model_copy(
+                update={
+                    "protected_hash": "0x"
+                    + hashlib.sha256(canonical_json_bytes(content2)).hexdigest(),
+                    "original_hash": "0x"
+                    + hashlib.sha256(original_bytes(publish2, content2)).hexdigest(),
+                }
+            )
+            validate_content(publish2, content2)
+            report["scenarios"].append(
+                "shared canonical original/protected SHA256, no raw bytes archived"
             )
             args2 = arguments(
                 "publish", [model_tuple("publish", "message", publish2), await sign(publish2)]
