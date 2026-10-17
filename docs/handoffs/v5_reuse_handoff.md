@@ -373,3 +373,12 @@ B-C02 승인 이력과 B-C03 거래별 대조의 저수준 독립 구현/합성 
 전체 Python **281 PASS/1 live SKIP**, 신규 2차52·기존1차50 PASS 포함. 공식 lint·구조·Node hash·재생성 diff·공백 검사 통과. Solidity/ABI 무변경으로 로컬 Foundry는 재실행하지 않았습니다. 실제 RPC·EVM·PostgreSQL·API/지갑·독립 QA·공개 체인·G07 재현·v2/consume 전체 실환경은 미실행입니다.
 
 C #63은 고정 `6e0e924` Draft이며 원본 port가 현 B 브랜치/integration에 없어 사본 없이 변환을 남겼습니다. B-C01 고정 승인자 배포 근거, UNKNOWN 원본 검색/submit·최종성/Operation 연결과 실제 통합은 후속입니다. 착수 시 integration `4a9b92d`의 D 반영을 확인했으며 이번 자기 W5 검사와 구분합니다. 사용자 원본 변경5개와 legacy/과거 phase를 보존하고 **G07·SG01~16·W5 전체 완료 상태를 해결/PASS로 올리지 않습니다.**
+
+
+## 4.7 V5-W5-B 3차 실제 로컬 RPC·UNKNOWN 원본 검색 (2026-10-17)
+
+자기2차 `6916224` 위의 `codex/v5-w5-b-live-recovery`: 코드 `5a51e4b`, 최종 실제 wallet RPC 검증 `a064b63f9b44e5f9ccf5a6c9a4f237612d03e0e3`. B의 `WalletRecovery.find_transaction`은 전체 calldata·필요 sender·canonical 위치의 원본 후보를 페이지별로 찾고2차 Reconciler로 다시 검증합니다. known hash·실패/성공 시도·pending·checkpoint reorg와 관측 business nonce를 구분합니다. 전송 메서드/재전송 허가/Operation 상태 변경은 없으며 C 원본 port의 직접 구현이 아닙니다.
+
+일반306 PASS/2 opt-in SKIP, 신규 합성25 포함. 실제 새 합성 Anvil Registry/RPC 별도1 PASS: EIP-712·2-of-3·발행/원자 대체/철회·정지/재활성화·실제 accepted 응답 유실 뒤 hash 없는 복구(중계자 nonce는1개만 증가)·실패 replay·pending·SQLite restart·실제 reorg/명시 rewind·RPC 단절. 최종 ABI/원본 생성물 일관성·공식 lint·구조·문법·Node hash 통과. [3차 인계](../blockchain/v5_w5_live_recovery.md), [실행 증거/종료한 합성 배포 manifest](../blockchain/evidence/v5_w5_live_a064b63.json), [개인 기여](../portfolio/W5-B.md)에 실제 범위를 기록했습니다.
+
+초기 합성 padding fixture1FAIL과 live 수락/채굴 가정1FAIL을 수정·재검증했습니다. C의 Operation/DB/dispatcher·port/submit·최종성, 승인자 manifest 소비와 운영 재배포·PostgreSQL·브라우저·독립 QA가 남습니다. **빈 검색은 재전송 허가가 아니며 G07은 미해결**입니다. fresh 로컬 reorg를 mixed G07 해결이나 W5 전체/SG01~16 PASS로 합산하지 않습니다. 사용자5개 변경·legacy·타 담당 생산 코드를 보존합니다.

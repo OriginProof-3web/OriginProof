@@ -22,3 +22,12 @@ Codex가 B의 생성 ABI 기반 hash-pinned RPC 조회, 직접 제출 calldata/r
 Codex가 B 코드·검사·기록을 작성하고 기존 RPC/ABI·W2~W4 구현·합성 fixture·설치 의존성을 재사용했습니다. 사람의 직접 작성/리뷰·기여 비율을 추정하지 않습니다. 사용자 변경 5개를 보존합니다. C/A/D 생산 코드·공통 계약 변경은 없으며 타 담당 브랜치를 임의 병합하지 않았습니다. 원격 integration `4a9b92d`의 D 추가 반영은 이번 자기 W5 작업 트리 검사에 합산하지 않습니다.
 
 독립 구현·합성 검사 결과이며 W5 단계 전체 완료는 아닙니다. C 원본 port 변환·승인자 배포 provenance·UNKNOWN 검색/중계·최종성/Operation 연결·실제 RPC/DB/지갑·D 리뷰가 남습니다. **G07은 미해결**이며 SG01~16 공유 상태를 바꾸지 않습니다. 팀 Draft PR과 개인 비공개 포트폴리오에 실제 검증한 커밋을 보관합니다.
+
+
+## 2026-10-17 · W5 3차 실제 RPC·UNKNOWN 검색
+
+`codex/v5-w5-b-live-recovery`에서 자기2차 `6916224`를 이어 전송 없는 bounded 원본 거래 검색·known hash/nonce·checkpoint 재조회를 구현했습니다. 코드 `5a51e4b`, 최종 live 코드 `a064b63f9b44e5f9ccf5a6c9a4f237612d03e0e3`. 실제 새 Anvil에서 Registry 배포·공유 SHA256/EIP-712·공동승인·버전 대체/철회·정지/재활성화·응답 유실/원본 검색·pending/실패·SQLite restart·EVM reorg/rewind·RPC 단절을 검사했습니다. 기존 실행 중인 노드/사용자 배포 파일을 건드리지 않았습니다.
+
+일반 Python306 PASS/2 opt-in SKIP(신규 합성25 포함), 실제 wallet RPC 별도1 PASS. 공식 lint·구조·문법·Node hash·생성물 일관성 통과. 최초 합성1FAIL은 padding을 바꾼 검사 오류, 최초live1FAIL은 수락 즉시 채굴됐다고 가정한 검사 오류였습니다. signature 변경·채굴 대기 분리 뒤 재검증했고, 최종 canonical SHA256 fixture까지 live1 PASS입니다. 성공/실패·pending을 구분하는 제품 기준은 완화하지 않았습니다.
+
+Codex가 B 구현/검사/기록을 작성하고 기존 RPC·Reconciler·Indexer·Registry/ABI 및 C 공통 모델/서명/hash를 재사용했습니다. 사람 리뷰/작성/기여 비율은 미확인입니다. 실제 실행은 종료한 폐기 가능한 합성 체인이고 API/C port·Operation/DB·브라우저·PostgreSQL·G07·공개 체인·D 독립 QA는 미완료입니다. 빈 검색은 재전송 허가가 아닙니다. [3차 인계](../blockchain/v5_w5_live_recovery.md)와 [실행 증거](../blockchain/evidence/v5_w5_live_a064b63.json)에 코드 SHA·manifest/receipt·실패/한계를 기록합니다. 기존 사용자5개 변경을 보존하며 W5 전체/SG01~16을 완료 처리하지 않습니다.
