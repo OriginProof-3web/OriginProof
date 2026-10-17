@@ -1,6 +1,6 @@
 # 5.0 기능 기준의 기존 코드 재사용 인계
 
-- 문서 버전: **1.1** · 최초 작성/PR 상태 확인: **2026-10-15, 한국시간** · B W1/W2 검토 추가: **2026-10-16, 한국시간**
+- 문서 버전: **1.1** · 최초 작성/PR 상태 확인: **2026-10-15, 한국시간** · B W1/W2/W3 검토 추가: **2026-10-16, 한국시간**
 - 계획 기준: [개발 계획서 5.1](../development_plan.md) 3·4·11.3·15장, V5-Q08.
 - 목적: 종료된 과거 PR의 코드를 재사용할 때 에이전트와 담당자가 같은 원본·범위·미완료를 확인하도록 합니다.
 - 현재 상태: **PR 정리·원본 보존·인계 문서 작성 완료 / 새 5.0 반영·실제 연결·기능 검증 미확인**.
@@ -260,6 +260,51 @@ B-C01은 선택한 기존 ABI를 유지하므로 실제 is_approver 확인을 �
 API가 W2 artifact에 nextNonce/document 등을 호출하거나 readiness 성공으로 처리해서는 안 됩니다. W3의 publish/업무 nonce, W4의 버전/철회가 추가된 실제 통합 Registry 및 새 manifest/Adapter 준비 뒤 C와 연결합니다. 이번 작업은 C Draft 0.2와 기존 준비 ABI의 W2 부분에 대한 B 구현이지 C의 API/DB나 A/D 동작을 검증한 것이 아닙니다.
 
 실제 RPC/receipt·API/DB·브라우저 지갑·공개 체인·배포/가스 실측·D 독립 QA·구 v2/consume 전체 회귀·G07 재현은 미실행입니다. SG01~16의 공유 실행 상태는 그대로 NOT_EXECUTED이며 이번 단위 검사 결과로 일괄 PASS로 바꾸지 않습니다. [W2 B 개인 기록](../portfolio/W2-B.md)에 과거 기여와 이번 결과를 구분합니다. W3 기능은 이번에 시작하지 않았습니다.
+
+## 4.3 V5-W3-B 최초 버전 기관 서명 발행 (2026-10-16)
+
+- 담당 B `@hamin1228`, Codex 구현·검사 보조. **Contract 독립 구현·검사 완료 / 실제 배포·Adapter/API/DB·지갑·작성자 외 리뷰 대기**입니다. W3 단계 전체 완료가 아닙니다.
+- 브랜치 `codex/v5-w3-b-publication`, 시작 `5f91ac8e3405ac2f3bbe9ae19e15b81dd1f58c6e` (자기 W2 결과).
+- 검증 코드 **`f8cc461f725340e0a0d4f992aa849288a200780f`**. 이후 인계 커밋은 문서만 변경합니다.
+- 선행 공유: [기준 #64](https://github.com/OriginProof-3web/OriginProof/pull/64) → [W1 #65](https://github.com/OriginProof-3web/OriginProof/pull/65) → [W2 #66](https://github.com/OriginProof-3web/OriginProof/pull/66). 모두 Draft이며 승인/병합·단계 완료를 뜻하지 않습니다. 착수 때 #66의 python-quality/contracts SUCCESS를 확인했습니다. 과거 문서의 push/PR 미실행 표기는 해당 기록 시점이며 이 절에서 후속 공유와 구분합니다.
+
+### 실제 변경과 계약
+
+[OriginProofWalletRegistry.sol](../../packages/contracts/src/OriginProofWalletRegistry.sol)은 W2 권한 관리를 상속하고 `publish`, `nextNonce`, `latestVersion`, `getDocument`를 추가합니다. W2의 기관/키 저장소와 block 변환 helper만 private→internal로 열었으며 외부 W2 ABI와 권한 동작은 유지합니다. W2 PR 자체 브랜치는 변경하지 않습니다.
+
+1. Publish action=1, 지원 내용/서명 schema, SHA-256 알고리즘 코드 1, 0이 아닌 원본/보호 hash를 검사합니다. 보호 필드/원본 bytes 자체는 체인에 제출하지 않으며 실제 내용과 hash의 일치는 C/A가 별도로 재계산합니다. 컨트랙트 서명 성공을 원문의 사실성으로 해석하지 않습니다.
+2. 공유 JSON 정수 범위와 `issuedAt < deadline <= expiresAt`, `현재 시각 < deadline`을 검사합니다. issuedAt은 서명된 자기 선언 시각이며 과거 발행 권한의 근거로 삼지 않습니다. 실제 발행 시각·block은 별도 기록합니다.
+3. 등록·ACTIVE 기관과 현재 keyId/signer·기관 소유·등록/미교체/비사고 키를 확인합니다. msg.sender는 중계자일 수 있으며 기관 업무 서명을 대신하지 않습니다.
+4. `documentId = keccak256(abi.encode(issuerId, docKey))`, 기관별 정확한 다음 업무 nonce와 최초 version=1·미등록 문서를 확인합니다. 같은 기관에서도 기존 문서 덮어쓰기/새 버전은 아직 허용하지 않습니다.
+5. 실제 chain/address의 OriginProof/1 EIP-712로 16개 필드 전체를 검증합니다. 서명은 65-byte·v27/28·low-s이며 등록 기관의 현재 signer여야 합니다.
+6. 성공 시에만 불변 문서 버전·publishedAt/publishedBlock을 저장하고 업무 nonce를 하나 소비한 뒤 DocumentPublished를 기록합니다. governance nonce는 발행으로 변경하지 않습니다. 실패 요청은 문서/nonce를 변경하지 않습니다.
+
+getDocument는 없는 문서/버전을 UnknownDocument로 거부합니다. latestVersion은 미등록 시 0, 등록 시 1입니다. 저장 state=1은 ACTIVE이고 기간 만료/기관 정지·키 사고 경고는 조회 시각/기관·키 이력과 함께 소비해야 합니다. 정상 키 교체 뒤에도 과거 문서의 keyId/hash/기록은 보존됩니다.
+
+[실제 W3 ABI](../../packages/contracts/abi/OriginProofWalletRegistry.json)는 컴파일 out과 JSON 동일하며 공유 계약의 **11함수/5이벤트**와 완전히 일치합니다. OpenZeppelin 표준 EIP712 domain 조회/오류·생성자를 포함하고, `revoke`는 아직 없습니다. 전체 공유 인터페이스 구현 또는 발행/철회/버전 기능 완료로 표시하지 않습니다. C/A/D 원본·공유 인터페이스·서명 모델·Schema·Golden·lockfile은 변경하지 않았습니다.
+
+```sh
+forge inspect --root packages/contracts --offline OriginProofWalletRegistry abi --json > packages/contracts/abi/OriginProofWalletRegistry.json
+```
+
+### 검사와 실제 한계
+
+| 검사 | 실제 결과·환경 |
+| --- | --- |
+| `forge test --root packages/contracts --offline` | **68 PASS / 0 FAIL / 0 SKIP** = 기존 48 + W3 20, 총 fuzz 5개 각 512회. Foundry 내부 EVM·합성 키/기관 |
+| 16필드 변조/권한/복구 경계 | 서명 필드 변조·잘못된 chain/contract·high-s/v/길이·타 기관 ID/키·구키 발행·정지/사고·재전송/nonce gap·만료/시간/스키마·덮어쓰기 거부, 실패 후 nonce/문서 불변 |
+| 원본 Python Golden | 납부·공식 안내 2개를 새 runtime의 합성 fixture 주소에 etch해 원본 KeyProof/Publish 서명으로 활성화/발행 성공. 실제 RPC 배포 아님 |
+| 전체 Python | `UV_PROJECT_ENVIRONMENT=.uv-venv uv run --locked --all-packages --all-groups pytest -q` **179 PASS / 1 live SKIP**, 기존 anyio deprecation warning 1 |
+| 생성·소비 대조 | Node 두 템플릿 hash PASS; make generate 후 기존 공유 ABI·Schema/TS/OpenAPI·Golden/예시 무변경, W2 실제 ABI 유지, 신규 ABI compiler와 동일 |
+| 품질·보존 | 변경 Solidity format·diff·문서 내부 링크 PASS, 기존 사용자 5개 변경 hash 보존. 최초 fmt 확인의 assembly 줄바꿈은 재포맷 후 통과, 로직 변경 없음 |
+
+실제 RPC/receipt/manifest·API/DB·브라우저 지갑·D 독립 QA·공개 체인·성능/가스 운영 비용·G07·v2/consume 전체 재검사는 미실행입니다. SG01~16의 공유 상태는 계속 NOT_EXECUTED이며 단위 검사 결과로 일괄 바꾸지 않습니다. 기존 회귀 수치를 실제 지갑 연결 또는 새로운 기능 수용 완료로 합산하지 않습니다.
+
+### 다음 담당과 W4 경계
+
+B의 Adapter·canonical event/receipt/배포 식별(B-C01~03), C/A의 원본 재계산·저장/서명 요청·실제 소비 연결, D 독립 재현이 남습니다. C Draft 0.2의 타입/서명과 같은 원본을 소비하며 아직 다른 담당 브랜치를 병합하지 않았습니다.
+
+다음 버전·SUPERSEDED 전이·철회·철회용 nonce 소비는 **W4 후속**입니다. 이번 W3에서는 version=2/revoke가 성공하지 않습니다. 다음 단계는 같은 기관의 최신+1·원자적 대체와 정지 중 현재 키 철회를 구현하고, 최신 철회로 과거 버전이 복구되지 않는지 검사해야 합니다. 입력 회의 결정·Decisions 제외·G07 미해결·레거시 원본 보존 방침은 유지합니다. [W3 B 기여 기록](../portfolio/W3-B.md)에 개인/재사용·실제 검증·미완료를 구분합니다.
 
 ## 5. 완료 기록
 

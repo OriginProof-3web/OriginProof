@@ -47,8 +47,8 @@ contract OriginProofWalletGovernance is EIP712 {
     address private immutable _approver0;
     address private immutable _approver1;
     address private immutable _approver2;
-    mapping(bytes32 issuerId => Issuer) private _issuers;
-    mapping(bytes32 keyId => Registry.IssuerKey) private _keys;
+    mapping(bytes32 issuerId => Issuer) internal _issuers;
+    mapping(bytes32 keyId => Registry.IssuerKey) internal _keys;
     mapping(bytes32 issuerId => mapping(address signer => bool)) private _usedSigners;
     mapping(bytes32 issuerId => uint256) private _governanceNonces;
     mapping(bytes32 proposalId => ProposalRecord) private _proposals;
@@ -236,7 +236,7 @@ contract OriginProofWalletGovernance is EIP712 {
         }
     }
 
-    function _blockNumber() private view returns (uint64) {
+    function _blockNumber() internal view returns (uint64) {
         if (block.number == 0) revert InvalidBlockNumber();
         return SafeCast.toUint64(block.number);
     }
