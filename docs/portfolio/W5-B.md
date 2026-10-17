@@ -11,3 +11,14 @@ Codex가 B의 생성 ABI 기반 hash-pinned RPC 조회, 직접 제출 calldata/r
 실제 새 배포·RPC·직접 제출·API·지갑·PostgreSQL·D 독립 재현은 미실행입니다. 성공 receipt를 C의 CONFIRMED로 취급하지 않습니다. B-C01 고정 승인자 provenance, B-C02 승인 목록/count 대조, B-C03 UNKNOWN 검색/중계·작업별 상태 대조, custom-error 누락 구분과 C 원본 port 변환이 남습니다. **G07은 미해결**입니다. 상세 흐름·명령·한계는 [B 인계](../blockchain/v5_w5_chain_evidence.md)에 기록합니다.
 
 기존 사용자 변경 5개·legacy 경로와 과거 기록을 보존했습니다. 팀 Draft PR·개인 비공개 포트폴리오에 검증한 커밋을 공유하며, 작성자 외 리뷰/실제 연결 완료는 주장하지 않습니다.
+
+
+## 2026-10-17 · W5 2차 B 대조 로직
+
+`codex/v5-w5-b-reconciliation`에서 자기 1차 `7666bb9bf2d85804b9abe9be5a87ea122e1d914d`를 이어 getter별 정확한 미등록 분류, canonical 승인 목록/count·동일 tx 실행 검증, 전체 intent·이벤트·receipt/현재 상태 대조를 구현했습니다. 발행·철회·제안·승인·정지 5개 경로와 나중 철회/대체/정지/재활성화를 구분합니다. 동일 블록의 정지/재활성화를 분리할 수 없으면 dependency 오류를 반환합니다. 상세 흐름/한계는 [2차 인계](../blockchain/v5_w5_reconciliation.md)입니다.
+
+최종 전체 Python **281 PASS/1 live SKIP**, 2차 신규 52 PASS·1차 50 PASS 포함입니다. 공식 lint·구조·Node hash·생성물 일관성 통과. 최초 37 PASS 뒤 경계 15건을 추가했고 줄길이/변수명 lint 경고를 수정했습니다. Solidity/ABI는 무변경이라 로컬 Foundry를 재실행하지 않았습니다. 원격 CI 결과는 새 Draft PR에서 별도로 확인합니다.
+
+Codex가 B 코드·검사·기록을 작성하고 기존 RPC/ABI·W2~W4 구현·합성 fixture·설치 의존성을 재사용했습니다. 사람의 직접 작성/리뷰·기여 비율을 추정하지 않습니다. 사용자 변경 5개를 보존합니다. C/A/D 생산 코드·공통 계약 변경은 없으며 타 담당 브랜치를 임의 병합하지 않았습니다. 원격 integration `4a9b92d`의 D 추가 반영은 이번 자기 W5 작업 트리 검사에 합산하지 않습니다.
+
+독립 구현·합성 검사 결과이며 W5 단계 전체 완료는 아닙니다. C 원본 port 변환·승인자 배포 provenance·UNKNOWN 검색/중계·최종성/Operation 연결·실제 RPC/DB/지갑·D 리뷰가 남습니다. **G07은 미해결**이며 SG01~16 공유 상태를 바꾸지 않습니다. 팀 Draft PR과 개인 비공개 포트폴리오에 실제 검증한 커밋을 보관합니다.
