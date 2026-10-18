@@ -58,8 +58,9 @@ Operation 보관 만료 뒤 서명 재제출과 직접 tx 접수는 `410 RESULT_
 정리 시 해당 Operation에 연결된 재시도 ID 기록도 함께 삭제합니다.
 
 직접 거래 조회의 RPC 전후에는 서명 요청 → Operation 순서로 잠그고 최신 상태와 해시 binding을
-다시 확인합니다. 먼저 확정된 결과를 늦은 응답이 덮어쓰지 않습니다. reconcile은 정식 txHash와
-중단 전에 저장한 lookup 후보부터 조회하며, 잘못된 미검증 후보는 intent 검색으로 복구합니다.
+다시 확인합니다. 먼저 확정된 결과를 늦은 응답이 덮어쓰지 않습니다. reconcile은 검증된 정식 txHash가
+있으면 그 해시만, 없으면 중단 전에 저장한 lookup 후보를 먼저 조회합니다. 동시 접수에서 거부된 다른
+후보가 남아도 정식 해시를 우선하며, 잘못된 미검증 후보는 intent 검색으로 복구합니다.
 기존 `/v1/operations`의 신규 wallet 작업도 `RECONCILE`/`RESIGN`을 안내합니다.
 
 정상·거부 요청의 실행 가능한 예시는 [HTTP 검사](../../apps/api/tests/test_wallet_runtime.py)와 [분석 검사](../../apps/api/tests/test_wallet_analyses.py)에 있습니다. 기존 v1/v2 binding·consume은 그대로 보존하며 새 공개 문서에 consume을 추가하지 않습니다.

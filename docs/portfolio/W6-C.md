@@ -145,3 +145,18 @@ W2→W3→W4→W5→W6 순서로 수정 이력을 전파했습니다. 단계별 
 기존 실제 복구 2개는 PostgreSQL/Anvil, 신규 7개는 PostgreSQL/API 프로세스와 합성 Registry입니다.
 생성물 재생성 diff 없음·자체 Python Ruff·diff 검사를 통과했습니다.
 원격 공유 뒤 정확한 head CI를 별도로 확인하며, 사람의 재리뷰·실제 A/B/D 연결·G07은 별도입니다.
+
+## 2026-10-18 수정 후 셀프 리뷰 P2 두 건
+
+이전 배포의 미해결 Operation이 새 배포의 같은 업무 nonce를 예약하던 문제를 고쳤습니다.
+예약 비교에 Operation이 저장한 domain(chainId·Registry 주소)을 포함하며, 같은 배포의 중복
+nonce는 계속 409이고 이전 배포 작업은 그대로 보존합니다. 동시 직접 접수 뒤 정식 거래가 연결된
+상태에서 거부된 lookup 후보 때문에 첫 reconcile이 409를 반환하던 문제도 고쳤습니다.
+정식 해시가 있으면 그 해시만 조회하고, 서로 다른 해시의 재연결 거부는 유지합니다.
+
+수정은 #60에서 시작해 #61→#62→#63→#77로 merge했습니다. 회귀 3개(주소 변경·chain ID 변경·
+잔여 lookup 후보)는 수정 전 409로 실패하고 수정 후 통과합니다. 단계별 전체 Python은
+W3/W4/W5/W6/후보 560/568/601/650/659 PASS입니다. 임시 PostgreSQL 16.4의 동시 접수 반례 2개,
+실제 PostgreSQL·API 프로세스 복구 7개, 정식 migration 적용 DB 선택 검사 1개가 통과했고,
+migration head의 `alembic check`와 0006 downgrade 뒤 재적용도 차이가 없었습니다.
+Registry/receipt는 합성입니다. Claude가 수정·검사를 수행했으며 사람의 재리뷰는 미확인입니다.
