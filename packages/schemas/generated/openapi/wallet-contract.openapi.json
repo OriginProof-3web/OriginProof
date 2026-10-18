@@ -45,10 +45,13 @@
           },
           "quote": {
             "maxLength": 500,
+            "minLength": 1,
             "title": "Quote",
             "type": "string"
           },
           "rule_id": {
+            "maxLength": 100,
+            "minLength": 1,
             "title": "Rule Id",
             "type": "string"
           },
@@ -220,13 +223,16 @@
             "items": {
               "$ref": "#/components/schemas/AnalysisEvidence"
             },
+            "maxItems": 50,
             "title": "Evidence",
             "type": "array"
           },
           "limitations": {
             "items": {
+              "maxLength": 500,
               "type": "string"
             },
+            "maxItems": 20,
             "title": "Limitations",
             "type": "array"
           },
@@ -293,6 +299,19 @@
             "default": false,
             "title": "Retain Report",
             "type": "boolean"
+          },
+          "verification_session_id": {
+            "anyOf": [
+              {
+                "pattern": "^vsn_[A-Za-z0-9_-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Verification Session Id"
           }
         },
         "required": [
@@ -990,6 +1009,18 @@
             ],
             "default": null,
             "title": "Document Id"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Error Code"
           },
           "next_action": {
             "enum": [
@@ -1861,7 +1892,7 @@
   "info": {
     "description": "Review contract only; routes are not implemented by this file.",
     "title": "OriginProof wallet preparation API",
-    "version": "v5-shared-0.1"
+    "version": "v5-shared-0.2"
   },
   "openapi": "3.1.0",
   "paths": {

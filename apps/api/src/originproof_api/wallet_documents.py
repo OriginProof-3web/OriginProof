@@ -477,6 +477,7 @@ async def verification_material(
         version is not None and chain.document.version != version
     ):
         raise HTTPException(503, "CHAIN_RECORD_MISMATCH")
+    key = await service.rpc("key", chain.document.key_id)
     async with service.database.session_factory() as db:
         row = await db.get(
             WalletDocumentRow, document_key(service, document_id, chain.document.version)
@@ -502,6 +503,17 @@ async def verification_material(
 
             if not matches_document(signing.message, chain.document):
                 raise ValueError("chain mismatch")
+            if (
+                signing.domain != service.domain
+                or key is None
+                or (
+                    key.issuer_id != signing.message.issuer_id
+                    or key.key_id != signing.message.key_id
+                    or signing.expected_signer != key.signer
+                    or wallet_signer(service.domain, signing.message, row.signature) != key.signer
+                )
+            ):
+                raise ValueError("signature mismatch")
         except ValueError:
             raise HTTPException(409, "STORED_CONTENT_MISMATCH") from None
         return VerificationMaterial(
@@ -585,6 +597,8 @@ async def verify_document(
                 session_id=result.session_id,
                 expires_at=now() + 86400,
                 result=result.model_dump(mode="json"),
+                account_id=identity[0].account_id if identity else None,
+                privacy_scope="OWNER" if identity else "PUBLIC",
             )
         )
         await service.commit(db)

@@ -71,6 +71,9 @@ class WalletRuntime:
                     or result.verifying_contract != self.domain.verifying_contract
                 ):
                     raise ValueError("chain evidence does not match trusted deployment")
+                field = {"issuer": "issuer_id", "key": "key_id"}.get(method)
+                if field and getattr(result, field) != args[0]:
+                    raise ValueError("chain evidence does not match requested identity")
             return result
         except (DependencyUnavailableError, TimeoutError, ValueError, ValidationError):
             raise HTTPException(503, "WALLET_REGISTRY_UNAVAILABLE") from None
@@ -142,7 +145,12 @@ class WalletRuntime:
         )
         if row is None or row.account_id != account.account_id or (kind and row.kind != kind):
             raise HTTPException(404, "SIGNING_REQUEST_NOT_FOUND")
-        signing = SigningRequest.model_validate(row.payload)
+        if row.kind == "Publish" and row.payload.get("original_base64") is None:
+            raise HTTPException(410, "ORIGINAL_UNAVAILABLE")
+        try:
+            signing = SigningRequest.model_validate(row.payload)
+        except ValueError:
+            raise HTTPException(409, "STORED_SIGNING_REQUEST_INVALID") from None
         if signing.domain != self.domain:
             raise HTTPException(409, "DEPLOYMENT_CHANGED")
         return row, signing
@@ -181,6 +189,7 @@ class WalletRuntime:
             document_id=intent.get("document_id"),
             version=intent.get("version"),
             recovery_required=pending,
+            error_code=row.error_code,
             next_action=next_action,
         )
 

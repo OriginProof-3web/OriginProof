@@ -109,23 +109,30 @@ def verify_wallet_document(
     ):
         mark("current_state", "UNAVAILABLE", "CHAIN_RECORD_MISMATCH")
         return result("INCONCLUSIVE")
+    snapshot_available = issuer is not None and key is not None and all(
+        snapshot.chain_id == domain.chain_id
+        and snapshot.verifying_contract == domain.verifying_contract
+        and snapshot.block_number == chain.block_number
+        and snapshot.block_hash == chain.block_hash
+        for snapshot in (issuer, key)
+    )
+    state, warnings = document.state, []
+    if state == "ACTIVE" and checked_at >= document.expires_at:
+        state = "EXPIRED"
+    if snapshot_available:
+        if issuer.state == "SUSPENDED":
+            warnings.append("ISSUER_SUSPENDED")
+        if key.compromise_block is not None:
+            warnings.append("KEY_COMPROMISED")
+    document = document.model_copy(update={"state": state, "warnings": warnings})
     if message is None or content is None or signature is None or original is None:
+        mark("current_state", "PASSED" if snapshot_available else "UNAVAILABLE")
         mark("signature", "UNAVAILABLE", "ORIGINAL_UNAVAILABLE")
         return result("INCONCLUSIVE")
     if not matches_document(message, document):
         mark("content", "FAILED", "CHAIN_COMMITMENT_MISMATCH")
         return result("TAMPERED")
-    if (
-        issuer is None
-        or key is None
-        or any(
-            snapshot.chain_id != domain.chain_id
-            or snapshot.verifying_contract != domain.verifying_contract
-            or snapshot.block_number != chain.block_number
-            or snapshot.block_hash != chain.block_hash
-            for snapshot in (issuer, key)
-        )
-    ):
+    if not snapshot_available:
         mark("current_state", "UNAVAILABLE", "CHAIN_SNAPSHOT_UNAVAILABLE")
         return result("INCONCLUSIVE")
     if (
@@ -152,15 +159,6 @@ def verify_wallet_document(
         return result("TAMPERED")
     else:
         mark("issuer_metadata", "PASSED")
-    warnings = []
-    if issuer.state == "SUSPENDED":
-        warnings.append("ISSUER_SUSPENDED")
-    if key.compromise_block is not None:
-        warnings.append("KEY_COMPROMISED")
-    state = document.state
-    if state == "ACTIVE" and checked_at >= document.expires_at:
-        state = "EXPIRED"
-    document = document.model_copy(update={"state": state, "warnings": warnings})
     mark("current_state", "PASSED")
     if request.scope == "ID_ONLY":
         reasons.append("CONTENT_NOT_COMPARED")

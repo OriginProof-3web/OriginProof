@@ -41,6 +41,313 @@
         "title": "AccountView",
         "type": "object"
       },
+      "AnalysisEvidence": {
+        "additionalProperties": false,
+        "properties": {
+          "end_ms": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Ms"
+          },
+          "end_offset": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "End Offset"
+          },
+          "page": {
+            "anyOf": [
+              {
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page"
+          },
+          "quote": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Quote",
+            "type": "string"
+          },
+          "rule_id": {
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Rule Id",
+            "type": "string"
+          },
+          "source": {
+            "enum": [
+              "RULE",
+              "LLM"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "start_ms": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Ms"
+          },
+          "start_offset": {
+            "anyOf": [
+              {
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Start Offset"
+          }
+        },
+        "required": [
+          "rule_id",
+          "quote",
+          "source"
+        ],
+        "title": "AnalysisEvidence",
+        "type": "object"
+      },
+      "AnalysisJob": {
+        "additionalProperties": false,
+        "properties": {
+          "analysis_id": {
+            "pattern": "^ana_[A-Za-z0-9_-]+$",
+            "title": "Analysis Id",
+            "type": "string"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "original_expires_at": {
+            "anyOf": [
+              {
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Expires At"
+          },
+          "report": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AnalysisReport"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "result_expires_at": {
+            "anyOf": [
+              {
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Result Expires At"
+          },
+          "retain_original": {
+            "title": "Retain Original",
+            "type": "boolean"
+          },
+          "retain_report": {
+            "title": "Retain Report",
+            "type": "boolean"
+          },
+          "status": {
+            "enum": [
+              "QUEUED",
+              "RUNNING",
+              "COMPLETED",
+              "FAILED",
+              "CANCELLED",
+              "EXPIRED"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "analysis_id",
+          "status",
+          "retain_report",
+          "retain_original"
+        ],
+        "title": "AnalysisJob",
+        "type": "object"
+      },
+      "AnalysisList": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AnalysisJob"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "AnalysisList",
+        "type": "object"
+      },
+      "AnalysisReport": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/AnalysisEvidence"
+            },
+            "maxItems": 50,
+            "title": "Evidence",
+            "type": "array"
+          },
+          "limitations": {
+            "items": {
+              "maxLength": 500,
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Limitations",
+            "type": "array"
+          },
+          "risk_level": {
+            "enum": [
+              "HIGH",
+              "CAUTION",
+              "NO_CLEAR_INDICATORS",
+              "UNDETERMINED"
+            ],
+            "title": "Risk Level",
+            "type": "string"
+          },
+          "verification": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/originproof_core__wallet_contract__VerificationResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "verification_not_run_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verification Not Run Reason"
+          }
+        },
+        "required": [
+          "risk_level",
+          "evidence",
+          "limitations"
+        ],
+        "title": "AnalysisReport",
+        "type": "object"
+      },
+      "AnalysisRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "input_ref": {
+            "title": "Input Ref",
+            "type": "string"
+          },
+          "request_id": {
+            "pattern": "^req_[A-Za-z0-9_-]{1,124}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "retain_original": {
+            "default": false,
+            "title": "Retain Original",
+            "type": "boolean"
+          },
+          "retain_report": {
+            "default": false,
+            "title": "Retain Report",
+            "type": "boolean"
+          },
+          "verification_session_id": {
+            "anyOf": [
+              {
+                "pattern": "^vsn_[A-Za-z0-9_-]+$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verification Session Id"
+          }
+        },
+        "required": [
+          "request_id",
+          "input_ref"
+        ],
+        "title": "AnalysisRequest",
+        "type": "object"
+      },
       "ApplicationInput": {
         "additionalProperties": false,
         "properties": {
@@ -1085,6 +1392,27 @@
           }
         },
         "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "InputReceipt": {
+        "additionalProperties": false,
+        "properties": {
+          "expires_at": {
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Expires At",
+            "type": "integer"
+          },
+          "input_ref": {
+            "title": "Input Ref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "input_ref",
+          "expires_at"
+        ],
+        "title": "InputReceipt",
         "type": "object"
       },
       "IssueInput": {
@@ -2456,6 +2784,28 @@
         "title": "SyncView",
         "type": "object"
       },
+      "TextInputRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "TEXT",
+            "title": "Kind",
+            "type": "string"
+          },
+          "text": {
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "text"
+        ],
+        "title": "TextInputRequest",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -2816,6 +3166,17 @@
               }
             ],
             "title": "Document Id"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
           },
           "next_action": {
             "enum": [
@@ -4637,6 +4998,300 @@
         ]
       }
     },
+    "/v3/analyses": {
+      "get": {
+        "operationId": "history_v3_analyses_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 64,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "History",
+        "tags": [
+          "wallet analyses"
+        ]
+      },
+      "post": {
+        "operationId": "analysis_v3_analyses_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AnalysisRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisJob"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "Analysis",
+        "tags": [
+          "wallet analyses"
+        ]
+      }
+    },
+    "/v3/analyses/{analysis_id}": {
+      "delete": {
+        "operationId": "remove_v3_analyses__analysis_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "analysis_id",
+            "required": true,
+            "schema": {
+              "title": "Analysis Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "Remove",
+        "tags": [
+          "wallet analyses"
+        ]
+      },
+      "get": {
+        "operationId": "job_v3_analyses__analysis_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "analysis_id",
+            "required": true,
+            "schema": {
+              "title": "Analysis Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisJob"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "Job",
+        "tags": [
+          "wallet analyses"
+        ]
+      }
+    },
+    "/v3/analyses/{analysis_id}/original": {
+      "get": {
+        "operationId": "original_v3_analyses__analysis_id__original_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "analysis_id",
+            "required": true,
+            "schema": {
+              "title": "Analysis Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "Original",
+        "tags": [
+          "wallet analyses"
+        ]
+      }
+    },
+    "/v3/analyses/{analysis_id}/report": {
+      "get": {
+        "operationId": "report_v3_analyses__analysis_id__report_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "analysis_id",
+            "required": true,
+            "schema": {
+              "title": "Analysis Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalysisReport"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "Report",
+        "tags": [
+          "wallet analyses"
+        ]
+      }
+    },
     "/v3/document-drafts": {
       "post": {
         "operationId": "document_draft_v3_document_drafts_post",
@@ -4815,6 +5470,53 @@
         "summary": "Verification Material",
         "tags": [
           "wallet documents"
+        ]
+      }
+    },
+    "/v3/inputs": {
+      "post": {
+        "operationId": "input_text_v3_inputs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TextInputRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InputReceipt"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "Input Text",
+        "tags": [
+          "wallet analyses"
         ]
       }
     },
@@ -5097,6 +5799,7 @@
             "name": "issuer_id",
             "required": true,
             "schema": {
+              "pattern": "^0x[0-9a-f]{64}$",
               "title": "Issuer Id",
               "type": "string"
             }
@@ -5392,6 +6095,7 @@
             "name": "proposal_id",
             "required": true,
             "schema": {
+              "pattern": "^0x[0-9a-f]{64}$",
               "title": "Proposal Id",
               "type": "string"
             }
@@ -5440,6 +6144,7 @@
             "name": "proposal_id",
             "required": true,
             "schema": {
+              "pattern": "^0x[0-9a-f]{64}$",
               "title": "Proposal Id",
               "type": "string"
             }
@@ -5498,6 +6203,7 @@
             "name": "proposal_id",
             "required": true,
             "schema": {
+              "pattern": "^0x[0-9a-f]{64}$",
               "title": "Proposal Id",
               "type": "string"
             }

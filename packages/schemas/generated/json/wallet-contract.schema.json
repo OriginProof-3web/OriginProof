@@ -44,10 +44,13 @@
         },
         "quote": {
           "maxLength": 500,
+          "minLength": 1,
           "title": "Quote",
           "type": "string"
         },
         "rule_id": {
+          "maxLength": 100,
+          "minLength": 1,
           "title": "Rule Id",
           "type": "string"
         },
@@ -219,13 +222,16 @@
           "items": {
             "$ref": "#/$defs/AnalysisEvidence"
           },
+          "maxItems": 50,
           "title": "Evidence",
           "type": "array"
         },
         "limitations": {
           "items": {
+            "maxLength": 500,
             "type": "string"
           },
+          "maxItems": 20,
           "title": "Limitations",
           "type": "array"
         },
@@ -292,6 +298,19 @@
           "default": false,
           "title": "Retain Report",
           "type": "boolean"
+        },
+        "verification_session_id": {
+          "anyOf": [
+            {
+              "pattern": "^vsn_[A-Za-z0-9_-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Verification Session Id"
         }
       },
       "required": [
@@ -989,6 +1008,18 @@
           ],
           "default": null,
           "title": "Document Id"
+        },
+        "error_code": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error Code"
         },
         "next_action": {
           "enum": [
@@ -1852,5 +1883,5 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "OriginProof wallet shared contract",
   "x-implementation-status": "PREPARATION_REVIEW_REQUIRED",
-  "x-revision": "v5-shared-0.1"
+  "x-revision": "v5-shared-0.2"
 }

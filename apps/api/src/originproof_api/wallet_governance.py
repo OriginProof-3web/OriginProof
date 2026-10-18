@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from originproof_core.canonicalization import canonical_json_bytes
 from originproof_core.wallet_contract import (
     GovernanceTransaction,
+    Hex32,
     KeyChallengeRequest,
     KeyProofMessage,
     KeyProofReceipt,
@@ -240,7 +241,7 @@ async def propose(body: ProposalRequest, request: Request, identity: Identity):
 
 
 @router.get("/proposals/{proposal_id}", response_model=ProposalView)
-async def get_proposal(proposal_id: str, request: Request, identity: Identity):
+async def get_proposal(proposal_id: Hex32, request: Request, identity: Identity):
     service = runtime(request)
     await service.operator(request, identity, mutation=False)
     async with service.database.session_factory() as db:
@@ -291,12 +292,16 @@ async def accept_transaction(service, db, row, tx_hash):
             row.status = "UNKNOWN"
     if row.status == "CONFIRMED" and row.input_body["action"] in ("Publish", "Revoke"):
         saved = await db.get(WalletSigningRow, row.input_body["signing_request_id"])
-        signing = SigningRequest.model_validate(saved.payload)
-        message = signing.message
+        from originproof_core.wallet_contract import PublishMessage, RevokeMessage
+
+        publishing = saved.kind == "Publish"
+        message = (PublishMessage if publishing else RevokeMessage).model_validate(
+            saved.payload["message"]
+        )
         chain = await service.rpc("document", message.document_id, message.version)
         if chain is None:
             row.status = "UNKNOWN"
-        elif signing.primary_type == "Publish":
+        elif publishing:
             if not matches_document(message, chain.document):
                 row.status = "UNKNOWN"
             else:
@@ -308,6 +313,7 @@ async def accept_transaction(service, db, row, tx_hash):
                 )
                 existing = await db.get(WalletDocumentRow, identity)
                 if existing is None:
+                    raw = saved.payload.get("original_base64")
                     db.add(
                         WalletDocumentRow(
                             chain_id=identity[0],
@@ -317,8 +323,8 @@ async def accept_transaction(service, db, row, tx_hash):
                             issuer_id=message.issuer_id,
                             signing_request_id=saved.signing_request_id,
                             message=message.model_dump(by_alias=True),
-                            content=signing.content.model_dump(),
-                            original=base64.b64decode(signing.original_base64, validate=True),
+                            content=saved.payload.get("content") or {},
+                            original=base64.b64decode(raw, validate=True) if raw else None,
                             signature=saved.signature,
                             retain_until=message.expires_at + 30 * 86400,
                         )
@@ -342,7 +348,7 @@ async def accept_transaction(service, db, row, tx_hash):
 @router.post("/proposals/{proposal_id}/transactions", response_model=OperationView, status_code=202)
 @router.post("/proposals/{proposal_id}/approvals", response_model=OperationView, status_code=202)
 async def proposal_transaction(
-    proposal_id: str,
+    proposal_id: Hex32,
     body: GovernanceTransaction,
     request: Request,
     identity: Identity,
@@ -410,7 +416,7 @@ async def proposal_transaction(
 
 @router.post("/issuers/{issuer_id}/suspensions", response_model=OperationView, status_code=202)
 async def suspension(
-    issuer_id: str, body: GovernanceTransaction, request: Request, identity: Identity
+    issuer_id: Hex32, body: GovernanceTransaction, request: Request, identity: Identity
 ):
     service = runtime(request)
     account = service.authorize(request, identity)

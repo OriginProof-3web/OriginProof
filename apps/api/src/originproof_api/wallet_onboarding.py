@@ -1,6 +1,5 @@
 """Synthetic roster/email/internal approval, separate from on-chain governance."""
 
-import asyncio
 import hmac
 import re
 import secrets
@@ -52,18 +51,6 @@ async def expire_codes(app):
             .values(code_hash=None, demo_code=None)
         )
         await service.commit(db)
-
-
-async def maintain_email_codes(app, stop):
-    while not stop.is_set():
-        try:
-            await asyncio.wait_for(stop.wait(), timeout=300)
-        except TimeoutError:
-            try:
-                await expire_codes(app)
-                app.state.wallet_email_cleanup_error = None
-            except Exception:
-                app.state.wallet_email_cleanup_error = "EMAIL_CLEANUP_UNAVAILABLE"
 
 
 async def application(db, application_id, account, *, owner=True):
