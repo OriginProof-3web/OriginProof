@@ -304,7 +304,13 @@ async def accept_transaction(service, db, row, tx_hash):
                     )
                 elif existing.message != message.model_dump(by_alias=True):
                     row.status = "UNKNOWN"
-        elif chain.document.issuer_id != message.issuer_id or chain.document.state == "ACTIVE":
+        elif (
+            chain.document.issuer_id != message.issuer_id
+            or chain.document.doc_key != message.doc_key
+            or chain.document.document_id != message.document_id
+            or chain.document.version != message.version
+            or chain.document.state != "REVOKED"
+        ):
             row.status = "UNKNOWN"
     await service.commit(db)
     return service.operation_view(row)
@@ -349,8 +355,17 @@ async def proposal_transaction(
             if approving
             else {
                 "proposal": view.proposal.model_dump(by_alias=True),
-                "proof": view.key_proof.model_dump(by_alias=True) if view.key_proof else None,
-                "signature": view.key_proof_signature,
+                "proof": view.key_proof.model_dump(by_alias=True)
+                if view.key_proof
+                else {
+                    "action": 0,
+                    "applicationId": "0x" + "00" * 32,
+                    "issuerId": "0x" + "00" * 32,
+                    "signer": "0x" + "00" * 20,
+                    "challengeNonce": "0x" + "00" * 32,
+                    "deadline": 0,
+                },
+                "signature": view.key_proof_signature or "0x",
             }
         )
         operation = service.operation(
