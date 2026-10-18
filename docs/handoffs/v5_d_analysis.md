@@ -1,6 +1,6 @@
 # D 비동기 분석기·평가 초안 인계
 
-- 작업: V5-W5-D, V5-W1-D의 평가 준비 후속. 사용자 입력은 **미정**입니다. 2026-10-16 최종 후속 지시로 **Jev 도입을 취소하고 OpenAI 모델만 사용**합니다. OpenAI 세부 모델·유료 평가/전송 범위는 미정입니다.
+- 작업: V5-W5-D, V5-W1-D의 평가 준비 후속. 사용자 입력은 **미정**입니다. 2026-10-16 최종 후속 지시로 **Jev 도입을 취소하고 OpenAI 모델만 사용**합니다. 최종 모델은 2026-10-18 사용자가 **OpenAI GPT-6 Luna (`gpt-6-luna`)**로 확정했습니다. 유료 평가/전송 범위·예산은 미정입니다.
 - 기준: 계획서 5.1·공유 계약 v5-shared-0.1. C 후보의 v5-shared-0.2는 별도 소비 대상으로 검토합니다.
 - 브랜치: `codex/v5-w5-d-analysis`, 구현/검증 SHA `98d2c5400aa0e3e398dbb8df720b6d1445fae6db`.
 - 상태: 독립 구현·합성/mock/SDK 검사 완료. 실제 모델 평가·입력 활성화·A/B/C 실제 연결·리뷰는 후속입니다.
@@ -32,7 +32,7 @@ C가 발행 검증 세션을 별도로 집계합니다. D는 verification을 생
 
 [`phishing_sources_v1.json`](../../fixtures/synthetic/phishing_sources_v1.json)은 네 수준별 15개, 총 60개 합성 텍스트 원본 초안입니다. 제안 분할은 개발 24/보류 36(수준별 6/9)이며 같은 source_group의 변형이 분할을 넘지 않도록 검사합니다. 동일 원문이 양쪽에 들어가는 것도 거부합니다. 기존 30개 근거 replay와 카드 추출 10개 평가를 위험 분류 60개와 합산하지 않습니다.
 
-**DRAFT_REVIEW_REQUIRED / labels_human_reviewed=false / input_selection=UNDECIDED**입니다. 최종 지원 입력·모델 결정과 A 또는 C의 라벨/분할 사전 리뷰 전에는 확정 평가셋으로 동결하지 않습니다. 현재 합성 텍스트 원형은 OCR/STT/PDF 지원을 뜻하지 않습니다.
+**DRAFT_REVIEW_REQUIRED / labels_human_reviewed=false / input_selection=UNDECIDED**입니다. 최종 지원 입력 결정과 A 또는 C의 라벨/분할 사전 리뷰 전에는 확정 평가셋으로 동결하지 않습니다. 현재 합성 텍스트 원형은 OCR/STT/PDF 지원을 뜻하지 않습니다.
 
 ```sh
 PYTHONPATH=apps/api/src:packages/python:services/analyzer/src \
@@ -59,7 +59,7 @@ CLI는 환경의 provider 설정과 무관하게 명시적 mock/rules를 사용�
 
 사용자가 같은 날 검토했던 `typesafe/jev` 도입을 취소하고 OpenAI 모델만 사용하겠다고 명시했습니다. 앞선 Jev 선행·OpenAI 후속 제안을 대체합니다. Jev 호출 경로·질문·분기 임계값은 후속 결정 목록에서 제외합니다. 기존 OpenAI Responses/Structured Outputs 연결과 규칙·원문 근거 대조를 재사용합니다.
 
-공급자 선택은 OpenAI로 정해졌으며 세부 모델명, 유료 평가/전송 범위와 예산은 아직 미정입니다. 사용자 입력 종류/우선순위와 합성 자료 라벨·분할 리뷰도 계속 미정입니다. 기존 코드의 모델 기본값을 최종 모델 선택으로 간주하지 않습니다.
+2026-10-16 당시 공급자 선택만 OpenAI로 정해졌고 세부 모델명·유료 범위·예산은 미정이었습니다. 그때 코드 기본값을 최종 선택으로 간주하지 않았습니다. 모델 미정 상태는 아래 2026-10-18 사용자 결정으로 대체하며 입력/유료 범위/라벨·분할 리뷰는 후속입니다.
 
 Jev SDK·의존성·호출 코드가 추가되지 않았으므로 제거할 실행 코드는 없습니다. 이번에는 D 인계 문서만 정정했고 기존 mock 기본값·입력 비활성화·유료 호출 제한·공통 계약·과거 평가 결과는 유지했습니다. OpenAI Decisions API는 계속 현재 범위 밖입니다. 문서 diff와 로컬 링크를 검사했으며 기능 검사를 재실행한 것으로 보고하지 않습니다. 원격 push·PR 생성·병합은 수행하지 않았습니다.
 
@@ -75,3 +75,12 @@ Jev SDK·의존성·호출 코드가 추가되지 않았으므로 제거할 실�
 - [단계별 전용 CI·재현·잔여 결함](../qa/v5-d-review-fixes.md). C 제품은 수정하지 않았고 DG12·G07은 미해결입니다. PR 공유·재리뷰와 단계 완료를 구분합니다.
 
 테스트 공용 응답 builder는 conftest fixture로 재사용하며 test 모듈 직접 import가 없습니다. 분석기 전체는 importlib 모드에서도 256 PASS였습니다. Python compileall·웹 tsc 타입 검사도 통과했습니다.
+
+
+## 2026-10-18 사용자 최종 모델 결정 — GPT-6 Luna
+
+사용자가 “AI모델 openAI 6.0 luna로 사용할게”라고 직접 선택했습니다. 최종 분석 모델은 **OpenAI GPT-6 Luna**, API 모델 ID는 **`gpt-6-luna`**입니다. [공식 OpenAI 모델 문서](https://developers.openai.com/api/docs/models/gpt-6-luna)로 ID를 확인했습니다. 이 결정은 기존 모델 미정 기록을 대체합니다.
+
+`AnalyzerSettings.openai_model`과 루트 `.env.example`의 `OPENAI_MODEL`이 이미 `gpt-6-luna`여서 실행 코드·기본값 변경은 없습니다. 기존 Responses/Structured Outputs 경로를 사용합니다. 현재 `OPENAI_REASONING_EFFORT=low`는 기존 설정이며 이번에 새로 평가·최적화한 값은 아닙니다.
+
+Q05의 모델 선택은 완료됐고 유료 평가/전송 범위·예산·최종 평가 설정은 남아 있습니다. Q01 입력 종류/우선순위와 A/C 라벨·분할 리뷰도 후속입니다. provider 기본 mock·입력 비활성·유료 opt-in 경계는 유지했습니다. 이번 문서 결정 반영에서 모델 호출·유료 평가·holdout 예측은 실행하지 않았고 실제 품질/지연/비용을 검증한 것으로 기록하지 않습니다. 기존 DG12/G07 상태도 바꾸지 않습니다.
