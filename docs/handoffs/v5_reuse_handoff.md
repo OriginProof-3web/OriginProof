@@ -316,13 +316,13 @@ B의 Adapter·canonical event/receipt/배포 식별(B-C01~03), C/A의 원본 재
 
 [OriginProofWalletRegistry.sol](../../packages/contracts/src/OriginProofWalletRegistry.sol)에 문서별 버전 mapping과 별도 최신 포인터를 둡니다. 최초는 1, 이후 정확히 최신+1이고 공유 JSON safe integer 범위를 지킵니다. 같은 documentId의 기관/docKey는 고정하며 기존 버전의 hash·키·시각/block은 덮어쓰지 않습니다.
 
-새 버전 저장·이전 최신의 state=SUPERSEDED(3)·최신 포인터·업무 nonce·DocumentSuperseded/DocumentPublished 이벤트가 한 거래에서 처리됩니다. 동일 다음 버전의 경쟁에서는 하나만 성공하고 나머지는 VersionConflict입니다. 이 검사 순서를 nonce보다 앞에 두어, 기존 W3의 같은 버전 재전송도 VersionConflict로 거부됩니다. 거부와 상태 불변 회귀를 유지하면서 해당 기대 오류만 W4 규칙에 맞췄습니다.
+새 버전 저장·ACTIVE인 이전 최신의 state=SUPERSEDED(3)·최신 포인터·업무 nonce·DocumentSuperseded/DocumentPublished 이벤트가 한 거래에서 처리됩니다. 이미 REVOKED인 이전 최신은 상태를 보존하고 DocumentSuperseded 없이 새 버전의 DocumentPublished만 발생시킵니다. 동일 다음 버전의 경쟁에서는 하나만 성공하고 나머지는 VersionConflict입니다. 이 검사 순서를 nonce보다 앞에 두어, 기존 W3의 같은 버전 재전송도 VersionConflict로 거부됩니다. 거부와 상태 불변 회귀를 유지하면서 해당 기대 오류만 W4 규칙에 맞췄습니다.
 
 `revoke`는 action=2·자신의 기관/문서/버전·현재 활성 비사고 키·chain/address/domain·nonce·deadline을 검사합니다. 기관 ACTIVE/SUSPENDED 모두에서 현재 키 철회를 허용하며 사고/교체된 구키는 거부합니다. 성공 시 해당 버전 state=REVOKED(2), 동일한 기관별 publish/revoke nonce 소비·DocumentRevoked 이벤트만 변경하고 최신 포인터·원본/키 이력을 보존합니다. 같은 nonce 재전송과 새 nonce로 이미 철회된 버전을 다시 철회하는 요청은 각각 거부하며 실패 nonce는 소비하지 않습니다.
 
 - 최신 철회로 과거 버전을 ACTIVE로 복구하지 않습니다. 만료/정지는 REVOKED/SUPERSEDED를 덮지 않습니다. expired는 저장 enum이 아닌 조회 시각의 파생 상태입니다.
 - 과거 SUPERSEDED 버전도 소유 기관의 현재 키로 철회할 수 있으며 최신 버전에 영향을 주지 않습니다.
-- 철회된 최신 버전 다음에도 정확한 최신+1을 발행할 수 있습니다. 공유 규칙의 이전 최신→SUPERSEDED 전이를 그대로 적용하므로 그 이전 버전의 현재 state는 3이 되지만 원본 hash와 과거 DocumentRevoked 이벤트는 보존됩니다. 상태 조회 하나로 철회 이력 전체를 대체하지 않습니다.
+- 철회된 최신 버전 다음에도 정확한 최신+1을 발행할 수 있습니다. 이전 버전은 REVOKED(2)를 유지하며 새 nonce로 다시 철회해도 DocumentAlreadyRevoked로 거부합니다. 원본/hash·키·발행 시각/block과 최신 포인터는 보존하고 실패 nonce를 소비하지 않습니다.
 - 정상 키 교체 후 과거 정상 서명/발행 키 이력을 보존하고 현재 키로 과거 문서를 철회합니다. 사고 시에는 정지→새 키 공동 교체→정지 상태에서 필요한 버전 철회→공동 재활성화 순서를 적용합니다.
 - 발행/revoke 원본·서명은 여전히 체인 밖에 둡니다. hash/서명 성공은 내용의 사실성·행동 안전을 보증하지 않습니다. 레거시 binding/consume을 신규 안내에 추가하지 않습니다.
 
@@ -344,6 +344,24 @@ B의 Adapter·canonical event/receipt/배포 식별(B-C01~03), C/A의 원본 재
 최초 W4 확장 검사에서는 82 PASS/6 FAIL이었습니다. 내부 nextVersion 도우미가 memory struct를 참조로 받아 이전 버전 기대값까지 바꾼 것이 원인이었습니다. 도우미가 ABI encode/decode로 별도 사본을 만들도록 고쳤고 기대값·거부 규칙을 완화하지 않고 전체 88 PASS로 재검증했습니다. 변수 shadow warning도 이름을 구분해 해소했습니다. 원본 Python Revoke Golden도 실제 컨트랙트 runtime에서 소비했으며 합성 fixture 주소 etch 방식이지 실제 RPC/지갑 배포는 아닙니다.
 
 실제 RPC/receipt·동시 네트워크 거래·manifest/Adapter·API/DB·브라우저·D 독립 QA·공개 체인·v2/consume 전체 재검사·G07·성능/가스 운영 실측은 미실행입니다. Foundry의 합성 거래 순서 검사를 실제 네트워크 동시성·receipt 검증으로 합산하지 않습니다. SG01~16은 공유 fixture에서 계속 NOT_EXECUTED입니다.
+
+### 2026-10-18 철회 상태 보존 리뷰 보완
+
+사용자님의 명시적인 #68/#77 수정 지시에 따라 Codex가 기존 B 구현의 상태 전이만
+보완했습니다. 기존 소유자의 작성/검토 이력과 이번 보완을 구분하며 B의 확인·재리뷰를
+대신 기록하지 않습니다. 이전 구현에서는 철회 후 새 버전을 발행하면 철회 상태가 대체로
+바뀌어 재철회가 성공했습니다. 새 회귀를 먼저 실행해 `next call did not revert as expected`로
+재현한 뒤, 이전 최신이 ACTIVE일 때만 대체하도록 한 조건을 수정했습니다.
+
+이 단계 Foundry 전체 **89 PASS / 0 FAIL / 0 SKIP**, fuzz 각512회입니다. 기존 대체 버전의
+정상 첫 철회도 통과합니다. 철회된 버전의 모든 저장 필드 보존·잘못된 대체 이벤트 부재·새
+버전 발행/nonce·재철회 거부와 실패 후 nonce/두 버전 불변을 검사했습니다. 컴파일한 전체
+Registry ABI는 커밋 ABI와 동일하며 서명/domain·Golden·storage 선언·의존성은 바뀌지
+않았습니다. 공유 명세/ADR/계획에 철회 상태 보존 예외를 명시했습니다.
+
+Contract bytecode는 변경되지만 비업그레이드 계약의 기존 주소를 수정하지 않습니다.
+이번에 배포/상태 이관은 실행하지 않았습니다. 실제 적용은 새 배포·manifest와 B/C 연결
+검증이 필요하며 #77에서는 이 커밋을 그대로 반영해 기존 C/D 검사와 함께 재검증합니다.
 
 ### 인계·다음 단계
 
