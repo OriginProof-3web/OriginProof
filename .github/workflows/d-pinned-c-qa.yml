@@ -48,7 +48,7 @@ jobs:
           SUITE: ${{ matrix.suite }}
         shell: bash
         run: |
-          export PYTHONPATH="$PWD/services/analyzer/src:$PWD/.d-qa-c/apps/api/src:$PWD/.d-qa-c/packages/python:$PWD/.d-qa-c/apps/api/tests"
+          export PYTHONPATH="$PWD/services/analyzer/src:$PWD/.d-qa-c/apps/api/src:$PWD/.d-qa-c/packages/python:$PWD/.d-qa-c/services/indexer/src:$PWD/.d-qa-c/apps/api/tests"
           tests=()
           if [[ "$SUITE" == consumer ]]; then
             tests+=(fixtures/finals/v5_analysis_consumer_qa.py)

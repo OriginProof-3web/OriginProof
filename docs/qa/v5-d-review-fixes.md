@@ -18,7 +18,7 @@
 
 ```sh
 uv sync --project "$C" --all-packages --all-groups --locked
-export PYTHONPATH="$PWD/services/analyzer/src:$C/apps/api/src:$C/packages/python:$C/apps/api/tests"
+export PYTHONPATH="$PWD/services/analyzer/src:$C/apps/api/src:$C/packages/python:$C/services/indexer/src:$C/apps/api/tests"
 "$C/.venv/bin/python" -m pytest -q -o addopts= fixtures/finals/v5_d_w2_governance_qa.py
 "$C/.venv/bin/python" -m pytest -q -o addopts= fixtures/finals/v5_analysis_consumer_qa.py
 ```
@@ -27,4 +27,4 @@ W3/W4/분석 연결 PR에서는 그 head에 있는 `v5_d_w3_content_qa.py`, `v5_
 
 ## 로컬 재검사
 
-수정된 W2 파일은 새 고정 C checkout/lockfile 환경에서 **12 PASS / 0 FAIL / 0 SKIP**입니다. workflow YAML 구문·명시 QA Ruff·diff 검사도 통과했습니다. GitHub CI 결과는 별도로 기록합니다.
+새 고정 C checkout의 첫 실행은 indexer import 경로 누락으로 collection ERROR였습니다. C의 기존 indexer 소스 경로도 명시하도록 CI/재현 명령을 수정했습니다. 수정 후 같은 새 환경에서 W2는 **12 PASS / 0 FAIL / 0 SKIP**입니다. consumer는 예상대로 **30 PASS / 1 FAIL(DG12)**이며 그대로 남겼습니다. workflow YAML 구문·명시 QA Ruff·diff 검사도 통과했습니다. GitHub CI 결과는 별도로 기록합니다.
