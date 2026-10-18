@@ -112,4 +112,8 @@ node scripts/ci/check_wallet_browser_hashes.mjs
 
 PostgreSQL 동시성은 `V5_C_TEST_DATABASE_URL`이 있는 경우에만 [별도 검사](../../apps/api/tests/test_wallet_postgres.py)를 실행합니다. 주소는 127.0.0.1, DB명은 `originproof_v5_c_test_` 접두사이고 새 migration head·빈 계정 테이블이 필요합니다. 합성 DB를 스스로 삭제하지 않습니다. 결과/환경은 구현 기록을 확인합니다. Registry 증거와 분석기는 합성이며 실제 EVM/브라우저 E2E·작성자 외 리뷰를 대신하지 않습니다.
 
+이 별도 검사 fixture는 합성 이메일 secret을 직접 지정하므로 개인 환경 변수에 의존하지 않습니다.
+실제 API의 `API_WALLET_EMAIL_SECRET` 필수 조건은 유지합니다. 빈 임시 DB에 migration을 적용한
+검사에서 발행·분석 동시성 및 준비 상태 확인까지 통과했습니다.
+
 신규 지갑의 `make test-v5-c-live`는 자체 전용 PostgreSQL과 실제 API 프로세스로 백업/복원·SIGKILL·UNKNOWN·저장 실패·분석 재시작/늦은 결과·경쟁 버전을 검사합니다. 실행 절차와 100회 일반 검증 지연 기록, 서비스 API를 호출하지 않는 [독립 RPC 검증 도구](../../scripts/verify_wallet_document.py)는 [신규 복구·검증 runbook](v5_c_recovery_runbook.md)을 확인합니다. 새 Registry의 실제 배포 검증은 B 구현 이후입니다.

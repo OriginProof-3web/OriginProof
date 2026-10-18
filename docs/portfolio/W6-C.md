@@ -128,5 +128,20 @@ Registry/receipt는 합성입니다. Codex가 수정·검사를 수행했으며 
 소유 Python 경로의 Ruff와 변경 API/검사의 compileall도 통과했습니다. 광역 lint가 스캔한
 vendored Foundry Python의 기존 지적 26개는 수정하지 않았습니다.
 
-세 번째 묶음의 기존 선택 PostgreSQL 검사 secret 설정은 이번에 변경하지 않았습니다.
-네 번째 묶음의 PR 전파·정확한 원격 head CI·승인·병합도 수행하지 않았습니다.
+앞의 두 묶음 작업 시점에는 기존 선택 PostgreSQL 검사 설정과 PR 전파를 남겼습니다.
+
+## 2026-10-18 후속 실제 DB 검사와 PR 전파
+
+기존 선택 PostgreSQL 검사의 fixture에 합성 이메일 secret을 명시했습니다. 외부 secret을
+제거하고 빈 임시 PostgreSQL에 Alembic head를 적용한 뒤 원래 검사 1 PASS를 확인했습니다.
+앞선 재현 harness가 metadata만 생성해 준비 상태에서 실패했던 것과 구분합니다.
+운영 HMAC·readiness 검사를 완화하지 않았습니다.
+
+W2→W3→W4→W5→W6 순서로 수정 이력을 전파했습니다. 단계별 전체 Python은 각각
+512/557/565/598/647 PASS이며 skip은 8/8/8/9/16개입니다. C 누적 검증 소스는
+`26b8975`와 동일하며 선행 PR 병합 뒤에는 기여 문서만 추가됐습니다.
+통합 후보 검증 소스 `2a25ef73482e01d54858c3745dd7f59722270235`에서는 전체 Python
+656 PASS / 16 SKIP, D 명시 QA 62 PASS, Foundry 101 PASS, 실제 복구 9 PASS를 확인했습니다.
+기존 실제 복구 2개는 PostgreSQL/Anvil, 신규 7개는 PostgreSQL/API 프로세스와 합성 Registry입니다.
+생성물 재생성 diff 없음·자체 Python Ruff·diff 검사를 통과했습니다.
+원격 공유 뒤 정확한 head CI를 별도로 확인하며, 사람의 재리뷰·실제 A/B/D 연결·G07은 별도입니다.
