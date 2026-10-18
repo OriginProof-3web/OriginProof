@@ -57,3 +57,19 @@ W3 발행/현재 키 재검사와 W4 Proof lifecycle/consume은 다음 단계입
 
 최종 잠금 보완: PostgreSQL transaction advisory lock으로 취소/예외 시 자동 해제하며,
 실제 PG의 교차 연결 배제·취소 후 해제 검사도 통과했습니다.
+
+
+## 5.1 후속 / V5-W2-C (2026-10-15~16)
+
+- 상태: C 독립 구현·자체 검사 / 실제 Registry·웹·분석기 연결과 작성자 외 리뷰 대기. 단계 전체 완료는 아닙니다.
+- 담당: @Jordi2801K의 C 범위에서 Codex가 구현·검사·문서를 수행했습니다. 사용자는 세 작업의 개발 방향을 승인했으며 사람의 코드 작성/리뷰·타인 승인이나 기여 비율은 추정하지 않습니다.
+- 구현 근거: `a303ec6`. 최종 누적 검증 코드는 `650e85cd939ac4be493e14b4004daf081f92afa9`이며 후속 문서 커밋과 구분합니다.
+- 결과: 합성 명부/데모 코드/지정 내부 승인/키 증명/제안·거래 대조 DB/API를 구현했습니다. #50 nonce cleanup은 별도 4a0e6fb에서 C6 흐름에 반영했습니다.
+- 재사용: 기존 C 인증/CSRF/Operation/SQLAlchemy·B Writer/Reader 원본과 공유 서명 모델을 사용했습니다. 정확한 고정 SHA·타 담당 영역과의 경계는 [구현 기록](../handoffs/v5_c_implementation.md)을 확인합니다.
+- 판단·문제 해결·실행 명령/환경·정상/거부 결과·실패 수정·잔여 위험·PR 근거는 같은 구현 기록과 [실행 API 인계](../api/v5_c_runtime.md)에 모읍니다. 중복해서 과거 PASS를 신규 실제 연결 성공으로 합산하지 않습니다.
+- 최종 검사: 전체 Python 494 PASS/9 opt-in SKIP, 별도 실제 PostgreSQL 1 PASS(체인은 합성), Solidity/Golden 26 PASS, 두 템플릿 hash/타입·재생성·정적 검사 통과. 성능/공개 배포/실제 모델은 미측정입니다.
+- 작성자 외 리뷰·본인의 기여 사실 확인: 아직 미확인입니다. 실제 리뷰 후 해당 링크를 추가합니다.
+
+5.1 원격 공유: [#58](https://github.com/OriginProof-3web/OriginProof/pull/58), [#59](https://github.com/OriginProof-3web/OriginProof/pull/59) (Draft). 사용자 승인 후 자기 브랜치에 push하고 생성했습니다. 실제 원격 CI/작성자 외 리뷰·단계 완료는 별도입니다.
+
+초기 #57/#58 CI의 생성 api.ts 불일치는 b82a2d1에서 생성기로 갱신하고 자기 후속 브랜치에 반영했습니다. 다섯 생성기 일치·API TypeScript 컴파일은 통과했고 새 원격 CI는 확인 전입니다.

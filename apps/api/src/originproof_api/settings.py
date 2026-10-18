@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from pydantic import Field
+from originproof_core.wallet_contract import Address
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -29,6 +30,13 @@ class Settings(BaseSettings):
     request_body_timeout_seconds: int = Field(default=10, ge=1, le=60)
     requests_per_minute: int = Field(default=120, ge=1)
     logins_per_minute: int = Field(default=10, ge=1)
+    wallet_registry_address: Address | None = None
+    wallet_operator_addresses: dict[str, Address] = {}
+    wallet_internal_approvers: dict[str, str] = {}
+    wallet_demo_email_enabled: bool = False
+    wallet_email_secret: SecretStr | None = Field(default=None, repr=False, exclude=True)
+    wallet_text_input_enabled: bool = False
+    wallet_relay_enabled: bool = False
 
     model_config = SettingsConfigDict(
         env_file=".env",

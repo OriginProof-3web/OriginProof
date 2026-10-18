@@ -119,7 +119,7 @@
       "scenario": "partial protected fields"
     }
   ],
-  "revision": "v5-shared-0.1",
+  "revision": "v5-shared-0.2",
   "signing_request": {
     "content": {
       "amount_minor": 154000,
@@ -169,6 +169,7 @@
   "synthetic": true,
   "unknown_operation": {
     "document_id": "0x68c5251187d8bd723e65f1ec68b7d00ccb45d81f0774701048aa873d926bb329",
+    "error_code": null,
     "next_action": "RECONCILE",
     "operation_id": "op_synthetic_001",
     "recovery_required": true,

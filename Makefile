@@ -142,3 +142,7 @@ finals-up: mvp-up deploy-local api-reload finals-seed
 # Disposable resources only; opt-in is explicit and never targets the demo database.
 test-w6-c-live:
 	PYTHONPATH=$(WORKSPACE_PYTHONPATH) W6_C_LIVE_TEST=1 $(UV) run --all-packages --all-groups --frozen pytest -q scripts/ci/test_w6_c_recovery.py
+
+.PHONY: test-v5-c-live
+test-v5-c-live:
+	PYTHONPATH=$(WORKSPACE_PYTHONPATH) V5_C_LIVE_TEST=1 $(UV) run --all-packages --all-groups --frozen pytest -q scripts/ci/test_v5_c_recovery.py

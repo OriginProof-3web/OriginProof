@@ -22,7 +22,7 @@ def nonzero_address(value: str) -> str:
     return value.lower()
 
 
-REVISION = "v5-shared-0.1"
+REVISION = "v5-shared-0.2"
 SAFE_INTEGER = 2**53 - 1
 Hex32 = Annotated[str, Field(pattern=r"^0x[0-9a-f]{64}$")]
 Address = Annotated[str, Field(pattern=r"^0x[0-9a-fA-F]{40}$"), AfterValidator(nonzero_address)]
@@ -316,6 +316,7 @@ class OperationView(ContractModel):
     version: Version | None = None
     recovery_required: bool
     next_action: Literal["WAIT", "RECONCILE", "RESIGN", "NONE"]
+    error_code: str | None = None
 
 
 class DocumentView(ContractModel):
@@ -400,11 +401,12 @@ class AnalysisRequest(ContractModel):
     input_ref: str
     retain_report: bool = False
     retain_original: bool = False
+    verification_session_id: Annotated[str, Field(pattern=r"^vsn_[A-Za-z0-9_-]+$")] | None = None
 
 
 class AnalysisEvidence(ContractModel):
-    rule_id: str
-    quote: Annotated[str, Field(max_length=500)]
+    rule_id: Annotated[str, Field(min_length=1, max_length=100)]
+    quote: Annotated[str, Field(min_length=1, max_length=500)]
     start_offset: Annotated[int, Field(strict=True, ge=0)] | None = None
     end_offset: Annotated[int, Field(strict=True, ge=0)] | None = None
     page: Annotated[int, Field(strict=True, ge=1)] | None = None
@@ -422,8 +424,8 @@ class AnalysisEvidence(ContractModel):
 
 class AnalysisReport(ContractModel):
     risk_level: Literal["HIGH", "CAUTION", "NO_CLEAR_INDICATORS", "UNDETERMINED"]
-    evidence: list[AnalysisEvidence]
-    limitations: list[str]
+    evidence: list[AnalysisEvidence] = Field(max_length=50)
+    limitations: list[Annotated[str, Field(max_length=500)]] = Field(max_length=20)
     verification: VerificationResult | None = None
     verification_not_run_reason: str | None = None
 
@@ -457,3 +459,45 @@ class ErrorResponse(ContractModel):
     request_id: RequestId | None = None
     retry_after_seconds: Annotated[int, Field(strict=True, ge=0)] | None = None
     field_paths: list[str] = Field(default_factory=list)
+
+
+class DemoEmailRequest(ContractModel):
+    email: Annotated[str, Field(min_length=3, max_length=254)]
+
+
+class DemoEmailCode(ContractModel):
+    code: Annotated[str, Field(pattern=r"^[0-9]{6}$")]
+
+
+class OnboardingView(ContractModel):
+    application_id: str
+    roster_matched: bool
+    demo_only: Literal[True] = True
+    email_verified: bool
+    internally_approved: bool
+    metadata: dict
+    metadata_hash: Hex32
+    code_expires_at: Seconds | None = None
+
+
+class DemoInbox(ContractModel):
+    demo_only: Literal[True] = True
+    code: str | None
+    expires_at: Seconds
+
+
+class TextInputRequest(ContractModel):
+    kind: Literal["TEXT"]
+    text: Annotated[str, Field(min_length=1, max_length=10000)]
+
+
+class InputReceipt(ContractModel):
+    input_ref: str
+    expires_at: Seconds
+
+
+class VerificationMaterial(ContractModel):
+    signing_request: SigningRequest
+    signature: Signature
+    block_number: Uint256
+    block_hash: Hex32
