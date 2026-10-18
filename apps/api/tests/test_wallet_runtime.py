@@ -898,6 +898,97 @@ async def test_original_comparison_requires_owner_and_checks_exact_bytes(wallet)
     assert (await wallet.client.post("/v3/verifications", json=body)).status_code == 404
 
 
+@pytest.mark.parametrize("endpoint", ["submission", "direct_transaction"])
+async def test_publication_retry_after_operation_removal_returns_gone(wallet, endpoint):
+    from originproof_api.database import OperationRow
+
+    await activated(wallet)
+    signing = await draft(wallet)
+    _, operation = await confirmed_publication(wallet, signing)
+    with Session(wallet.engine) as db:
+        db.delete(db.get(OperationRow, operation["operation_id"]))
+        db.commit()
+    body = {
+        "request_id": "req_expired_operation",
+        "signing_request_id": signing["signing_request_id"],
+    }
+    if endpoint == "submission":
+        path = "/v3/publications"
+        body["signature"] = sign(signing)
+    else:
+        path = f"/v3/signing-requests/{signing['signing_request_id']}/transactions"
+        body["tx_hash"] = operation["tx_hash"]
+    response = await wallet.client.post(path, json=body)
+    assert response.status_code == 410, response.text
+    assert response.json()["detail"] == "RESULT_EXPIRED"
+
+
+async def test_submission_alias_reserves_request_id_and_replays_without_resending(wallet):
+    from originproof_api.wallet_database import WalletRequestRow
+
+    await activated(wallet)
+    signing = await draft(wallet)
+    _, operation = await confirmed_publication(wallet, signing)
+    alias = {
+        "request_id": "req_alias",
+        "signing_request_id": signing["signing_request_id"],
+        "signature": sign(signing),
+    }
+    for _ in range(2):
+        retry = await wallet.client.post("/v3/publications", json=alias)
+        assert retry.status_code == 202, retry.text
+        assert retry.json()["operation_id"] == operation["operation_id"]
+    second_response = await wallet.client.post(
+        "/v3/document-drafts",
+        json={
+            "request_id": "req_second_publication",
+            "doc_key": identifier_hash("another_notice"),
+            "expected_version": 1,
+            "expires_at": int(time.time()) + 86400,
+            "content": payment_content(),
+        },
+    )
+    assert second_response.status_code == 201, second_response.text
+    second = second_response.json()
+    changed = {
+        **alias,
+        "signing_request_id": second["signing_request_id"],
+        "signature": sign(second),
+    }
+    conflict = await wallet.client.post("/v3/publications", json=changed)
+    assert conflict.status_code == 409, conflict.text
+    assert conflict.json()["detail"] == "REQUEST_ID_CONFLICT"
+    with Session(wallet.engine) as db:
+        claim = db.get(WalletRequestRow, ("acct_i", "wallet_publish", "req_alias"))
+        assert claim.resource_id == operation["operation_id"]
+    accepted = await wallet.client.post(
+        "/v3/publications", json={**changed, "request_id": "req_new_publication"}
+    )
+    assert accepted.status_code == 202, accepted.text
+    assert accepted.json()["operation_id"] != operation["operation_id"]
+    assert wallet.chain.sends == []
+
+
+async def test_submission_alias_with_missing_operation_returns_gone(wallet):
+    from originproof_api.database import OperationRow
+
+    await activated(wallet)
+    signing = await draft(wallet)
+    _, operation = await confirmed_publication(wallet, signing)
+    alias = {
+        "request_id": "req_alias",
+        "signing_request_id": signing["signing_request_id"],
+        "signature": sign(signing),
+    }
+    assert (await wallet.client.post("/v3/publications", json=alias)).status_code == 202
+    with Session(wallet.engine) as db:
+        db.delete(db.get(OperationRow, operation["operation_id"]))
+        db.commit()
+    expired = await wallet.client.post("/v3/publications", json=alias)
+    assert expired.status_code == 410, expired.text
+    assert expired.json()["detail"] == "RESULT_EXPIRED"
+
+
 async def test_submission_replay_conflict_and_rpc_failure_never_resend(wallet):
     await activated(wallet)
     signing = await draft(wallet)

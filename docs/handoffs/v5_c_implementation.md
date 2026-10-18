@@ -70,6 +70,12 @@ KeyProof 없는 REACTIVATE는 공유 ABI의 0값 tuple과 빈 bytes를 전달하
 서명 뒤 미전송 작업은 RECONCILE을 안내하고 deadline 후 원래 요청·체인 nonce·문서 부재를
 확인한 경우에만 예약을 끝내 RESIGN을 안내합니다. 새 전송은 수행하지 않습니다.
 
+셀프 리뷰 후 직접 거래와 서명 재제출에서 Operation 누락을 `410 RESULT_EXPIRED`로
+처리했습니다. 이미 제출한 서명을 새 request ID로 재시도해도 기존 WalletRequestRow에
+입력 fingerprint·Operation 연결을 저장하여 다른 발행으로의 ID 재사용은 409로 거부합니다.
+동일 입력은 기존 Operation을 반환하며 추가 중계 전송을 하지 않습니다. DB/API 모델·ABI는
+그대로입니다. 이 후속 수정의 wallet HTTP·저장 검사 36 PASS, Ruff·diff 검사 통과입니다.
+
 API·코어 162 PASS / 4 live opt-in SKIP, 신규/기존 wallet HTTP·저장 검사 32 PASS,
 Ruff 통과입니다. 실제 Registry·브라우저 연결 완료와 구분합니다.
 

@@ -29,3 +29,12 @@ get_issuer_key_snapshot을 발행·검증에 연결했습니다. 기관과 키�
 이 branch에서는 W4 Registry가 연결되어 위 W3 최초 결과의 NOT_RUN/null 한계를 대체합니다.
 C 자체 실제 DB/체인 검사는 통과했으며 A 화면·D 독립 확인·공유 phase 병합·팀 리뷰는 대기입니다.
 [후속 연결·검사 상세](../api/w4_c_proof_lifecycle_contract.md)를 참조합니다.
+
+## 2026-10-18 V5-W3-C 셀프 리뷰 후속
+
+C / @Jordi2801K의 요청으로 Codex가 만료·재시도 반례와 최소 수정을 보조했습니다.
+Operation 누락은 서명 재제출·직접 거래 양쪽에서 410으로 처리하고, 새 ID로 기존 서명을
+재시도할 때 기존 WalletRequestRow에 fingerprint·Operation 연결을 보존했습니다.
+같은 ID·같은 입력은 동일 Operation, 다른 발행 입력은 409이며 새 ID의 정상 발행은 유지합니다.
+해당 wallet HTTP·저장 검사 36 PASS 및 Ruff·diff 검사 통과입니다. 실제 지갑 연결이나
+다른 팀원의 리뷰 완료를 의미하지 않습니다. 후속 W4~W6 및 #77에 순방향으로 반영합니다.
