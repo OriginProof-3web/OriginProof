@@ -615,11 +615,14 @@ async def confirmed_publication(w, signing, *, req="req_publish", tx_byte="67"):
     )
     for identity, prior in list(w.chain.documents.items()):
         if identity[0] == message.document_id:
+            state = prior.document.state
+            if prior.document.version == message.version - 1 and state == "ACTIVE":
+                state = "SUPERSEDED"
             w.chain.documents[identity] = prior.model_copy(
                 update={
                     "document": prior.document.model_copy(
                         update={
-                            "state": "SUPERSEDED",
+                            "state": state,
                             "latest_version": message.version,
                         }
                     )
@@ -1130,6 +1133,66 @@ async def test_next_version_preserves_original_and_revoked_latest_does_not_reviv
         rows = list(db.query(WalletDocumentRow).order_by(WalletDocumentRow.version))
         assert len(rows) == 2 and rows[0].original != rows[1].original
         assert rows[0].message["version"] == 1 and rows[1].message["version"] == 2
+
+
+async def test_revoked_history_survives_subsequent_versions_and_rejects_revoke(wallet):
+    await activated(wallet)
+    first, _ = await confirmed_publication(wallet, await draft(wallet))
+    await confirmed_revocation(wallet, first.document_id, 1)
+    revoked = wallet.chain.documents[(first.document_id, 1)].document
+    for version in (2, 3):
+        signing = await draft(wallet, request_id=f"req_draft{version}", version=version)
+        await confirmed_publication(
+            wallet, signing, req=f"req_publish{version}", tx_byte=f"6{version}"
+        )
+        history = await wallet.client.get(f"/v3/documents/{first.document_id}?version=1")
+        assert history.status_code == 200, history.text
+        assert history.json()["state"] == "REVOKED"
+        assert history.json()["latest_version"] == version
+        current = wallet.chain.documents[(first.document_id, 1)].document
+        assert current == revoked.model_copy(update={"latest_version": version})
+        repeated = await wallet.client.post(
+            "/v3/revoke-drafts",
+            json={
+                "request_id": f"req_revoke_again{version}",
+                "document_id": first.document_id,
+                "version": 1,
+            },
+        )
+        assert repeated.status_code == 409, repeated.text
+        assert repeated.json()["detail"] == "DOCUMENT_ALREADY_REVOKED"
+    second = await wallet.client.get(f"/v3/documents/{first.document_id}?version=2")
+    assert second.json()["state"] == "SUPERSEDED" and second.json()["latest_version"] == 3
+    latest = await wallet.client.get(f"/v3/documents/{first.document_id}")
+    assert latest.json()["state"] == "ACTIVE" and latest.json()["version"] == 3
+
+
+async def test_revocation_alias_replays_and_rejects_changed_body(wallet):
+    from originproof_api.wallet_database import WalletRequestRow, WalletSigningRow
+    from sqlalchemy import select
+
+    await activated(wallet)
+    doc, _ = await confirmed_publication(wallet, await draft(wallet))
+    operation = await confirmed_revocation(wallet, doc.document_id, 1)
+    with Session(wallet.engine) as db:
+        source = db.scalar(select(WalletSigningRow).where(WalletSigningRow.kind == "Revoke"))
+        alias = {
+            "request_id": "req_revoke_alias",
+            "signing_request_id": source.signing_request_id,
+            "signature": source.signature,
+        }
+    for _ in range(2):
+        retry = await wallet.client.post("/v3/revocations", json=alias)
+        assert (
+            retry.status_code == 202 and retry.json()["operation_id"] == operation["operation_id"]
+        )
+    changed = await wallet.client.post(
+        "/v3/revocations", json={**alias, "signature": "0x" + "00" * 65}
+    )
+    assert changed.status_code == 409 and changed.json()["detail"] == "REQUEST_ID_CONFLICT"
+    with Session(wallet.engine) as db:
+        claim = db.get(WalletRequestRow, ("acct_i", "wallet_revoke", "req_revoke_alias"))
+        assert claim.resource_id == operation["operation_id"]
 
 
 async def test_competing_drafts_and_other_institution_are_rejected(wallet):
