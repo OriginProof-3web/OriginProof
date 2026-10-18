@@ -57,3 +57,11 @@ W3 발행/현재 키 재검사와 W4 Proof lifecycle/consume은 다음 단계입
 
 최종 잠금 보완: PostgreSQL transaction advisory lock으로 취소/예외 시 자동 해제하며,
 실제 PG의 교차 연결 배제·취소 후 해제 검사도 통과했습니다.
+
+## 2026-10-18 지갑 공동승인 회귀 수정
+
+사용자님 확대 감사 지시에 따라 KeyProof request ID의 계정 내 challenge 간 충돌을 409로
+거부하고, 0 keyId·현재 signer 주소의 재사용 교체를 proof 소비 전에 거부했습니다.
+기존 계정 잠금과 저장 필드를 재사용했으며 migration·의존성은 추가하지 않았습니다.
+새 회귀 4개를 포함해 이 W2 작업본의 전체 Python은 512 PASS / 8 opt-in SKIP / 기존 경고 1개입니다.
+과거 종료 signer의 API 사전 조회는 B 이력 경계 연결 후 확인하며 실제 지갑 연결·독립 리뷰는 별도입니다.
