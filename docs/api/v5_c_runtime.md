@@ -24,10 +24,15 @@ PYTHONPATH=apps/api/src:packages/python:services/indexer/src uv run --all-packag
 | `API_WALLET_OPERATOR_ADDRESSES` | `{}`. 서버 계정→승인 지갑 주소 JSON. operator 역할과 실제 `is_approver`를 모두 검사합니다. |
 | `API_WALLET_INTERNAL_APPROVERS` | `{}`. 내부 issuer ID→같은 기관의 별도 승인 계정 ID JSON. 자기 승인은 거부합니다. |
 | `API_WALLET_DEMO_EMAIL_ENABLED` | false. 두 합성 명부의 `.example.invalid` 데모 전달만 허용합니다. |
+| `API_WALLET_EMAIL_SECRET` | 없음. 데모 메일 활성화 시 최소 32 UTF-8 바이트의 비공개 서버 비밀이 필요합니다. 기관 업무키와 별개이며 응답/Settings 출력에서 제외합니다. |
 | `API_WALLET_TEXT_INPUT_ENABLED` | false. V5-Q01 선정 전 합성 텍스트 검사만 opt-in하며 이미지/PDF/STT는 활성화하지 않습니다. |
 | `API_WALLET_RELAY_ENABLED` | false. 직접 기관 거래가 기본입니다. true이면 같은 port의 submit을 호출하며 불명확한 제출은 재전송하지 않습니다. |
 
-readiness는 migration head·세 역할·설정된 두 기관 계정·Registry 조회·활성 projection/worker 상태를 검사합니다. 신규 지갑 모드에서 서버 기관키 디렉터리를 요구하지 않습니다. 기존 projection은 구 Registry용이므로 실제 새 projection 연결을 별도로 확인합니다. 기존 DB·기존 기동 명령은 그대로 유지합니다. 새 모드의 두 계정 기관 ID는 명부의 iss_origin_mock_bank/iss_origin_mock_office와 맞춰 준비하며, 개인 .env의 기존 finals 기관 ID/projection 설정을 검토합니다.
+readiness는 migration head·세 역할·설정된 두 기관 계정·Registry 조회·활성 projection/worker 상태와 활성 데모 이메일의 서버 비밀을 검사합니다. 신규 지갑 모드에서 서버 기관키 디렉터리를 요구하지 않습니다. 기존 projection은 구 Registry용이므로 실제 새 projection 연결을 별도로 확인합니다. 기존 DB·기존 기동 명령은 그대로 유지합니다. 새 모드의 두 계정 기관 ID는 명부의 iss_origin_mock_bank/iss_origin_mock_office와 맞춰 준비하며, 개인 .env의 기존 finals 기관 ID/projection 설정을 검토합니다.
+
+이메일 비밀은 모든 API 인스턴스에서 동일하게 유지합니다. 변경하면 발급 중인 코드는 검증할 수
+없으므로 새로 발급해야 합니다. HMAC 이전 검증값은 소비하지 않고 무효화합니다. 만료/소비/
+5회 실패 시 검증값·데모 평문을 제거하고, 기동/300초 유지관리에서도 만료 자료를 정리합니다.
 
 ## A: 화면에서 사용할 순서
 
