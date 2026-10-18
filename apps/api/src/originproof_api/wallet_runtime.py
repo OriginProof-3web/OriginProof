@@ -22,7 +22,7 @@ from sqlalchemy.exc import IntegrityError
 
 from .accounts import require_csrf
 from .database import AccountRow, AuditEventRow, OperationRow
-from .operations import input_fingerprint
+from .operations import input_fingerprint, require_retained_operation
 from .wallet_database import WalletRequestRow, WalletSigningRow
 
 
@@ -175,6 +175,7 @@ class WalletRuntime:
         )
 
     def operation_view(self, row):
+        require_retained_operation(row, now())
         pending = row.status in ("PENDING_SUBMISSION", "UNKNOWN", "SUBMITTED")
         intent = row.input_body or {}
         next_action = "RECONCILE" if pending else "NONE"
@@ -192,6 +193,31 @@ class WalletRuntime:
             next_action=next_action,
         )
 
+    async def lock_operation(self, db, operation_id, tx_hash=None):
+        row = await db.get(OperationRow, operation_id)
+        if row is None:
+            raise HTTPException(410, "RESULT_EXPIRED")
+        signing_id = (row.input_body or {}).get("signing_request_id")
+        if signing_id:
+            # Keep the signing -> operation order used by direct intake, including FK writes.
+            await db.scalar(
+                select(WalletSigningRow)
+                .where(WalletSigningRow.signing_request_id == signing_id)
+                .with_for_update()
+            )
+        row = await db.scalar(
+            select(OperationRow)
+            .where(OperationRow.operation_id == operation_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        if row is None:
+            raise HTTPException(410, "RESULT_EXPIRED")
+        require_retained_operation(row, now())
+        if tx_hash and row.tx_hash and row.tx_hash != tx_hash:
+            raise HTTPException(409, "DIRECT_TX_ALREADY_BOUND")
+        return row
+
     async def operation_retry(self, db, account, action, body):
         claim = await db.get(WalletRequestRow, (account.account_id, action, body.request_id))
         if claim:
@@ -200,6 +226,7 @@ class WalletRuntime:
             row = await db.get(OperationRow, claim.resource_id)
             if row is None:
                 raise HTTPException(410, "RESULT_EXPIRED")
+            require_retained_operation(row, now())
             return row
         row = await db.scalar(
             select(OperationRow)
@@ -212,6 +239,8 @@ class WalletRuntime:
         )
         if row and row.input_hash != input_fingerprint(body.model_dump(mode="json")):
             raise HTTPException(409, "REQUEST_ID_CONFLICT")
+        if row:
+            require_retained_operation(row, now())
         return row
 
     def operation(self, db, account, action, body, target, intent):
