@@ -449,7 +449,10 @@ def confirm_on_synthetic_chain(live, signing):
     }
     for old in live.state["documents"]:
         if old["document"]["document_id"] == message.document_id:
-            old["document"].update(state="SUPERSEDED", latest_version=message.version)
+            document = old["document"]
+            if document["version"] == message.version - 1 and document["state"] == "ACTIVE":
+                document["state"] = "SUPERSEDED"
+            document["latest_version"] = message.version
     record = WalletDocument(
         **POSITION,
         document=DocumentView(
@@ -521,9 +524,24 @@ async def analysis_status(live, analysis_id, status):
 async def test_v5_backup_restore_preserves_original_signature_analysis_and_legacy(wallet_live):
     live = wallet_live
     first = await draft(live)
-    await publish(live, first)
+    operation = await publish(live, first)
+    alias = {
+        "request_id": "req_restore_alias",
+        "signing_request_id": first["signing_request_id"],
+        "signature": signed(first),
+    }
+    retries = await asyncio.gather(
+        *(live.bank.post("/v3/publications", json=alias) for _ in range(2))
+    )
+    for retry in retries:
+        assert retry.status_code == 202, retry.text
+        assert retry.json()["operation_id"] == operation["operation_id"]
+    old = live.state["documents"][0]["document"]
+    old["state"] = "REVOKED"
+    revoked = dict(old)
     second = await draft(live, "req_second", 2)
     await publish(live, second, "req_publish_second")
+    assert old == revoked | {"latest_version": 2}
     _, analysis_id = await analyze(live, retain_report=True, retain_original=True)
     report = await until(lambda: analysis_status(live, analysis_id, "COMPLETED"))
     did = first["message"]["documentId"]
@@ -573,6 +591,19 @@ async def test_v5_backup_restore_preserves_original_signature_analysis_and_legac
         live.start()
         await wait_http(live.url + "/health/ready")
         bank = await live.login("bank")
+        retry = await bank.post("/v3/publications", json=alias)
+        assert (
+            retry.status_code == 202 and retry.json()["operation_id"] == operation["operation_id"]
+        )
+        conflict = await bank.post(
+            "/v3/publications",
+            json={
+                **alias,
+                "signing_request_id": second["signing_request_id"],
+                "signature": signed(second),
+            },
+        )
+        assert conflict.status_code == 409 and conflict.json()["detail"] == "REQUEST_ID_CONFLICT"
         assert (
             await bank.get(f"/v3/documents/{did}/verification-material?version=1")
         ).json() == material
