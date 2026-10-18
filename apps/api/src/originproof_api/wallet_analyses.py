@@ -1,7 +1,6 @@
 """Owned analysis jobs and retention; input selection and real analyzer remain explicit."""
 
 import asyncio
-from datetime import UTC, datetime, timedelta
 from typing import Annotated
 from uuid import uuid4
 
@@ -19,7 +18,7 @@ from sqlalchemy import BigInteger, and_, cast, delete, or_, select, update
 
 from .accounts import current_session
 from .database import AuditEventRow, OperationRow
-from .operations import input_fingerprint
+from .operations import expired_wallet_audits, expired_wallet_operations, input_fingerprint
 from .wallet_database import (
     WalletAnalysisRow,
     WalletDocumentRow,
@@ -473,35 +472,13 @@ async def cleanup(app, *, restart=False, account_id=None):
         await db.execute(
             delete(WalletVerificationRow).where(WalletVerificationRow.expires_at <= stamp)
         )
-        expired_operation = and_(
-            OperationRow.action.startswith("wallet_", autoescape=True),
-            OperationRow.status.in_(("CONFIRMED", "FAILED")),
-            cast(OperationRow.recovery_reference["resolved_at"].as_string(), BigInteger)
-            <= stamp - 30 * 86400,
-        )
+        expired_operation = expired_wallet_operations(stamp)
         expired_ids = select(OperationRow.operation_id).where(expired_operation)
         await db.execute(
             delete(WalletRequestRow).where(WalletRequestRow.resource_id.in_(expired_ids))
         )
         await db.execute(delete(OperationRow).where(expired_operation))
-        protected = (
-            select(OperationRow.operation_id)
-            .where(
-                OperationRow.action.startswith("wallet_", autoescape=True),
-                or_(
-                    OperationRow.target_id == AuditEventRow.target_id,
-                    OperationRow.operation_id == AuditEventRow.target_id,
-                ),
-            )
-            .exists()
-        )
-        await db.execute(
-            delete(AuditEventRow).where(
-                AuditEventRow.action.startswith("wallet_", autoescape=True),
-                AuditEventRow.created_at < datetime.fromtimestamp(stamp, UTC) - timedelta(days=30),
-                ~protected,
-            )
-        )
+        await db.execute(delete(AuditEventRow).where(expired_wallet_audits(stamp)))
         await service.commit(db)
     app.state.analysis_worker_error = None
     return queued
