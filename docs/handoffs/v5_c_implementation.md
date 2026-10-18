@@ -118,3 +118,56 @@ clean 사본은 git archive로 커밋 파일만 푼 뒤 개인 .env 없이 froze
 최초 [원격 CI](https://github.com/OriginProof-3web/OriginProof/actions/runs/38870469663)는 c-recovery/Contract 검사를 통과했으나 python-quality의 새 검사 수집에서 실패했습니다. `python -m pytest`에만 있던 cwd import 경로에 의존한 원인이었고, 검사에서 CLI 파일을 `importlib.util`로 직접 로드하도록 `b3c10a5`에서 수정했습니다. 로컬에서도 CI와 같은 `pytest` 명령으로 실패를 재현한 뒤 전체 통과를 확인했습니다. 최종 head의 원격 재실행과 작성자 외 리뷰는 별도로 확인합니다.
 
 다음 담당/조건: B의 실제 Registry·canonical Adapter/manifest·G07, D의 선정 입력/모델·독립 재현, A의 실제 지갑/화면 소비·소유자 리뷰가 준비되면 같은 후보로 연결합니다. C는 해당 연결의 API/DB 결함과 후보/lockfile/migration/manifest를 정리합니다. 실제 모델 평가·다른 PC·서비스 API 밖 실제 배포 검증·전체 리허설 3회가 없어 통합 RC 또는 W6/W7 전체 완료로 판정하지 않습니다.
+### 2026-10-18 W2 리뷰 보완
+
+이메일 검증값은 `API_WALLET_EMAIL_SECRET`의 최소 32바이트 서버 비밀을 사용하는
+HMAC-SHA256으로 바꿨습니다. 비밀은 Settings repr/직렬화·응답에서 제외하며 기관 지갑키와
+무관합니다. 설정이 없으면 코드 발급·검증을 성공시키지 않습니다. 이전 SHA 검증값은
+확인하지 않고 무효화해 재발급합니다. 기존 만료/재발급/누적 실패 제한과 원자적 소비를
+유지하고, 만료·소비·5회 실패 시 검증값/데모 평문을 지웁니다. 시작 시와 정상 가동 중
+300초 간격으로 만료 코드를 정리하며, 조회·검증에서도 만료 직후 접근을 차단합니다.
+
+KeyProof 없는 REACTIVATE는 공유 ABI의 0값 tuple과 빈 bytes를 전달하도록 W5 보완을
+이 단계로 앞당겼습니다. API가 실제 저장한 인자를 커밋된 인터페이스 ABI와 Foundry cast로
+인코딩하는 회귀를 추가했습니다. cast 없는 환경에서는 해당 검사는 명시적으로 skip합니다.
+원본/소비자·기존 계약 변경은 없으며 실제 B Registry·지갑 연결 검사는 별도입니다.
+
+이 보완 소스의 전체 Python 검사(API·core·analyzer·indexer·scripts/ci)는 463 PASS /
+8 live opt-in SKIP / 기존 Starlette 경고 1건입니다. Ruff·diff 검사도 통과했습니다.
+
+### 2026-10-18 W3 리뷰 보완
+
+철회 확정은 요청의 기관·doc_key·documentId·version과 실제 REVOKED 효과가 모두 같을 때만
+허용합니다. SUPERSEDED/ACTIVE/EXPIRED 및 다른 문서·버전은 UNKNOWN으로 유지합니다.
+이 단계에 아직 철회 HTTP 경로가 없으므로 공통 확정 함수를 실제 저장 요청·서명·receipt와
+대조하는 8개 거부/성공 회귀로 먼저 검사했고 W4에서 HTTP 경로를 추가 검사합니다.
+서명 뒤 미전송 작업은 RECONCILE을 안내하고 deadline 후 원래 요청·체인 nonce·문서 부재를
+확인한 경우에만 예약을 끝내 RESIGN을 안내합니다. 새 전송은 수행하지 않습니다.
+
+API·코어 162 PASS / 4 live opt-in SKIP, 신규/기존 wallet HTTP·저장 검사 32 PASS,
+Ruff 통과입니다. 실제 Registry·브라우저 연결 완료와 구분합니다.
+
+### 2026-10-18 W4 리뷰 보완
+
+철회 HTTP 경로에서 SUPERSEDED 문서와 성공 receipt만 관측하면 UNKNOWN을 유지하는
+사례를 추가했습니다. 이후 같은 원래 거래의 REVOKED 효과가 관측되면 재전송 없이
+CONFIRMED로 복구합니다. 기존 성공 helper는 관측 상태를 인자로 받아, 항상 REVOKED를
+먼저 주입하는 테스트 공백을 없앴습니다. wallet HTTP·저장 및 core 검사 81 PASS,
+Ruff 통과이며 실제 EVM 원자성·경쟁 성공을 뜻하지 않습니다.
+
+### 2026-10-18 W5 리뷰 보완
+
+DG12의 겹치는 반복 인용은 첫 일치 다음 코드 포인트부터 두 번째 일치를 찾도록 고쳤습니다.
+위치 없는 모호 인용은 거부하고, 정확히 지정한 두 위치와 Unicode 코드 포인트는 허용합니다.
+
+분석 요청은 자기 계정의 만료/시간 초과 작업만 잠그고 정리합니다. 이메일·전체 원본·서명·
+Operation·감사는 기존 300초 maintenance/시작 정리에서 처리합니다. 만료 즉시 읽기 거부,
+재시작 정리, 늦은 결과 차단과 원본/보고서 독립 보관을 유지합니다. 이메일 정리는 W2의
+HMAC 만료 정리를 공통 maintenance에서 호출하므로 중복 worker를 두지 않습니다.
+Operation 보관 정리는 SQL에서 만료 wallet 작업만 선택하고 미해결/최근 작업을 보호합니다.
+감사 삭제는 정확한 `wallet_` 이름 공간에만 적용하며 기존 v1/v2 및 유사 이름은 보존합니다.
+실제 기존 DB를 삭제하거나 보관 정책을 소급 적용한 것은 아닙니다.
+
+전체 Python 519 PASS / 9 SKIP / 기존 경고 1건, Ruff·diff 검사 통과입니다.
+공유 revision 0.2의 기존 원본 모델을 바꾸지 않았으며 재생성 정합성을 확인합니다.
+B ABI/상태·A 응답·D grounding 소비 리뷰는 실제 확인 전까지 대기이며 대신 기록하지 않습니다.

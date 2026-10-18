@@ -21,6 +21,11 @@ async def check_ready(app):
         settings = app.state.settings
         if app.state.analysis_worker_error:
             raise ValueError("wallet maintenance unavailable")
+        if settings.wallet_demo_email_enabled and (
+            settings.wallet_email_secret is None
+            or len(settings.wallet_email_secret.get_secret_value().encode()) < 32
+        ):
+            raise ValueError("email verifier not configured")
         roles = {row.role for row in accounts}
         issuers = {row.issuer_id for row in accounts if row.role == "issuer"}
         if (

@@ -175,13 +175,11 @@ class WalletRuntime:
         )
 
     def operation_view(self, row):
-        pending = row.status in ("UNKNOWN", "SUBMITTED")
+        pending = row.status in ("PENDING_SUBMISSION", "UNKNOWN", "SUBMITTED")
         intent = row.input_body or {}
-        action = (
-            "RECONCILE" if pending else ("WAIT" if row.status == "PENDING_SUBMISSION" else "NONE")
-        )
+        next_action = "RECONCILE" if pending else "NONE"
         if row.error_code == "SIGNATURE_EXPIRED":
-            action = "RESIGN"
+            next_action = "RESIGN"
         return OperationView(
             operation_id=row.operation_id,
             request_id=row.request_id,
@@ -191,7 +189,7 @@ class WalletRuntime:
             version=intent.get("version"),
             recovery_required=pending,
             error_code=row.error_code,
-            next_action=action,
+            next_action=next_action,
         )
 
     async def operation_retry(self, db, account, action, body):
