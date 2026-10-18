@@ -238,8 +238,12 @@ async def submit_signed(body, request, identity, kind):
                 )
             )
         )
+        domain = service.domain.model_dump(by_alias=True)
+        # Nonces are per deployment; unresolved work from another domain stays preserved.
         if any(
-            row.input_body["arguments"]["message"]["nonce"] == issuer.next_nonce for row in pending
+            row.input_body["arguments"]["message"]["nonce"] == issuer.next_nonce
+            and row.recovery_reference.get("domain") == domain
+            for row in pending
         ):
             raise HTTPException(409, "NONCE_ALREADY_RESERVED")
         message = signing.message
@@ -384,9 +388,9 @@ async def reconcile(operation_id: str, request: Request, identity: Identity):
         row = await owned_operation(service, db, operation_id, account)
         if row.status in ("CONFIRMED", "FAILED"):
             return service.operation_view(row)
-        for tx_hash in dict.fromkeys((row.tx_hash, row.recovery_reference.get("lookup_tx_hash"))):
-            if not tx_hash:
-                continue
+        # A verified binding supersedes a stale lookup candidate left by a rejected race.
+        tx_hash = row.tx_hash or row.recovery_reference.get("lookup_tx_hash")
+        if tx_hash:
             try:
                 result = await accept_transaction(service, db, row, tx_hash)
             except HTTPException as error:

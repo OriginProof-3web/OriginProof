@@ -7,9 +7,13 @@ import pytest
 from originproof_api.database import AuditEventRow, OperationRow
 from originproof_api.wallet_database import WalletRequestRow
 from originproof_core import DependencyUnavailableError
+from originproof_core.wallet_contract import SigningRequest
+from originproof_core.wallet_ports import WalletTransaction
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from test_wallet_runtime import (
+    APPROVERS,
+    BLOCK,
     ISSUER,
     activated,
     confirmed_publication,
@@ -18,6 +22,95 @@ from test_wallet_runtime import (
 )
 
 pytest_plugins = ("test_wallet_runtime",)
+
+
+async def publish(w, signing, request_id):
+    return await w.client.post(
+        "/v3/publications",
+        json={
+            "request_id": request_id,
+            "signing_request_id": signing["signing_request_id"],
+            "signature": sign(signing),
+        },
+    )
+
+
+@pytest.mark.parametrize("change", ["address", "chain_id"])
+async def test_pending_nonce_reservation_is_scoped_to_its_deployment(wallet, change):
+    await activated(wallet)
+    old = await draft(wallet, request_id="req_old_draft")
+    accepted = await publish(wallet, old, "req_old_publish")
+    assert accepted.status_code == 202, accepted.text
+    same = await publish(wallet, await draft(wallet, request_id="req_same_draft"), "req_same")
+    assert same.status_code == 409 and same.json()["detail"] == "NONCE_ALREADY_RESERVED"
+    settings = wallet.app.state.settings
+    if change == "address":
+        settings.wallet_registry_address = "0x" + "34" * 20
+    else:
+        settings.blockchain_chain_id = 31338
+    domain = wallet.app.state.wallet_runtime.domain
+    for rows in (wallet.chain.issuers, wallet.chain.keys):
+        for key, value in rows.items():
+            rows[key] = value.model_copy(
+                update={
+                    "chain_id": domain.chain_id,
+                    "verifying_contract": domain.verifying_contract,
+                }
+            )
+    new = await draft(wallet, request_id="req_new_draft")
+    assert new["domain"] != old["domain"] and new["message"]["nonce"] == old["message"]["nonce"]
+    submitted = await publish(wallet, new, "req_new_publish")
+    assert submitted.status_code == 202, submitted.text
+    repeat = await publish(wallet, await draft(wallet, request_id="req_repeat"), "req_repeat")
+    assert repeat.status_code == 409 and repeat.json()["detail"] == "NONCE_ALREADY_RESERVED"
+    stale = await wallet.client.post(f"/v3/operations/{accepted.json()['operation_id']}/reconcile")
+    assert stale.status_code == 409 and stale.json()["detail"] == "DEPLOYMENT_CHANGED"
+    with Session(wallet.engine) as db:
+        row = db.get(OperationRow, accepted.json()["operation_id"])
+        assert row.status == accepted.json()["status"] and row.error_code is None
+        assert row.recovery_reference["domain"] == old["domain"]
+    assert wallet.chain.sends == []
+
+
+async def test_reconcile_keeps_bound_hash_over_a_stale_lookup_candidate(wallet):
+    await activated(wallet)
+    signing = await draft(wallet)
+    accepted = await publish(wallet, signing, "req_publish")
+    operation_id = accepted.json()["operation_id"]
+    bound, stale = "0x" + "91" * 32, "0x" + "92" * 32
+    message = SigningRequest.model_validate(signing).message
+    wallet.chain.transactions[bound] = WalletTransaction(
+        **BLOCK,
+        tx_hash=bound,
+        sender=APPROVERS[0],
+        action="Publish",
+        status="SUBMITTED",
+        arguments={"message": message.model_dump(by_alias=True), "signature": sign(signing)},
+    )
+
+    async def direct(request_id, tx_hash):
+        return await wallet.client.post(
+            f"/v3/signing-requests/{signing['signing_request_id']}/transactions",
+            json={
+                "request_id": request_id,
+                "signing_request_id": signing["signing_request_id"],
+                "tx_hash": tx_hash,
+            },
+        )
+
+    first = await direct("req_bound", bound)
+    assert first.status_code == 202 and first.json()["status"] == "SUBMITTED", first.text
+    # PostgreSQL race: the losing intake saved its lookup intent before A was bound.
+    with Session(wallet.engine) as db:
+        row = db.get(OperationRow, operation_id)
+        row.recovery_reference = row.recovery_reference | {"lookup_tx_hash": stale}
+        db.commit()
+    rejected = await direct("req_stale", stale)
+    assert rejected.status_code == 409 and rejected.json()["detail"] == "DIRECT_TX_ALREADY_BOUND"
+    reconciled = await wallet.client.post(f"/v3/operations/{operation_id}/reconcile")
+    assert reconciled.status_code == 202, reconciled.text
+    assert reconciled.json()["status"] == "SUBMITTED" and reconciled.json()["tx_hash"] == bound
+    assert wallet.chain.sends == []
 
 
 @pytest.mark.parametrize("bad_candidate", [False, True])
