@@ -19,6 +19,13 @@ async def check_ready(app):
             revision = await db.scalar(text("SELECT version_num FROM alembic_version"))
             accounts = list(await db.scalars(select(AccountRow)))
         settings = app.state.settings
+        if getattr(app.state, "wallet_email_cleanup_error", None):
+            raise ValueError("email cleanup unavailable")
+        if settings.wallet_demo_email_enabled and (
+            settings.wallet_email_secret is None
+            or len(settings.wallet_email_secret.get_secret_value().encode()) < 32
+        ):
+            raise ValueError("email verifier not configured")
         roles = {row.role for row in accounts}
         issuers = {row.issuer_id for row in accounts if row.role == "issuer"}
         if (

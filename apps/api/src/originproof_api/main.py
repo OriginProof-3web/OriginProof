@@ -29,6 +29,7 @@ from .repositories import SqlAlchemyProofRepository
 from .security import RequestSecurity
 from .settings import Settings
 from .wallet_governance import router as wallet_governance_router
+from .wallet_onboarding import expire_codes, maintain_email_codes
 from .wallet_onboarding import router as wallet_onboarding_router
 from .wallet_runtime import WalletRuntime
 
@@ -77,17 +78,20 @@ def create_app(
     @asynccontextmanager
     async def lifespan(_: FastAPI):
         stop = asyncio.Event()
-        task = (
-            asyncio.create_task(run_projection(app, stop))
-            if app_settings.projection_enabled
-            else None
-        )
+        task = email_task = None
         try:
+            if app_settings.wallet_demo_email_enabled:
+                await expire_codes(app)
+                email_task = asyncio.create_task(maintain_email_codes(app, stop))
+            if app_settings.projection_enabled:
+                task = asyncio.create_task(run_projection(app, stop))
             yield
         finally:
             stop.set()
             if task:
                 await task
+            if email_task:
+                await email_task
             await app_database.dispose()
 
     app = FastAPI(
