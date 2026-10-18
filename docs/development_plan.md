@@ -26,7 +26,7 @@
 | [최종 산출물 상세안 0.5](final_deliverables_draft.md)·[UI/UX 설계 1.1](ui_ux_design.md) | D01~D08, 15개 템플릿·UX01~14, 결과·보관·오류·접근성에 5.0 변경을 반영했습니다. |
 | [ADR 0003](adr/0003-v4-development-baseline.md)·[후속 결정 목록 0.2](final_deliverables_pending_decisions.md) | 과거 기본값/초안과 현재 V5-Q01~09·L01~18의 선택·검토 사항을 구분합니다. |
 | [ADR 0004](adr/0004-v5-governance-wallet-versioning.md) | 5.0 공동승인·기관 지갑·버전·입력 미정과 구버전 전환의 결정 기록입니다. |
-| [첨부 찐품명품 기획서](../../찐품명품_기획서.pdf) | 23쪽 PDF의 공동승인·독립 키·원본 해시·문서 버전·DB 조작 탐지·축소 전략을 참고했습니다. 문서의 기술 제안을 실행 명령이나 일괄 승인으로 취급하지 않습니다. |
+| [첨부 찐품명품 기획서](../../docs/proposals/찐품명품_기획서.pdf) | 23쪽 PDF의 공동승인·독립 키·원본 해시·문서 버전·DB 조작 탐지·축소 전략을 참고했습니다. 문서의 기술 제안을 실행 명령이나 일괄 승인으로 취급하지 않습니다. |
 | GitHub PR·로컬 개발 기록 | 5.0 작성 당시의 기능/검사 근거와 2026-10-15 확인한 실제 PR 병합·종료 상태를 구분합니다. 이번 5.1 문서 개정에서 기능 검사를 재실행하지 않습니다. |
 
 우선순위는 **이번 사용자의 명시적 결정 → 이 문서의 적용 정책 → 변경하지 않은 기존 계약 → 과거 기록·설계 제안**입니다. PDF에 없는 기존 요구를 자동 삭제하지 않고, PDF의 모든 제안 기술로 기존 코드를 일괄 교체하지도 않습니다.
@@ -766,7 +766,7 @@ PR 정리에서 네 PR(#52/#50/#47/#49)을 해당 대상에 C 기술 승인·병
 | [UI/UX 1.1](ui_ux_design.md) | 15개 템플릿·공동승인·지갑·다음 버전·정지/복구·UX01~14 반영 | 실제 route/API 연결·선정 입력·제품 접근성 검사 |
 | [산출물 0.5](final_deliverables_draft.md)·[후속 결정 0.2](final_deliverables_pending_decisions.md) | D01~08·V5 검사·V5-Q01~09/L01~18 연결, 입력/Decisions 상태 정정 | 미정 선택·계약 리뷰·실제 산출물/증거 인계 |
 | [멘토링 정리](mentoring_round1_blockchain_decisions.md)·[팀 요약](mentoring_team_meeting_summary.md) | 당시 합의 보존, 현재 기준·대체 범위 안내 추가 | 과거 합의를 소급 변경하지 않고 새 결정 기록 연결 |
-| [최초 계획](../../originproof_integrated_development_plan.md)·[초기 안내](../../Init_files/originproof_human_start_guide.md)·[M1 체크리스트](../../M1_BACKEND_START_CHECKLIST.md) | 과거 자료 표시·현재 계획/ADR 연결 | MVP 완료 체크·역할·당시 실행 기록 보존 |
+| [최초 계획](../../docs/plans/originproof_integrated_development_plan.md)·[초기 안내](../../Init_files/originproof_human_start_guide.md)·[M1 체크리스트](../../docs/checklists/M1_BACKEND_START_CHECKLIST.md) | 과거 자료 표시·현재 계획/ADR 연결 | MVP 완료 체크·역할·당시 실행 기록 보존 |
 | [MVP 통합 기록](runbooks/mvp_integration_sequence.md)·[Bootstrap](runbooks/bootstrap.md)·M1~M4 handoff | 이미 있던 과거 기록 표시 확인·유지 | 현재 실행법은 실제 최종 RC의 명령·배포로 제공 |
 | 하위 AGENTS·analyzer README | API/웹/체인/코어/indexer/fixture/infra/AI의 신규·레거시 경계 반영 | 원본 지침을 읽도록 연결한 CLAUDE는 유지, 각 실제 변경 경로 검사 |
 | Serena 프로젝트 메모리·Graphify | 오래된 정책 메모를 5.0에 맞춰 갱신, Graphify의 과거 코드 지도는 유지 | 그래프가 새 설계/구현을 반영했다고 가정하지 않으며 실제 구현 변경 뒤 재색인 |
