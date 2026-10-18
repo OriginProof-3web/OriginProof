@@ -60,7 +60,7 @@ issuer ID, signer, 정수 초 기간, status, selected, deployment ID만 포함�
 
 - API_SIGNER_DIRECTORY 기본값 build/secrets/issuer-signers. 디렉터리 0700·파일 0600·소유자 확인,
   symlink 거부, 독점 생성·fsync, 재시작 challenge 검증. 없어지거나 달라진 키를 자동 재생성하지 않습니다.
-- Compose API의 issuer-signers named volume이 /app/build/secrets를 영속 보관합니다.
+- Compose API의 issuer-signers named volume이 /workspace/build/secrets를 영속 보관합니다.
   demo-reset의 volume 삭제는 해당 합성 서명기도 삭제합니다. 보존 환경에서 임의 실행하지 않습니다.
 - 키 폐기 요청은 확정 전에도 신규 발행 선택을 차단합니다. RPC/기간/폐기/다른 배포/secret 오류를
   ACTIVE 선택으로 표시하지 않습니다. 실제 발행 직전 기관/키/서명기 재검사는 W3에서 연결합니다.

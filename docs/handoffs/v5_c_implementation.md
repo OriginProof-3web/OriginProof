@@ -25,7 +25,7 @@
 
 - 재사용 기준: 위 원본·중복·책임 경계를 확정했습니다.
 - nonce 보완: #50의 제출 전 예약 해제와 실패/취소 두 회귀를 반영했습니다. 제출 결과 UNKNOWN의 예약 유지도 검사했습니다. Writer+기존 API 회귀 62 PASS, Ruff·diff 검사 통과입니다. 실제 RPC/기관 지갑 연결 검사는 아닙니다.
-- DB/API·후속 연결: 해당 구현 커밋과 실행 결과를 아래에 갱신합니다.
+- DB/API 후속 구현·검사와 baseline 보완 기록은 아래에 있습니다.
 
 ### W2 C 독립 구현
 
@@ -49,3 +49,31 @@ KeyProof 없는 REACTIVATE는 공유 ABI의 0값 tuple과 빈 bytes를 전달하
 
 이 보완 소스의 전체 Python 검사(API·core·analyzer·indexer·scripts/ci)는 463 PASS /
 8 live opt-in SKIP / 기존 Starlette 경고 1건입니다. Ruff·diff 검사도 통과했습니다.
+
+- DB/API·후속 연결: #59~#63의 후속 브랜치에 구현·검사 기록이 있습니다.
+  이 baseline에는 신규 지갑 API가 없으며 후속 구현을 완료한 것으로 표시하지 않습니다.
+
+## 2026-10-18 baseline 리뷰 보완
+
+공식 integration `5470558`(#80 포함)을 병합해 CI/indexer 수집과 D의 기존 자료를
+보존했습니다. `fixtures/finals/README.md` 충돌은 W3 자료와 V5 D QA 설명을 모두 유지해
+해결했습니다. #58 nonce 실패/취소 회귀도 baseline에 포함돼 있습니다.
+
+0006은 현재 projection 모델을 런타임 import하지 않고 당시와 같은 네 테이블 정의를
+revision 안에 고정했습니다. revision ID·DDL·적용된 DB는 바꾸지 않습니다. 이미 적용한 DB는
+재실행하지 않으며 데이터 변환·새 테이블 변경은 새 revision으로 합니다. 재적용의 projection
+자료 보존, 모델 DDL 일치, downgrade 시 API 자료 보존을 회귀로 검사합니다. Alembic 대상에는
+projection metadata도 등록해 자동생성이 기존 체인 테이블 삭제를 제안하지 않게 했습니다.
+
+레거시 readiness는 미리 등록된 MVP 기관과 신규 발행 기관 ID가 충돌하는 설정을 거부합니다.
+`.env.example`의 분리된 두 ID를 사용해야 하며 신규 지갑 모드에는 이 레거시 배포 조건을
+적용하지 않습니다. Compose secret 경로도 `/workspace/build/secrets`로 정정했습니다.
+
+레거시 P0는 API 세션으로 기관을 구분하고 공통 EVM 호출자를 사용합니다. 이를 기관별 체인
+권한 검증 성공으로 간주하지 않습니다. 수신자 목록은 합성 데모 공용 주소록이라는 기존 범위를
+명시했습니다. 기관별 주소록·체인 역할 재설계·A 화면 보완은 이 baseline에서 추가하지 않습니다.
+과거 lifecycle 표시·서명 시각 정책은 해당 ADR/담당 리뷰로 남기며 지갑 정책으로 소급하지 않습니다.
+기존 phase 보존 및 작업→단계→integration 흐름을 유지하고 #77은 검증 후보로만 사용합니다.
+
+이 baseline의 전체 Python 검사 494 PASS / 8 SKIP / 기존 Starlette 경고 1건,
+Ruff·diff 검사 통과입니다. 실제 기존 DB의 변경·다운그레이드는 실행하지 않았습니다.
