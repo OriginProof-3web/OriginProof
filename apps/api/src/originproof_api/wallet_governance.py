@@ -259,11 +259,17 @@ def match_transaction(tx, intent):
 
 
 async def accept_transaction(service, db, row, tx_hash):
+    row = await service.lock_operation(db, row.operation_id, tx_hash)
+    if row.status in ("CONFIRMED", "FAILED"):
+        return service.operation_view(row)
     # Persist the receipt lookup intent before any RPC; recovery never submits a transaction.
     row.recovery_reference = row.recovery_reference | {"lookup_tx_hash": tx_hash}
     row.status = "UNKNOWN"
     await service.commit(db)
     tx = await service.rpc("transaction", tx_hash)
+    row = await service.lock_operation(db, row.operation_id, tx_hash)
+    if row.status in ("CONFIRMED", "FAILED"):
+        return service.operation_view(row)
     if tx is None:
         return service.operation_view(row)
     if tx.tx_hash != tx_hash or not match_transaction(tx, row.input_body):
@@ -327,6 +333,8 @@ async def accept_transaction(service, db, row, tx_hash):
             or chain.document.state != "REVOKED"
         ):
             row.status = "UNKNOWN"
+    if row.status in ("CONFIRMED", "FAILED"):
+        row.recovery_reference = row.recovery_reference | {"resolved_at": now()}
     await service.commit(db)
     return service.operation_view(row)
 
