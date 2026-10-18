@@ -45,7 +45,7 @@ readiness는 migration head·세 역할·설정된 두 기관 계정·Registry �
 5. `revoke-drafts` → 별도 Revoke 서명 → `revocations`도 같은 흐름입니다. 정지 중 현재 비사고 키의 철회는 허용합니다. 최신 버전 철회로 과거 버전을 복구하지 않습니다.
 6. 공개 `/documents/{id}`는 version 생략 시 최신을 명시합니다. `/verification-material`은 기관 원본·서명과 체인 식별을 제공합니다. 만료/미보관은 410입니다. `/verifications`에는 `request_id`가 필수입니다. ID 단독은 INCONCLUSIVE이며 전체 필드/원본 비교와 구분합니다. 원본이 없어도 확인 가능한 정지/사고 경고를 유지합니다.
 
-같은 request ID의 본문 변경은 409입니다. 잘못된 직접 txHash는 올바른 서명 요청을 영구 무효화하지 않습니다. nonce는 가스 nonce와 별개이며 같은 기관의 미확정 업무 nonce가 있으면 409입니다. 구 `/v1/operations/{id}/recover`로 신규 작업을 복구하지 않고 v3 reconcile을 사용합니다.
+같은 request ID의 본문 변경은 409입니다. 잘못된 직접 txHash는 올바른 서명 요청을 영구 무효화하지 않습니다. nonce는 가스 nonce와 별개이며 같은 배포(chainId·Registry 주소)에서 같은 기관의 미확정 업무 nonce가 있으면 409입니다. 이전 배포의 미해결 작업은 삭제하지 않고 보존하되 현재 배포의 예약으로 보지 않습니다. 구 `/v1/operations/{id}/recover`로 신규 작업을 복구하지 않고 v3 reconcile을 사용합니다.
 
 KeyProof의 request ID는 같은 계정의 다른 challenge 사이에서도 중복 본문을 검사합니다.
 다른 challenge/서명으로 재사용하면 `409 REQUEST_ID_CONFLICT`이며 해당 새 proof를 소비하지 않습니다.
@@ -58,8 +58,9 @@ Operation 보관 만료 뒤 서명 재제출과 직접 tx 접수는 `410 RESULT_
 정리 시 해당 Operation에 연결된 재시도 ID 기록도 함께 삭제합니다.
 
 직접 거래 조회의 RPC 전후에는 서명 요청 → Operation 순서로 잠그고 최신 상태와 해시 binding을
-다시 확인합니다. 먼저 확정된 결과를 늦은 응답이 덮어쓰지 않습니다. reconcile은 정식 txHash와
-중단 전에 저장한 lookup 후보부터 조회하며, 잘못된 미검증 후보는 intent 검색으로 복구합니다.
+다시 확인합니다. 먼저 확정된 결과를 늦은 응답이 덮어쓰지 않습니다. reconcile은 검증된 정식 txHash가
+있으면 그 해시만, 없으면 중단 전에 저장한 lookup 후보를 먼저 조회합니다. 동시 접수에서 거부된 다른
+후보가 남아도 정식 해시를 우선하며, 잘못된 미검증 후보는 intent 검색으로 복구합니다.
 기존 `/v1/operations`의 신규 wallet 작업도 `RECONCILE`/`RESIGN`을 안내합니다.
 
 정상·거부 요청의 실행 가능한 예시는 [HTTP 검사](../../apps/api/tests/test_wallet_runtime.py)와 [분석 검사](../../apps/api/tests/test_wallet_analyses.py)에 있습니다. 기존 v1/v2 binding·consume은 그대로 보존하며 새 공개 문서에 consume을 추가하지 않습니다.
