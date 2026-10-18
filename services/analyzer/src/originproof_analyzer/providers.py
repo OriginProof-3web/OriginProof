@@ -27,7 +27,7 @@ from .inputs import SemanticInput
 from .settings import AnalyzerSettings
 from .validation import EXTRACTED_FIELDS, validate_candidate
 
-PROMPT_VERSION = "card_payment_notice_v3"
+PROMPT_VERSION = "card_payment_notice_v4"
 
 
 class LLMProvider(Protocol):
