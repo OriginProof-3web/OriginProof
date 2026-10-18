@@ -961,7 +961,7 @@ async def test_wrong_receipt_cannot_poison_a_signing_request(wallet):
     assert confirmed["status"] == "CONFIRMED"
 
 
-async def confirmed_revocation(w, did, version, *, req="req_revoke"):
+async def confirmed_revocation(w, did, version, *, req="req_revoke", observed_state="REVOKED"):
     response = await w.client.post(
         "/v3/revoke-drafts",
         json={"request_id": "req_revoke_draft_" + req, "document_id": did, "version": version},
@@ -979,7 +979,7 @@ async def confirmed_revocation(w, did, version, *, req="req_revoke"):
     assert submitted.status_code == 202, submitted.text
     old = w.chain.documents[(did, version)]
     w.chain.documents[(did, version)] = old.model_copy(
-        update={"document": old.document.model_copy(update={"state": "REVOKED"})}
+        update={"document": old.document.model_copy(update={"state": observed_state})}
     )
     tx_hash = "0x" + "89" * 32
     message = SigningRequest.model_validate(signing).message
@@ -999,7 +999,26 @@ async def confirmed_revocation(w, did, version, *, req="req_revoke"):
             "tx_hash": tx_hash,
         },
     )
-    assert accepted.status_code == 202 and accepted.json()["status"] == "CONFIRMED", accepted.text
+    expected = "CONFIRMED" if observed_state == "REVOKED" else "UNKNOWN"
+    assert accepted.status_code == 202 and accepted.json()["status"] == expected, accepted.text
+    return accepted.json()
+
+
+async def test_superseded_state_does_not_confirm_revocation_and_reconcile_never_resends(wallet):
+    await activated(wallet)
+    first = await draft(wallet)
+    old, _ = await confirmed_publication(wallet, first)
+    second = await draft(wallet, request_id="req_superseding", version=2)
+    await confirmed_publication(wallet, second, req="req_publish_newer", tx_byte="68")
+    result = await confirmed_revocation(wallet, old.document_id, 1, observed_state="SUPERSEDED")
+    assert result["status"] == "UNKNOWN" and result["next_action"] == "RECONCILE"
+    chain = wallet.chain.documents[(old.document_id, 1)]
+    wallet.chain.documents[(old.document_id, 1)] = chain.model_copy(
+        update={"document": chain.document.model_copy(update={"state": "REVOKED"})}
+    )
+    confirmed = await wallet.client.post(f"/v3/operations/{result['operation_id']}/reconcile")
+    assert confirmed.status_code == 202 and confirmed.json()["status"] == "CONFIRMED"
+    assert wallet.chain.sends == []
 
 
 async def test_next_version_preserves_original_and_revoked_latest_does_not_revive_history(wallet):

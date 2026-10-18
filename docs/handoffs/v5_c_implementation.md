@@ -72,3 +72,11 @@ KeyProof 없는 REACTIVATE는 공유 ABI의 0값 tuple과 빈 bytes를 전달하
 
 API·코어 162 PASS / 4 live opt-in SKIP, 신규/기존 wallet HTTP·저장 검사 32 PASS,
 Ruff 통과입니다. 실제 Registry·브라우저 연결 완료와 구분합니다.
+
+### 2026-10-18 W4 리뷰 보완
+
+철회 HTTP 경로에서 SUPERSEDED 문서와 성공 receipt만 관측하면 UNKNOWN을 유지하는
+사례를 추가했습니다. 이후 같은 원래 거래의 REVOKED 효과가 관측되면 재전송 없이
+CONFIRMED로 복구합니다. 기존 성공 helper는 관측 상태를 인자로 받아, 항상 REVOKED를
+먼저 주입하는 테스트 공백을 없앴습니다. wallet HTTP·저장 및 core 검사 81 PASS,
+Ruff 통과이며 실제 EVM 원자성·경쟁 성공을 뜻하지 않습니다.
