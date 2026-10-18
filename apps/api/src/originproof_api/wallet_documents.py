@@ -206,6 +206,16 @@ async def submit_signed(body, request, identity, kind):
                 raise HTTPException(410, "RESULT_EXPIRED")
             if saved.signature != body.signature:
                 raise HTTPException(409, "SIGNATURE_ALREADY_SUBMITTED")
+            db.add(
+                WalletRequestRow(
+                    account_id=account.account_id,
+                    action="wallet_" + kind.lower(),
+                    request_id=body.request_id,
+                    input_hash=input_fingerprint(body.model_dump(mode="json")),
+                    resource_id=operation.operation_id,
+                )
+            )
+            await service.commit(db)
             return service.operation_view(operation)
         if now() >= signing.message.deadline:
             raise HTTPException(410, "SIGNATURE_EXPIRED")
@@ -317,6 +327,8 @@ async def direct_transaction(
             )
             .with_for_update()
         )
+        if operation is None:
+            raise HTTPException(410, "RESULT_EXPIRED")
         if operation.tx_hash and operation.tx_hash != body.tx_hash:
             raise HTTPException(409, "DIRECT_TX_ALREADY_BOUND")
         if claim is None:
