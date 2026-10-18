@@ -1,5 +1,7 @@
 # D 독립 연결 QA · G07 재검사
 
+> 이 문서는 2026-10-16 실행 기록입니다. 2026-10-18 리뷰 수정·현재 PR/CI 범위는 [리뷰 수정](v5-d-review-fixes.md)과 [현재 공유 목록](../handoffs/v5_d_review_index.md)을 확인합니다.
+
 - 실행일: 2026-10-16 한국시간. 계획서 **5.1**, 병합된 공유 준비 계약 **v5-shared-0.1**.
 - 현재 작업 브랜치: `codex/v5-d-independent-qa`. 앞선 분석 브랜치 `codex/v5-w5-d-analysis@cc517019043b4c508c6b7d1e9e5399642af1d33c`에서 분기했습니다.
 - D 분석기 구현: `98d2c5400aa0e3e398dbb8df720b6d1445fae6db`. 연결 QA 실행 소스: `55431546711fa25fd77d7bebf3c05b63e5a6326d`.

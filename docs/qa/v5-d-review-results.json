@@ -1,0 +1,95 @@
+{
+  "recorded_on": "2026-10-18 Asia/Seoul",
+  "owner": "D / yijun0330",
+  "plan": "5.1",
+  "merged_shared_contract": "v5-shared-0.1",
+  "integration_sha": "54705588d660aceea71ff1cb03eefb5aefe37aa4",
+  "analyzer_execution_sha": "77e4f44198a16c12502283dade4db8b4289fb159",
+  "qa_execution_sha": "b482875de7aa1014b7ef080b02950d7183b922b2",
+  "pinned_c_sha": "eaa0d166269833cf7ee49675cfa777b0208c3725",
+  "pinned_c_contract": "unmerged v5-shared-0.2 candidate",
+  "local_checks": {
+    "make_test": {
+      "passed": 329,
+      "failed": 0,
+      "skipped": 1,
+      "skip_reason": "Indexer real-chain explicit opt-in not enabled"
+    },
+    "analyzer_importlib_d_environment": {
+      "passed": 256,
+      "failed": 0,
+      "skipped": 0
+    },
+    "analyzer_importlib_c_environment": {
+      "passed": 256,
+      "failed": 0,
+      "skipped": 0
+    },
+    "pinned_c_stage": {
+      "passed": 42,
+      "failed": 0,
+      "skipped": 0,
+      "w2": 12,
+      "w3": 13,
+      "w4": 5,
+      "analysis_integration": 12
+    },
+    "pinned_c_consumer": {
+      "passed": 30,
+      "failed": 1,
+      "skipped": 0,
+      "failing_case": "DG12-overlapping-ambiguous-quote"
+    },
+    "make_generate": "PASS; no generated changes",
+    "ruff": "PASS",
+    "make_typecheck": "PASS; Python compileall and web tsc",
+    "workflow": "YAML and bash syntax checked; read-only contents; actual GitHub execution separately linked in PRs"
+  },
+  "environment": {
+    "python": "3.13.7",
+    "uv": "0.8.17",
+    "openai_sdk": "2.54.0",
+    "d_pytest": "8.4.2",
+    "d_fastapi": "0.115.14",
+    "c_pytest": "9.1.1",
+    "c_fastapi": "0.142.2"
+  },
+  "scope": "ASGI/in-memory SQLite, synthetic Registry, SDK MockTransport; not actual PostgreSQL/EVM/browser/live-model validation",
+  "evaluation": {
+    "version": "v5-d-evaluation-0.2",
+    "development_cases": 24,
+    "candidate_grounding": "NOT_EVALUATED",
+    "raw_candidates_observed": false,
+    "holdout_model_predictions": "NOT_RUN",
+    "paid_requests": 0
+  },
+  "preservation": {
+    "original_workspace": "untouched; existing backup retained",
+    "history": "normal merges; no reset/force push",
+    "phase_branches": "unchanged",
+    "other_owner_product_code": "unchanged",
+    "conflict": "W5-D appended sections: both preserved"
+  },
+  "github": {
+    "prs": [
+      72,
+      73,
+      74,
+      75,
+      76
+    ],
+    "remote_merge_performed": false,
+    "approval": "pending re-review; not stage complete",
+    "ci": "See each PR Checks for current exact-head status; consumer remains failing on DG12"
+  },
+  "open_items": [
+    "C DG12 fix and immutable replacement-source handoff",
+    "B/C G07 root cause and fix handoff",
+    "valid new phase target coordination",
+    "same new A/B/C integrated candidate real-environment QA",
+    "A/C synthetic labels and proposed split review",
+    "Q01 input types/priority",
+    "Q05 specific OpenAI model and paid scope",
+    "candidate quote accuracy/missing and location evaluation"
+  ]
+}

@@ -42,3 +42,9 @@ W4 보강 후 W2+W3+W4 **30 PASS / 0 FAIL / 0 SKIP**. 구키 신규 서명은 �
 `make generate` 후 #80이 지정한 생성 Schema·TypeScript·OpenAPI·ABI·Solidity·Golden·합성 예시 diff가 없고 전체 Ruff가 통과했습니다. macOS 기본 make는 Xcode license shim으로 실행되지 않아 Command Line Tools PATH로 재실행했습니다. 공통 모델/lockfile 변경은 없습니다.
 
 SDK 응답 helper는 기존 conftest의 pytest fixture로 옮겨 test 모듈 간 직접 import를 제거했습니다. `pytest --import-mode=importlib services/analyzer/tests`에서 **256 PASS**였고 기본 수집 모드도 전체 회귀로 확인합니다. `make typecheck`의 Python compileall·웹 tsc도 통과했습니다.
+
+## 최종 D QA 후보
+
+실행 소스 `b482875de7aa1014b7ef080b02950d7183b922b2`에서 명시 stage **42 PASS / 0 FAIL / 0 SKIP**(W2 12/W3 13/W4 5/분석 연결12), C lock 환경의 분석기 **256 PASS**입니다. 두 수치는 서로 다른 범위이며 기존 전체329 PASS에 합산하지 않습니다. `docs/portfolio/W5-D.md`의 양쪽 추가 기록 충돌은 과거 독립 QA/G07 기록과 이번 리뷰 수정 기록을 모두 보존해 해결했습니다. 동작/계약 충돌은 없었습니다.
+
+현재 실제 GitHub 상태와 재리뷰 대상은 [리뷰 목록](../handoffs/v5_d_review_index.md)에 연결합니다. #72~#75 전용 stage가 실행됐고 consumer는 DG12만 실패했습니다. #76의 최종 CI는 push 후 PR Checks에서 별도로 확인합니다. 작성자 외 승인·실제 PostgreSQL/EVM/브라우저·유료 모델·보류36개·신규 통합 후보·단계 완료는 이번 재검사로 선언하지 않습니다.
