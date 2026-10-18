@@ -140,6 +140,7 @@ async def test_key_rotation_preserves_history_and_rejects_old_signer(wallet):
     past = await verify(wallet, signing, doc)
     assert past["verification_status"] == "VERIFIED"
     future = await draft(wallet, request_id="req_d_new_key", version=2)
+    sends_before = list(wallet.chain.sends)
     denied = await wallet.client.post(
         "/v3/publications",
         json={
@@ -148,7 +149,9 @@ async def test_key_rotation_preserves_history_and_rejects_old_signer(wallet):
             "signature": sign(future),
         },
     )
-    assert denied.status_code == 422
+    assert denied.status_code == 422, denied.text
+    assert denied.json()["detail"] == "INVALID_SIGNATURE"
+    assert wallet.chain.sends == sends_before
     wallet.chain.keys[doc.key_id] = wallet.chain.keys[doc.key_id].model_copy(
         update={"compromise_block": "12"}
     )
