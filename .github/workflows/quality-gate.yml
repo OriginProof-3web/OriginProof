@@ -77,6 +77,10 @@ jobs:
         run: make security
       - name: Recover actual API processes and restore disposable database
         run: make test-w6-c-live
+      - name: Recover v5 wallet API processes and restore versioned originals
+        run: |
+          make test-v5-c-live
+          cat build/v5-c-performance.json
 
   contracts:
     runs-on: ubuntu-latest
