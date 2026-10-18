@@ -9,7 +9,6 @@ from openai import AsyncOpenAI
 from originproof_analyzer.errors import AnalyzerError
 from originproof_analyzer.providers import OpenAILLMProvider
 from originproof_analyzer.settings import AnalyzerSettings
-from test_openai_adapter import response_body
 
 
 def output():
@@ -60,7 +59,7 @@ async def make_analysis_provider():
 
 
 async def test_async_sdk_uses_shared_narrowed_schema_settings_and_no_tools(
-    make_analysis_provider,
+    make_analysis_provider, response_body,
 ):
     seen = []
 
@@ -97,7 +96,7 @@ async def test_async_sdk_uses_shared_narrowed_schema_settings_and_no_tools(
     ],
 )
 async def test_async_errors_are_safe_and_never_parse_a_refusal(
-    make_analysis_provider, kind, code
+    make_analysis_provider, kind, code, response_body
 ):
     def respond(request):
         if kind == "timeout":
