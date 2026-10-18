@@ -87,3 +87,18 @@ W5-D2의 실제 UI·QR·키 관리·consume·접근성은 A/C의 같은 통합 �
 - AI 활용: Codex가 구현·초안 라벨·검사를 수행했습니다. 사용자/타인의 라벨·코드 승인과 기여 비율을 대신 기록하지 않았습니다.
 
 [분석·평가 인계](../handoffs/v5_d_analysis.md), [개발 분할 실제 결과](../qa/v5-d-development-evaluation.json).
+
+
+## 2026-10-18 — D #75 리뷰 수정
+
+D 작업 브랜치 `codex/v5-w5-d-analysis` / [PR #75](https://github.com/OriginProof-3web/OriginProof/pull/75)에서 최신 integration `54705588d660aceea71ff1cb03eefb5aefe37aa4`를 자체 선행 브랜치의 merge로 반영했습니다. 실행 코드는 `77e4f44198a16c12502283dade4db8b4289fb159`이며 이후 문서 커밋과 구분합니다.
+
+D가 수정한 것은 평가 분모의 해석, 거부 보고서 집계, 안전한 예외 타입 메타데이터와 오류 회귀 검사입니다. 통과한 인용만의 비율을 모델 품질 1.0으로 소개하지 않도록 출력 안전성과 미측정 후보 품질을 분리했습니다. 실제 후보 원문 일치율·누락률·위치 정확도 평가는 여전히 필요하며 이번 변경으로 완료/면제하지 않았습니다. OpenAI SDK·공통 모델·C API/fixture는 기존 기여를 재사용했습니다.
+
+- `make test` **329 PASS / 1 SKIP**: #80의 indexer 경로 포함, 실제 체인 opt-in 미실행.
+- 관련 분석기 84 PASS: 환각 격리와 평가 분모, async SDK timeout, 총 기한 취소, 민감값 없는 예외 타입 로그 포함.
+- 개발24개 규칙/mock 재평가: 위험 예측/지표 동일, 유료 호출0, 보류36개 미실행. 모델 품질 목표 달성 아님.
+- `make generate` 후 생성물 diff 없음·전체 Ruff 통과. 최초 make 호출은 macOS Xcode license shim 때문에 실행되지 않아 설치된 Command Line Tools PATH로 재실행했습니다.
+- 최초 단계별 QA 결과와 과거 G07 FAIL/PASS는 역사 기록으로 보존했습니다. DG12/G07, 신규 A/B/C 실제 연결, 사람 라벨·코드 리뷰는 계속 남습니다.
+
+[분석 인계](../handoffs/v5_d_analysis.md), [수정된 실제 평가 결과](../qa/v5-d-development-evaluation.json), [고정 C 전용 CI·재현](../qa/v5-d-review-fixes.md). 사용자께서 D 작업·GitHub 리뷰 공유를 지시했고 Codex가 수정·검사를 수행했습니다. 작성자 외 최종 승인·단계 완료는 대기입니다.

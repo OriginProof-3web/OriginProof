@@ -1,5 +1,6 @@
 {
   "source": "synthetic",
+  "evaluation_version": "v5-d-evaluation-0.2",
   "corpus_version": "phishing-sources-draft-0.1",
   "corpus_sha256": "944e6e1ec87b24510c6d1cad2e1a6aac4f51e373230bc387e66f542b265595e9",
   "review_status": "DRAFT_REVIEW_REQUIRED",
@@ -77,7 +78,15 @@
   "model_unavailable_or_rejected": 24,
   "evidence": {
     "validated_quote_count": 8,
-    "grounding_ratio": 1.0,
+    "output_safety_scope": "VALIDATED_OUTPUT_ONLY_NOT_CANDIDATE_ACCURACY",
+    "grounding_rejected_reports": 0,
+    "candidate_grounding": {
+      "status": "NOT_EVALUATED",
+      "reason": "RAW_PROVIDER_CANDIDATES_NOT_OBSERVED",
+      "candidate_quote_count": null,
+      "matched_candidate_quote_count": null,
+      "grounding_ratio": null
+    },
     "expected_span_count": 12,
     "covered_span_count": 7,
     "location_recall": 0.5833333333333334
@@ -86,8 +95,8 @@
   "protected_field_scope": "NOT_EVALUATED_BY_RISK_ONLY_CORPUS",
   "latency_seconds": {
     "scope": "local synthetic processor only",
-    "p50": 1.8999999156221747e-05,
-    "p95": 0.0003866670303978026
+    "p50": 1.9520492060109973e-05,
+    "p95": 0.00025037501472979784
   },
   "cases": [
     {
@@ -235,5 +244,5 @@
       "error_code": null
     }
   ],
-  "code_sha": "98d2c5400aa0e3e398dbb8df720b6d1445fae6db"
+  "code_sha": "77e4f44198a16c12502283dade4db8b4289fb159"
 }
