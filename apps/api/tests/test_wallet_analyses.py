@@ -2,6 +2,7 @@
 
 import asyncio
 import time
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from originproof_api import wallet_analyses as module
@@ -44,6 +45,161 @@ async def settle(w):
     if pending:
         await asyncio.gather(*pending)
     assert w.app.state.analysis_worker_error is None
+
+
+@pytest.mark.parametrize("text", ["하하하", "💡하하하"])
+def test_ambiguous_overlapping_quotes_require_an_explicit_location(text):
+    candidate = report(text)
+    candidate["evidence"][0] = {"rule_id": "SYNTHETIC", "quote": "하하", "source": "RULE"}
+    with pytest.raises(ValueError, match="GROUNDING_MISMATCH"):
+        module.ground_report(candidate, text)
+
+
+@pytest.mark.parametrize("start", [0, 1])
+def test_overlapping_quotes_with_exact_offsets_are_allowed(start):
+    candidate = report("하하하")
+    candidate["evidence"][0].update(quote="하하", start_offset=start, end_offset=start + 2)
+    result = module.ground_report(candidate, "하하하")
+    assert result.evidence[0].start_offset == start
+
+
+def test_unique_quote_location_uses_unicode_code_points():
+    candidate = report("💡 앞부분 인용")
+    candidate["evidence"][0] = {"rule_id": "SYNTHETIC", "quote": "인용", "source": "RULE"}
+    value = module.ground_report(candidate, "💡 앞부분 인용")
+    assert (value.evidence[0].start_offset, value.evidence[0].end_offset) == (6, 8)
+
+
+async def test_retention_preserves_legacy_and_unresolved_audit_records(wallet):
+    from originproof_api.database import AuditEventRow, OperationRow
+    from originproof_api.wallet_database import WalletRequestRow
+
+    stamp = int(time.time())
+    old = datetime.fromtimestamp(stamp, UTC) - timedelta(days=31)
+    cases = [
+        ("old", "wallet_publish", "CONFIRMED", stamp - 31 * 86400),
+        ("unknown", "wallet_publish", "UNKNOWN", None),
+        ("recent", "wallet_publish", "CONFIRMED", stamp - 86400),
+        ("legacy", "publish", "CONFIRMED", stamp - 31 * 86400),
+        ("lookalike", "walletXpublish", "CONFIRMED", stamp - 31 * 86400),
+    ]
+    with Session(wallet.engine) as db:
+        for name, action, status, resolved in cases:
+            db.add(
+                OperationRow(
+                    operation_id="op_" + name,
+                    account_id="acct_i",
+                    issuer_id="iss_origin_mock_bank",
+                    action=action,
+                    request_id="req_" + name,
+                    input_hash="0" * 64,
+                    status=status,
+                    input_body={},
+                    target_id="target_" + name,
+                    recovery_reference={"resolved_at": resolved},
+                    created_at=old,
+                )
+            )
+            db.add(
+                AuditEventRow(
+                    event_id="evt_" + name,
+                    actor_account_id="acct_i",
+                    action=action,
+                    target_id="target_" + name,
+                    after_status=status,
+                    created_at=old,
+                )
+            )
+        db.add(
+            AuditEventRow(
+                event_id="evt_orphan",
+                actor_account_id="acct_i",
+                action="wallet_analysis",
+                target_id="ana_orphan",
+                after_status="FAILED",
+                created_at=old,
+            )
+        )
+        db.add(
+            WalletRequestRow(
+                account_id="acct_i",
+                action="Publish",
+                request_id="req_old_claim",
+                input_hash="0" * 64,
+                resource_id="op_old",
+            )
+        )
+        db.commit()
+    await module.cleanup(wallet.app)
+    with Session(wallet.engine) as db:
+        assert db.get(OperationRow, "op_old") is None
+        assert db.get(AuditEventRow, "evt_old") is None
+        assert db.get(AuditEventRow, "evt_orphan") is None
+        assert db.get(WalletRequestRow, ("acct_i", "Publish", "req_old_claim")) is None
+        for name in ("unknown", "recent", "legacy", "lookalike"):
+            assert db.get(OperationRow, "op_" + name) is not None
+            assert db.get(AuditEventRow, "evt_" + name) is not None
+
+
+async def test_analysis_request_only_expires_own_jobs_and_maintenance_handles_the_rest(wallet):
+    from originproof_api.database import AuditEventRow
+
+    stamp = int(time.time())
+    wallet.app.state.settings.wallet_text_input_enabled = True
+    wallet.app.state.analysis_processor = processor
+    with Session(wallet.engine) as db:
+        for name, account in [("own", "acct_i"), ("other", "acct_x")]:
+            db.add(
+                WalletInputRow(
+                    input_id="inp_" + name,
+                    account_id=account,
+                    kind="TEXT",
+                    original=b"synthetic",
+                    accepted_at=stamp - 200,
+                    expires_at=stamp + 3600,
+                )
+            )
+            db.add(
+                WalletAnalysisRow(
+                    analysis_id="ana_" + name,
+                    account_id=account,
+                    input_id="inp_" + name,
+                    request_id="req_" + name,
+                    input_hash="0" * 64,
+                    status="RUNNING",
+                    accepted_at=stamp - 200,
+                    started_at=stamp - 200,
+                    retain_report=False,
+                    retain_original=False,
+                )
+            )
+        db.add(
+            AuditEventRow(
+                event_id="evt_background",
+                actor_account_id="acct_i",
+                action="wallet_analysis",
+                target_id="ana_background",
+                after_status="FAILED",
+                created_at=datetime.fromtimestamp(stamp, UTC) - timedelta(days=31),
+            )
+        )
+        db.commit()
+    source = await input_ref(wallet)
+    accepted = await wallet.client.post(
+        "/v3/analyses", json={"request_id": "req_after_timeout", "input_ref": source}
+    )
+    assert accepted.status_code == 202, accepted.text
+    await settle(wallet)
+    with Session(wallet.engine) as db:
+        assert db.get(WalletAnalysisRow, "ana_own").status == "FAILED"
+        assert db.get(WalletAnalysisRow, "ana_other").status == "RUNNING"
+        assert db.get(WalletInputRow, "inp_other").original == b"synthetic"
+        assert db.get(AuditEventRow, "evt_background") is not None
+    await module.cleanup(wallet.app)
+    with Session(wallet.engine) as db:
+        assert db.get(WalletAnalysisRow, "ana_other").status == "FAILED"
+        assert db.get(WalletInputRow, "inp_other").original is None
+        assert db.get(AuditEventRow, "evt_background") is None
 
 
 @pytest.mark.parametrize(

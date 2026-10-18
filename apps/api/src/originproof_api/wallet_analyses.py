@@ -15,7 +15,7 @@ from originproof_core.wallet_contract import (
     TextInputRequest,
     VerificationResult,
 )
-from sqlalchemy import and_, delete, or_, select
+from sqlalchemy import BigInteger, and_, cast, delete, or_, select, update
 
 from .accounts import current_session
 from .database import AuditEventRow, OperationRow
@@ -76,9 +76,10 @@ def ground_report(value, text):
         if item.page is not None or item.start_ms is not None:
             raise ValueError("GROUNDING_MISMATCH")
         if start is None:
-            if text.count(item.quote) != 1:
+            start = text.find(item.quote)
+            if start < 0 or text.find(item.quote, start + 1) >= 0:
                 raise ValueError("GROUNDING_MISMATCH")
-            start, end = text.index(item.quote), text.index(item.quote) + len(item.quote)
+            end = start + len(item.quote)
         if not 0 <= start < end <= len(text) or text[start:end] != item.quote:
             raise ValueError("GROUNDING_MISMATCH")
         evidence.append(item.model_copy(update={"start_offset": start, "end_offset": end}))
@@ -233,7 +234,7 @@ async def input_text(body: TextInputRequest, request: Request, identity: Identit
 async def analysis(body: AnalysisRequest, request: Request, identity: Identity):
     service = runtime(request)
     account = service.authorize(request, identity)
-    await cleanup(request.app)
+    await cleanup(request.app, account_id=account.account_id)
     async with service.database.session_factory() as db:
         await service.lock_account(db, account)
         existing = await db.scalar(
@@ -411,13 +412,25 @@ async def original(analysis_id: str, request: Request, identity: Identity):
         )
 
 
-async def cleanup(app, *, restart=False):
-    await expire_codes(app)
+async def cleanup(app, *, restart=False, account_id=None):
+    if account_id is None:
+        await expire_codes(app)
     service = app.state.wallet_runtime
     stamp = now()
     queued = []
     async with service.database.session_factory() as db:
-        jobs = list(await db.scalars(select(WalletAnalysisRow).with_for_update()))
+        due = [
+            and_(
+                WalletAnalysisRow.status.in_(ACTIVE), WalletAnalysisRow.accepted_at <= stamp - 180
+            ),
+            WalletAnalysisRow.report_expires_at <= stamp,
+        ]
+        if restart:
+            due.append(WalletAnalysisRow.status.in_(ACTIVE))
+        query = select(WalletAnalysisRow).where(or_(*due))
+        if account_id is not None:
+            query = query.where(WalletAnalysisRow.account_id == account_id)
+        jobs = list(await db.scalars(query.with_for_update()))
         for row in jobs:
             artifact = await db.get(WalletInputRow, row.input_id)
             timed_out = row.status in ACTIVE and stamp >= row.accepted_at + 180
@@ -432,48 +445,61 @@ async def cleanup(app, *, restart=False):
                 row.report, row.verification_result = None, None
             if restart and row.status == "QUEUED":
                 queued.append(row.analysis_id)
-        for artifact in await db.scalars(
-            select(WalletInputRow).where(WalletInputRow.expires_at <= stamp)
-        ):
-            artifact.original = None
+        if account_id is not None:
+            await service.commit(db)
+            return queued
+        await db.execute(
+            update(WalletInputRow)
+            .where(WalletInputRow.expires_at <= stamp, WalletInputRow.original.is_not(None))
+            .values(original=None)
+        )
         for doc in await db.scalars(
             select(WalletDocumentRow).where(WalletDocumentRow.retain_until <= stamp)
         ):
             doc.original, doc.signature, doc.content = None, None, {}
         for source in await db.scalars(
-            select(WalletSigningRow).where(WalletSigningRow.kind == "Publish")
+            select(WalletSigningRow).where(
+                WalletSigningRow.kind == "Publish",
+                cast(WalletSigningRow.payload["message"]["expiresAt"].as_string(), BigInteger)
+                <= stamp - 30 * 86400,
+                or_(
+                    WalletSigningRow.signature.is_not(None),
+                    WalletSigningRow.payload["original_base64"].as_string().is_not(None),
+                ),
+            )
         ):
-            expiry = source.payload["message"]["expiresAt"] + 30 * 86400
-            if stamp >= expiry:
-                source.payload = source.payload | {"original_base64": None, "content": None}
-                source.signature = None
+            source.payload = source.payload | {"original_base64": None, "content": None}
+            source.signature = None
         await db.execute(
             delete(WalletVerificationRow).where(WalletVerificationRow.expires_at <= stamp)
         )
-        operations = list(await db.scalars(select(OperationRow)))
-        protected = set()
-        for operation in operations:
-            resolved = (operation.recovery_reference or {}).get("resolved_at")
-            if (
-                operation.action.startswith("wallet_")
-                and operation.status in ("CONFIRMED", "FAILED")
-                and resolved is not None
-                and stamp >= resolved + 30 * 86400
-            ):
-                await db.execute(
-                    delete(WalletRequestRow).where(
-                        WalletRequestRow.resource_id == operation.operation_id
-                    )
-                )
-                await db.execute(
-                    delete(OperationRow).where(OperationRow.operation_id == operation.operation_id)
-                )
-            else:
-                protected.add(operation.target_id or operation.operation_id)
+        expired_operation = and_(
+            OperationRow.action.startswith("wallet_", autoescape=True),
+            OperationRow.status.in_(("CONFIRMED", "FAILED")),
+            cast(OperationRow.recovery_reference["resolved_at"].as_string(), BigInteger)
+            <= stamp - 30 * 86400,
+        )
+        expired_ids = select(OperationRow.operation_id).where(expired_operation)
+        await db.execute(
+            delete(WalletRequestRow).where(WalletRequestRow.resource_id.in_(expired_ids))
+        )
+        await db.execute(delete(OperationRow).where(expired_operation))
+        protected = (
+            select(OperationRow.operation_id)
+            .where(
+                OperationRow.action.startswith("wallet_", autoescape=True),
+                or_(
+                    OperationRow.target_id == AuditEventRow.target_id,
+                    OperationRow.operation_id == AuditEventRow.target_id,
+                ),
+            )
+            .exists()
+        )
         await db.execute(
             delete(AuditEventRow).where(
+                AuditEventRow.action.startswith("wallet_", autoescape=True),
                 AuditEventRow.created_at < datetime.fromtimestamp(stamp, UTC) - timedelta(days=30),
-                AuditEventRow.target_id.not_in(protected),
+                ~protected,
             )
         )
         await service.commit(db)
