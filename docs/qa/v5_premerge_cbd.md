@@ -215,3 +215,31 @@ vendor 코드는 수정하지 않았습니다. Contract 소스가 그대로여�
 API 수정은 #60→#61→#62→#63→#77, 합성 helper는 #61 이후에 순방향 반영합니다.
 D 회귀 추가는 후보 #77에만 포함하며 D 원 PR·B PR·phase/integration/main은 변경하지
 않습니다. 원격 최신 head CI는 push 뒤 확인하며 작성자 외 재리뷰·실제 팀 연결은 별도입니다.
+
+## 2026-10-18 확대 감사 8건 수정·선행 PR 전파
+
+KeyProof의 계정 내 request ID 충돌, 0 keyId, 현재 signer와 같은 주소의 교체를 proof 소비
+전에 거부합니다. RPC 전후 잠금·해시 binding으로 확정 결과 덮어쓰기를 방지하고, 저장된
+lookup 해시를 먼저 재조회합니다. v1의 신규 작업 복구 안내와 만료 접근을 v3에 맞췄으며
+목록·감사 필터와 물리 정리는 동일한 보관 조건을 사용합니다. PostgreSQL 선택 검사에는
+합성 이메일 secret을 지정해 개인 환경 변수 없이 동시성 단계까지 검사합니다.
+
+| 검사 | 이번 실제 결과 |
+| --- | --- |
+| 후보 전체 Python | 656 PASS / 16 opt-in SKIP / 기존 경고 1개 |
+| C 독립 전체 Python | 647 PASS / 16 SKIP |
+| D 명시 QA 네 파일 | 62 PASS, ASGI/SQLite/합성 Registry |
+| 실제 복구 | 9 PASS, 기존 PostgreSQL/Anvil 2개 + 신규 PostgreSQL/프로세스 7개 |
+| 선택 PostgreSQL 검사 | 정식 migration 적용 임시 DB에서 1 PASS, 외부 이메일 secret 제거 |
+| Foundry | 101 PASS, fuzz 포함 |
+| 생성물·정적 검사 | 다섯 생성기 diff 없음, 자체 Python Ruff·diff PASS |
+
+후보 기능 검증 소스는 `2a25ef73482e01d54858c3745dd7f59722270235`이며 이후 변경은 문서입니다.
+새 실제 복구 사례는 성공 receipt를 먼저 확정하고 실패 receipt를 늦게 반환해 409와
+CONFIRMED/hash 보존을 확인합니다. 같은 해시의 재요청은 동일 결과이며 자동 재전송은 없습니다.
+W2/W3/W4/W5의 전체 Python은 512/557/565/598 PASS로 각각 확인한 뒤 순방향 반영했습니다.
+신규 API 모델·migration·ABI·서명/domain·Golden·의존성은 변경하지 않았습니다.
+
+신규 실제 복구 7개의 Registry/분석기는 합성입니다. 과거 종료 signer의 API 사전 조회는
+B 이력 경계 연결이 필요하며, 실제 A 지갑·B Adapter·D 모델·G07·사람의 재리뷰를 대신하지 않습니다.
+원격 PR의 base·Draft·승인 상태를 유지하며, 정확한 새 head CI는 push 후 따로 확인합니다.
