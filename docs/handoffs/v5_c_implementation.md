@@ -38,3 +38,20 @@
 초안 원본·EIP-712 검증·기관 서명/Operation의 제출 전 저장, 중계 또는 기관 직접 제출의 tx 대조·UNKNOWN 재조회, 공개 문서·원본/필드/ID 검사와 독립 검증 자료 API를 구현했습니다. 발행은 직접 제출을 기본으로 하며 원본·서명 접수만으로 체인 확정을 표시하지 않습니다. 직접 거래의 request ID 충돌과 잘못된 txHash가 정상 서명 요청을 영구 무효화하지 않는지도 검사합니다.
 
 신규 HTTP 사례 15개를 포함한 해당 API/코어 회귀 65 PASS입니다. 임시 PostgreSQL에서 `0008` upgrade/schema check를 통과했습니다. 원본 bytes·보호 필드·기관 메타데이터/표시명 조작을 분리 검출하고, ID 단독/부분 비교와 RPC 미확인은 INCONCLUSIVE입니다. 새 Registry Adapter는 미연결이며 실제 체인/브라우저 E2E·B/A/D 리뷰는 아직 없습니다.
+
+### 2026-10-18 W2 리뷰 보완
+
+이메일 검증값은 `API_WALLET_EMAIL_SECRET`의 최소 32바이트 서버 비밀을 사용하는
+HMAC-SHA256으로 바꿨습니다. 비밀은 Settings repr/직렬화·응답에서 제외하며 기관 지갑키와
+무관합니다. 설정이 없으면 코드 발급·검증을 성공시키지 않습니다. 이전 SHA 검증값은
+확인하지 않고 무효화해 재발급합니다. 기존 만료/재발급/누적 실패 제한과 원자적 소비를
+유지하고, 만료·소비·5회 실패 시 검증값/데모 평문을 지웁니다. 시작 시와 정상 가동 중
+300초 간격으로 만료 코드를 정리하며, 조회·검증에서도 만료 직후 접근을 차단합니다.
+
+KeyProof 없는 REACTIVATE는 공유 ABI의 0값 tuple과 빈 bytes를 전달하도록 W5 보완을
+이 단계로 앞당겼습니다. API가 실제 저장한 인자를 커밋된 인터페이스 ABI와 Foundry cast로
+인코딩하는 회귀를 추가했습니다. cast 없는 환경에서는 해당 검사는 명시적으로 skip합니다.
+원본/소비자·기존 계약 변경은 없으며 실제 B Registry·지갑 연결 검사는 별도입니다.
+
+이 보완 소스의 전체 Python 검사(API·core·analyzer·indexer·scripts/ci)는 463 PASS /
+8 live opt-in SKIP / 기존 Starlette 경고 1건입니다. Ruff·diff 검사도 통과했습니다.
