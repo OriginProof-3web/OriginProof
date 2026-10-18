@@ -47,11 +47,11 @@ PYTHONPATH=apps/api/src:packages/python:services/analyzer/src \
 
 CLI는 환경의 provider 설정과 무관하게 명시적 mock/rules를 사용합니다. 기본 분할은 development이며 holdout은 명시적으로 선택해야 합니다. 이번에 보류 36개 모델 예측은 실행하지 않았습니다. 라벨·기대 인용은 processor에 전달하지 않고 원문만 전달합니다. 호출/Schema/근거 실패는 ERROR로 계산하며 UNDETERMINED의 정답으로 합산하지 않습니다.
 
-[실제 개발 분할 결과](../qa/v5-d-development-evaluation.json): 24개, macro-F1 **0.451863**, HIGH recall **1.0(6개)**, 판단 보류 **17개**, 예외 실패 0개. 모델 미실행/거부 표시는 24개 모두이며 LLM 유료 호출은 0입니다. 표시한 인용 8개는 전부 원문에 일치했지만, 제안된 기대 근거 12개 중 위치 포함 충족은 7개입니다. 규칙 기준선의 한계이며 최종 모델 목표 달성이 아닙니다.
+[실제 개발 분할 결과](../qa/v5-d-development-evaluation.json): 24개, macro-F1 **0.451863**, HIGH recall **1.0(6개)**, 판단 보류 **17개**, 예외 실패 0개. 모델 미실행/거부 표시는 24개 모두이며 LLM 유료 호출은 0입니다. 표시한 인용 8개는 검증기를 통과한 출력의 안전성 불변식이며 모델 후보 인용의 정확도 점수가 아닙니다. 제안된 기대 근거 12개 중 위치 포함 충족은 7개(location recall 7/12)입니다. 규칙 기준선의 한계이며 최종 모델 목표 달성이 아닙니다.
 
 위험 전용 원본은 보호 필드 추출 정확도를 측정하지 않습니다. 해당 분모는 null/NOT_EVALUATED이며 기존 카드 후보 평가와 별도로 후속 선정 입력/검사 원본이 필요합니다. 지연은 로컬 합성 처리 구간만 기록했고 실제 LLM p95 목표와 구분합니다.
 
-## 검사·한계
+## 최초 검사·한계 (2026-10-16)
 
 - 전체 Python **292 PASS**, 기존 TestClient deprecation warning 1. 새 규칙/원문 대조/async callback/SDK 오류/취소·평가 분할·분모와 기존 v1 회귀 포함입니다.
 - 최초 새 SDK 검사 1 FAIL은 비동기 raw response의 parse를 await한 호출 오류였습니다. 설치 SDK의 raw.parse는 동기 메서드이므로 수정 후 새 SDK·기존 SDK 검사와 전체 회귀가 통과했습니다.
@@ -69,3 +69,16 @@ CLI는 환경의 provider 설정과 무관하게 명시적 mock/rules를 사용�
 공급자 선택은 OpenAI로 정해졌으며 세부 모델명, 유료 평가/전송 범위와 예산은 아직 미정입니다. 사용자 입력 종류/우선순위와 합성 자료 라벨·분할 리뷰도 계속 미정입니다. 기존 코드의 모델 기본값을 최종 모델 선택으로 간주하지 않습니다.
 
 Jev SDK·의존성·호출 코드가 추가되지 않았으므로 제거할 실행 코드는 없습니다. 이번에는 D 인계 문서만 정정했고 기존 mock 기본값·입력 비활성화·유료 호출 제한·공통 계약·과거 평가 결과는 유지했습니다. OpenAI Decisions API는 계속 현재 범위 밖입니다. 문서 diff와 로컬 링크를 검사했으며 기능 검사를 재실행한 것으로 보고하지 않습니다. 원격 push·PR 생성·병합은 수행하지 않았습니다.
+
+
+## 2026-10-18 리뷰 수정
+
+- 수정 실행 소스 `77e4f44198a16c12502283dade4db8b4289fb159`, 준비 브랜치 `codex/v5-w5-d-analysis` / PR #75. 최신 integration `54705588d660aceea71ff1cb03eefb5aefe37aa4`(#80)을 D 선행 단계의 merge로 반영했습니다.
+- 평가 버전 `v5-d-evaluation-0.2`: 검증된 출력만으로 항상 1.0이 되던 기존 `evidence.grounding_ratio`를 제거했습니다. `validated_quote_count`는 출력 안전성에 한정하고, 원시 후보를 관측하지 못하는 `candidate_grounding`의 분모·일치 수·비율은 null/NOT_EVALUATED입니다. 누락·위치 정확도와 함께 실제 후보 품질 평가가 남아 있으며 필수 평가를 면제하거나 완료 처리하지 않습니다.
+- 거부된 보고서 수는 별도로 집계합니다. 환각 후보를 격리한 뒤 규칙 근거만 살아남는 경우도 검사해 후보 품질이 100%로 표시되지 않게 했습니다. 실패 사례도 기대 위치 분모에서 빠지지 않습니다.
+- 개발 24개만 재실행했으며 위험 예측·macro-F1·보류·실패 수·원본/라벨/분할은 그대로입니다. 이전 결과는 Git 이력과 최초 실행 SHA에 보존합니다. 보류36개/유료 OpenAI는 미실행입니다.
+- SDK의 실제 `httpx.ReadTimeout → APITimeoutError → TIMEOUT` 변환을 MockTransport로 검사했습니다. 총 180초 기한은 테스트에서만 즉시 만료시켜 provider 취소와 TIMEOUT 처리를 검증합니다. 예기치 않은 예외는 원문/메시지 없이 타입명만 메타데이터에 기록합니다. [공식 오류 안내](https://developers.openai.com/api/docs/guides/error-codes)와 설치 SDK 2.54.0을 대조했습니다.
+- 새 코드에서 `make test`: **329 PASS / 1 SKIP**. indexer의 실제 체인 opt-in 검사는 미실행이며 기존 warning 1개가 있습니다. 관련 분석기 검사 84 PASS, `make generate` 후 전체 생성물 diff 없음, 전체 Ruff 통과입니다.
+- [단계별 전용 CI·재현·잔여 결함](../qa/v5-d-review-fixes.md). C 제품은 수정하지 않았고 DG12·G07은 미해결입니다. PR 공유·재리뷰와 단계 완료를 구분합니다.
+
+테스트 공용 응답 builder는 conftest fixture로 재사용하며 test 모듈 직접 import가 없습니다. 분석기 전체는 importlib 모드에서도 256 PASS였습니다. Python compileall·웹 tsc 타입 검사도 통과했습니다.

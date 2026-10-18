@@ -2,7 +2,7 @@ SHELL := /bin/sh
 COMPOSE := COMPOSE_PROJECT_NAME=originproof docker compose
 UV_ENV := .uv-venv
 UV := UV_PROJECT_ENVIRONMENT=$(UV_ENV) uv
-WORKSPACE_PYTHONPATH := apps/api/src:packages/python:services/analyzer/src
+WORKSPACE_PYTHONPATH := apps/api/src:packages/python:services/analyzer/src:services/indexer/src
 
 .DEFAULT_GOAL := help
 

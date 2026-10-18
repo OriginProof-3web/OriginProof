@@ -96,6 +96,7 @@ async def evaluate_phishing(path: Path, *, processor=None, split="development") 
     analyzer = processor or PhishingAnalyzer(MockLLMProvider())
     rows, durations = [], []
     quote_total = expected_quotes = located_quotes = model_failures = 0
+    grounding_rejected_reports = 0
     for case in (case for case in manifest["cases"] if case["split"] == split):
         started = perf_counter()
         row = {
@@ -118,6 +119,9 @@ async def evaluate_phishing(path: Path, *, processor=None, split="development") 
                 )
                 for expected in case["expected_evidence"]
             )
+            grounding_rejected_reports += (
+                "LLM_ANALYSIS_UNAVAILABLE:GROUNDING_MISMATCH" in report.limitations
+            )
             model_failures += any(
                 value.startswith("LLM_ANALYSIS_UNAVAILABLE:") for value in report.limitations
             )
@@ -135,6 +139,7 @@ async def evaluate_phishing(path: Path, *, processor=None, split="development") 
             )
         except Exception:
             row["error_code"] = "PROVIDER_UNAVAILABLE"
+        grounding_rejected_reports += row["error_code"] == "GROUNDING_MISMATCH"
         durations.append(perf_counter() - started)
         rows.append(row)
     provider = getattr(analyzer, "provider", None)
@@ -142,6 +147,7 @@ async def evaluate_phishing(path: Path, *, processor=None, split="development") 
     ordered = sorted(durations)
     return {
         "source": "synthetic",
+        "evaluation_version": "v5-d-evaluation-0.2",
         "corpus_version": manifest["fixture_version"],
         "corpus_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
         "review_status": manifest["review_status"],
@@ -160,7 +166,15 @@ async def evaluate_phishing(path: Path, *, processor=None, split="development") 
         "model_unavailable_or_rejected": model_failures,
         "evidence": {
             "validated_quote_count": quote_total,
-            "grounding_ratio": 1.0 if quote_total else None,
+            "output_safety_scope": "VALIDATED_OUTPUT_ONLY_NOT_CANDIDATE_ACCURACY",
+            "grounding_rejected_reports": grounding_rejected_reports,
+            "candidate_grounding": {
+                "status": "NOT_EVALUATED",
+                "reason": "RAW_PROVIDER_CANDIDATES_NOT_OBSERVED",
+                "candidate_quote_count": None,
+                "matched_candidate_quote_count": None,
+                "grounding_ratio": None,
+            },
             "expected_span_count": expected_quotes,
             "covered_span_count": located_quotes,
             "location_recall": located_quotes / expected_quotes if expected_quotes else None,
