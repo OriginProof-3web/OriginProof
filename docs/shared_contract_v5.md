@@ -88,9 +88,9 @@ GovernanceProposal의 ABI 순서는 `uint8 action, bytes32 issuerId, bytes32 key
 
 ## 5. 문서와 현재 상태
 
-최초 version=1, 이후 정확히 latest+1입니다. 등록·최신 포인터 변경·이전 최신의 SUPERSEDED 전이는 같은 트랜잭션입니다. 동시에 같은 다음 버전을 요청하면 하나만 성공하고 나머지는 VERSION_CONFLICT로 현재 최신을 다시 확인합니다.
+최초 version=1, 이후 정확히 latest+1입니다. 등록·최신 포인터 변경·ACTIVE인 이전 최신의 SUPERSEDED 전이는 같은 트랜잭션입니다. 이전 최신이 이미 REVOKED이면 철회 상태를 유지하고 DocumentSuperseded를 발생시키지 않습니다. 새 버전의 DocumentPublished와 업무 nonce 소비는 정상 처리합니다. 동시에 같은 다음 버전을 요청하면 하나만 성공하고 나머지는 VERSION_CONFLICT로 현재 최신을 다시 확인합니다.
 
-체인 저장 state **1=ACTIVE, 2=REVOKED, 3=SUPERSEDED**이며 state 1의 기간 만료는 조회 시 EXPIRED로 계산합니다. REVOKED/SUPERSEDED를 만료나 기관 정지로 덮어쓰지 않습니다. 최신 버전 철회로 과거 버전을 자동 복구하지 않습니다. getDocument의 미존재는 별도 not-found이며 state 0을 ACTIVE로 해석하지 않습니다.
+체인 저장 state **1=ACTIVE, 2=REVOKED, 3=SUPERSEDED**이며 state 1의 기간 만료는 조회 시 EXPIRED로 계산합니다. REVOKED/SUPERSEDED를 만료나 기관 정지로 덮어쓰지 않습니다. 이미 철회된 버전의 재철회는 새 버전 발행 뒤에도 거부하고 실패 nonce를 소비하지 않습니다. 아직 철회하지 않은 과거 SUPERSEDED 버전의 첫 철회는 계속 허용합니다. 최신 버전 철회로 과거 버전을 자동 복구하지 않습니다. getDocument의 미존재는 별도 not-found이며 state 0을 ACTIVE로 해석하지 않습니다.
 
 기관 상태는 0=미등록, 1=ACTIVE, 2=SUSPENDED입니다. `DocumentView.state`, `warnings`, 검사 결과를 각각 읽습니다. 정상 교체로 종료된 과거 발행키의 정상 서명은 유지하고, 사고 키의 과거 안내에는 KEY_COMPROMISED 경고를 표시합니다. getKey의 등록/교체/사고 block과 getDocument의 실제 publishedAt/publishedBlock을 대조합니다. 자기 선언 issuedAt만으로 발행 당시 권한을 소급 만들지 않으며 새 발행은 현재 활성 키로만 허용합니다. getIssuer만으로 과거 키 검사가 완료되지 않습니다.
 

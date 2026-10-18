@@ -94,7 +94,7 @@ contract OriginProofWalletRegistry is OriginProofWalletGovernance {
             publishedBlock,
             1
         );
-        if (previous != 0) {
+        if (previous != 0 && _documents[message.documentId][previous].state == 1) {
             _documents[message.documentId][previous].state = 3;
             emit Registry.DocumentSuperseded(message.documentId, previous, message.version);
         }

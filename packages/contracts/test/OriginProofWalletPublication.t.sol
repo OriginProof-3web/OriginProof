@@ -2,6 +2,7 @@
 pragma solidity 0.8.26;
 
 import {Test} from "forge-std/Test.sol";
+import {Vm} from "forge-std/Vm.sol";
 import {OriginProofWalletRegistry as Wallet} from "../src/OriginProofWalletRegistry.sol";
 import {OriginProofWalletGovernance as Governance} from "../src/OriginProofWalletGovernance.sol";
 import {IOriginProofWalletRegistry as Registry} from "../src/IOriginProofWalletRegistry.sol";
@@ -570,13 +571,40 @@ contract OriginProofWalletPublicationTest is Test {
         Registry.Publish memory first = publishFirst();
         Registry.Revoke memory r = revokeMessage(first, 1);
         registry.revoke(r, revokeSignature(r, 1));
+        bytes32 revoked = keccak256(abi.encode(registry.getDocument(first.documentId, 1)));
+        Registry.Publish memory second = nextVersion(first);
+        second.nonce = 2;
+        bytes memory signed = signature(second, 1);
+        vm.recordLogs();
+        registry.publish(second, signed);
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        assertEq(logs.length, 1);
+        assertEq(logs[0].emitter, address(registry));
+        assertEq(logs[0].topics[0], keccak256("DocumentPublished(bytes32,uint64,bytes32)"));
+        assertEq(registry.getDocument(first.documentId, 1).state, 2);
+        assertEq(keccak256(abi.encode(registry.getDocument(first.documentId, 1))), revoked);
+        assertEq(registry.getDocument(first.documentId, 2).state, 1);
+        assertEq(registry.latestVersion(first.documentId), 2);
+        assertEq(registry.nextNonce(first.issuerId), 3);
+    }
+
+    function testRevokedPredecessorCannotBeRevokedAgainAfterSuccessorPublication() public {
+        Registry.Publish memory first = publishFirst();
+        Registry.Revoke memory r = revokeMessage(first, 1);
+        registry.revoke(r, revokeSignature(r, 1));
         Registry.Publish memory second = nextVersion(first);
         second.nonce = 2;
         registry.publish(second, signature(second, 1));
-        assertEq(registry.getDocument(first.documentId, 1).state, 3);
-        assertEq(registry.getDocument(first.documentId, 1).originalHash, first.originalHash);
-        assertEq(registry.getDocument(first.documentId, 2).state, 1);
+        bytes32 old = keccak256(abi.encode(registry.getDocument(first.documentId, 1)));
+        bytes32 latest = keccak256(abi.encode(registry.getDocument(first.documentId, 2)));
+        r.nonce = 3;
+        bytes memory signed = revokeSignature(r, 1);
+        vm.expectRevert(Wallet.DocumentAlreadyRevoked.selector);
+        registry.revoke(r, signed);
+        assertEq(registry.nextNonce(first.issuerId), 3);
         assertEq(registry.latestVersion(first.documentId), 2);
+        assertEq(keccak256(abi.encode(registry.getDocument(first.documentId, 1))), old);
+        assertEq(keccak256(abi.encode(registry.getDocument(first.documentId, 2))), latest);
     }
 
     function testRevocationReplayAndFreshNonceRepeatFailWithoutConsumption() public {
