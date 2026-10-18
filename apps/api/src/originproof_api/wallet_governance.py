@@ -313,6 +313,8 @@ async def accept_transaction(service, db, row, tx_hash):
         elif (
             chain.document.issuer_id != message.issuer_id
             or chain.document.doc_key != message.doc_key
+            or chain.document.document_id != message.document_id
+            or chain.document.version != message.version
             or chain.document.state != "REVOKED"
         ):
             row.status = "UNKNOWN"

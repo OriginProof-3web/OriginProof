@@ -24,11 +24,11 @@ from .wallet_database import (
     WalletAnalysisRow,
     WalletDocumentRow,
     WalletInputRow,
-    WalletOnboardingRow,
     WalletRequestRow,
     WalletSigningRow,
     WalletVerificationRow,
 )
+from .wallet_onboarding import expire_codes
 from .wallet_runtime import now, runtime
 
 router = APIRouter(prefix="/v3", tags=["wallet analyses"])
@@ -412,6 +412,7 @@ async def original(analysis_id: str, request: Request, identity: Identity):
 
 
 async def cleanup(app, *, restart=False):
+    await expire_codes(app)
     service = app.state.wallet_runtime
     stamp = now()
     queued = []
@@ -435,10 +436,6 @@ async def cleanup(app, *, restart=False):
             select(WalletInputRow).where(WalletInputRow.expires_at <= stamp)
         ):
             artifact.original = None
-        for source in await db.scalars(
-            select(WalletOnboardingRow).where(WalletOnboardingRow.code_expires_at <= stamp)
-        ):
-            source.code_hash, source.demo_code = None, None
         for doc in await db.scalars(
             select(WalletDocumentRow).where(WalletDocumentRow.retain_until <= stamp)
         ):

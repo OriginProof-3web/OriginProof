@@ -1,6 +1,5 @@
 """Synthetic roster/email/internal approval, separate from on-chain governance."""
 
-import hashlib
 import hmac
 import re
 import secrets
@@ -14,7 +13,7 @@ from originproof_core.wallet_contract import (
     DemoInbox,
     OnboardingView,
 )
-from sqlalchemy import select
+from sqlalchemy import select, update
 
 from .accounts import current_session
 from .applications import DecisionInput
@@ -28,6 +27,30 @@ ROSTER = {
     "iss_origin_mock_bank": ("Origin Mock Bank", "bank.example.invalid"),
     "iss_origin_mock_office": ("Origin Mock Office", "office.example.invalid"),
 }
+
+
+def code_verifier(settings, row, salt, code):
+    secret = settings.wallet_email_secret
+    if secret is None or len(secret.get_secret_value().encode()) < 32:
+        raise HTTPException(503, "DEMO_EMAIL_SECRET_NOT_CONFIGURED")
+    message = canonical_json_bytes([row.application_id, row.email, salt, code])
+    digest = hmac.digest(secret.get_secret_value().encode(), message, "sha256").hex()
+    return f"hmac-sha256:{salt}:{digest}"
+
+
+async def expire_codes(app):
+    service = app.state.wallet_runtime
+    async with service.database.session_factory() as db:
+        await db.execute(
+            update(WalletOnboardingRow)
+            .where(
+                WalletOnboardingRow.code_expires_at <= now(),
+                WalletOnboardingRow.code_hash.is_not(None)
+                | WalletOnboardingRow.demo_code.is_not(None),
+            )
+            .values(code_hash=None, demo_code=None)
+        )
+        await service.commit(db)
 
 
 async def application(db, application_id, account, *, owner=True):
@@ -109,9 +132,11 @@ async def issue_code(
         issues = [t for t in row.issues if t > stamp - 600]
         if len(issues) >= 3:
             raise HTTPException(429, "EMAIL_ISSUE_LIMIT", headers={"Retry-After": "600"})
+        if len([t for t in row.failures if t > stamp - 900]) >= 10:
+            raise HTTPException(429, "EMAIL_ATTEMPT_LIMIT", headers={"Retry-After": "900"})
         code, salt = f"{secrets.randbelow(1_000_000):06d}", secrets.token_hex(16)
         row.email = email
-        row.code_hash = salt + ":" + hashlib.sha256((salt + code).encode()).hexdigest()
+        row.code_hash = code_verifier(service.settings, row, salt, code)
         row.demo_code = code
         row.code_expires_at, row.issued_at = stamp + 300, stamp
         row.issues, row.code_failures = issues + [stamp], 0
@@ -132,6 +157,9 @@ async def demo_inbox(application_id: str, request: Request, identity: Identity):
         row = await db.get(WalletOnboardingRow, application_id)
         if row is None:
             raise HTTPException(404, "NOT_FOUND")
+        if now() >= row.code_expires_at and (row.demo_code or row.code_hash):
+            row.code_hash, row.demo_code = None, None
+            await service.commit(db)
         return DemoInbox(
             code=row.demo_code if now() < row.code_expires_at else None,
             expires_at=row.code_expires_at,
@@ -149,17 +177,30 @@ async def verify_code(
         await application(db, application_id, account)
         row = await db.get(WalletOnboardingRow, application_id)
         stamp = now()
-        if row is None or row.code_hash is None or stamp >= row.code_expires_at:
+        if row is None:
+            raise HTTPException(410, "EMAIL_CODE_EXPIRED")
+        if stamp >= row.code_expires_at:
+            row.code_hash, row.demo_code = None, None
+            await service.commit(db)
             raise HTTPException(410, "EMAIL_CODE_EXPIRED")
         failures = [t for t in row.failures if t > stamp - 900]
         if row.code_failures >= 5 or len(failures) >= 10:
             raise HTTPException(429, "EMAIL_ATTEMPT_LIMIT", headers={"Retry-After": "900"})
-        salt, expected = row.code_hash.split(":")
+        if row.code_hash is None:
+            raise HTTPException(410, "EMAIL_CODE_EXPIRED")
+        match = re.fullmatch(r"hmac-sha256:([a-f0-9]{32}):[a-f0-9]{64}", row.code_hash)
+        if match is None:
+            # Pre-HMAC codes cannot be trusted after the verifier transition.
+            row.code_hash, row.demo_code = None, None
+            await service.commit(db)
+            raise HTTPException(410, "EMAIL_CODE_EXPIRED")
         if not hmac.compare_digest(
-            expected, hashlib.sha256((salt + body.code).encode()).hexdigest()
+            row.code_hash, code_verifier(service.settings, row, match[1], body.code)
         ):
             row.code_failures += 1
             row.failures = failures + [stamp]
+            if row.code_failures >= 5 or len(row.failures) >= 10:
+                row.code_hash, row.demo_code = None, None
             await service.commit(db)
             raise HTTPException(422, "EMAIL_CODE_INVALID")
         row.email_verified, row.code_hash, row.demo_code = True, None, None

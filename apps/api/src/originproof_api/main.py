@@ -86,16 +86,14 @@ def create_app(
             or app_settings.wallet_text_input_enabled
             or app_settings.wallet_demo_email_enabled
         )
-        if wallet_enabled:
-            for analysis_id in await cleanup(app, restart=True):
-                launch(app, analysis_id)
-        maintenance_task = asyncio.create_task(maintenance(app, stop)) if wallet_enabled else None
-        task = (
-            asyncio.create_task(run_projection(app, stop))
-            if app_settings.projection_enabled
-            else None
-        )
+        task = maintenance_task = None
         try:
+            if wallet_enabled:
+                for analysis_id in await cleanup(app, restart=True):
+                    launch(app, analysis_id)
+                maintenance_task = asyncio.create_task(maintenance(app, stop))
+            if app_settings.projection_enabled:
+                task = asyncio.create_task(run_projection(app, stop))
             yield
         finally:
             stop.set()

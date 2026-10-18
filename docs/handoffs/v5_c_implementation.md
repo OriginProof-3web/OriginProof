@@ -99,3 +99,39 @@ clean 사본은 git archive로 커밋 파일만 푼 뒤 개인 .env 없이 froze
 최초 #57/#58 python-quality는 `make generate` 뒤 api.ts의 IssueInput.content가 unknown에서 PaymentIssue | DocumentIssue로 바뀌어 실패했습니다. 근거: [#57 초기 CI](https://github.com/OriginProof-3web/OriginProof/actions/runs/38847390740), [#58 초기 CI](https://github.com/OriginProof-3web/OriginProof/actions/runs/38847390636). 생성기로 한 줄을 갱신한 `b82a2d1`을 #57에 추가하고 뒤의 자기 브랜치에 순서대로 병합했습니다. 후속 최종 코드에는 이미 같은 생성 타입이 있어 Python/생성물/Golden은 검증 코드 650e85c와 동일합니다. 과거 단계·다른 담당 브랜치를 변경하거나 force push하지 않았습니다.
 
 선행 기준에서 다섯 생성기 재실행 일치·생성 API TypeScript 컴파일·diff 검사를 통과했습니다. 새 원격 CI 결과는 재실행 중이며 초기 실패를 전체 통과로 덮어쓰지 않습니다. 작성자 외 리뷰와 실제 B/A/D 연결은 계속 후속입니다.
+### 2026-10-18 W2 리뷰 보완
+
+이메일 검증값은 `API_WALLET_EMAIL_SECRET`의 최소 32바이트 서버 비밀을 사용하는
+HMAC-SHA256으로 바꿨습니다. 비밀은 Settings repr/직렬화·응답에서 제외하며 기관 지갑키와
+무관합니다. 설정이 없으면 코드 발급·검증을 성공시키지 않습니다. 이전 SHA 검증값은
+확인하지 않고 무효화해 재발급합니다. 기존 만료/재발급/누적 실패 제한과 원자적 소비를
+유지하고, 만료·소비·5회 실패 시 검증값/데모 평문을 지웁니다. 시작 시와 정상 가동 중
+300초 간격으로 만료 코드를 정리하며, 조회·검증에서도 만료 직후 접근을 차단합니다.
+
+KeyProof 없는 REACTIVATE는 공유 ABI의 0값 tuple과 빈 bytes를 전달하도록 W5 보완을
+이 단계로 앞당겼습니다. API가 실제 저장한 인자를 커밋된 인터페이스 ABI와 Foundry cast로
+인코딩하는 회귀를 추가했습니다. cast 없는 환경에서는 해당 검사는 명시적으로 skip합니다.
+원본/소비자·기존 계약 변경은 없으며 실제 B Registry·지갑 연결 검사는 별도입니다.
+
+이 보완 소스의 전체 Python 검사(API·core·analyzer·indexer·scripts/ci)는 463 PASS /
+8 live opt-in SKIP / 기존 Starlette 경고 1건입니다. Ruff·diff 검사도 통과했습니다.
+
+### 2026-10-18 W3 리뷰 보완
+
+철회 확정은 요청의 기관·doc_key·documentId·version과 실제 REVOKED 효과가 모두 같을 때만
+허용합니다. SUPERSEDED/ACTIVE/EXPIRED 및 다른 문서·버전은 UNKNOWN으로 유지합니다.
+이 단계에 아직 철회 HTTP 경로가 없으므로 공통 확정 함수를 실제 저장 요청·서명·receipt와
+대조하는 8개 거부/성공 회귀로 먼저 검사했고 W4에서 HTTP 경로를 추가 검사합니다.
+서명 뒤 미전송 작업은 RECONCILE을 안내하고 deadline 후 원래 요청·체인 nonce·문서 부재를
+확인한 경우에만 예약을 끝내 RESIGN을 안내합니다. 새 전송은 수행하지 않습니다.
+
+API·코어 162 PASS / 4 live opt-in SKIP, 신규/기존 wallet HTTP·저장 검사 32 PASS,
+Ruff 통과입니다. 실제 Registry·브라우저 연결 완료와 구분합니다.
+
+### 2026-10-18 W4 리뷰 보완
+
+철회 HTTP 경로에서 SUPERSEDED 문서와 성공 receipt만 관측하면 UNKNOWN을 유지하는
+사례를 추가했습니다. 이후 같은 원래 거래의 REVOKED 효과가 관측되면 재전송 없이
+CONFIRMED로 복구합니다. 기존 성공 helper는 관측 상태를 인자로 받아, 항상 REVOKED를
+먼저 주입하는 테스트 공백을 없앴습니다. wallet HTTP·저장 및 core 검사 81 PASS,
+Ruff 통과이며 실제 EVM 원자성·경쟁 성공을 뜻하지 않습니다.

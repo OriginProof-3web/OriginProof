@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from originproof_core.wallet_contract import Address
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     wallet_operator_addresses: dict[str, Address] = {}
     wallet_internal_approvers: dict[str, str] = {}
     wallet_demo_email_enabled: bool = False
+    wallet_email_secret: SecretStr | None = Field(default=None, repr=False, exclude=True)
     wallet_text_input_enabled: bool = False
     wallet_relay_enabled: bool = False
 
