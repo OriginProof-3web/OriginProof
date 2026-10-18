@@ -318,7 +318,23 @@ async def reconcile(operation_id: str, request: Request, identity: Identity):
         if tx:
             return await accept_transaction(service, db, row, tx.tx_hash)
         if row.tx_hash:
-            return await accept_transaction(service, db, row, row.tx_hash)
+            result = await accept_transaction(service, db, row, row.tx_hash)
+            if result.status in ("CONFIRMED", "FAILED"):
+                return result
+        if row.input_body["action"] in ("Publish", "Revoke"):
+            message = row.input_body["arguments"]["message"]
+            if now() >= message["deadline"]:
+                issuer = await service.rpc("issuer", message["issuerId"])
+                chain = await service.rpc("document", message["documentId"], message["version"])
+                absent = (
+                    chain is None
+                    if row.input_body["action"] == "Publish"
+                    else (chain is not None and chain.document.state != "REVOKED")
+                )
+                if issuer and issuer.next_nonce == message["nonce"] and absent:
+                    row.status, row.error_code = "FAILED", "SIGNATURE_EXPIRED"
+                    row.recovery_reference = row.recovery_reference | {"resolved_at": now()}
+                    await service.commit(db)
         return service.operation_view(row)
 
 

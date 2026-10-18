@@ -644,6 +644,121 @@ async def confirmed_publication(w, signing, *, req="req_publish", tx_byte="67"):
     return doc, confirmed.json()
 
 
+@pytest.mark.parametrize(
+    "change,expected",
+    [
+        ({}, "CONFIRMED"),
+        ({"state": "SUPERSEDED"}, "UNKNOWN"),
+        ({"state": "ACTIVE"}, "UNKNOWN"),
+        ({"state": "EXPIRED"}, "UNKNOWN"),
+        ({"issuer_id": "0x" + "cd" * 32}, "UNKNOWN"),
+        ({"doc_key": "0x" + "cd" * 32}, "UNKNOWN"),
+        ({"document_id": "0x" + "cd" * 32}, "UNKNOWN"),
+        ({"version": 2, "latest_version": 2}, "UNKNOWN"),
+    ],
+)
+async def test_revoke_confirmation_requires_exact_revoked_document(wallet, change, expected):
+    from originproof_api.wallet_database import WalletSigningRow
+    from originproof_api.wallet_governance import accept_transaction
+    from originproof_core.wallet_contract import RevokeDraftRequest, RevokeMessage, SignedSubmission
+
+    await activated(wallet)
+    original = await draft(wallet)
+    doc, _ = await confirmed_publication(wallet, original)
+    service = wallet.app.state.wallet_runtime
+    message = RevokeMessage(
+        issuerId=doc.issuer_id,
+        docKey=doc.doc_key,
+        documentId=doc.document_id,
+        version=doc.version,
+        keyId=doc.key_id,
+        nonce="1",
+        deadline=int(time.time()) + 300,
+    )
+    signing = SigningRequest(
+        signing_request_id="wsr_review_revoke",
+        primary_type="Revoke",
+        domain=DOMAIN,
+        message=message,
+        expected_signer=SIGNER,
+    )
+    signature = sign(signing)
+    body = SignedSubmission(
+        request_id="req_review_revoke",
+        signing_request_id=signing.signing_request_id,
+        signature=signature,
+    )
+    intent = {
+        "action": "Revoke",
+        "signing_request_id": signing.signing_request_id,
+        "document_id": doc.document_id,
+        "version": doc.version,
+        "arguments": {"message": message.model_dump(by_alias=True), "signature": signature},
+    }
+    tx_hash = "0x" + "ef" * 32
+    wallet.chain.transactions[tx_hash] = WalletTransaction(
+        **BLOCK,
+        tx_hash=tx_hash,
+        sender=APPROVERS[0],
+        action="Revoke",
+        status="CONFIRMED",
+        arguments=intent["arguments"],
+    )
+    position = wallet.chain.documents[(doc.document_id, doc.version)]
+    wallet.chain.documents[(doc.document_id, doc.version)] = position.model_copy(
+        update={"document": doc.model_copy(update={"state": "REVOKED"} | change)}
+    )
+    async with service.database.session_factory() as db:
+        await service.save_signing(
+            db,
+            wallet.accounts["issuer"],
+            "Revoke",
+            RevokeDraftRequest(
+                request_id="req_review_revoke_draft",
+                document_id=doc.document_id,
+                version=doc.version,
+            ),
+            signing,
+        )
+        saved = await db.get(WalletSigningRow, signing.signing_request_id)
+        saved.signature = signature
+        row = service.operation(
+            db, wallet.accounts["issuer"], "wallet_revoke", body, doc.document_id, intent
+        )
+        await service.commit(db)
+        result = await accept_transaction(service, db, row, tx_hash)
+        assert result.status == expected
+    assert wallet.chain.sends == []
+
+
+async def test_unsubmitted_expired_operation_reconciles_and_releases_nonce(wallet, monkeypatch):
+    await activated(wallet)
+    signing = await draft(wallet)
+    body = {
+        "request_id": "req_expiring",
+        "signing_request_id": signing["signing_request_id"],
+        "signature": sign(signing),
+    }
+    pending = await wallet.client.post("/v3/publications", json=body)
+    assert pending.status_code == 202 and pending.json()["next_action"] == "RECONCILE"
+    monkeypatch.setattr(
+        "originproof_api.wallet_documents.now", lambda: signing["message"]["deadline"]
+    )
+    result = await wallet.client.post(f"/v3/operations/{pending.json()['operation_id']}/reconcile")
+    assert result.status_code == 202 and result.json()["status"] == "FAILED"
+    assert result.json()["next_action"] == "RESIGN" and wallet.chain.sends == []
+    fresh = await draft(wallet, request_id="req_fresh_after_expiry")
+    accepted = await wallet.client.post(
+        "/v3/publications",
+        json={
+            "request_id": "req_after_expiry",
+            "signing_request_id": fresh["signing_request_id"],
+            "signature": sign(fresh),
+        },
+    )
+    assert accepted.status_code == 202, accepted.text
+
+
 async def test_publication_original_signature_and_operation_are_durable_without_server_key(wallet):
     import base64
 

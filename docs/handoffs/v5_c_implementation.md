@@ -55,3 +55,15 @@ KeyProof 없는 REACTIVATE는 공유 ABI의 0값 tuple과 빈 bytes를 전달하
 
 이 보완 소스의 전체 Python 검사(API·core·analyzer·indexer·scripts/ci)는 463 PASS /
 8 live opt-in SKIP / 기존 Starlette 경고 1건입니다. Ruff·diff 검사도 통과했습니다.
+
+### 2026-10-18 W3 리뷰 보완
+
+철회 확정은 요청의 기관·doc_key·documentId·version과 실제 REVOKED 효과가 모두 같을 때만
+허용합니다. SUPERSEDED/ACTIVE/EXPIRED 및 다른 문서·버전은 UNKNOWN으로 유지합니다.
+이 단계에 아직 철회 HTTP 경로가 없으므로 공통 확정 함수를 실제 저장 요청·서명·receipt와
+대조하는 8개 거부/성공 회귀로 먼저 검사했고 W4에서 HTTP 경로를 추가 검사합니다.
+서명 뒤 미전송 작업은 RECONCILE을 안내하고 deadline 후 원래 요청·체인 nonce·문서 부재를
+확인한 경우에만 예약을 끝내 RESIGN을 안내합니다. 새 전송은 수행하지 않습니다.
+
+API·코어 162 PASS / 4 live opt-in SKIP, 신규/기존 wallet HTTP·저장 검사 32 PASS,
+Ruff 통과입니다. 실제 Registry·브라우저 연결 완료와 구분합니다.
