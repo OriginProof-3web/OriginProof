@@ -23,7 +23,7 @@ from sqlalchemy.exc import IntegrityError
 from .accounts import require_csrf
 from .database import AccountRow, AuditEventRow, OperationRow
 from .operations import input_fingerprint
-from .wallet_database import WalletSigningRow
+from .wallet_database import WalletRequestRow, WalletSigningRow
 
 
 def now():
@@ -193,6 +193,14 @@ class WalletRuntime:
         )
 
     async def operation_retry(self, db, account, action, body):
+        claim = await db.get(WalletRequestRow, (account.account_id, action, body.request_id))
+        if claim:
+            if claim.input_hash != input_fingerprint(body.model_dump(mode="json")):
+                raise HTTPException(409, "REQUEST_ID_CONFLICT")
+            row = await db.get(OperationRow, claim.resource_id)
+            if row is None:
+                raise HTTPException(410, "RESULT_EXPIRED")
+            return row
         row = await db.scalar(
             select(OperationRow)
             .where(
