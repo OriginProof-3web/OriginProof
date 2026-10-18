@@ -30,6 +30,17 @@ async def check_ready(app):
         issuers = {row.issuer_id for row in accounts if row.role == "issuer"}
         if (
             revision != REVISION
+            or (
+                not settings.wallet_registry_address
+                and len(
+                    {
+                        settings.blockchain_issuer_id,
+                        settings.finals_payment_issuer_id,
+                        settings.finals_document_issuer_id,
+                    }
+                )
+                != 3
+            )
             or not {"operator", "recipient", "issuer"} <= roles
             or not {
                 settings.finals_payment_issuer_id,

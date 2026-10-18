@@ -24,7 +24,11 @@
 `API_FINALS_PAYMENT_ISSUER_ID` 기본 `iss_origin_mock_bank`,
 `API_FINALS_DOCUMENT_ISSUER_ID` 기본 `iss_origin_mock_office`,
 `API_FINALS_DOCUMENT_INSTITUTION_CODE` 기본 `ORIGIN_MOCK_OFFICE`가 서버 허용 대응입니다.
-합성 테스트의 동적 기관 ID만 테스트 settings에서 대응을 지정합니다.
+레거시 배포는 `iss_origin_mock_bank`를 미리 등록하므로 `.env.example`처럼 발행 기관을
+`iss_finals_mock_bank`/`iss_finals_mock_office`로 분리해야 합니다. 충돌하는 설정은 readiness가
+거부합니다. 합성 테스트의 동적 기관 ID는 테스트 settings에서 대응을 지정합니다.
+수신자 목록은 합성 데모의 공용 주소록으로 모든 recipient의 opaque ID/합성 이름만 제공합니다.
+기관별 수신자 명부가 필요한 운영 환경은 별도 관계·권한 설계 전까지 지원하지 않습니다.
 클라이언트 issuer/key/proof ID·발행 시각·nonce·binding·signature 지정은 금지합니다.
 
 비교 요청은 `{"request_id":"req_compare_001","candidate":{"amount_minor":10000,"currency":"KRW","target_ref":"SYNTHETIC-INVOICE-001"}}`입니다.

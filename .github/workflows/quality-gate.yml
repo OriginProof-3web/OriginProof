@@ -40,7 +40,7 @@ jobs:
       - name: Verify generated contracts are current
         run: |
           make generate
-          git diff --exit-code -- packages/schemas/generated fixtures/golden
+          git diff --exit-code -- packages/schemas/generated fixtures/golden packages/contracts/test/generated/WalletGolden.sol fixtures/synthetic/shared_contract_cases_v1.json packages/contracts/abi
       - name: Run Python tests and lint
         run: |
           uv run pytest
