@@ -27,8 +27,9 @@ class SnapshotUnavailable(Exception):
 
 async def read_registry(client, domain, message):
     request_id = 0
+    missing = object()
 
-    async def rpc(method, params):
+    async def rpc(method, params, *, not_found=None):
         nonlocal request_id
         request_id += 1
         response = await client.post(
@@ -38,11 +39,24 @@ async def read_registry(client, domain, message):
         body = response.json()
         if (
             not isinstance(body, dict)
+            or body.get("jsonrpc") != "2.0"
             or type(body.get("id")) is not int
             or body.get("id") != request_id
-            or "result" not in body
-            or "error" in body
         ):
+            raise SnapshotUnavailable
+        if "error" in body:
+            error = body["error"]
+            if (
+                "result" not in body
+                and not_found is not None
+                and isinstance(error, dict)
+                and type(error.get("code")) is int
+                and isinstance(error.get("message"), str)
+                and error.get("data") == "0x" + keccak_bytes(not_found.encode())[:4].hex()
+            ):
+                return missing
+            raise SnapshotUnavailable
+        if "result" not in body:
             raise SnapshotUnavailable
         return body["result"]
 
@@ -63,11 +77,15 @@ async def read_registry(client, domain, message):
         "block_hash": block_hash,
     }
 
-    async def call(signature, arguments, count):
+    async def call(signature, arguments, count, *, not_found=None):
         encoded = keccak_bytes(signature.encode())[:4] + b"".join(arguments)
         raw = await rpc(
-            "eth_call", [{"to": domain.verifying_contract, "data": "0x" + encoded.hex()}, tag]
+            "eth_call",
+            [{"to": domain.verifying_contract, "data": "0x" + encoded.hex()}, tag],
+            not_found=not_found,
         )
+        if raw is missing:
+            return None
         if not isinstance(raw, str) or not re.fullmatch(
             r"0x[0-9a-fA-F]{" + str(64 * count) + r"}", raw
         ):
@@ -90,9 +108,14 @@ async def read_registry(client, domain, message):
         return "0x" + value.hex()
 
     did = bytes.fromhex(message.document_id[2:])
-    values = await call("getDocument(bytes32,uint64)", [did, message.version.to_bytes(32)], 12)
+    values = await call(
+        "getDocument(bytes32,uint64)",
+        [did, message.version.to_bytes(32)],
+        12,
+        not_found="UnknownDocument()",
+    )
     chain, issuer, key = None, None, None
-    if values[0] != bytes(32):
+    if values is not None and values[0] != bytes(32):
         latest = number((await call("latestVersion(bytes32)", [did], 1))[0], 64)
         document = DocumentView(
             document_id=message.document_id,
@@ -119,8 +142,8 @@ async def read_registry(client, domain, message):
         if chain.published_at > int(block["timestamp"], 16):
             raise SnapshotUnavailable
         iid = bytes.fromhex(document.issuer_id[2:])
-        fields = await call("getIssuer(bytes32)", [iid], 4)
-        if number(fields[0], 8) != 0:
+        fields = await call("getIssuer(bytes32)", [iid], 4, not_found="UnknownIssuer()")
+        if fields is not None and number(fields[0], 8) != 0:
             issuer = WalletIssuer(
                 **position,
                 issuer_id=document.issuer_id,
@@ -131,8 +154,13 @@ async def read_registry(client, domain, message):
                 next_nonce=str(number((await call("nextNonce(bytes32)", [iid], 1))[0])),
                 governance_nonce=str(number((await call("governanceNonce(bytes32)", [iid], 1))[0])),
             )
-        fields = await call("getKey(bytes32)", [bytes.fromhex(document.key_id[2:])], 5)
-        if fields[0] != bytes(32):
+        fields = await call(
+            "getKey(bytes32)",
+            [bytes.fromhex(document.key_id[2:])],
+            5,
+            not_found="UnknownKey()",
+        )
+        if fields is not None and fields[0] != bytes(32):
             key = WalletKey(
                 **position,
                 key_id=document.key_id,

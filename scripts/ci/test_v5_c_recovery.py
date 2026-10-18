@@ -13,6 +13,7 @@ import statistics
 import subprocess
 import sys
 import time
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from uuid import uuid4
 
@@ -22,6 +23,7 @@ from eth_keys import keys
 from originproof_api.accounts import password_hash
 from originproof_api.database import (
     AccountRow,
+    AuditEventRow,
     Database,
     IssuerApplicationRow,
     OperationRow,
@@ -31,6 +33,7 @@ from originproof_api.main import create_app
 from originproof_api.operations import input_fingerprint
 from originproof_api.settings import Settings
 from originproof_api.wallet_database import WalletAnalysisRow, WalletInputRow, WalletSigningRow
+from originproof_api.wallet_runtime import WalletRuntime
 from originproof_core import DependencyUnavailableError
 from originproof_core.wallet_contract import DocumentView, SigningRequest
 from originproof_core.wallet_ports import WalletDocument
@@ -123,6 +126,7 @@ def process_app():
         wallet_registry_address=POSITION["verifying_contract"],
         wallet_internal_approvers={ISSUER: "acct_internal"},
         wallet_demo_email_enabled=True,
+        wallet_email_secret="synthetic-server-email-secret-for-disposable-live-tests",
         wallet_text_input_enabled=True,
         wallet_relay_enabled=os.environ.get("V5_C_RELAY") == "1",
         finals_payment_issuer_id=ISSUER,
@@ -839,3 +843,59 @@ async def test_v5_rpc_outage_analysis_and_expiry_are_independent(wallet_live):
         assert (await db.get(WalletAnalysisRow, analysis_id)).report is None
         assert (await db.get(WalletInputRow, body["input_ref"])).original is None
     assert (await live.bank.get(f"/v3/documents/{did}/verification-material")).status_code == 200
+
+
+async def test_v5_postgres_retention_preserves_legacy_and_unresolved_audit(wallet_live):
+    from types import SimpleNamespace
+
+    from originproof_api.wallet_analyses import cleanup
+
+    live = wallet_live
+    stamp = int(time.time())
+    old = datetime.fromtimestamp(stamp, UTC) - timedelta(days=31)
+    async with live.database.session_factory() as db:
+        for name, action, status, resolved in [
+            ("expired", "wallet_publish", "CONFIRMED", stamp - 31 * 86400),
+            ("pending", "wallet_publish", "UNKNOWN", None),
+            ("legacy", "publish", "CONFIRMED", stamp - 31 * 86400),
+            ("lookalike", "walletXpublish", "CONFIRMED", stamp - 31 * 86400),
+        ]:
+            db.add(
+                OperationRow(
+                    operation_id="op_retention_" + name,
+                    account_id="acct_bank",
+                    issuer_id=ISSUER,
+                    action=action,
+                    request_id="req_retention_" + name,
+                    input_hash="0" * 64,
+                    status=status,
+                    input_body={},
+                    target_id="target_retention_" + name,
+                    recovery_reference={"resolved_at": resolved},
+                    created_at=old,
+                )
+            )
+            db.add(
+                AuditEventRow(
+                    event_id="evt_retention_" + name,
+                    actor_account_id="acct_bank",
+                    action=action,
+                    target_id="target_retention_" + name,
+                    after_status=status,
+                    created_at=old,
+                )
+            )
+        await db.commit()
+    app = SimpleNamespace(
+        state=SimpleNamespace(
+            wallet_runtime=WalletRuntime(live.database, Settings(_env_file=None)),
+            analysis_worker_error=None,
+        )
+    )
+    await cleanup(app)
+    async with live.database.session_factory() as db:
+        assert await db.get(OperationRow, "op_retention_expired") is None
+        assert await db.get(AuditEventRow, "evt_retention_expired") is None
+        for name in ("pending", "legacy", "lookalike"):
+            assert await db.get(OperationRow, "op_retention_" + name) is not None
+            assert await db.get(AuditEventRow, "evt_retention_" + name) is not None

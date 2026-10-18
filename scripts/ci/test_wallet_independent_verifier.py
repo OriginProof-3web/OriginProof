@@ -137,6 +137,19 @@ def source(tmp_path, request):
             signature = next(
                 s for s in returns if call["data"][2:10] == keccak_bytes(s.encode())[:4].hex()
             )
+            if flags.get("revert_function") == signature:
+                payload = {
+                    "jsonrpc": "2.0",
+                    "id": body["id"],
+                    "error": {
+                        "code": 3,
+                        "message": "execution reverted",
+                        "data": flags.get("revert_data"),
+                    },
+                }
+                if flags.get("error_and_result"):
+                    payload["result"] = None
+                return httpx.Response(200, json=payload)
             fields = returns[signature]
             if flags.get("not_registered") and signature.startswith("getDocument"):
                 fields = [0] * 12
@@ -183,6 +196,45 @@ async def test_original_and_protected_comparison_without_service_api(source):
         await module.verify(source.args, transport=source.transport)
     ).verification_status == "VERIFIED"
     assert all(call["method"].startswith("eth_") for call in source.calls)
+
+
+@pytest.mark.parametrize(
+    "function,error,suffix,expected",
+    [
+        ("getDocument(bytes32,uint64)", "UnknownDocument()", "", "NOT_REGISTERED"),
+        ("getDocument(bytes32,uint64)", "UnknownKey()", "", "INCONCLUSIVE"),
+        ("getDocument(bytes32,uint64)", "UnknownDocument()", "00", "INCONCLUSIVE"),
+        ("getDocument(bytes32,uint64)", "UnknownDocument()", "nested", "INCONCLUSIVE"),
+        ("getIssuer(bytes32)", "UnknownIssuer()", "", "INCONCLUSIVE"),
+        ("getKey(bytes32)", "UnknownKey()", "", "INCONCLUSIVE"),
+    ],
+)
+async def test_exact_getter_not_found_is_distinct_from_dependency_failure(
+    source, function, error, suffix, expected
+):
+    data = "0x" + keccak_bytes(error.encode())[:4].hex()
+    source.flags.update(
+        revert_function=function,
+        revert_data={"data": data} if suffix == "nested" else data + suffix,
+    )
+    result = await module.verify(source.args, transport=source.transport)
+    assert result.verification_status == expected
+    if expected == "NOT_REGISTERED":
+        assert "CHAIN_UNAVAILABLE" not in result.reason_codes
+        assert source.calls[-1]["method"] == "eth_getBlockByNumber"
+        assert source.calls[-1]["params"][0] == "0xa"
+
+
+@pytest.mark.parametrize("invalid", ["reorg", "error_and_result"])
+async def test_not_found_does_not_hide_noncanonical_or_invalid_rpc_envelopes(source, invalid):
+    source.flags.update(
+        revert_function="getDocument(bytes32,uint64)",
+        revert_data="0x" + keccak_bytes(b"UnknownDocument()")[:4].hex(),
+    )
+    source.flags[invalid] = True
+    result = await module.verify(source.args, transport=source.transport)
+    assert result.verification_status == "INCONCLUSIVE"
+    assert "CHAIN_UNAVAILABLE" in result.reason_codes
 
 
 @pytest.mark.parametrize(

@@ -171,3 +171,17 @@ Operation 보관 정리는 SQL에서 만료 wallet 작업만 선택하고 미해
 전체 Python 519 PASS / 9 SKIP / 기존 경고 1건, Ruff·diff 검사 통과입니다.
 공유 revision 0.2의 기존 원본 모델을 바꾸지 않았으며 재생성 정합성을 확인합니다.
 B ABI/상태·A 응답·D grounding 소비 리뷰는 실제 확인 전까지 대기이며 대신 기록하지 않습니다.
+
+### 2026-10-18 W6 리뷰 보완
+
+독립 CLI는 해당 getter의 정확한 4바이트 UnknownDocument/UnknownIssuer/UnknownKey
+revert만 부재로 해석합니다. 미등록 문서는 NOT_REGISTERED이며, 잘못된 selector·추가 bytes·
+중첩 오류·의존 기관/키 누락·RPC 실패는 INCONCLUSIVE를 유지합니다. 부재 응답도 고정
+블록의 canonical hash를 다시 확인하고 JSON-RPC id/version/result/error 경계를 검사합니다.
+독립 검증 CLI 회귀 49 PASS입니다.
+
+실제 임시 PostgreSQL/uvicorn 복구 검사에 wallet 보관 SQL의 v1/v2·유사 이름·미해결 감사
+보존 검사를 추가해 6 PASS를 확인했습니다. 이메일 HMAC 비밀은 검사 전용 합성 설정으로
+주입했습니다. DB 백업·빈 DB 복원·프로세스 종료/재시작·UNKNOWN·동시 버전·RPC 장애를
+재검사했으며 Registry/분석기는 합성입니다. 실제 B Adapter·배포·지갑·D 모델 연결 완료나
+작성자 외 리뷰를 대신하지 않습니다.
