@@ -50,6 +50,20 @@ export interface CheckResult {
   reason_code?: string | null;
 }
 
+export interface DemoEmailCode {
+  code: string;
+}
+
+export interface DemoEmailRequest {
+  email: string;
+}
+
+export interface DemoInbox {
+  demo_only?: true;
+  code: string | null;
+  expires_at: number;
+}
+
 export interface DirectTransaction {
   request_id: string;
   signing_request_id: string;
@@ -103,6 +117,11 @@ export interface GovernanceTransaction {
   tx_hash: string;
 }
 
+export interface InputReceipt {
+  input_ref: string;
+  expires_at: number;
+}
+
 export interface KeyChallengeRequest {
   request_id: string;
   application_id: string;
@@ -132,6 +151,17 @@ export interface OfficialContent {
   title: string;
   summary: string;
   official_url?: string | null;
+}
+
+export interface OnboardingView {
+  application_id: string;
+  roster_matched: boolean;
+  demo_only?: true;
+  email_verified: boolean;
+  internally_approved: boolean;
+  metadata: Record<string, unknown>;
+  metadata_hash: string;
+  code_expires_at?: number | null;
 }
 
 export interface OperationView {
@@ -224,6 +254,11 @@ export interface SigningRequest {
   expected_signer: string;
   original_base64?: string | null;
   content?: PaymentContent | OfficialContent | null;
+}
+
+export interface TextInputRequest {
+  kind: "TEXT";
+  text: string;
 }
 
 export interface VerificationRequest {

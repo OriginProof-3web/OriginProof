@@ -440,6 +440,71 @@
         "title": "DecisionInput",
         "type": "object"
       },
+      "DemoEmailCode": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "pattern": "^[0-9]{6}$",
+            "title": "Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "DemoEmailCode",
+        "type": "object"
+      },
+      "DemoEmailRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "maxLength": 254,
+            "minLength": 3,
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "DemoEmailRequest",
+        "type": "object"
+      },
+      "DemoInbox": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          },
+          "demo_only": {
+            "const": true,
+            "default": true,
+            "title": "Demo Only",
+            "type": "boolean"
+          },
+          "expires_at": {
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Expires At",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "code",
+          "expires_at"
+        ],
+        "title": "DemoInbox",
+        "type": "object"
+      },
       "DocumentIssue": {
         "additionalProperties": false,
         "properties": {
@@ -696,6 +761,83 @@
         "title": "FinalsVerificationResult",
         "type": "object"
       },
+      "GovernanceProposal": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "enum": [
+              1,
+              2,
+              3
+            ],
+            "title": "Action",
+            "type": "integer"
+          },
+          "deadline": {
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Deadline",
+            "type": "integer"
+          },
+          "issuerId": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Issuerid",
+            "type": "string"
+          },
+          "keyId": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Keyid",
+            "type": "string"
+          },
+          "metadataHash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Metadatahash",
+            "type": "string"
+          },
+          "nonce": {
+            "pattern": "^(0|[1-9][0-9]{0,77})$",
+            "title": "Nonce",
+            "type": "string"
+          },
+          "signer": {
+            "pattern": "^0x[0-9a-fA-F]{40}$",
+            "title": "Signer",
+            "type": "string"
+          }
+        },
+        "required": [
+          "action",
+          "issuerId",
+          "keyId",
+          "signer",
+          "metadataHash",
+          "nonce",
+          "deadline"
+        ],
+        "title": "GovernanceProposal",
+        "type": "object"
+      },
+      "GovernanceTransaction": {
+        "additionalProperties": false,
+        "properties": {
+          "request_id": {
+            "pattern": "^req_[A-Za-z0-9_-]{1,124}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "tx_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Tx Hash",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "tx_hash"
+        ],
+        "title": "GovernanceTransaction",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -792,6 +934,33 @@
         "title": "IssuerView",
         "type": "object"
       },
+      "KeyChallengeRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "application_id": {
+            "pattern": "^app_[A-Za-z0-9_-]+$",
+            "title": "Application Id",
+            "type": "string"
+          },
+          "request_id": {
+            "pattern": "^req_[A-Za-z0-9_-]{1,124}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "signer": {
+            "pattern": "^0x[0-9a-fA-F]{40}$",
+            "title": "Signer",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "application_id",
+          "signer"
+        ],
+        "title": "KeyChallengeRequest",
+        "type": "object"
+      },
       "KeyInput": {
         "additionalProperties": false,
         "properties": {
@@ -824,6 +993,80 @@
           "valid_until"
         ],
         "title": "KeyInput",
+        "type": "object"
+      },
+      "KeyProofMessage": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "const": 3,
+            "default": 3,
+            "title": "Action",
+            "type": "integer"
+          },
+          "applicationId": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Applicationid",
+            "type": "string"
+          },
+          "challengeNonce": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Challengenonce",
+            "type": "string"
+          },
+          "deadline": {
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Deadline",
+            "type": "integer"
+          },
+          "issuerId": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Issuerid",
+            "type": "string"
+          },
+          "signer": {
+            "pattern": "^0x[0-9a-fA-F]{40}$",
+            "title": "Signer",
+            "type": "string"
+          }
+        },
+        "required": [
+          "applicationId",
+          "issuerId",
+          "signer",
+          "challengeNonce",
+          "deadline"
+        ],
+        "title": "KeyProofMessage",
+        "type": "object"
+      },
+      "KeyProofReceipt": {
+        "additionalProperties": false,
+        "properties": {
+          "expires_at": {
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Expires At",
+            "type": "integer"
+          },
+          "signing_request_id": {
+            "title": "Signing Request Id",
+            "type": "string"
+          },
+          "verified_at": {
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Verified At",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "signing_request_id",
+          "verified_at",
+          "expires_at"
+        ],
+        "title": "KeyProofReceipt",
         "type": "object"
       },
       "KeyStatus": {
@@ -958,6 +1201,68 @@
         "title": "MutationInput",
         "type": "object"
       },
+      "OfficialContent": {
+        "additionalProperties": false,
+        "properties": {
+          "document_number": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Document Number",
+            "type": "string"
+          },
+          "document_type": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Document Type",
+            "type": "string"
+          },
+          "institution_code": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Institution Code",
+            "type": "string"
+          },
+          "notice_type": {
+            "const": "OFFICIAL_DOCUMENT",
+            "title": "Notice Type",
+            "type": "string"
+          },
+          "official_url": {
+            "anyOf": [
+              {
+                "maxLength": 2048,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Official Url"
+          },
+          "summary": {
+            "maxLength": 2000,
+            "minLength": 1,
+            "title": "Summary",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "notice_type",
+          "institution_code",
+          "document_type",
+          "document_number",
+          "title",
+          "summary"
+        ],
+        "title": "OfficialContent",
+        "type": "object"
+      },
       "OfficialDocument": {
         "additionalProperties": false,
         "properties": {
@@ -1000,6 +1305,66 @@
         "title": "OfficialDocument",
         "type": "object"
       },
+      "OnboardingView": {
+        "additionalProperties": false,
+        "properties": {
+          "application_id": {
+            "title": "Application Id",
+            "type": "string"
+          },
+          "code_expires_at": {
+            "anyOf": [
+              {
+                "maximum": 9007199254740991.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code Expires At"
+          },
+          "demo_only": {
+            "const": true,
+            "default": true,
+            "title": "Demo Only",
+            "type": "boolean"
+          },
+          "email_verified": {
+            "title": "Email Verified",
+            "type": "boolean"
+          },
+          "internally_approved": {
+            "title": "Internally Approved",
+            "type": "boolean"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          },
+          "metadata_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Metadata Hash",
+            "type": "string"
+          },
+          "roster_matched": {
+            "title": "Roster Matched",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "application_id",
+          "roster_matched",
+          "email_verified",
+          "internally_approved",
+          "metadata",
+          "metadata_hash"
+        ],
+        "title": "OnboardingView",
+        "type": "object"
+      },
       "OperationStatus": {
         "enum": [
           "PENDING_SUBMISSION",
@@ -1011,119 +1376,78 @@
         "title": "OperationStatus",
         "type": "string"
       },
-      "OperationView": {
+      "PaymentContent": {
+        "additionalProperties": false,
         "properties": {
-          "action": {
-            "title": "Action",
+          "amount_minor": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 9007199254740991.0,
+            "title": "Amount Minor",
+            "type": "integer"
+          },
+          "currency": {
+            "pattern": "^[A-Z]{3}$",
+            "title": "Currency",
             "type": "string"
           },
-          "chain_evidence": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Chain Evidence"
+          "due_at": {
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Due At",
+            "type": "integer"
           },
-          "created_at": {
-            "format": "date-time",
-            "title": "Created At",
+          "notice_type": {
+            "const": "PAYMENT_REQUEST",
+            "title": "Notice Type",
             "type": "string"
           },
-          "deployment_id": {
+          "official_url": {
             "anyOf": [
               {
+                "maxLength": 2048,
                 "type": "string"
               },
               {
                 "type": "null"
               }
             ],
-            "title": "Deployment Id"
+            "title": "Official Url"
           },
-          "error_code": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Error Code"
-          },
-          "issuer_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Issuer Id"
-          },
-          "next_action": {
-            "readOnly": true,
-            "title": "Next Action",
+          "payee_account_holder": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Payee Account Holder",
             "type": "string"
           },
-          "operation_id": {
-            "title": "Operation Id",
+          "payee_account_number": {
+            "pattern": "^[0-9]{6,32}$",
+            "title": "Payee Account Number",
             "type": "string"
           },
-          "recovery_required": {
-            "readOnly": true,
-            "title": "Recovery Required",
-            "type": "boolean"
-          },
-          "request_id": {
-            "title": "Request Id",
+          "payee_bank_name": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Payee Bank Name",
             "type": "string"
           },
-          "status": {
-            "$ref": "#/components/schemas/OperationStatus"
-          },
-          "target_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Target Id"
-          },
-          "tx_hash": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Tx Hash"
+          "payment_purpose": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Payment Purpose",
+            "type": "string"
           }
         },
         "required": [
-          "operation_id",
-          "issuer_id",
-          "action",
-          "request_id",
-          "status",
-          "tx_hash",
-          "error_code",
-          "created_at",
-          "recovery_required",
-          "next_action"
+          "notice_type",
+          "amount_minor",
+          "currency",
+          "payee_bank_name",
+          "payee_account_number",
+          "payee_account_holder",
+          "payment_purpose",
+          "due_at"
         ],
-        "title": "OperationView",
+        "title": "PaymentContent",
         "type": "object"
       },
       "PaymentIssue": {
@@ -1355,6 +1679,224 @@
         "title": "ProofView",
         "type": "object"
       },
+      "ProposalRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "key_proof_request_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key Proof Request Id"
+          },
+          "proposal": {
+            "$ref": "#/components/schemas/GovernanceProposal"
+          },
+          "request_id": {
+            "pattern": "^req_[A-Za-z0-9_-]{1,124}$",
+            "title": "Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "proposal"
+        ],
+        "title": "ProposalRequest",
+        "type": "object"
+      },
+      "ProposalView": {
+        "additionalProperties": false,
+        "properties": {
+          "approvals": {
+            "items": {
+              "pattern": "^0x[0-9a-fA-F]{40}$",
+              "type": "string"
+            },
+            "title": "Approvals",
+            "type": "array"
+          },
+          "key_proof": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/KeyProofMessage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "key_proof_signature": {
+            "anyOf": [
+              {
+                "pattern": "^0x[0-9a-f]{130}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key Proof Signature"
+          },
+          "operation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Operation Id"
+          },
+          "proposal": {
+            "$ref": "#/components/schemas/GovernanceProposal"
+          },
+          "proposal_id": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Proposal Id",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "PREPARED",
+              "PENDING",
+              "EXECUTED",
+              "EXPIRED",
+              "STALE"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "threshold": {
+            "const": 2,
+            "default": 2,
+            "title": "Threshold",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "proposal_id",
+          "proposal",
+          "status",
+          "approvals"
+        ],
+        "title": "ProposalView",
+        "type": "object"
+      },
+      "PublishMessage": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "const": 1,
+            "default": 1,
+            "title": "Action",
+            "type": "integer"
+          },
+          "contentSchema": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Contentschema",
+            "type": "string"
+          },
+          "deadline": {
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Deadline",
+            "type": "integer"
+          },
+          "docKey": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Dockey",
+            "type": "string"
+          },
+          "documentId": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Documentid",
+            "type": "string"
+          },
+          "expiresAt": {
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Expiresat",
+            "type": "integer"
+          },
+          "issuedAt": {
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Issuedat",
+            "type": "integer"
+          },
+          "issuerId": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Issuerid",
+            "type": "string"
+          },
+          "keyId": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Keyid",
+            "type": "string"
+          },
+          "nonce": {
+            "pattern": "^(0|[1-9][0-9]{0,77})$",
+            "title": "Nonce",
+            "type": "string"
+          },
+          "originalHash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Originalhash",
+            "type": "string"
+          },
+          "originalHashAlgorithm": {
+            "const": 1,
+            "default": 1,
+            "title": "Originalhashalgorithm",
+            "type": "integer"
+          },
+          "protectedHash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Protectedhash",
+            "type": "string"
+          },
+          "protectedHashAlgorithm": {
+            "const": 1,
+            "default": 1,
+            "title": "Protectedhashalgorithm",
+            "type": "integer"
+          },
+          "signatureSchema": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Signatureschema",
+            "type": "string"
+          },
+          "version": {
+            "maximum": 9007199254740991.0,
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "issuerId",
+          "docKey",
+          "documentId",
+          "version",
+          "keyId",
+          "originalHash",
+          "protectedHash",
+          "contentSchema",
+          "signatureSchema",
+          "issuedAt",
+          "expiresAt",
+          "nonce",
+          "deadline"
+        ],
+        "title": "PublishMessage",
+        "type": "object"
+      },
       "ReasonCode": {
         "enum": [
           "INVALID_SIGNATURE",
@@ -1391,12 +1933,192 @@
         "title": "RecipientView",
         "type": "object"
       },
+      "RevokeMessage": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "const": 2,
+            "default": 2,
+            "title": "Action",
+            "type": "integer"
+          },
+          "deadline": {
+            "maximum": 9007199254740991.0,
+            "minimum": 0.0,
+            "title": "Deadline",
+            "type": "integer"
+          },
+          "docKey": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Dockey",
+            "type": "string"
+          },
+          "documentId": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Documentid",
+            "type": "string"
+          },
+          "issuerId": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Issuerid",
+            "type": "string"
+          },
+          "keyId": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Keyid",
+            "type": "string"
+          },
+          "nonce": {
+            "pattern": "^(0|[1-9][0-9]{0,77})$",
+            "title": "Nonce",
+            "type": "string"
+          },
+          "version": {
+            "maximum": 9007199254740991.0,
+            "minimum": 1.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "issuerId",
+          "docKey",
+          "documentId",
+          "version",
+          "keyId",
+          "nonce",
+          "deadline"
+        ],
+        "title": "RevokeMessage",
+        "type": "object"
+      },
       "SignatureScheme": {
         "enum": [
           "ECDSA_SECP256K1_KECCAK256_V1"
         ],
         "title": "SignatureScheme",
         "type": "string"
+      },
+      "SignedSubmission": {
+        "additionalProperties": false,
+        "properties": {
+          "request_id": {
+            "pattern": "^req_[A-Za-z0-9_-]{1,124}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "signature": {
+            "pattern": "^0x[0-9a-f]{130}$",
+            "title": "Signature",
+            "type": "string"
+          },
+          "signing_request_id": {
+            "pattern": "^wsr_[A-Za-z0-9_-]+$",
+            "title": "Signing Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "signing_request_id",
+          "signature"
+        ],
+        "title": "SignedSubmission",
+        "type": "object"
+      },
+      "SigningRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "content": {
+            "anyOf": [
+              {
+                "discriminator": {
+                  "mapping": {
+                    "OFFICIAL_DOCUMENT": "#/components/schemas/OfficialContent",
+                    "PAYMENT_REQUEST": "#/components/schemas/PaymentContent"
+                  },
+                  "propertyName": "notice_type"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/PaymentContent"
+                  },
+                  {
+                    "$ref": "#/components/schemas/OfficialContent"
+                  }
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Content"
+          },
+          "domain": {
+            "$ref": "#/components/schemas/WalletDomain"
+          },
+          "expected_signer": {
+            "pattern": "^0x[0-9a-fA-F]{40}$",
+            "title": "Expected Signer",
+            "type": "string"
+          },
+          "message": {
+            "discriminator": {
+              "mapping": {
+                "1": "#/components/schemas/PublishMessage",
+                "2": "#/components/schemas/RevokeMessage",
+                "3": "#/components/schemas/KeyProofMessage"
+              },
+              "propertyName": "action"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PublishMessage"
+              },
+              {
+                "$ref": "#/components/schemas/RevokeMessage"
+              },
+              {
+                "$ref": "#/components/schemas/KeyProofMessage"
+              }
+            ],
+            "title": "Message"
+          },
+          "original_base64": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Original Base64"
+          },
+          "primary_type": {
+            "enum": [
+              "Publish",
+              "Revoke",
+              "KeyProof"
+            ],
+            "title": "Primary Type",
+            "type": "string"
+          },
+          "signing_request_id": {
+            "pattern": "^wsr_[A-Za-z0-9_-]+$",
+            "title": "Signing Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "signing_request_id",
+          "primary_type",
+          "domain",
+          "message",
+          "expected_signer"
+        ],
+        "title": "SigningRequest",
+        "type": "object"
       },
       "SyncView": {
         "properties": {
@@ -1635,6 +2357,240 @@
           "request_id"
         ],
         "title": "VerifyInput",
+        "type": "object"
+      },
+      "WalletDomain": {
+        "additionalProperties": false,
+        "properties": {
+          "chainId": {
+            "pattern": "^(0|[1-9][0-9]{0,77})$",
+            "title": "Chainid",
+            "type": "string"
+          },
+          "name": {
+            "const": "OriginProof",
+            "default": "OriginProof",
+            "title": "Name",
+            "type": "string"
+          },
+          "verifyingContract": {
+            "pattern": "^0x[0-9a-fA-F]{40}$",
+            "title": "Verifyingcontract",
+            "type": "string"
+          },
+          "version": {
+            "const": "1",
+            "default": "1",
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "chainId",
+          "verifyingContract"
+        ],
+        "title": "WalletDomain",
+        "type": "object"
+      },
+      "originproof_api__operations__OperationView": {
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "chain_evidence": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chain Evidence"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "deployment_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Deployment Id"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "issuer_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issuer Id"
+          },
+          "next_action": {
+            "readOnly": true,
+            "title": "Next Action",
+            "type": "string"
+          },
+          "operation_id": {
+            "title": "Operation Id",
+            "type": "string"
+          },
+          "recovery_required": {
+            "readOnly": true,
+            "title": "Recovery Required",
+            "type": "boolean"
+          },
+          "request_id": {
+            "title": "Request Id",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OperationStatus"
+          },
+          "target_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Target Id"
+          },
+          "tx_hash": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tx Hash"
+          }
+        },
+        "required": [
+          "operation_id",
+          "issuer_id",
+          "action",
+          "request_id",
+          "status",
+          "tx_hash",
+          "error_code",
+          "created_at",
+          "recovery_required",
+          "next_action"
+        ],
+        "title": "OperationView",
+        "type": "object"
+      },
+      "originproof_core__wallet_contract__OperationView": {
+        "additionalProperties": false,
+        "properties": {
+          "document_id": {
+            "anyOf": [
+              {
+                "pattern": "^0x[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Id"
+          },
+          "next_action": {
+            "enum": [
+              "WAIT",
+              "RECONCILE",
+              "RESIGN",
+              "NONE"
+            ],
+            "title": "Next Action",
+            "type": "string"
+          },
+          "operation_id": {
+            "pattern": "^op_[A-Za-z0-9_-]+$",
+            "title": "Operation Id",
+            "type": "string"
+          },
+          "recovery_required": {
+            "title": "Recovery Required",
+            "type": "boolean"
+          },
+          "request_id": {
+            "pattern": "^req_[A-Za-z0-9_-]{1,124}$",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "PENDING_SUBMISSION",
+              "SUBMITTED",
+              "CONFIRMED",
+              "FAILED",
+              "UNKNOWN"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "tx_hash": {
+            "anyOf": [
+              {
+                "pattern": "^0x[0-9a-f]{64}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tx Hash"
+          },
+          "version": {
+            "anyOf": [
+              {
+                "maximum": 9007199254740991.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Version"
+          }
+        },
+        "required": [
+          "operation_id",
+          "request_id",
+          "status",
+          "recovery_required",
+          "next_action"
+        ],
+        "title": "OperationView",
         "type": "object"
       }
     }
@@ -2047,7 +3003,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OperationView"
+                  "$ref": "#/components/schemas/originproof_api__operations__OperationView"
                 }
               }
             },
@@ -2094,7 +3050,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OperationView"
+                  "$ref": "#/components/schemas/originproof_api__operations__OperationView"
                 }
               }
             },
@@ -2200,7 +3156,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OperationView"
+                  "$ref": "#/components/schemas/originproof_api__operations__OperationView"
                 }
               }
             },
@@ -2370,7 +3326,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/OperationView"
+                    "$ref": "#/components/schemas/originproof_api__operations__OperationView"
                   },
                   "title": "Response Operation List V1 Operations Get",
                   "type": "array"
@@ -2421,7 +3377,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OperationView"
+                  "$ref": "#/components/schemas/originproof_api__operations__OperationView"
                 }
               }
             },
@@ -2469,7 +3425,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OperationView"
+                  "$ref": "#/components/schemas/originproof_api__operations__OperationView"
                 }
               }
             },
@@ -2558,7 +3514,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OperationView"
+                  "$ref": "#/components/schemas/originproof_api__operations__OperationView"
                 }
               }
             },
@@ -2688,7 +3644,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OperationView"
+                  "$ref": "#/components/schemas/originproof_api__operations__OperationView"
                 }
               }
             },
@@ -2870,7 +3826,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OperationView"
+                  "$ref": "#/components/schemas/originproof_api__operations__OperationView"
                 }
               }
             },
@@ -2928,7 +3884,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OperationView"
+                  "$ref": "#/components/schemas/originproof_api__operations__OperationView"
                 }
               }
             },
@@ -3065,7 +4021,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OperationView"
+                  "$ref": "#/components/schemas/originproof_api__operations__OperationView"
                 }
               }
             },
@@ -3197,6 +4153,639 @@
         "summary": "Verify",
         "tags": [
           "finals-proofs"
+        ]
+      }
+    },
+    "/v3/issuer-applications/{application_id}": {
+      "get": {
+        "operationId": "onboarding_status_v3_issuer_applications__application_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "title": "Application Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "Onboarding Status",
+        "tags": [
+          "wallet onboarding"
+        ]
+      }
+    },
+    "/v3/issuer-applications/{application_id}/demo-inbox": {
+      "get": {
+        "operationId": "demo_inbox_v3_issuer_applications__application_id__demo_inbox_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "title": "Application Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DemoInbox"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "Demo Inbox",
+        "tags": [
+          "wallet onboarding"
+        ]
+      }
+    },
+    "/v3/issuer-applications/{application_id}/email-codes": {
+      "post": {
+        "operationId": "issue_code_v3_issuer_applications__application_id__email_codes_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "title": "Application Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DemoEmailRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "Issue Code",
+        "tags": [
+          "wallet onboarding"
+        ]
+      }
+    },
+    "/v3/issuer-applications/{application_id}/email-verifications": {
+      "post": {
+        "operationId": "verify_code_v3_issuer_applications__application_id__email_verifications_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "title": "Application Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DemoEmailCode"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "Verify Code",
+        "tags": [
+          "wallet onboarding"
+        ]
+      }
+    },
+    "/v3/issuer-applications/{application_id}/internal-approvals": {
+      "post": {
+        "operationId": "internal_approval_v3_issuer_applications__application_id__internal_approvals_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "application_id",
+            "required": true,
+            "schema": {
+              "title": "Application Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DecisionInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "Internal Approval",
+        "tags": [
+          "wallet onboarding"
+        ]
+      }
+    },
+    "/v3/issuers/{issuer_id}/suspensions": {
+      "post": {
+        "operationId": "suspension_v3_issuers__issuer_id__suspensions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "issuer_id",
+            "required": true,
+            "schema": {
+              "title": "Issuer Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GovernanceTransaction"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/originproof_core__wallet_contract__OperationView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "Suspension",
+        "tags": [
+          "wallet governance"
+        ]
+      }
+    },
+    "/v3/key-challenges": {
+      "post": {
+        "operationId": "challenge_v3_key_challenges_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KeyChallengeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SigningRequest"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "Challenge",
+        "tags": [
+          "wallet governance"
+        ]
+      }
+    },
+    "/v3/key-proofs": {
+      "post": {
+        "operationId": "key_proof_v3_key_proofs_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignedSubmission"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KeyProofReceipt"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "Key Proof",
+        "tags": [
+          "wallet governance"
+        ]
+      }
+    },
+    "/v3/proposals": {
+      "post": {
+        "operationId": "propose_v3_proposals_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProposalRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "Propose",
+        "tags": [
+          "wallet governance"
+        ]
+      }
+    },
+    "/v3/proposals/{proposal_id}": {
+      "get": {
+        "operationId": "get_proposal_v3_proposals__proposal_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposal_id",
+            "required": true,
+            "schema": {
+              "title": "Proposal Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProposalView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "Get Proposal",
+        "tags": [
+          "wallet governance"
+        ]
+      }
+    },
+    "/v3/proposals/{proposal_id}/approvals": {
+      "post": {
+        "operationId": "proposal_transaction_v3_proposals__proposal_id__approvals_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposal_id",
+            "required": true,
+            "schema": {
+              "title": "Proposal Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GovernanceTransaction"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/originproof_core__wallet_contract__OperationView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "Proposal Transaction",
+        "tags": [
+          "wallet governance"
+        ]
+      }
+    },
+    "/v3/proposals/{proposal_id}/transactions": {
+      "post": {
+        "operationId": "proposal_transaction_v3_proposals__proposal_id__transactions_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "proposal_id",
+            "required": true,
+            "schema": {
+              "title": "Proposal Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GovernanceTransaction"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/originproof_core__wallet_contract__OperationView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "Proposal Transaction",
+        "tags": [
+          "wallet governance"
         ]
       }
     }

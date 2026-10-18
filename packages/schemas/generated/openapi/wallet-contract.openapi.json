@@ -351,6 +351,71 @@
         "title": "CheckResult",
         "type": "object"
       },
+      "DemoEmailCode": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "pattern": "^[0-9]{6}$",
+            "title": "Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "DemoEmailCode",
+        "type": "object"
+      },
+      "DemoEmailRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "maxLength": 254,
+            "minLength": 3,
+            "title": "Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "title": "DemoEmailRequest",
+        "type": "object"
+      },
+      "DemoInbox": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Code"
+          },
+          "demo_only": {
+            "const": true,
+            "default": true,
+            "title": "Demo Only",
+            "type": "boolean"
+          },
+          "expires_at": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Expires At",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "code",
+          "expires_at"
+        ],
+        "title": "DemoInbox",
+        "type": "object"
+      },
       "DirectTransaction": {
         "additionalProperties": false,
         "properties": {
@@ -664,6 +729,27 @@
         "title": "GovernanceTransaction",
         "type": "object"
       },
+      "InputReceipt": {
+        "additionalProperties": false,
+        "properties": {
+          "expires_at": {
+            "maximum": 9007199254740991,
+            "minimum": 0,
+            "title": "Expires At",
+            "type": "integer"
+          },
+          "input_ref": {
+            "title": "Input Ref",
+            "type": "string"
+          }
+        },
+        "required": [
+          "input_ref",
+          "expires_at"
+        ],
+        "title": "InputReceipt",
+        "type": "object"
+      },
       "KeyChallengeRequest": {
         "additionalProperties": false,
         "properties": {
@@ -826,6 +912,67 @@
           "summary"
         ],
         "title": "OfficialContent",
+        "type": "object"
+      },
+      "OnboardingView": {
+        "additionalProperties": false,
+        "properties": {
+          "application_id": {
+            "title": "Application Id",
+            "type": "string"
+          },
+          "code_expires_at": {
+            "anyOf": [
+              {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Code Expires At"
+          },
+          "demo_only": {
+            "const": true,
+            "default": true,
+            "title": "Demo Only",
+            "type": "boolean"
+          },
+          "email_verified": {
+            "title": "Email Verified",
+            "type": "boolean"
+          },
+          "internally_approved": {
+            "title": "Internally Approved",
+            "type": "boolean"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "title": "Metadata",
+            "type": "object"
+          },
+          "metadata_hash": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Metadata Hash",
+            "type": "string"
+          },
+          "roster_matched": {
+            "title": "Roster Matched",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "application_id",
+          "roster_matched",
+          "email_verified",
+          "internally_approved",
+          "metadata",
+          "metadata_hash"
+        ],
+        "title": "OnboardingView",
         "type": "object"
       },
       "OperationView": {
@@ -1422,6 +1569,28 @@
           "expected_signer"
         ],
         "title": "SigningRequest",
+        "type": "object"
+      },
+      "TextInputRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "kind": {
+            "const": "TEXT",
+            "title": "Kind",
+            "type": "string"
+          },
+          "text": {
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "text"
+        ],
+        "title": "TextInputRequest",
         "type": "object"
       },
       "VerificationRequest": {

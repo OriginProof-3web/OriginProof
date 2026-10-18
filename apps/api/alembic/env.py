@@ -4,6 +4,7 @@ import asyncio
 from logging.config import fileConfig
 
 from alembic import context
+from originproof_api import wallet_database  # noqa: F401
 from originproof_api.database import Base
 from originproof_api.settings import Settings
 from originproof_indexer.projection import metadata as projection_metadata
