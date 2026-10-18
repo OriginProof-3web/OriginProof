@@ -234,7 +234,8 @@ lookup 해시를 먼저 재조회합니다. v1의 신규 작업 복구 안내와
 | Foundry | 101 PASS, fuzz 포함 |
 | 생성물·정적 검사 | 다섯 생성기 diff 없음, 자체 Python Ruff·diff PASS |
 
-후보 기능 검증 소스는 `2a25ef73482e01d54858c3745dd7f59722270235`이며 이후 변경은 문서입니다.
+이 묶음의 기능 검증 소스는 `2a25ef73482e01d54858c3745dd7f59722270235`입니다. 이후 코드 변경은 아래
+"셀프 리뷰 P2 두 건" 절에 따로 기록합니다.
 새 실제 복구 사례는 성공 receipt를 먼저 확정하고 실패 receipt를 늦게 반환해 409와
 CONFIRMED/hash 보존을 확인합니다. 같은 해시의 재요청은 동일 결과이며 자동 재전송은 없습니다.
 W2/W3/W4/W5의 전체 Python은 512/557/565/598 PASS로 각각 확인한 뒤 순방향 반영했습니다.
@@ -243,3 +244,28 @@ W2/W3/W4/W5의 전체 Python은 512/557/565/598 PASS로 각각 확인한 뒤 순
 신규 실제 복구 7개의 Registry/분석기는 합성입니다. 과거 종료 signer의 API 사전 조회는
 B 이력 경계 연결이 필요하며, 실제 A 지갑·B Adapter·D 모델·G07·사람의 재리뷰를 대신하지 않습니다.
 원격 PR의 base·Draft·승인 상태를 유지하며, 정확한 새 head CI는 push 후 따로 확인합니다.
+
+## 2026-10-18 셀프 리뷰 P2 두 건 수정·전파
+
+이전 배포의 미해결 Operation이 새 배포의 같은 업무 nonce를 예약하던 문제와, 동시 직접 접수 뒤
+정식 거래가 연결된 상태에서 거부된 lookup 후보 때문에 첫 reconcile이 409를 반환하던 문제를
+`wallet_documents.py`에서 고쳤습니다. 예약 비교는 Operation이 저장한 domain(chainId·Registry 주소)이
+현재와 같을 때만 적용하고, reconcile은 정식 txHash가 있으면 그 해시만 조회합니다. 같은 배포의
+중복 nonce 409, 이전 배포 작업 보존, 다른 해시 재연결 거부, 미검증 후보의 intent 검색 복구는 유지합니다.
+
+수정 커밋은 #60 `0e14b7b`이며 #61→#62→#63→#77 순서로 merge했습니다. 회귀 3개(주소 변경·chain ID
+변경·잔여 lookup 후보)는 수정 전 409로 실패하고 수정 후 통과합니다.
+
+| 검사 | 이번 실제 결과 |
+| --- | --- |
+| 단계별 전체 Python | W3/W4/W5/W6/후보 560/568/601/650/659 PASS, skip 8/8/9/16/16 |
+| 임시 PostgreSQL 16.4 동시 접수·배포 전환 반례 | 수정 전 2 FAIL(409) → 수정 후 2 PASS |
+| D 명시 QA 네 파일 + 소비 QA | 62 PASS, ASGI/SQLite/합성 Registry |
+| 실제 복구 | 9 PASS, 기존 PostgreSQL/Anvil 2개 + 신규 PostgreSQL/프로세스 7개 |
+| 선택 PostgreSQL 검사 | 정식 migration 적용 임시 DB에서 1 PASS |
+| migration | 임시 PostgreSQL head 적용 뒤 `alembic check` 차이 없음, 0006 downgrade·재적용 뒤에도 동일 |
+| Foundry | 101 PASS, Contract 변경 없음 |
+| 정적 검사 | 자체 Python Ruff·`git diff --check` PASS |
+
+신규 API 모델·migration·ABI·서명/domain·Golden·의존성은 변경하지 않았습니다. Registry/receipt와
+분석기는 합성입니다. 실제 A 지갑·B Adapter·D 모델·G07과 작성자 외 재리뷰는 별도입니다.
