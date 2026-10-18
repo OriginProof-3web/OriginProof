@@ -1,4 +1,4 @@
-name: D pinned C QA
+name: D same-head candidate QA
 
 on:
   pull_request:
@@ -7,20 +7,22 @@ on:
       - "fixtures/finals/v5*qa.py"
       - "fixtures/synthetic/analysis_consumer_cases_v1.json"
       - "services/analyzer/**"
+      - "apps/api/**"
+      - "packages/python/**"
 
 permissions:
   contents: read
 
 jobs:
   pinned-c-qa:
-    name: D pinned C / ${{ matrix.suite }}
+    name: D same-head candidate / ${{ matrix.suite }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         suite: [stage, consumer]
     env:
-      C_SHA: eaa0d166269833cf7ee49675cfa777b0208c3725
+      C_SHA: ${{ github.event.pull_request.head.sha }}
       LLM_PROVIDER: mock
     steps:
       - uses: actions/checkout@v4
