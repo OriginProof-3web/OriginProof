@@ -112,11 +112,17 @@ async def test_copied_id_or_partial_candidate_does_not_prove_complete_content(wa
 
 
 @pytest.mark.parametrize(
-    "change",
-    ["original", "content", "metadata", "name", "message"],
+    "change,reason,check",
+    [
+        ("original", "STORED_ORIGINAL_MISMATCH", "original_hash"),
+        ("content", "STORED_CONTENT_MISMATCH", "protected_fields"),
+        ("metadata", "METADATA_HASH_MISMATCH", "issuer_metadata"),
+        ("name", "METADATA_HASH_MISMATCH", "issuer_metadata"),
+        ("message", "STORED_CONTENT_MISMATCH", "protected_fields"),
+    ],
     ids=["W3-DB-BYTES", "W3-DB-CONTENT", "W3-DB-METADATA", "W3-DB-NAME", "W3-DB-VERSION"],
 )
-async def test_database_tampering_is_not_treated_as_authority(wallet, change):
+async def test_database_tampering_is_not_treated_as_authority(wallet, change, reason, check):
     """V5-F10: DB tampering must fail against unchanged signed/Registry commitments."""
     signing, doc = await publication(wallet)
     before = dict(wallet.chain.documents)
@@ -134,10 +140,15 @@ async def test_database_tampering_is_not_treated_as_authority(wallet, change):
         elif change == "name":
             db.get(IssuerApplicationRow, "app_test").issuer_name = "Changed Synthetic Institution"
         else:
+            # Version is part of canonical original bytes: validate_content fails first.
             row.message = row.message | {"version": 2}
         db.commit()
     result = await verify(wallet, signing, doc)
     assert result["verification_status"] == "TAMPERED", result
+    assert result["reason_codes"] == [reason], result
+    assert {
+        "name": check, "status": "FAILED", "reason_code": reason, "field_path": None
+    } in result["checks"]
     assert wallet.chain.documents == before and wallet.chain.sends == []
 
 

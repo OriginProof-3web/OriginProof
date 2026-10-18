@@ -28,3 +28,5 @@ W3/W4/분석 연결 PR에서는 그 head에 있는 `v5_d_w3_content_qa.py`, `v5_
 ## 로컬 재검사
 
 새 고정 C checkout의 첫 실행은 indexer import 경로 누락으로 collection ERROR였습니다. C의 기존 indexer 소스 경로도 명시하도록 CI/재현 명령을 수정했습니다. 수정 후 같은 새 환경에서 W2는 **12 PASS / 0 FAIL / 0 SKIP**입니다. consumer는 예상대로 **30 PASS / 1 FAIL(DG12)**이며 그대로 남겼습니다. workflow YAML 구문·명시 QA Ruff·diff 검사도 통과했습니다. GitHub CI 결과는 별도로 기록합니다.
+
+W3 보강 후 W2+W3 **25 PASS / 0 FAIL / 0 SKIP**. 준비 단언의 첫 실행에서 CheckResult의 `field_path: null`과 버전이 포함된 canonical original의 검증 순서를 놓친 5개 실패를 수정했습니다. 버전 변조는 먼저 `STORED_CONTENT_MISMATCH/protected_fields`로 거부되며 C 제품은 변경하지 않았습니다.
