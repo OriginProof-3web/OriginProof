@@ -1,5 +1,12 @@
 # 5.1 C 후속 구현·재사용 기준
 
+최신 셀프 리뷰 보완(2026-10-18): Operation 만료 410, 재시도 ID의 영속 예약·충돌 거부,
+합성 Registry의 철회 상태 보존을 W3→W4→W5→W6에 반영했습니다. C 전용 소스
+`ac9109b` 전체 Python 620 PASS / 15 SKIP이며 #77 누적 소스 `ff7dd6c` 전체 Python
+629 PASS / 15 SKIP, D 명시 QA 62 PASS, 실제 DB·프로세스 복구 8 PASS입니다.
+기존 테스트 공백 3건의 재현 검사도 모두 PASS로 바뀌었습니다. 새 테이블·migration·
+공유 모델·ABI 변경은 없으며 작성자 외 리뷰·실제 팀 구성요소 연결은 별도입니다.
+
 - 작업: V5-W1-C → V5-W2-C → V5-W3-C → V5-W4-C → V5-W5-C, 후속 V5-W6-C 독립 복구·검증.
 - 사용자 요청: 재사용 기준 확정, #50 nonce 수정 반영, 공유 계약에 따른 신규 DB/API 개발.
 - 기준 integration: `33bc4f4e7456c5ef7c2df8c8bf09f8014e0169f8` (#56 MERGED).

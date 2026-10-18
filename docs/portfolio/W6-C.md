@@ -92,3 +92,14 @@ C / @Jordi2801K, V5-W6-C. 시작 기준은 #62 `eaa0d16`, 작업 branch는 `feat
 첫 원격 CI의 c-recovery/Contract는 통과했으나 새 검사 import가 `python -m pytest`의 cwd 경로에 의존해 python-quality가 수집 단계에서 실패했습니다. CI와 같은 `pytest` 실행으로 로컬 재현한 뒤 `importlib.util` 파일 로딩으로 보완했습니다. 수정 코드의 새 frozen/offline 사본에서도 직접 `pytest`로 전체 통과를 재현했으며 실패/재검사 근거는 위 구현 기록에 보존합니다.
 
 사용자님은 잔여 C 개발과 팀원 신규 구현 부재를 확인해 주셨습니다. Codex가 기존 흐름 조사·구현·검사·문서화를 수행했으며 사람이 코드를 별도 리뷰한 것으로 기록하지 않습니다. 작성자 외 기여/코드 확인은 미확인입니다. 실제 B Adapter/배포/G07, A 지갑/화면, D 모델/독립·다른 PC 재현, 동일 RC 리허설은 남아 있습니다. C의 독립 준비 결과이며 단계 전체 완료가 아닙니다.
+
+## 2026-10-18 셀프 리뷰 수정·복구 재검증
+
+사용자님 요청으로 W3~W5의 만료·request ID 예약·합성 상태 수정이 반영됐습니다.
+검증 코드 `ac9109b`의 C 전용 전체 Python은 620 PASS / 15 opt-in SKIP / 기존 경고1입니다.
+누적 후보 #77 검증 코드 `ff7dd6c2be94959c9a9f8392dcd2e2edaa98a837`에서는 전체 Python
+629 PASS / 15 SKIP, D 명시 QA 62 PASS 및 기존+신규 실제 복구 8 PASS를 확인했습니다.
+복구 검사는 임시 PostgreSQL·실제 API 프로세스에서 동시 동일 alias 재시도, pg_dump/restore
+뒤 같은 Operation 재조회·본문 변경 409를 포함합니다. 합성 체인 helper 두 곳의 REVOKED
+보존도 맞췄으며 API/계약 생성물 변경은 없습니다. 기존 실제 복구 2개는 Anvil을 사용하지만
+신규 6개의 Registry/분석기는 합성입니다. Codex 자체 검사이며 팀원의 독립 리뷰는 별도입니다.

@@ -47,6 +47,11 @@ readiness는 migration head·세 역할·설정된 두 기관 계정·Registry �
 
 같은 request ID의 본문 변경은 409입니다. 잘못된 직접 txHash는 올바른 서명 요청을 영구 무효화하지 않습니다. nonce는 가스 nonce와 별개이며 같은 기관의 미확정 업무 nonce가 있으면 409입니다. 구 `/v1/operations/{id}/recover`로 신규 작업을 복구하지 않고 v3 reconcile을 사용합니다.
 
+이미 제출한 서명을 새 request ID로 재시도해도 해당 ID와 입력 fingerprint를 보존합니다.
+같은 ID·같은 입력은 기존 Operation을 반환하고 다른 입력은 `409 REQUEST_ID_CONFLICT`입니다.
+Operation 보관 만료 뒤 서명 재제출과 직접 tx 접수는 `410 RESULT_EXPIRED`이며,
+정리 시 해당 Operation에 연결된 재시도 ID 기록도 함께 삭제합니다.
+
 정상·거부 요청의 실행 가능한 예시는 [HTTP 검사](../../apps/api/tests/test_wallet_runtime.py)와 [분석 검사](../../apps/api/tests/test_wallet_analyses.py)에 있습니다. 기존 v1/v2 binding·consume은 그대로 보존하며 새 공개 문서에 consume을 추가하지 않습니다.
 
 ## B: 실제 Adapter 경계
