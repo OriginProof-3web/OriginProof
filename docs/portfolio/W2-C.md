@@ -73,3 +73,11 @@ W3 발행/현재 키 재검사와 W4 Proof lifecycle/consume은 다음 단계입
 5.1 원격 공유: [#58](https://github.com/OriginProof-3web/OriginProof/pull/58), [#59](https://github.com/OriginProof-3web/OriginProof/pull/59) (Draft). 사용자 승인 후 자기 브랜치에 push하고 생성했습니다. 실제 원격 CI/작성자 외 리뷰·단계 완료는 별도입니다.
 
 초기 #57/#58 CI의 생성 api.ts 불일치는 b82a2d1에서 생성기로 갱신하고 자기 후속 브랜치에 반영했습니다. 다섯 생성기 일치·API TypeScript 컴파일은 통과했고 새 원격 CI는 확인 전입니다.
+
+## 2026-10-18 지갑 공동승인 회귀 수정
+
+사용자님 확대 감사 지시에 따라 KeyProof request ID의 계정 내 challenge 간 충돌을 409로
+거부하고, 0 keyId·현재 signer 주소의 재사용 교체를 proof 소비 전에 거부했습니다.
+기존 계정 잠금과 저장 필드를 재사용했으며 migration·의존성은 추가하지 않았습니다.
+새 회귀 4개를 포함해 이 W2 작업본의 전체 Python은 512 PASS / 8 opt-in SKIP / 기존 경고 1개입니다.
+과거 종료 signer의 API 사전 조회는 B 이력 경계 연결 후 확인하며 실제 지갑 연결·독립 리뷰는 별도입니다.
