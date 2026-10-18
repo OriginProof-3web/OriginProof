@@ -92,6 +92,12 @@ class SyntheticRegistry:
         return next((d for d in rows if d["document"]["version"] == version), None)
 
     async def transaction(self, tx_hash):
+        gate = self.directory / "receipt-gates" / tx_hash
+        if gate.exists():
+            gate.with_suffix(".entered").touch()
+            async with asyncio.timeout(8):
+                while not gate.with_suffix(".released").exists():
+                    await asyncio.sleep(0.01)
         return self.read()["transactions"].get(tx_hash)
 
     async def find_transaction(self, intent):
@@ -619,6 +625,73 @@ async def test_v5_backup_restore_preserves_original_signature_analysis_and_legac
         assert not (live.tmp / "issuer-signers-must-not-exist").exists()
     finally:
         await restored.dispose()
+
+
+async def test_v5_postgres_direct_receipts_cannot_overwrite_confirmed_operation(wallet_live):
+    live = wallet_live
+    signing = await draft(live)
+    pending = await live.bank.post(
+        "/v3/publications",
+        json={
+            "request_id": "req_pending",
+            "signing_request_id": signing["signing_request_id"],
+            "signature": signed(signing),
+        },
+    )
+    assert pending.status_code == 202, pending.text
+    operation_id = pending.json()["operation_id"]
+    first_hash = confirm_on_synthetic_chain(live, signing)
+    second_hash = "0x" + "82" * 32
+    live.state["transactions"][second_hash] = live.state["transactions"][first_hash] | {
+        "tx_hash": second_hash,
+        "status": "FAILED",
+    }
+    write_state(live.tmp / "chain.json", live.state)
+    gates = live.tmp / "receipt-gates"
+    gates.mkdir()
+    for tx_hash in (first_hash, second_hash):
+        (gates / tx_hash).touch()
+
+    async def entered(tx_hash):
+        async def ready():
+            return (gates / tx_hash).with_suffix(".entered").exists()
+
+        await until(ready)
+
+    def intake(tx_hash, request_id):
+        return live.bank.post(
+            f"/v3/signing-requests/{signing['signing_request_id']}/transactions",
+            json={
+                "request_id": request_id,
+                "signing_request_id": signing["signing_request_id"],
+                "tx_hash": tx_hash,
+            },
+        )
+
+    tasks = []
+    try:
+        tasks.append(asyncio.create_task(intake(first_hash, "req_first")))
+        await entered(first_hash)
+        tasks.append(asyncio.create_task(intake(second_hash, "req_second")))
+        await entered(second_hash)
+        (gates / first_hash).with_suffix(".released").touch()
+        confirmed = await tasks[0]
+        assert confirmed.status_code == 202 and confirmed.json()["status"] == "CONFIRMED", (
+            confirmed.text
+        )
+        (gates / second_hash).with_suffix(".released").touch()
+        rejected = await tasks[1]
+        assert rejected.status_code == 409, rejected.text
+        assert rejected.json()["detail"] == "DIRECT_TX_ALREADY_BOUND"
+        repeated = await intake(first_hash, "req_first_again")
+        assert repeated.status_code == 202 and repeated.json() == confirmed.json()
+        final = await live.bank.get(f"/v3/operations/{operation_id}")
+        assert final.json()["status"] == "CONFIRMED" and final.json()["tx_hash"] == first_hash
+        assert not (live.tmp / "submissions.jsonl").exists()
+    finally:
+        for tx_hash in (first_hash, second_hash):
+            (gates / tx_hash).with_suffix(".released").touch()
+        await asyncio.gather(*tasks, return_exceptions=True)
 
 
 async def test_v5_actual_kill_unknown_and_receipt_db_failure_never_resend(wallet_live):

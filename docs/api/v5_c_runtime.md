@@ -47,16 +47,32 @@ readiness는 migration head·세 역할·설정된 두 기관 계정·Registry �
 
 같은 request ID의 본문 변경은 409입니다. 잘못된 직접 txHash는 올바른 서명 요청을 영구 무효화하지 않습니다. nonce는 가스 nonce와 별개이며 같은 기관의 미확정 업무 nonce가 있으면 409입니다. 구 `/v1/operations/{id}/recover`로 신규 작업을 복구하지 않고 v3 reconcile을 사용합니다.
 
+KeyProof의 request ID는 같은 계정의 다른 challenge 사이에서도 중복 본문을 검사합니다.
+다른 challenge/서명으로 재사용하면 `409 REQUEST_ID_CONFLICT`이며 해당 새 proof를 소비하지 않습니다.
+제안 준비는 0인 keyId를 `422 INVALID_KEY_ID`, 현재 signer 주소를 그대로 쓰는 키 교체를
+`409 SIGNER_ALREADY_USED`로 거부한 뒤 KeyProof 소비 여부를 결정합니다.
+
 이미 제출한 서명을 새 request ID로 재시도해도 해당 ID와 입력 fingerprint를 보존합니다.
 같은 ID·같은 입력은 기존 Operation을 반환하고 다른 입력은 `409 REQUEST_ID_CONFLICT`입니다.
 Operation 보관 만료 뒤 서명 재제출과 직접 tx 접수는 `410 RESULT_EXPIRED`이며,
 정리 시 해당 Operation에 연결된 재시도 ID 기록도 함께 삭제합니다.
 
+직접 거래 조회의 RPC 전후에는 서명 요청 → Operation 순서로 잠그고 최신 상태와 해시 binding을
+다시 확인합니다. 먼저 확정된 결과를 늦은 응답이 덮어쓰지 않습니다. reconcile은 정식 txHash와
+중단 전에 저장한 lookup 후보부터 조회하며, 잘못된 미검증 후보는 intent 검색으로 복구합니다.
+기존 `/v1/operations`의 신규 wallet 작업도 `RECONCILE`/`RESIGN`을 안내합니다.
+
 정상·거부 요청의 실행 가능한 예시는 [HTTP 검사](../../apps/api/tests/test_wallet_runtime.py)와 [분석 검사](../../apps/api/tests/test_wallet_analyses.py)에 있습니다. 기존 v1/v2 binding·consume은 그대로 보존하며 새 공개 문서에 consume을 추가하지 않습니다.
+요청 ID 충돌·제안 선행조건·저장 해시 복구·접근 만료 경계는
+[추가 회귀 검사](../../apps/api/tests/test_wallet_recovery_guards.py)에 있습니다.
 
 ## B: 실제 Adapter 경계
 
 [WalletRegistry](../../packages/python/originproof_core/wallet_ports.py)를 구현합니다. `issuer/key/document/proposal`은 같은 canonical block의 chain/contract·blockNumber/hash와 키 등록/정상 교체/사고 이력을 제공합니다. API는 domain과 모델 제약을 다시 검사합니다. 검증 결과의 서로 다른 조회 block은 INCONCLUSIVE입니다.
+
+현재 주소와 같은 signer의 교체는 API에서 사전 거부합니다. 과거에 종료된 signer까지
+사전 거부할 이력 조회는 현재 port에 없으며 B의 실제 조회 경계 연결이 필요합니다.
+Registry의 사용된 signer 재사용 금지 검사를 API의 현재 주소 확인으로 대체하지 않습니다.
 
 `transaction/find_transaction`의 arguments는 실제 calldata를 ABI로 해독한 값입니다. 요청 intent를 그대로 돌려주는 구현은 허용되지 않습니다. 실제 배포, canonical receipt, 필요한 이벤트·현재 상태·발신자를 검증해야 CONFIRMED입니다. publish/revoke는 message+signature, propose는 proposal+proof+signature, approve는 proposalId를 정확히 대조합니다. REACTIVATE의 실제 proof는 전 필드 0, signature는 `0x`이며 API의 선택 key_proof=null을 calldata null로 해석하지 않습니다. 철회 확정에는 REVOKED 상태가 필요합니다.
 
@@ -79,6 +95,10 @@ async processor는 텍스트를 받아 공통 `AnalysisReport` 또는 해당 dic
 | 기관 발행 원본/서명 | 해당 버전 expiresAt 이후 30일; 사용자 분석 삭제와 독립 |
 | 검증 세션 | 24시간 |
 | 신규 Operation/감사 | 해결 후 30일, 미해결 작업·해결 시각 없는 기존 작업은 보수적으로 보존 |
+
+Operation 만료는 조회·서명 재요청·직접 접수·reconcile에서 즉시 410으로 차단합니다.
+v1 단건과 목록에도 동일한 경계를 적용하고, 목록의 만료 Operation·감사는 pagination 전에
+제외합니다. 물리 정리와 접근 필터는 같은 만료 조건을 사용하며 미해결 작업의 감사는 보존합니다.
 
 접근은 만료 시각부터 거부하고 물리 정리는 기동/접수/5분 주기 maintenance에서 수행합니다. 두 보관 옵션의 네 조합을 검사했습니다. worker는 현 P0의 단일 API 프로세스 내부 task입니다. 여러 API worker에서의 재시작 판정·분산 작업 실행은 기존 queue로 옮기고 검증해야 합니다. 현재는 단일 worker로 실행합니다. processor의 안전한 code(REFUSAL/TIMEOUT/RATE_LIMIT/INCOMPLETE_OUTPUT 등)는 구분하고 예외 메시지·원시 응답은 복제하지 않습니다. 실제 D 모델 연결·유료 평가·처리 성능은 미검증입니다.
 

@@ -103,3 +103,30 @@ C / @Jordi2801K, V5-W6-C. 시작 기준은 #62 `eaa0d16`, 작업 branch는 `feat
 뒤 같은 Operation 재조회·본문 변경 409를 포함합니다. 합성 체인 helper 두 곳의 REVOKED
 보존도 맞췄으며 API/계약 생성물 변경은 없습니다. 기존 실제 복구 2개는 Anvil을 사용하지만
 신규 6개의 Registry/분석기는 합성입니다. Codex 자체 검사이며 팀원의 독립 리뷰는 별도입니다.
+
+## 2026-10-18 확대 감사 후 앞의 두 묶음 수정
+
+사용자님 지시로 공동승인·키 증명과 Operation·복구의 7개 지적을 C 누적 작업본에 반영했습니다.
+기준은 `feat/v5-w6-c-recovery-integration`의 `8f2a0714c928a7b4954ff8897ea47304ca1233af`이며,
+이 기록은 후속 수정 작업본의 검사 결과입니다. 앞 단계 PR과 #77 전파는 별도 후속 묶음입니다.
+
+기존 계정 잠금 아래 KeyProof request ID를 다른 challenge와도 비교하고, 0 keyId·현재 signer와
+같은 주소의 교체를 proof 소비 전에 거부했습니다. 기존 저장 필드를 사용해 migration이나 새
+의존성은 추가하지 않았습니다. 과거 종료 signer의 API 사전 조회는 B의 실제 이력 경계 연결이
+필요하며, 현재 주소 비교만으로 전체 과거 주소를 검증했다고 주장하지 않습니다.
+
+직접 거래는 RPC 전후에 서명 요청 → Operation 순서로 잠그고 최신 행·확정 상태·해시 binding을
+다시 검사합니다. 이 순서는 동시 직접 접수와 발행 원본 FK 저장의 잠금 순서도 맞춥니다.
+중단 전 lookup 해시를 먼저 재조회하고, 불일치하는 미검증 후보는 검색으로 복구합니다.
+작업 만료 조건은 조회·재요청·복구·v1 목록·감사·물리 정리에 공유하며 만료 목록은 pagination
+전에 거릅니다. 기존 작업의 복구 안내와 신규 wallet 작업의 RECONCILE/RESIGN은 각각 유지합니다.
+
+검사는 C 전체 Python **647 PASS / 16 opt-in SKIP / 기존 경고 1**, 새 HTTP 경계 회귀 **27개**를
+포함합니다. 실제 PostgreSQL·별도 API 프로세스에서 성공/실패 거래의 응답 순서를 제어한 검사
+**1 PASS**, 실제 DB의 기존·미해결 Operation/감사 보존 검사 **1 PASS**도 확인했습니다.
+Registry/receipt는 합성입니다. Codex가 수정·검사를 수행했으며 사람의 독립 리뷰는 미확인입니다.
+소유 Python 경로의 Ruff와 변경 API/검사의 compileall도 통과했습니다. 광역 lint가 스캔한
+vendored Foundry Python의 기존 지적 26개는 수정하지 않았습니다.
+
+세 번째 묶음의 기존 선택 PostgreSQL 검사 secret 설정은 이번에 변경하지 않았습니다.
+네 번째 묶음의 PR 전파·정확한 원격 head CI·승인·병합도 수행하지 않았습니다.

@@ -66,6 +66,7 @@ async def test_real_postgres_serializes_publication_and_analysis_requests():
         wallet_operator_addresses={"acct_o": APPROVERS[0]},
         wallet_internal_approvers={ISSUER: "acct_internal"},
         wallet_demo_email_enabled=True,
+        wallet_email_secret="synthetic-wallet-postgres-email-secret-for-tests-only",
         wallet_text_input_enabled=True,
     )
     chain = Chain()
