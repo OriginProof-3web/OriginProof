@@ -177,3 +177,41 @@ B #69/#78/#79에 이 수정은 아직 forward 반영하지 않았습니다. #78�
 재검증해야 합니다. D #72~#76 원본 CI의 이전 C SHA pin, 실제 B/A/D 연결·G07·유료 평가,
 shared 0.2 소비자 리뷰와 단계 수용은 계속 별도입니다. 리뷰 승인·Draft·base·원격 merge는
 변경하지 않습니다. 새 원격 head의 CI는 push 뒤 확인합니다.
+
+## 2026-10-18 셀프 리뷰 3건 후속 수정
+
+검증 소스는 `ff7dd6c2be94959c9a9f8392dcd2e2edaa98a837`입니다. 이후 변경은 검사·인계
+문서뿐입니다. 기존 CI가 놓쳤던 만료·멱등·합성 상태 문제를 추가 반례로 확인한 뒤 수정했습니다.
+
+1. Operation이 정리된 뒤 직접 거래를 재접수하면 500이 발생하던 경로에
+   `410 RESULT_EXPIRED` 검사를 추가했습니다. 서명 재제출 경로와 일치합니다.
+2. 이미 제출한 서명을 새 request ID로 재시도할 때 기존 `WalletRequestRow`에 입력
+   fingerprint·Operation 연결을 저장합니다. 동일 입력은 원래 Operation, 다른 입력은
+   `409 REQUEST_ID_CONFLICT`이며 중계를 다시 전송하지 않습니다.
+3. C API와 프로세스 복구의 합성 체인 helper 모두 직전 최신 ACTIVE만 SUPERSEDED로
+   바꾸고 REVOKED를 보존합니다. C/D 회귀에 철회 후 v2/v3 발행·재철회 거부를 추가했습니다.
+
+| 이번 실행 | 실제 결과·범위 |
+| --- | --- |
+| 수정 전 리뷰 반례 | 3 FAIL: Operation 없음 예외 / 202 대신 409 기대 / 철회 상태 덮어쓰기 |
+| 수정 후 동일 반례 | 3 PASS |
+| #77 전체 Python | 629 PASS / 15 opt-in SKIP / 기존 Starlette 경고1 |
+| C #63 독립 전체 Python | 620 PASS / 15 SKIP, 소스 `ac9109b` |
+| D 명시 QA 네 파일 | 62 PASS, ASGI/SQLite/합성 Registry |
+| 기존·신규 실제 복구 | 8 PASS, 임시 PostgreSQL·실제 API 프로세스; 기존2는 Anvil, 신규6의 Registry/분석기는 합성 |
+| 생성물·정적 검사 | 다섯 생성기 diff 없음, Ruff·diff PASS |
+
+실제 복구 검사는 동일 alias 동시 재시도·pg_dump/restore·프로세스 재시작 뒤 기존
+Operation 반환과 본문 변경 409를 포함합니다. 실제 cleanup 호출 뒤 철회 서명은 남고
+Operation·alias 기록은 정리된 상태에서도 서명 재제출과 직접 거래가 410인지 검사했습니다.
+공유 API 모델·migration·ABI·서명/domain·Golden·의존성은 바뀌지 않았습니다.
+
+초기 D 검사 명령에 없는 분석 통합 파일을 넣어 수집되지 않았으며, 실제 존재하는 네 파일로
+정정해 실행했습니다. Ruff의 `packages` 전체 탐색은 로컬 Foundry vendor까지 검사해
+실패했으므로 Makefile의 자체 Python 범위인 `packages/python`으로 검사했습니다.
+vendor 코드는 수정하지 않았습니다. Contract 소스가 그대로여서 Foundry 101 PASS는
+앞선 #68 수정 검사의 근거로 유지하며 이번 로컬 실행 결과에 합산하지 않습니다.
+
+API 수정은 #60→#61→#62→#63→#77, 합성 helper는 #61 이후에 순방향 반영합니다.
+D 회귀 추가는 후보 #77에만 포함하며 D 원 PR·B PR·phase/integration/main은 변경하지
+않습니다. 원격 최신 head CI는 push 뒤 확인하며 작성자 외 재리뷰·실제 팀 연결은 별도입니다.

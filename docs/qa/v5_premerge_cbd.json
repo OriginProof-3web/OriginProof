@@ -200,7 +200,7 @@
     "remote_new_head_ci": "PENDING",
     "merge": "NOT_RUN"
   },
-  "latest_review_revision": "revocation_fix_2026_10_18",
+  "latest_review_revision": "self_review_fix_2026_10_18",
   "revocation_fix_2026_10_18": {
     "code_sha": "07791099cfbcdec21b40b6bb2c00515579457080",
     "b68_sha": "2d1df07bd48c54c04d22ce20ac1ee3725316e878",
@@ -249,6 +249,64 @@
     ],
     "deployment": "NOT_RUN",
     "remote_ci": "PENDING_PUSH",
+    "merge": "NOT_RUN"
+  },
+  "self_review_fix_2026_10_18": {
+    "code_sha": "ff7dd6c2be94959c9a9f8392dcd2e2edaa98a837",
+    "c_only_code_sha": "ac9109b",
+    "resolved": [
+      "direct transaction retry without retained operation",
+      "unreserved alias request ID",
+      "revocation overwritten by synthetic chain helpers"
+    ],
+    "checks": {
+      "review_counterexamples_before": {
+        "failed": 3
+      },
+      "review_counterexamples_after": {
+        "passed": 3
+      },
+      "candidate_python": {
+        "passed": 629,
+        "skipped": 15,
+        "existing_warnings": 1
+      },
+      "c_only_python": {
+        "passed": 620,
+        "skipped": 15,
+        "existing_warnings": 1
+      },
+      "d_explicit_qa": {
+        "passed": 62
+      },
+      "legacy_and_wallet_live_recovery": {
+        "passed": 8,
+        "legacy_real_anvil": 2,
+        "wallet_synthetic_chain": 6
+      },
+      "generated_outputs": "UNCHANGED",
+      "ruff": "PASS",
+      "diff": "PASS",
+      "foundry": "NOT_RERUN_CONTRACT_SOURCE_UNCHANGED"
+    },
+    "propagation": [
+      60,
+      61,
+      62,
+      63,
+      77
+    ],
+    "remaining": [
+      "external re-review",
+      "actual B/A/D integration",
+      "G07",
+      "paid evaluation",
+      "shared 0.2 consumer review",
+      "B #69/#78/#79 revocation fix propagation",
+      "D original PR fixed C SHA pin"
+    ],
+    "remote_ci": "PENDING_PUSH",
+    "deployment": "NOT_RUN",
     "merge": "NOT_RUN"
   }
 }
