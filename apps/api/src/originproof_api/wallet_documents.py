@@ -16,6 +16,8 @@ from originproof_core.wallet_contract import (
     OperationView,
     PaymentContent,
     PublishMessage,
+    RevokeDraftRequest,
+    RevokeMessage,
     SignedSubmission,
     SigningRequest,
     VerificationMaterial,
@@ -103,8 +105,7 @@ async def document_draft(body: DocumentDraftRequest, request: Request, identity:
             raise HTTPException(422, "INSTITUTION_CODE_MISMATCH")
         did = document_id(issuer.issuer_id, body.doc_key)
         current = await service.rpc("document", did, None)
-        if current is not None or body.expected_version != 1:
-            raise HTTPException(409, "VERSION_CONFLICT")
+        require_next_version(current, issuer.issuer_id, body.expected_version)
         issued = now()
         if body.expires_at <= issued:
             raise HTTPException(422, "EXPIRY_IN_PAST")
@@ -142,6 +143,52 @@ async def document_draft(body: DocumentDraftRequest, request: Request, identity:
         except ValueError:
             raise HTTPException(422, "CONTENT_OR_PERIOD_INVALID") from None
         return await service.save_signing(db, account, "Publish", body, signing)
+
+
+def require_next_version(current, issuer_id, expected):
+    if current:
+        if current.document.issuer_id != issuer_id:
+            raise HTTPException(403, "DOCUMENT_OWNER_MISMATCH")
+        if current.document.version != current.document.latest_version:
+            raise HTTPException(503, "CHAIN_RECORD_MISMATCH")
+    version = current.document.latest_version + 1 if current else 1
+    if expected != version:
+        raise HTTPException(409, "VERSION_CONFLICT")
+
+
+@router.post("/revoke-drafts", response_model=SigningRequest, status_code=201)
+async def revoke_draft(body: RevokeDraftRequest, request: Request, identity: Identity):
+    service = runtime(request)
+    account = service.authorize(request, identity, "issuer")
+    async with service.database.session_factory() as db:
+        await service.lock_account(db, account)
+        retry = await service.signing_retry(db, account, "Revoke", body)
+        if retry:
+            return SigningRequest.model_validate(retry.payload)
+        issuer = await issuer_checks(service, db, account, publishing=False)
+        target = await service.rpc("document", body.document_id, body.version)
+        if target is None:
+            raise HTTPException(404, "DOCUMENT_NOT_FOUND")
+        if target.document.issuer_id != issuer.issuer_id:
+            raise HTTPException(403, "DOCUMENT_OWNER_MISMATCH")
+        if target.document.state == "REVOKED":
+            raise HTTPException(409, "DOCUMENT_ALREADY_REVOKED")
+        signing = SigningRequest(
+            signing_request_id=f"wsr_{uuid4().hex}",
+            primary_type="Revoke",
+            domain=service.domain,
+            expected_signer=issuer.signer,
+            message=RevokeMessage(
+                issuerId=issuer.issuer_id,
+                docKey=target.document.doc_key,
+                documentId=body.document_id,
+                version=body.version,
+                keyId=issuer.key_id,
+                nonce=issuer.next_nonce,
+                deadline=now() + 300,
+            ),
+        )
+        return await service.save_signing(db, account, "Revoke", body, signing)
 
 
 async def submit_signed(body, request, identity, kind):
@@ -202,8 +249,17 @@ async def submit_signed(body, request, identity, kind):
         message = signing.message
         chain = await service.rpc("document", message.document_id, None)
         if kind == "Publish":
-            if chain is not None or message.version != 1:
-                raise HTTPException(409, "VERSION_CONFLICT")
+            require_next_version(chain, issuer.issuer_id, message.version)
+        else:
+            target = await service.rpc("document", message.document_id, message.version)
+            if (
+                target is None
+                or target.document.issuer_id != issuer.issuer_id
+                or (target.document.doc_key != message.doc_key)
+            ):
+                raise HTTPException(403, "DOCUMENT_OWNER_MISMATCH")
+            if target.document.state == "REVOKED":
+                raise HTTPException(409, "DOCUMENT_ALREADY_REVOKED")
         intent = {
             "action": kind,
             "arguments": {
@@ -240,6 +296,11 @@ async def submit_signed(body, request, identity, kind):
 @router.post("/publications", response_model=OperationView, status_code=202)
 async def publication(body: SignedSubmission, request: Request, identity: Identity):
     return await submit_signed(body, request, identity, "Publish")
+
+
+@router.post("/revocations", response_model=OperationView, status_code=202)
+async def revocation(body: SignedSubmission, request: Request, identity: Identity):
+    return await submit_signed(body, request, identity, "Revoke")
 
 
 @router.post(

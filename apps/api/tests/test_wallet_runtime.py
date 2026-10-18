@@ -613,6 +613,21 @@ async def confirmed_publication(w, signing, *, req="req_publish", tx_byte="67"):
         warnings=[],
         original_available=False,
     )
+    for identity, prior in list(w.chain.documents.items()):
+        if identity[0] == message.document_id:
+            state = prior.document.state
+            if prior.document.version == message.version - 1 and state == "ACTIVE":
+                state = "SUPERSEDED"
+            w.chain.documents[identity] = prior.model_copy(
+                update={
+                    "document": prior.document.model_copy(
+                        update={
+                            "state": state,
+                            "latest_version": message.version,
+                        }
+                    )
+                }
+            )
     w.chain.documents[(message.document_id, message.version)] = WalletDocument(
         **BLOCK,
         document=doc,
@@ -1038,3 +1053,291 @@ async def test_wrong_receipt_cannot_poison_a_signing_request(wallet):
     # A verified actual transaction can still reconcile the original immutable request.
     _, confirmed = await confirmed_publication(wallet, signing)
     assert confirmed["status"] == "CONFIRMED"
+
+
+async def confirmed_revocation(w, did, version, *, req="req_revoke", observed_state="REVOKED"):
+    response = await w.client.post(
+        "/v3/revoke-drafts",
+        json={"request_id": "req_revoke_draft_" + req, "document_id": did, "version": version},
+    )
+    assert response.status_code == 201, response.text
+    signing = response.json()
+    submitted = await w.client.post(
+        "/v3/revocations",
+        json={
+            "request_id": req,
+            "signing_request_id": signing["signing_request_id"],
+            "signature": sign(signing),
+        },
+    )
+    assert submitted.status_code == 202, submitted.text
+    old = w.chain.documents[(did, version)]
+    w.chain.documents[(did, version)] = old.model_copy(
+        update={"document": old.document.model_copy(update={"state": observed_state})}
+    )
+    tx_hash = "0x" + "89" * 32
+    message = SigningRequest.model_validate(signing).message
+    w.chain.transactions[tx_hash] = WalletTransaction(
+        **BLOCK,
+        tx_hash=tx_hash,
+        sender=APPROVERS[0],
+        action="Revoke",
+        status="CONFIRMED",
+        arguments={"message": message.model_dump(by_alias=True), "signature": sign(signing)},
+    )
+    accepted = await w.client.post(
+        f"/v3/signing-requests/{signing['signing_request_id']}/transactions",
+        json={
+            "request_id": "req_revoke_tx_" + req,
+            "signing_request_id": signing["signing_request_id"],
+            "tx_hash": tx_hash,
+        },
+    )
+    expected = "CONFIRMED" if observed_state == "REVOKED" else "UNKNOWN"
+    assert accepted.status_code == 202 and accepted.json()["status"] == expected, accepted.text
+    return accepted.json()
+
+
+async def test_superseded_state_does_not_confirm_revocation_and_reconcile_never_resends(wallet):
+    await activated(wallet)
+    first = await draft(wallet)
+    old, _ = await confirmed_publication(wallet, first)
+    second = await draft(wallet, request_id="req_superseding", version=2)
+    await confirmed_publication(wallet, second, req="req_publish_newer", tx_byte="68")
+    result = await confirmed_revocation(wallet, old.document_id, 1, observed_state="SUPERSEDED")
+    assert result["status"] == "UNKNOWN" and result["next_action"] == "RECONCILE"
+    chain = wallet.chain.documents[(old.document_id, 1)]
+    wallet.chain.documents[(old.document_id, 1)] = chain.model_copy(
+        update={"document": chain.document.model_copy(update={"state": "REVOKED"})}
+    )
+    confirmed = await wallet.client.post(f"/v3/operations/{result['operation_id']}/reconcile")
+    assert confirmed.status_code == 202 and confirmed.json()["status"] == "CONFIRMED"
+    assert wallet.chain.sends == []
+
+
+async def test_next_version_preserves_original_and_revoked_latest_does_not_revive_history(wallet):
+    from originproof_api.wallet_database import WalletDocumentRow
+
+    await activated(wallet)
+    first = await draft(wallet)
+    doc1, _ = await confirmed_publication(wallet, first)
+    second = await draft(wallet, request_id="req_second", version=2)
+    doc2, _ = await confirmed_publication(wallet, second, req="req_publish2", tx_byte="68")
+    assert doc1.document_id == doc2.document_id
+    await confirmed_revocation(wallet, doc2.document_id, 2)
+    latest = await wallet.client.get(f"/v3/documents/{doc2.document_id}")
+    assert latest.json()["version"] == 2 and latest.json()["state"] == "REVOKED"
+    older = await wallet.client.get(f"/v3/documents/{doc1.document_id}?version=1")
+    assert older.json()["state"] == "SUPERSEDED" and older.json()["latest_version"] == 2
+    with Session(wallet.engine) as db:
+        rows = list(db.query(WalletDocumentRow).order_by(WalletDocumentRow.version))
+        assert len(rows) == 2 and rows[0].original != rows[1].original
+        assert rows[0].message["version"] == 1 and rows[1].message["version"] == 2
+
+
+async def test_revoked_history_survives_subsequent_versions_and_rejects_revoke(wallet):
+    await activated(wallet)
+    first, _ = await confirmed_publication(wallet, await draft(wallet))
+    await confirmed_revocation(wallet, first.document_id, 1)
+    revoked = wallet.chain.documents[(first.document_id, 1)].document
+    for version in (2, 3):
+        signing = await draft(wallet, request_id=f"req_draft{version}", version=version)
+        await confirmed_publication(
+            wallet, signing, req=f"req_publish{version}", tx_byte=f"6{version}"
+        )
+        history = await wallet.client.get(f"/v3/documents/{first.document_id}?version=1")
+        assert history.status_code == 200, history.text
+        assert history.json()["state"] == "REVOKED"
+        assert history.json()["latest_version"] == version
+        current = wallet.chain.documents[(first.document_id, 1)].document
+        assert current == revoked.model_copy(update={"latest_version": version})
+        repeated = await wallet.client.post(
+            "/v3/revoke-drafts",
+            json={
+                "request_id": f"req_revoke_again{version}",
+                "document_id": first.document_id,
+                "version": 1,
+            },
+        )
+        assert repeated.status_code == 409, repeated.text
+        assert repeated.json()["detail"] == "DOCUMENT_ALREADY_REVOKED"
+    second = await wallet.client.get(f"/v3/documents/{first.document_id}?version=2")
+    assert second.json()["state"] == "SUPERSEDED" and second.json()["latest_version"] == 3
+    latest = await wallet.client.get(f"/v3/documents/{first.document_id}")
+    assert latest.json()["state"] == "ACTIVE" and latest.json()["version"] == 3
+
+
+async def test_revocation_alias_replays_and_rejects_changed_body(wallet):
+    from originproof_api.wallet_database import WalletRequestRow, WalletSigningRow
+    from sqlalchemy import select
+
+    await activated(wallet)
+    doc, _ = await confirmed_publication(wallet, await draft(wallet))
+    operation = await confirmed_revocation(wallet, doc.document_id, 1)
+    with Session(wallet.engine) as db:
+        source = db.scalar(select(WalletSigningRow).where(WalletSigningRow.kind == "Revoke"))
+        alias = {
+            "request_id": "req_revoke_alias",
+            "signing_request_id": source.signing_request_id,
+            "signature": source.signature,
+        }
+    for _ in range(2):
+        retry = await wallet.client.post("/v3/revocations", json=alias)
+        assert (
+            retry.status_code == 202 and retry.json()["operation_id"] == operation["operation_id"]
+        )
+    changed = await wallet.client.post(
+        "/v3/revocations", json={**alias, "signature": "0x" + "00" * 65}
+    )
+    assert changed.status_code == 409 and changed.json()["detail"] == "REQUEST_ID_CONFLICT"
+    with Session(wallet.engine) as db:
+        claim = db.get(WalletRequestRow, ("acct_i", "wallet_revoke", "req_revoke_alias"))
+        assert claim.resource_id == operation["operation_id"]
+
+
+async def test_competing_drafts_and_other_institution_are_rejected(wallet):
+    await activated(wallet)
+    first = await draft(wallet)
+    second = await draft(wallet, request_id="req_competing")
+
+    def body(value, req):
+        return {
+            "request_id": req,
+            "signing_request_id": value["signing_request_id"],
+            "signature": sign(value),
+        }
+
+    accepted = await wallet.client.post("/v3/publications", json=body(first, "req_first"))
+    assert accepted.status_code == 202
+    rejected = await wallet.client.post("/v3/publications", json=body(second, "req_second"))
+    assert rejected.status_code == 409
+    wallet.who["name"] = "other"
+    assert (
+        await wallet.client.post("/v3/publications", json=body(first, "req_other"))
+    ).status_code == 404
+
+
+async def test_suspension_blocks_publication_but_allows_current_key_revocation(wallet):
+    await activated(wallet)
+    signing = await draft(wallet)
+    doc, _ = await confirmed_publication(wallet, signing)
+    wallet.chain.issuers[ISSUER_HASH] = wallet.chain.issuers[ISSUER_HASH].model_copy(
+        update={"state": "SUSPENDED"}
+    )
+    import time
+
+    blocked = await wallet.client.post(
+        "/v3/document-drafts",
+        json={
+            "request_id": "req_suspended",
+            "doc_key": identifier_hash("another"),
+            "expected_version": 1,
+            "expires_at": int(time.time()) + 86400,
+            "content": payment_content(),
+        },
+    )
+    assert blocked.status_code == 409 and blocked.json()["detail"] == "ISSUER_SUSPENDED"
+    await confirmed_revocation(wallet, doc.document_id, 1)
+    result = await wallet.client.post(
+        "/v3/verifications",
+        json={
+            "request_id": "req_suspended_verify",
+            "document_id": doc.document_id,
+            "scope": "PROTECTED_FIELDS",
+            "candidate": signing["content"],
+        },
+    )
+    assert result.json()["verification_status"] == "VERIFIED"
+    assert result.json()["document"]["state"] == "REVOKED"
+    assert "ISSUER_SUSPENDED" in result.json()["document"]["warnings"]
+
+
+async def test_retired_key_preserves_past_signature_but_new_issuance_rejects_old_key(wallet):
+    from originproof_core.wallet_ports import WalletKey
+
+    await activated(wallet)
+    signing = await draft(wallet)
+    doc, _ = await confirmed_publication(wallet, signing)
+    old_id = doc.key_id
+    new_id = identifier_hash("rotated_key")
+    new_key = keys.PrivateKey((5).to_bytes(32, "big"))
+    wallet.chain.keys[old_id] = wallet.chain.keys[old_id].model_copy(update={"retired_block": "11"})
+    wallet.chain.keys[new_id] = WalletKey(
+        **(BLOCK | {"block_number": "12"}),
+        key_id=new_id,
+        issuer_id=ISSUER_HASH,
+        signer=new_key.public_key.to_checksum_address().lower(),
+        registered_block="11",
+    )
+    wallet.chain.issuers[ISSUER_HASH] = wallet.chain.issuers[ISSUER_HASH].model_copy(
+        update={"key_id": new_id, "signer": new_key.public_key.to_checksum_address().lower()}
+    )
+    for records in (wallet.chain.issuers, wallet.chain.keys, wallet.chain.documents):
+        for identity, value in list(records.items()):
+            records[identity] = value.model_copy(update={"block_number": "12"})
+    result = await wallet.client.post(
+        "/v3/verifications",
+        json={
+            "request_id": "req_old",
+            "document_id": doc.document_id,
+            "scope": "PROTECTED_FIELDS",
+            "candidate": signing["content"],
+        },
+    )
+    assert result.json()["verification_status"] == "VERIFIED", result.text
+    future = await draft(wallet, request_id="req_rotated", version=2)
+    old_signature = sign(future)
+    rejected = await wallet.client.post(
+        "/v3/publications",
+        json={
+            "request_id": "req_old_key",
+            "signing_request_id": future["signing_request_id"],
+            "signature": old_signature,
+        },
+    )
+    assert rejected.status_code == 422
+    wallet.chain.keys[old_id] = wallet.chain.keys[old_id].model_copy(
+        update={"compromise_block": "12"}
+    )
+    warning = await wallet.client.post(
+        "/v3/verifications",
+        json={
+            "request_id": "req_compromise",
+            "document_id": doc.document_id,
+            "scope": "PROTECTED_FIELDS",
+            "candidate": signing["content"],
+        },
+    )
+    assert "KEY_COMPROMISED" in warning.json()["document"]["warnings"]
+
+
+async def test_distinct_chain_approvals_are_separate_from_confirmation_of_one_approval(wallet):
+    from originproof_core.wallet_contract import ProposalView
+
+    data, _ = await prepared_proposal(wallet)
+    pid = data["proposal_id"]
+    for i, account in enumerate(("operator", "operator2"), 1):
+        view = ProposalView.model_validate(data).model_copy(
+            update={"approvals": APPROVERS[:i], "status": "EXECUTED" if i == 2 else "PENDING"}
+        )
+        wallet.chain.proposals[pid] = WalletProposal(**BLOCK, proposal=view)
+        tx_hash = "0x" + str(i) * 64
+        wallet.chain.transactions[tx_hash] = WalletTransaction(
+            **BLOCK,
+            tx_hash=tx_hash,
+            sender=APPROVERS[i - 1],
+            action="Approve",
+            status="CONFIRMED",
+            arguments={"proposalId": pid},
+        )
+        wallet.who["name"] = account
+        accepted = await wallet.client.post(
+            f"/v3/proposals/{pid}/approvals",
+            json={"request_id": f"req_approval_{i}", "tx_hash": tx_hash},
+        )
+        assert accepted.status_code == 202 and accepted.json()["status"] == "CONFIRMED"
+        shown = await wallet.client.get(f"/v3/proposals/{pid}")
+        assert shown.json()["status"] == ("EXECUTED" if i == 2 else "PENDING")
+    bad = view.model_copy(update={"approvals": [APPROVERS[0], APPROVERS[0]]})
+    wallet.chain.proposals[pid] = wallet.chain.proposals[pid].model_copy(update={"proposal": bad})
+    assert (await wallet.client.get(f"/v3/proposals/{pid}")).status_code == 503

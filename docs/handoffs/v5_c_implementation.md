@@ -39,6 +39,11 @@
 
 신규 HTTP 사례 15개를 포함한 해당 API/코어 회귀 65 PASS입니다. 임시 PostgreSQL에서 `0008` upgrade/schema check를 통과했습니다. 원본 bytes·보호 필드·기관 메타데이터/표시명 조작을 분리 검출하고, ID 단독/부분 비교와 RPC 미확인은 INCONCLUSIVE입니다. 새 Registry Adapter는 미연결이며 실제 체인/브라우저 E2E·B/A/D 리뷰는 아직 없습니다.
 
+### W4 C 독립 구현
+
+정확한 latest+1의 초안/제출 검사, 같은 기관의 문서 소유 고정, 버전별 불변 원본, 별도 Revoke EIP-712 요청/제출을 추가했습니다. 기관 정지 중에도 현재 비사고 키의 철회를 허용하고 정상 교체의 과거 서명·현재 사고 경고를 구분합니다. 원자적 버전 전이는 B Registry의 검증된 상태/이벤트를 소비하며 API가 DB의 최신 포인터를 권위로 만들지 않습니다.
+
+신규 HTTP 사례 누적 20 PASS입니다. 다음 버전·과거 대체·최신 철회 후 미복구·동일 nonce 경쟁 거부·타 기관·정지/철회·구키 신규 서명 거부·과거 정상 서명/사고 경고·서로 다른 승인자 1/2/중복 결과를 검사했습니다. 합성 Registry 근거이며 실제 컨트랙트의 원자성·브라우저 연결이나 소유자 리뷰를 대신하지 않습니다.
 ### 2026-10-18 W2 리뷰 보완
 
 이메일 검증값은 `API_WALLET_EMAIL_SECRET`의 최소 32바이트 서버 비밀을 사용하는
@@ -73,6 +78,14 @@ KeyProof 없는 REACTIVATE는 공유 ABI의 0값 tuple과 빈 bytes를 전달하
 
 API·코어 162 PASS / 4 live opt-in SKIP, 신규/기존 wallet HTTP·저장 검사 32 PASS,
 Ruff 통과입니다. 실제 Registry·브라우저 연결 완료와 구분합니다.
+
+### 2026-10-18 W4 리뷰 보완
+
+철회 HTTP 경로에서 SUPERSEDED 문서와 성공 receipt만 관측하면 UNKNOWN을 유지하는
+사례를 추가했습니다. 이후 같은 원래 거래의 REVOKED 효과가 관측되면 재전송 없이
+CONFIRMED로 복구합니다. 기존 성공 helper는 관측 상태를 인자로 받아, 항상 REVOKED를
+먼저 주입하는 테스트 공백을 없앴습니다. wallet HTTP·저장 및 core 검사 81 PASS,
+Ruff 통과이며 실제 EVM 원자성·경쟁 성공을 뜻하지 않습니다.
 - DB/API·후속 연결: #59~#63의 후속 브랜치에 구현·검사 기록이 있습니다.
   이 baseline에는 신규 지갑 API가 없으며 후속 구현을 완료한 것으로 표시하지 않습니다.
 

@@ -30,3 +30,12 @@ A 화면 연결·B 리뷰·D 독립 확인·공유 단계 병합이 남아 있�
 - 전체 Python **268 passed / opt-in 5 skipped**, Contract **22 passed**, 합성 lifecycle **4 passed**, 실제 PostgreSQL/Anvil HTTP **1 passed**. 실제 로그로 경쟁 consume 1개·반복 폐기 tx 없음·소비 이력 보존을 확인했습니다.
 - Codex가 기존 흐름 추적, 구현, 자체 검사, 소비 경계 검토와 문서 작성을 보조했습니다. 작성자 외 팀 리뷰·브라우저·D 독립 재현·성능 측정은 수행하지 않았습니다.
 - 상세 API·실패·재현 근거: [W4 lifecycle 인계](../api/w4_c_proof_lifecycle_contract.md). C 담당 구현·자체 실제 연결 범위는 확인 완료이며 공유 phase 병합 뒤 단계 재검증이 필요합니다.
+
+## 2026-10-18 V5-W4-C 셀프 리뷰 후속
+
+사용자님 요청으로 C API 테스트의 합성 Registry helper를 계약의 상태 전이에 맞췄습니다.
+새 버전 발행 시 직전 최신 ACTIVE만 SUPERSEDED로 바꾸고, 철회 기록·원본 필드는 보존하며
+과거 기록의 latest_version만 갱신합니다. 철회→v2→v3에서 REVOKED 보존·재철회 거부·
+일반 ACTIVE 대체와 철회 요청 ID 재시도를 검사했습니다. API wallet 검사 44 PASS,
+Ruff 통과입니다. Codex가 반례·수정·검사를 보조했으며 실제 체인의 원자성 검증이나
+D의 독립 확인을 수행한 것으로 기록하지 않습니다.

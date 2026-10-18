@@ -41,11 +41,29 @@ class WalletKey(ChainPosition):
     retired_block: Uint256 | None = None
     compromise_block: Uint256 | None = None
 
+    @model_validator(mode="after")
+    def historical_blocks(self):
+        position, registered = int(self.block_number), int(self.registered_block)
+        if registered > position or any(
+            block is not None and not registered <= int(block) <= position
+            for block in (self.retired_block, self.compromise_block)
+        ):
+            raise ValueError("key history lies outside the observed chain")
+        return self
+
 
 class WalletDocument(ChainPosition):
     document: DocumentView
     published_at: Seconds
     published_block: Uint256
+
+    @model_validator(mode="after")
+    def published_position(self):
+        if int(self.published_block) > int(self.block_number) or (
+            self.document.version > self.document.latest_version
+        ):
+            raise ValueError("invalid document history")
+        return self
 
 
 class WalletProposal(ChainPosition):
@@ -74,7 +92,9 @@ class WalletTransaction(ContractModel):
 
     @model_validator(mode="after")
     def confirmed_position(self):
-        if self.status == "CONFIRMED" and (self.block_number is None or self.block_hash is None):
+        if self.status in ("CONFIRMED", "FAILED") and (
+            self.block_number is None or self.block_hash is None
+        ):
             raise ValueError("confirmation requires canonical receipt and event/state checks")
         return self
 
