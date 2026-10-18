@@ -492,3 +492,10 @@ class TextInputRequest(ContractModel):
 class InputReceipt(ContractModel):
     input_ref: str
     expires_at: Seconds
+
+
+class VerificationMaterial(ContractModel):
+    signing_request: SigningRequest
+    signature: Signature
+    block_number: Uint256
+    block_hash: Hex32

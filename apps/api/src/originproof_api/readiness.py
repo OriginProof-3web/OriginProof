@@ -9,7 +9,7 @@ from sqlalchemy import select, text
 
 from .database import AccountRow
 
-REVISION = "20261015_0007"
+REVISION = "20261016_0008"
 
 
 async def check_ready(app):

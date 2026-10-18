@@ -1,6 +1,10 @@
 """Governance request identity and proposal preconditions before proof consumption."""
 
+import time
+
 import pytest
+from originproof_api.database import OperationRow
+from originproof_api.operations import input_fingerprint
 from originproof_api.wallet_database import WalletSigningRow
 from originproof_core.wallet_ports import WalletIssuer, WalletKey
 from originproof_core.wallet_signatures import identifier_hash
@@ -87,3 +91,35 @@ async def test_proposal_preconditions_are_checked_before_consuming_key_proof(wal
         body["proposal"]["keyId"] = identifier_hash("valid_key")
         accepted = await wallet.client.post("/v3/proposals", json=body)
         assert accepted.status_code == 201, accepted.text
+
+
+@pytest.mark.parametrize("action", ["wallet_propose", "wallet_approve", "wallet_suspend"])
+async def test_governance_transaction_retries_expire(wallet, action):
+    target, tx_hash = ISSUER_HASH, "0x" + "ab" * 32
+    body = {"request_id": "req_old_governance", "tx_hash": tx_hash}
+    fingerprint = input_fingerprint(
+        body if action == "wallet_suspend" else body | {"proposal_id": target}
+    )
+    with Session(wallet.engine) as db:
+        db.add(
+            OperationRow(
+                operation_id="op_old_governance",
+                account_id="acct_o",
+                action=action,
+                request_id=body["request_id"],
+                input_hash=fingerprint,
+                status="CONFIRMED",
+                recovery_reference={"resolved_at": int(time.time()) - 30 * 86400},
+                target_id=target,
+            )
+        )
+        db.commit()
+    wallet.who["name"] = "operator"
+    if action == "wallet_suspend":
+        path = f"/v3/issuers/{target}/suspensions"
+    else:
+        path = f"/v3/proposals/{target}/" + (
+            "approvals" if action == "wallet_approve" else "transactions"
+        )
+    response = await wallet.client.post(path, json=body)
+    assert response.status_code == 410, response.text

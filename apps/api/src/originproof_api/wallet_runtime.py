@@ -7,7 +7,7 @@ from uuid import uuid4
 
 from fastapi import HTTPException
 from originproof_core import DependencyUnavailableError
-from originproof_core.wallet_contract import OperationView, SigningRequest, WalletDomain
+from originproof_core.wallet_contract import Hex32, OperationView, SigningRequest, WalletDomain
 from originproof_core.wallet_ports import (
     WalletDocument,
     WalletIssuer,
@@ -16,14 +16,14 @@ from originproof_core.wallet_ports import (
     WalletTransaction,
 )
 from originproof_core.wallet_signatures import identifier_hash
-from pydantic import ValidationError
+from pydantic import TypeAdapter, ValidationError
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from .accounts import require_csrf
 from .database import AccountRow, AuditEventRow, OperationRow
-from .operations import input_fingerprint
-from .wallet_database import WalletSigningRow
+from .operations import input_fingerprint, require_retained_operation
+from .wallet_database import WalletRequestRow, WalletSigningRow
 
 
 def now():
@@ -52,6 +52,8 @@ class WalletRuntime:
             raise HTTPException(503, "WALLET_REGISTRY_UNAVAILABLE")
         try:
             result = await asyncio.wait_for(getattr(self.chain, method)(*args), timeout=10)
+            if method == "submit" and result is not None:
+                result = TypeAdapter(Hex32).validate_python(result)
             model = {
                 "issuer": WalletIssuer,
                 "key": WalletKey,
@@ -165,8 +167,12 @@ class WalletRuntime:
         )
 
     def operation_view(self, row):
-        pending = row.status in ("UNKNOWN", "SUBMITTED")
+        require_retained_operation(row, now())
+        pending = row.status in ("PENDING_SUBMISSION", "UNKNOWN", "SUBMITTED")
         intent = row.input_body or {}
+        next_action = "RECONCILE" if pending else "NONE"
+        if row.error_code == "SIGNATURE_EXPIRED":
+            next_action = "RESIGN"
         return OperationView(
             operation_id=row.operation_id,
             request_id=row.request_id,
@@ -175,12 +181,44 @@ class WalletRuntime:
             document_id=intent.get("document_id"),
             version=intent.get("version"),
             recovery_required=pending,
-            next_action="RECONCILE"
-            if pending
-            else ("WAIT" if row.status == "PENDING_SUBMISSION" else "NONE"),
+            next_action=next_action,
         )
 
+    async def lock_operation(self, db, operation_id, tx_hash=None):
+        row = await db.get(OperationRow, operation_id)
+        if row is None:
+            raise HTTPException(410, "RESULT_EXPIRED")
+        signing_id = (row.input_body or {}).get("signing_request_id")
+        if signing_id:
+            # Keep the signing -> operation order used by direct intake, including FK writes.
+            await db.scalar(
+                select(WalletSigningRow)
+                .where(WalletSigningRow.signing_request_id == signing_id)
+                .with_for_update()
+            )
+        row = await db.scalar(
+            select(OperationRow)
+            .where(OperationRow.operation_id == operation_id)
+            .with_for_update()
+            .execution_options(populate_existing=True)
+        )
+        if row is None:
+            raise HTTPException(410, "RESULT_EXPIRED")
+        require_retained_operation(row, now())
+        if tx_hash and row.tx_hash and row.tx_hash != tx_hash:
+            raise HTTPException(409, "DIRECT_TX_ALREADY_BOUND")
+        return row
+
     async def operation_retry(self, db, account, action, body):
+        claim = await db.get(WalletRequestRow, (account.account_id, action, body.request_id))
+        if claim:
+            if claim.input_hash != input_fingerprint(body.model_dump(mode="json")):
+                raise HTTPException(409, "REQUEST_ID_CONFLICT")
+            row = await db.get(OperationRow, claim.resource_id)
+            if row is None:
+                raise HTTPException(410, "RESULT_EXPIRED")
+            require_retained_operation(row, now())
+            return row
         row = await db.scalar(
             select(OperationRow)
             .where(
@@ -192,6 +230,8 @@ class WalletRuntime:
         )
         if row and row.input_hash != input_fingerprint(body.model_dump(mode="json")):
             raise HTTPException(409, "REQUEST_ID_CONFLICT")
+        if row:
+            require_retained_operation(row, now())
         return row
 
     def operation(self, db, account, action, body, target, intent):

@@ -28,6 +28,7 @@ from .projection import router as projection_router
 from .repositories import SqlAlchemyProofRepository
 from .security import RequestSecurity
 from .settings import Settings
+from .wallet_documents import router as wallet_documents_router
 from .wallet_governance import router as wallet_governance_router
 from .wallet_onboarding import expire_codes, maintain_email_codes
 from .wallet_onboarding import router as wallet_onboarding_router
@@ -118,6 +119,7 @@ def create_app(
     app.include_router(finals_router)
     app.include_router(wallet_onboarding_router)
     app.include_router(wallet_governance_router)
+    app.include_router(wallet_documents_router)
     app.state.verification_service = verification_service or VerificationService(
         SqlAlchemyProofRepository(app_database.session_factory),
         configured_blockchain_reader(app_settings),
