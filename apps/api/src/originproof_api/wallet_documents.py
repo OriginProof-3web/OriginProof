@@ -36,7 +36,7 @@ from sqlalchemy import select
 
 from .accounts import current_session
 from .database import IssuerApplicationRow, OperationRow
-from .operations import input_fingerprint
+from .operations import input_fingerprint, require_retained_operation
 from .wallet_database import (
     WalletDocumentRow,
     WalletInputRow,
@@ -204,6 +204,7 @@ async def submit_signed(body, request, identity, kind):
             operation = await db.get(OperationRow, saved.consumed_by)
             if operation is None:
                 raise HTTPException(410, "RESULT_EXPIRED")
+            require_retained_operation(operation, now())
             if saved.signature != body.signature:
                 raise HTTPException(409, "SIGNATURE_ALREADY_SUBMITTED")
             db.add(
@@ -272,6 +273,9 @@ async def submit_signed(body, request, identity, kind):
         await service.commit(db)
         if not service.settings.wallet_relay_enabled:
             return service.operation_view(operation)
+        operation = await service.lock_operation(db, operation.operation_id)
+        if operation.status != "PENDING_SUBMISSION":
+            return service.operation_view(operation)
         # Save uncertainty before the external call so a crash cannot trigger auto-resend.
         operation.status = "UNKNOWN"
         await service.commit(db)
@@ -282,7 +286,7 @@ async def submit_signed(body, request, identity, kind):
         except HTTPException as error:
             if error.status_code != 503:
                 raise
-        return service.operation_view(operation)
+        return service.operation_view(await service.lock_operation(db, operation.operation_id))
 
 
 @router.post("/publications", response_model=OperationView, status_code=202)
@@ -320,17 +324,7 @@ async def direct_transaction(
         saved, _ = await service.owned_signing(db, account, signing_request_id)
         if saved.signature is None or saved.consumed_by is None:
             raise HTTPException(409, "SIGNED_SUBMISSION_REQUIRED")
-        operation = await db.scalar(
-            select(OperationRow)
-            .where(
-                OperationRow.operation_id == saved.consumed_by,
-            )
-            .with_for_update()
-        )
-        if operation is None:
-            raise HTTPException(410, "RESULT_EXPIRED")
-        if operation.tx_hash and operation.tx_hash != body.tx_hash:
-            raise HTTPException(409, "DIRECT_TX_ALREADY_BOUND")
+        operation = await service.lock_operation(db, saved.consumed_by, body.tx_hash)
         if claim is None:
             db.add(
                 WalletRequestRow(
@@ -353,7 +347,7 @@ async def owned_operation(service, db, operation_id, account):
         .where(
             OperationRow.operation_id == operation_id,
         )
-        .with_for_update()
+        .execution_options(populate_existing=True)
     )
     if (
         row is None
@@ -370,6 +364,7 @@ async def owned_operation(service, db, operation_id, account):
         raise HTTPException(404, "OPERATION_NOT_FOUND")
     if row.recovery_reference.get("domain") != service.domain.model_dump(by_alias=True):
         raise HTTPException(409, "DEPLOYMENT_CHANGED")
+    require_retained_operation(row, now())
     return row
 
 
@@ -389,13 +384,23 @@ async def reconcile(operation_id: str, request: Request, identity: Identity):
         row = await owned_operation(service, db, operation_id, account)
         if row.status in ("CONFIRMED", "FAILED"):
             return service.operation_view(row)
+        for tx_hash in dict.fromkeys((row.tx_hash, row.recovery_reference.get("lookup_tx_hash"))):
+            if not tx_hash:
+                continue
+            try:
+                result = await accept_transaction(service, db, row, tx_hash)
+            except HTTPException as error:
+                if row.tx_hash or error.status_code != 422 or error.detail != "DIRECT_TX_MISMATCH":
+                    raise
+            else:
+                if result.status in ("CONFIRMED", "FAILED"):
+                    return result
         tx = await service.rpc("find_transaction", row.input_body)
         if tx:
             return await accept_transaction(service, db, row, tx.tx_hash)
-        if row.tx_hash:
-            result = await accept_transaction(service, db, row, row.tx_hash)
-            if result.status in ("CONFIRMED", "FAILED"):
-                return result
+        row = await service.lock_operation(db, row.operation_id)
+        if row.status in ("CONFIRMED", "FAILED"):
+            return service.operation_view(row)
         if row.input_body["action"] in ("Publish", "Revoke"):
             message = row.input_body["arguments"]["message"]
             if now() >= message["deadline"]:
