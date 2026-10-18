@@ -112,3 +112,8 @@ D가 수정한 것은 평가 분모의 해석, 거부 보고서 집계, 안전�
 - 최초 단계별 QA 결과와 과거 G07 FAIL/PASS는 역사 기록으로 보존했습니다. DG12/G07, 신규 A/B/C 실제 연결, 사람 라벨·코드 리뷰는 계속 남습니다.
 
 [분석 인계](../handoffs/v5_d_analysis.md), [수정된 실제 평가 결과](../qa/v5-d-development-evaluation.json), [고정 C 전용 CI·재현](../qa/v5-d-review-fixes.md). 사용자께서 D 작업·GitHub 리뷰 공유를 지시했고 Codex가 수정·검사를 수행했습니다. 작성자 외 최종 승인·단계 완료는 대기입니다.
+
+
+## 2026-10-18 — 사용자 모델 선택 반영
+
+사용자가 최종 분석 모델을 OpenAI GPT-6 Luna (`gpt-6-luna`)로 선택했습니다. D가 공식 API ID·기존 설정과 `.env.example`의 동일 값을 대조하고 [분석 인계](../handoffs/v5_d_analysis.md)·[후속 결정 목록 L05](../final_deliverables_pending_decisions.md)에 반영했습니다. 실행 코드·기존 평가 결과는 변경하지 않았습니다. 문서/설정 일관성 검사만 수행하며 유료 모델 평가·기능 검사를 새로 통과한 것으로 기록하지 않습니다. 입력·유료 범위/예산·A/C 라벨/분할 리뷰, DG12/G07은 후속입니다.

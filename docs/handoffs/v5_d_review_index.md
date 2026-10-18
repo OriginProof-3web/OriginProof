@@ -19,7 +19,7 @@
 ## 검증 근거와 리뷰할 항목
 
 - 검증된 전체 원본: `52c80b8d974d0a0542680d687447bce7cba413f8`, 실행 소스 `40ab4da11c71d75d26b6b94145e53ee03e3d54a6`. 공유 직전 연결 head `17050ef56a46c90ba5b791275964fad4bf022ea5`는 실행 파일·fixture·공통 계약·lock이 원본과 같고 W2~W4 개인 기록의 링크만 고정 SHA로 바꿨습니다. 이후 이 공유 목록/현재 상태 링크 추가는 문서 변경입니다.
-- [D 분석 인계](v5_d_analysis.md): 공통 AnalysisReport·규칙/LLM 구분·발행 판정 금지·근거 대조. 공급자는 OpenAI만 사용하며 세부 모델/유료 범위는 미정입니다.
+- [D 분석 인계](v5_d_analysis.md): 공통 AnalysisReport·규칙/LLM 구분·발행 판정 금지·근거 대조. 최종 모델은 사용자 선택으로 OpenAI GPT-6 Luna (`gpt-6-luna`)로 확정했습니다. 유료 범위/예산은 미정입니다.
 - [연결 QA](../qa/v5-d-independent-qa.md): 실제 D callback의 C ASGI/SQLite/합성 Registry12 PASS. 과거 제품 PostgreSQL/Anvil mixed18 보고 그룹 PASS는 신규 A/B/C 통합 또는 G07 해결이 아닙니다.
 - [clean·자료·단계별 QA](../qa/v5-d-readiness.md): 같은 Mac 새 clone/venv292 PASS, W2 승인12/W3 내용·DB13/W4 버전·키5 PASS. 이전 검사와 중복 합산하지 않습니다.
 - A 또는 C: 합성60개 자체 점검 중 라벨 경계5개·설명용 표식3개·분할 관계3묶음을 리뷰해야 합니다. 사람 리뷰·평가셋 동결·보류36개 모델 평가는 아직 없습니다.
@@ -38,4 +38,9 @@
 - #76: 새 전용 CI가 C 고정 checkout을 쓰므로 D의 분석 연결 12개도 실제 CI 대상입니다. 최종 로컬 실행 소스 `b482875de7aa1014b7ef080b02950d7183b922b2`에서 stage 42 PASS, 같은 C 환경의 분석기 256 PASS입니다. C consumer는 별도 30 PASS / 1 FAIL(DG12)이며 실패를 숨기지 않습니다.
 - 전체 최신 Python은 329 PASS / 1 SKIP(indexer live-chain opt-in), 생성물 diff 없음·Ruff·Python compileall/웹 tsc 통과입니다. 로컬 mock/합성 결과를 실제 체인·모델 검사로 합산하지 않습니다.
 
-[수정·재현 명령과 CI 경계](../qa/v5-d-review-fixes.md), [구조화 재검사 결과](../qa/v5-d-review-results.json). 개발24개 재평가의 예측과 원본/라벨/분할은 그대로이며, 후보 근거 품질의 실제 평가·입력/모델/유료 범위·A/C 라벨 리뷰·DG12/G07·동일 신규 A/B/C 실제 연결과 새 phase 대상 조율이 남습니다. 사람의 리뷰 승인을 만들어내거나 단계 완료로 처리하지 않았습니다.
+[수정·재현 명령과 CI 경계](../qa/v5-d-review-fixes.md), [구조화 재검사 결과](../qa/v5-d-review-results.json). 개발24개 재평가의 예측과 원본/라벨/분할은 그대로이며, 후보 근거 품질의 실제 평가·입력/유료 범위·A/C 라벨 리뷰·DG12/G07·동일 신규 A/B/C 실제 연결과 새 phase 대상 조율이 남습니다. 사람의 리뷰 승인을 만들어내거나 단계 완료로 처리하지 않았습니다.
+
+
+## 2026-10-18 후속 사용자 결정
+
+최종 모델은 **OpenAI GPT-6 Luna (`gpt-6-luna`)**로 확정됐습니다. [분석 인계](v5_d_analysis.md)와 [L05 결정 기록](../final_deliverables_pending_decisions.md)에 반영했습니다. 기존 코드·환경 예시 기본값과 같아서 실행 코드는 바꾸지 않았고 문서/설정 대조만 수행했습니다. 과거 모델 미정 문구는 당시 기록이며 현재 모델 선택 대기 항목은 해소됐습니다. 입력·유료 평가 범위/예산·라벨/분할 리뷰와 실제 모델 평가는 계속 후속입니다.

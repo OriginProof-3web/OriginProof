@@ -89,7 +89,19 @@
     "same new A/B/C integrated candidate real-environment QA",
     "A/C synthetic labels and proposed split review",
     "Q01 input types/priority",
-    "Q05 specific OpenAI model and paid scope",
+    "Q05 paid evaluation/transmission scope, budget and final evaluation settings",
     "candidate quote accuracy/missing and location evaluation"
-  ]
+  ],
+  "model_decision": {
+    "decided_on": "2026-10-18 Asia/Seoul",
+    "decided_by": "User (D)",
+    "provider": "OpenAI",
+    "model": "gpt-6-luna",
+    "status": "CONFIRMED",
+    "existing_default_matches": true,
+    "runtime_code_changed": false,
+    "live_model_evaluated": false,
+    "paid_requests_in_decision_update": 0,
+    "evidence": "docs/handoffs/v5_d_analysis.md; direct user selection"
+  }
 }
