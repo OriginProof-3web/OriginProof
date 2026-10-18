@@ -98,3 +98,42 @@ UV_FROZEN=1 UV_NO_DEV=1 UV_PYTHON=3.13.0 make generate UV_ENV=build/premerge/api
 - D의 `fixtures/finals/v5_d_w2_governance_qa.py` 등 명시 소비 검사는 제외한 C #62의 고정 API/helper가 필요합니다. 기본 pytest 500 PASS를 이 명시 검사나 신규 SG01–16 전체 통과로 보고하지 않습니다.
 - 보류 PR의 DG12·UnknownDocument 처리·선행 수정 누락, B 실제 Adapter 작업, G07 원인 검증·유료 모델 평가는 해결됐다고 표시하지 않습니다.
 - 원격 병합·auto-merge·main 승격은 실행하지 않습니다. 기존 단계별 PR 병합/phase 승격은 이 후보와 새 리뷰 결과를 확인한 뒤 별도 진행해야 합니다.
+
+
+## 2026-10-18 C 리뷰 보완 후 후보 재검증
+
+검증 후보 코드: `c8584ecb219db1c2773acb451a6974c262bdc4a8`. C #57·#59~#63의 보완과 공식 integration
+`5470558`(#80), D #72~#74의 최신 리뷰 보완 `a9ada27`을 원래 커밋 이력대로
+포함했습니다. B #69/#78/#79와 D #75/#76은 이 후보에 추가하지 않았습니다.
+
+C 수정은 이메일 HMAC/만료 정리·REACTIVATE ABI, 정확한 REVOKED 확정,
+SUPERSEDED 거부 HTTP 회귀, DG12 겹침 인용, wallet 전용 보관 정리, 독립 RPC의
+정확한 not-found 분류, projection revision 재현성과 레거시 기관 ID 충돌 검사입니다.
+계획서와 재사용 인계의 충돌 중 누락한 본문은 복원했고 모든 C branch에서 계획
+14~16장과 재사용 기록이 유지되는지 확인했습니다. B/D 기여 기록도 보존했습니다.
+
+| 최종 로컬 검사 | 결과·범위 |
+| --- | --- |
+| 후보 기본 전체 Python | 622 PASS / 15 opt-in SKIP / 기존 Starlette 경고 1건 |
+| D 명시 소비 QA 네 파일 | 61 PASS. ASGI/SQLite/합성 Registry, 실제 모델·EVM 검사 아님 |
+| Foundry 전체 offline | 100 PASS / 0 FAIL / 0 SKIP. 알려진 #68 결함의 새 회귀는 포함하지 않음 |
+| 기존 실제 복구 | 2 PASS. 임시 PostgreSQL·Anvil·실제 API 프로세스 |
+| 신규 실제 복구 | 6 PASS. 임시 PostgreSQL·실제 API 프로세스, Registry/분석기는 합성 |
+| 생성물·Node hash | 다섯 생성기 무변경, 두 템플릿 hash 교차 검사 PASS |
+| 정적 검사 | Ruff·구조·diff PASS |
+
+D 소비 검사는 수정된 후보와 같은 head SHA를 별도 고정 checkout하여 실행하도록
+후보의 CI를 바꿨습니다. 과거 C `eaa0d16`을 대상으로 한 D 원 PR의 별도 CI 실패를
+후보 PASS로 덮어쓰지 않습니다. 로컬 첫 수집은 C 전용 환경에 B의 eth-abi가 없어
+실패했고, 후보 lock에 맞춰 `.venv`를 동기화한 뒤 네 파일을 실제 실행했습니다.
+Contract 첫 시도는 라이브러리 부재로 실패했으며 기존 고정 OpenZeppelin v5.7.0 /
+forge-std v1.16.2를 설치한 뒤 100 PASS를 확인했습니다. 새 의존성은 추가하지 않았습니다.
+
+웹/브라우저 검사는 이번에 다시 실행하지 않았습니다. B #68의 철회 상태 유지 결함,
+실제 B port/배포·A 지갑·D 모델 연결, shared 0.2 소비자 리뷰, G07과 유료 평가는
+여전히 남습니다. 기본 Contract 검사 통과가 해당 결함 해결·통합 RC·단계 완료를 뜻하지
+않으며 승인/리뷰 상태를 변경하거나 원격 PR을 병합하지 않습니다.
+
+원격 공유: 최초 push는 자동 승인 검토 서비스의 사용 한도 초과로 실행되지 않았습니다.
+이는 안전성 거절이 아닌 검토 서비스 실패이며 로컬 커밋/검사 결과는 보존돼 있습니다.
+현재 원격 CI는 이 새 후보를 아직 검증하지 않았습니다.

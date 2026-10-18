@@ -123,7 +123,10 @@
     "exports": "14_EXPORTS_RETAINED",
     "original_20_pr_heads_bases_drafts": "UNCHANGED",
     "api_without_dev_dependencies": "PASS",
-    "selected_python_after_runtime_fix": {"passed": 500, "skipped": 8}
+    "selected_python_after_runtime_fix": {
+      "passed": 500,
+      "skipped": 8
+    }
   },
   "unverified": [
     "new_wallet_api_adapter_connection",
@@ -154,5 +157,47 @@
     "commit": "1d26f1043b3bc0fe9168c41f5c417ed0b08298aa",
     "change": "Move existing eth-abi from root dev dependencies to API runtime dependencies; all package versions unchanged",
     "remaining": "Original PRs have not been changed; apply this fix if merging those individually"
+  },
+  "review_revision_2026_10_18": {
+    "code_sha": "c8584ecb219db1c2773acb451a6974c262bdc4a8",
+    "c_head": "7d26672ce63696f085859331404a0d3e2ff8b776",
+    "integration_sha": "54705588d660aceea71ff1cb03eefb5aefe37aa4",
+    "d_qa_sha": "a9ada27e2f3ef6e09df32d8b1872abf8809250ed",
+    "checks": {
+      "python": {
+        "passed": 622,
+        "skipped": 15
+      },
+      "d_consumer": {
+        "passed": 61
+      },
+      "foundry": {
+        "passed": 100
+      },
+      "legacy_live_recovery": {
+        "passed": 2
+      },
+      "wallet_live_recovery": {
+        "passed": 6
+      },
+      "generated_diff": "PASS",
+      "ruff": "PASS",
+      "structure": "PASS",
+      "node_hash": "PASS"
+    },
+    "not_checked": [
+      "web/browser rerun",
+      "actual B port/wallet/model connection",
+      "G07",
+      "paid evaluation"
+    ],
+    "remaining": [
+      "B #68 revoked-state defect",
+      "shared 0.2 consumer review",
+      "phase acceptance"
+    ],
+    "push": "NOT_EXECUTED_AUTO_REVIEW_USAGE_LIMIT",
+    "remote_new_head_ci": "NOT_RUN",
+    "merge": "NOT_RUN"
   }
 }
