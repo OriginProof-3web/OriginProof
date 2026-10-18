@@ -196,8 +196,8 @@
       "shared 0.2 consumer review",
       "phase acceptance"
     ],
-    "push": "NOT_EXECUTED_AUTO_REVIEW_USAGE_LIMIT",
-    "remote_new_head_ci": "NOT_RUN",
+    "push": "SUCCEEDED_AFTER_AUTO_REVIEW_RESET",
+    "remote_new_head_ci": "PENDING",
     "merge": "NOT_RUN"
   }
 }
