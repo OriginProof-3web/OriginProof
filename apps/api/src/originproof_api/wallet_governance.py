@@ -65,6 +65,17 @@ async def key_proof(body: SignedSubmission, request: Request, identity: Identity
     account = service.authorize(request, identity, "issuer")
     async with service.database.session_factory() as db:
         await service.lock_account(db, account)
+        prior = await db.scalar(
+            select(WalletSigningRow).where(
+                WalletSigningRow.account_id == account.account_id,
+                WalletSigningRow.kind == "KeyProof",
+                WalletSigningRow.verified_request_id == body.request_id,
+            )
+        )
+        if prior and (
+            prior.signing_request_id != body.signing_request_id or prior.signature != body.signature
+        ):
+            raise HTTPException(409, "REQUEST_ID_CONFLICT")
         row, signing = await service.owned_signing(db, account, body.signing_request_id, "KeyProof")
         if row.verified_at is not None:
             if row.signature != body.signature or row.verified_request_id != body.request_id:
@@ -121,6 +132,8 @@ async def propose(body: ProposalRequest, request: Request, identity: Identity):
                 raise HTTPException(409, "REQUEST_ID_CONFLICT")
             return await proposal_view(service, retry)
         proposal = body.proposal
+        if int(proposal.key_id, 16) == 0:
+            raise HTTPException(422, "INVALID_KEY_ID")
         stamp = now()
         if proposal.deadline <= stamp:
             raise HTTPException(410, "PROPOSAL_EXPIRED")
@@ -174,6 +187,8 @@ async def propose(body: ProposalRequest, request: Request, identity: Identity):
                 raise HTTPException(409, "ISSUER_STATE_CONFLICT")
             if await service.rpc("key", proposal.key_id) is not None:
                 raise HTTPException(409, "KEY_ID_ALREADY_USED")
+            if issuer and proposal.signer == issuer.signer:
+                raise HTTPException(409, "SIGNER_ALREADY_USED")
             maximum = 300
         else:
             if body.key_proof_request_id is not None:
