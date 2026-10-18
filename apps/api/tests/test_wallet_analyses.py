@@ -8,7 +8,7 @@ import pytest
 from originproof_api import wallet_analyses as module
 from originproof_api.wallet_database import WalletAnalysisRow, WalletInputRow
 from sqlalchemy.orm import Session
-from test_wallet_runtime import activated, confirmed_publication, draft
+from test_wallet_runtime import activated, confirmed_publication, confirmed_revocation, draft
 
 pytest_plugins = ("test_wallet_runtime",)
 
@@ -139,6 +139,56 @@ async def test_retention_preserves_legacy_and_unresolved_audit_records(wallet):
         for name in ("unknown", "recent", "legacy", "lookalike"):
             assert db.get(OperationRow, "op_" + name) is not None
             assert db.get(AuditEventRow, "evt_" + name) is not None
+
+
+async def test_retained_revocation_retries_return_gone_after_actual_cleanup(wallet, monkeypatch):
+    from originproof_api.database import OperationRow
+    from originproof_api.wallet_database import WalletRequestRow, WalletSigningRow
+    from sqlalchemy import select
+
+    await activated(wallet)
+    doc, _ = await confirmed_publication(wallet, await draft(wallet))
+    operation = await confirmed_revocation(wallet, doc.document_id, 1)
+    with Session(wallet.engine) as db:
+        row = db.scalar(select(WalletSigningRow).where(WalletSigningRow.kind == "Revoke"))
+        signing_id, signature = row.signing_request_id, row.signature
+    alias = {
+        "request_id": "req_retained_alias",
+        "signing_request_id": signing_id,
+        "signature": signature,
+    }
+    retry = await wallet.client.post("/v3/revocations", json=alias)
+    assert retry.status_code == 202, retry.text
+    future = int(time.time()) + 31 * 86400
+    monkeypatch.setattr(module, "now", lambda: future)
+    await module.cleanup(wallet.app)
+    with Session(wallet.engine) as db:
+        assert db.get(OperationRow, operation["operation_id"]) is None
+        assert db.get(WalletSigningRow, signing_id).signature == signature
+        assert (
+            list(
+                db.scalars(
+                    select(WalletRequestRow).where(
+                        WalletRequestRow.resource_id == operation["operation_id"]
+                    )
+                )
+            )
+            == []
+        )
+    for request_id in (alias["request_id"], "req_after_cleanup"):
+        expired = await wallet.client.post(
+            "/v3/revocations", json={**alias, "request_id": request_id}
+        )
+        assert expired.status_code == 410 and expired.json()["detail"] == "RESULT_EXPIRED"
+    direct = await wallet.client.post(
+        f"/v3/signing-requests/{signing_id}/transactions",
+        json={
+            "request_id": "req_expired_direct",
+            "signing_request_id": signing_id,
+            "tx_hash": operation["tx_hash"],
+        },
+    )
+    assert direct.status_code == 410 and direct.json()["detail"] == "RESULT_EXPIRED"
 
 
 async def test_analysis_request_only_expires_own_jobs_and_maintenance_handles_the_rest(wallet):
