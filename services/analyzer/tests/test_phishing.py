@@ -230,3 +230,38 @@ async def test_model_limitations_cannot_spoof_service_failure_metadata():
     }
     result = await PhishingAnalyzer(replay_provider(text, value))(text)
     assert not any(item.startswith("LLM_ANALYSIS_UNAVAILABLE:") for item in result.limitations)
+
+
+async def test_total_analysis_deadline_cancels_provider_and_reports_timeout(monkeypatch):
+    original_timeout = asyncio.timeout
+    budgets, stopped = [], []
+
+    def expire_now(seconds):
+        budgets.append(seconds)
+        return original_timeout(0)
+
+    class Slow(MockLLMProvider):
+        async def analyze_phishing(self, text):
+            try:
+                await asyncio.Event().wait()
+            finally:
+                stopped.append(True)
+
+    monkeypatch.setattr(asyncio, "timeout", expire_now)
+    report = await PhishingAnalyzer(Slow())("합성 시간 제한 검사 문장입니다.")
+    assert budgets == [180] and stopped == [True]
+    assert report.risk_level == "UNDETERMINED"
+    assert "LLM_ANALYSIS_UNAVAILABLE:TIMEOUT" in report.limitations
+
+
+async def test_unexpected_provider_error_logs_only_its_type(caplog):
+    class Broken(MockLLMProvider):
+        async def analyze_phishing(self, text):
+            raise RuntimeError("PRIVATE_PROVIDER_PAYLOAD:" + text)
+
+    caplog.set_level("INFO", logger="originproof_analyzer.phishing")
+    report = await PhishingAnalyzer(Broken())("PRIVATE_INPUT")
+    assert "LLM_ANALYSIS_UNAVAILABLE:PROVIDER_UNAVAILABLE" in report.limitations
+    metadata = [r.analyzer for r in caplog.records if hasattr(r, "analyzer")]
+    assert metadata[0]["exception_type"] == "RuntimeError"
+    assert "PRIVATE" not in str([r.__dict__ for r in caplog.records])

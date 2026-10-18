@@ -147,7 +147,7 @@ class PhishingAnalyzer:
         )
 
     async def __call__(self, text: str) -> AnalysisReport:
-        started, error = perf_counter(), None
+        started, error, exception_type = perf_counter(), None, None
         try:
             try:
                 text = SemanticInput(text=text).text
@@ -179,6 +179,7 @@ class PhishingAnalyzer:
                     )
                 else:
                     error = "PROVIDER_UNAVAILABLE"
+                    exception_type = type(problem).__name__
                 return rules.model_copy(
                     update={
                         "risk_level": rules.risk_level if rules.evidence else "UNDETERMINED",
@@ -226,6 +227,7 @@ class PhishingAnalyzer:
                         "prompt_version": ANALYSIS_PROMPT_VERSION,
                         "duration_ms": round((perf_counter() - started) * 1000),
                         "error_code": error,
+                        "exception_type": exception_type,
                     }
                 },
             )
