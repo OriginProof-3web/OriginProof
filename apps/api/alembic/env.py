@@ -6,6 +6,7 @@ from logging.config import fileConfig
 from alembic import context
 from originproof_api.database import Base
 from originproof_api.settings import Settings
+from originproof_indexer.projection import metadata as projection_metadata
 from sqlalchemy.ext.asyncio import async_engine_from_config
 from sqlalchemy.pool import NullPool
 
@@ -14,7 +15,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 config.set_main_option("sqlalchemy.url", Settings().database_url)
-target_metadata = Base.metadata
+target_metadata = [Base.metadata, projection_metadata]
 
 
 def run_migrations_offline() -> None:
