@@ -1,5 +1,7 @@
 # V5 C·B·D 머지 전 통합 검증 — 2026-10-17
 
+> 최신 상태는 문서 마지막의 “2026-10-18 #68 철회 상태 보존 반영” 절입니다. 앞선 검사·미완료 목록은 해당 SHA 시점의 기록입니다.
+
 이 문서는 사용자가 승인 추천 대상으로 지정한 12개 PR을 함께 적용할 때의 충돌 해결과 검증 근거입니다. 검증용 Draft 후보이며 단계 완료·실제 신규 지갑 연결·integration 병합을 뜻하지 않습니다.
 
 ## 기준과 포함 범위
@@ -138,3 +140,40 @@ forge-std v1.16.2를 설치한 뒤 100 PASS를 확인했습니다. 새 의존성
 이는 안전성 거절이 아닌 검토 서비스 실패이며 로컬 커밋/검사 결과는 보존돼 있습니다.
 후속 재시도는 정상 승인 검토를 통과했고 C #57·#59~#63 및 #77의 자기 브랜치를
 일반 push했습니다. 기존 PR 리뷰/병합 상태는 유지하며 새 head의 원격 CI는 확인 중입니다.
+
+
+## 2026-10-18 #68 철회 상태 보존 반영
+
+사용자님의 #68/#77 수정 지시에 따라 B 수정 `2d1df07bd48c54c04d22ce20ac1ee3725316e878`을 후보에 일반 merge했습니다.
+검증 코드 SHA는 `07791099cfbcdec21b40b6bb2c00515579457080`이며 뒤의 기록 커밋은 문서만 변경합니다. 이전 후보의
+“#68 철회 상태 유지 결함” 보류 사유는 이 보완으로 해소됐고 작성자 외 재리뷰는 남습니다.
+다른 B/D 후속 PR과 기존 phase/integration/main은 수정·병합하지 않았습니다.
+
+publish는 이전 최신의 저장 state가 ACTIVE(1)인 경우에만 SUPERSEDED(3)와 대체 이벤트를
+적용합니다. 이미 REVOKED(2)인 버전은 전체 snapshot을 보존하며 새 버전의 발행 이벤트·
+최신 포인터·nonce만 정상 반영합니다. 새 nonce로 구버전을 다시 철회하면
+DocumentAlreadyRevoked이며 nonce와 두 버전은 불변입니다. 정상 SUPERSEDED 버전의
+첫 철회는 계속 허용합니다. 공유 명세·ADR·개발 계획·B 인계를 같은 조건으로 맞췄습니다.
+
+| 재검증 | 결과·실제 범위 |
+| --- | --- |
+| #68 수정 전 새 회귀 | FAIL: 재철회가 거부되지 않음을 실제 EVM 검사로 재현 |
+| #68 수정 후 Foundry 전체 | 89 PASS / 0 FAIL / 0 SKIP |
+| #77 Foundry 전체 | 101 PASS / 0 FAIL / 0 SKIP, fuzz 각512회 |
+| #77 전체 Python | 622 PASS / 15 opt-in SKIP / 기존 Starlette 경고1 |
+| #77 D 소비 QA 네 파일 | 61 PASS, ASGI/SQLite/합성 Registry |
+| #77 실제 복구 | 8 PASS = 기존2(PostgreSQL/Anvil/프로세스) + 신규6(PostgreSQL/프로세스·합성 Registry/분석기) |
+| ABI·생성·정적 검사 | 컴파일 전체 ABI 동일, 다섯 생성기 diff 없음, 두 템플릿 Node hash·Ruff·구조·Solidity format·diff PASS |
+
+실행 명령은 기존 환경에서 `forge test --offline`, 전체 `pytest -q`, 명시 D 네 파일,
+`W6_C_LIVE_TEST=1 V5_C_LIVE_TEST=1 ... pytest -q scripts/ci/test_w6_c_recovery.py
+scripts/ci/test_v5_c_recovery.py`, `UV_FROZEN=1 UV_OFFLINE=1 make generate UV_ENV=.venv`입니다.
+개인 사용자 DB/체인 대신 검사 전용 자원을 만들고 정리했습니다. 의존성/lockfile·ABI·
+EIP-712/domain·Golden·storage 선언 변경은 없습니다. 실제 배포는 실행하지 않았으며,
+비업그레이드 계약의 기존 주소가 이 수정으로 바뀌지는 않습니다.
+
+B #69/#78/#79에 이 수정은 아직 forward 반영하지 않았습니다. #78의 기존 대조 로직은
+철회/대체 상태(2/3)를 허용하지만 새 Contract 기준의 기대값과 실제 연결은 해당 PR에서
+재검증해야 합니다. D #72~#76 원본 CI의 이전 C SHA pin, 실제 B/A/D 연결·G07·유료 평가,
+shared 0.2 소비자 리뷰와 단계 수용은 계속 별도입니다. 리뷰 승인·Draft·base·원격 merge는
+변경하지 않습니다. 새 원격 head의 CI는 push 뒤 확인합니다.
