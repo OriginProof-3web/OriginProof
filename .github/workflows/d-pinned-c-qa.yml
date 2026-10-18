@@ -1,0 +1,72 @@
+name: D pinned C QA
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/d-pinned-c-qa.yml"
+      - "fixtures/finals/v5*qa.py"
+      - "fixtures/synthetic/analysis_consumer_cases_v1.json"
+      - "services/analyzer/**"
+
+permissions:
+  contents: read
+
+jobs:
+  pinned-c-qa:
+    name: D pinned C / ${{ matrix.suite }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [stage, consumer]
+    env:
+      C_SHA: eaa0d166269833cf7ee49675cfa777b0208c3725
+      LLM_PROVIDER: mock
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.C_SHA }}
+          path: .d-qa-c
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.8.17"
+          python-version: "3.13"
+      - name: Record immutable sources and install C's locked environment
+        run: |
+          test "$(git -C .d-qa-c rev-parse HEAD)" = "$C_SHA"
+          git rev-parse HEAD
+          git -C .d-qa-c rev-parse HEAD
+          uv sync --project .d-qa-c --all-packages --all-groups --locked
+          git -C .d-qa-c diff --exit-code
+      - name: Run explicit D QA (ASGI, SQLite, synthetic Registry, no live model)
+        env:
+          SUITE: ${{ matrix.suite }}
+        shell: bash
+        run: |
+          export PYTHONPATH="$PWD/services/analyzer/src:$PWD/.d-qa-c/apps/api/src:$PWD/.d-qa-c/packages/python:$PWD/.d-qa-c/apps/api/tests"
+          tests=()
+          if [[ "$SUITE" == consumer ]]; then
+            tests+=(fixtures/finals/v5_analysis_consumer_qa.py)
+          else
+            for file in v5_d_w2_governance_qa v5_d_w3_content_qa v5_d_w4_lifecycle_qa v5_d_analysis_integration_qa; do
+              if [[ -f "fixtures/finals/$file.py" ]]; then
+                tests+=("fixtures/finals/$file.py")
+              fi
+            done
+          fi
+          test "${#tests[@]}" -gt 0
+          .d-qa-c/.venv/bin/ruff check "${tests[@]}"
+          mkdir -p qa-results
+          .d-qa-c/.venv/bin/python -m pytest -q -o addopts= \
+            --junitxml="qa-results/$SUITE.xml" "${tests[@]}"
+      - name: Preserve actual failures and test counts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: d-pinned-c-${{ matrix.suite }}
+          path: qa-results/*.xml

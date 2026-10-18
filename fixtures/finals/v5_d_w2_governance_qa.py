@@ -118,6 +118,8 @@ async def test_consumed_chain_approvals_are_distinct(wallet, approvals, state, s
     if status == 200:
         assert response.json()["status"] == state
         assert response.json()["approvals"] == approvals
+    if status == 503:
+        assert response.json()["detail"] == "WALLET_REGISTRY_UNAVAILABLE"
     assert wallet.chain.issuers == {} and wallet.chain.sends == []
 
 
