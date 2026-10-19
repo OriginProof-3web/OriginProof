@@ -460,7 +460,7 @@ async def test_publish_then_superseded_keeps_current_state_separate(env):
     assert result["current_state"]["latest_version"] == 2
 
 
-async def test_revoke_followed_by_publish_may_be_superseded(env):
+async def test_revoke_stays_revoked_after_later_publish(env):
     oracle, _, reconciler = env
     oracle.install(
         "revoke",
@@ -480,8 +480,11 @@ async def test_revoke_followed_by_publish_may_be_superseded(env):
     oracle.head, oracle.blocks["0x3"] = "0x3", block(3, H3)
     oracle.views[(H3, "getDocument")] = ((*DOC[:-1], 3),)
     oracle.views[(H3, "latestVersion")] = (2,)
+    with pytest.raises(BlockchainDependencyError, match="resurrected"):
+        await reconciler.transaction(TX, function="revoke", arguments=oracle.intent)
+    oracle.views[(H3, "getDocument")] = ((*DOC[:-1], 2),)
     result = await reconciler.transaction(TX, function="revoke", arguments=oracle.intent)
-    assert result["current_state"]["document"]["state"] == 3
+    assert result["current_state"]["document"]["state"] == 2
     oracle.views[(H3, "getDocument")] = (DOC,)
     oracle.views[(H3, "latestVersion")] = (1,)
     with pytest.raises(BlockchainDependencyError):

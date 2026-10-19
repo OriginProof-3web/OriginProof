@@ -14,7 +14,7 @@
 2. `WalletReconciler(rpc).proposal(proposal_id)`는 제안 tuple로 chain/address를 포함한 ID를 재계산하고, 같은 snapshot까지의 생성·승인·실행 이벤트를 직접 조회합니다. 생성은 한 번, 서로 다른 주소 승인 1→2, count와 getter 일치, 실행은 두 번째 승인과 같은 tx여야 합니다. 누락·중복·다른 issuer/action·불일치 시 실패합니다. 결과는 `block/proposal/approvals/executed`이며 C의 ProposalView 상태 모델이 아닙니다. PREPARED/STALE/EXPIRED 변환은 C port 연결 시 처리합니다.
 3. `WalletReconciler.transaction(tx_hash, function=..., arguments=..., sender=...)`는 `publish/revoke/propose/approve/suspendIssuer`를 지원합니다. `arguments`에는 **기존 저장 intent의 전체 ABI 이름/값**을 전달합니다. 누락 필드·변경된 서명·bool/int 혼용·부분 tuple을 허용하지 않습니다. 원본 receipt와 calldata의 chain/address/hash/sender/value 확인에 더해 canonical block의 transaction index 위치에도 tx hash가 있어야 합니다. `propose/approve/suspendIssuer`에는 저장한 직접 제출자의 소문자 `sender`가 필수이며, 누락되면 RPC 이전에 configuration 오류입니다. 다른 승인자의 같은 제안을 자기 작업으로 확정하지 않습니다. relayer publish/revoke에서는 생략할 수 있지만 실제 sender는 증거에 남습니다.
 4. pending/미발견은 `None`, 실패 receipt는 `receipt_status=0`이며 성공 상태를 덧붙이지 않습니다. 성공 거래는 이벤트의 **전체 순서/필드**, receipt 블록 상태, 새 현재 snapshot 상태를 대조합니다. 결과에 `receipt_state/current_state/current_block`을 추가합니다. 이 메서드는 전송하지 않습니다. C의 WalletTransaction/Operation `CONFIRMED`를 직접 반환하거나 DB에 기록하지 않습니다.
-5. 발행은 소유·document ID·버전·키/hash/schema·기간·publishedAt/block·nonce 소비를 대조합니다. 다음 버전은 `DocumentSuperseded`→`DocumentPublished` 두 이벤트가 필요합니다. 철회는 동일 소유/버전의 REVOKED 또는 이후 대체된 SUPERSEDED를 확인합니다. 불변 필드/nonce/latest 역행과 과거 비활성 버전의 ACTIVE 복구를 거부합니다. 기관 상태와 원 발행키의 퇴역/사고 이력도 각 snapshot에서 읽어 반환합니다. `issuer/publication_key`는 원본 ABI tuple이며 C 모델 변환은 후속입니다.
+5. 발행은 소유·document ID·버전·키/hash/schema·기간·publishedAt/block·nonce 소비를 대조합니다. 다음 버전은 `DocumentSuperseded`→`DocumentPublished` 두 이벤트가 필요합니다. 철회는 동일 소유/버전의 REVOKED를 확인합니다. 발행은 ACTIVE 이전 버전만 SUPERSEDED로 바꾸므로 다음 버전이 발행돼도 철회 버전은 REVOKED여야 하며, SUPERSEDED로 보이면 거부합니다. 불변 필드/nonce/latest 역행과 과거 비활성 버전의 ACTIVE 복구를 거부합니다. 기관 상태와 원 발행키의 퇴역/사고 이력도 각 snapshot에서 읽어 반환합니다. `issuer/publication_key`는 원본 ABI tuple이며 C 모델 변환은 후속입니다.
 6. 과거 publish 성공 뒤 최신 상태가 철회·대체·정지·키 사고인 경우 현재 경고 근거를 따로 반환합니다. receipt 블록 끝에 이미 다음 거래가 상태를 바꿨을 수도 있습니다. publish의 상태가 이미 REVOKED/SUPERSEDED이거나 첫 승인 뒤 같은 블록에서 두 번째 승인이 실행된 경우에도 이력을 대조합니다. 현재 유효/EXPIRED/최신 여부를 과거 성공과 혼동하지 않습니다.
 7. 제안 생성/승인은 고정 tuple/ID·승인 집합·실행 플래그를 과거/현재에 대조합니다. 정지는 receipt 블록의 SUSPENDED를 확인하며 이미 정지한 no-op은 이벤트 없이 허용합니다. KEY_COMPROMISE는 해당 receipt 블록의 기관 키 compromiseBlock이 필요합니다. 정지 뒤 나중 블록에서 재활성화된 경우 현재 ACTIVE를 별도로 반환합니다.
 
@@ -45,7 +45,7 @@ git diff --check
 ```
 
 - Python 전체 **281 PASS / 1 live SKIP**, 기존 anyio deprecation warning 1개. 신규 2차 **52 PASS**, 기존 1차 **50 PASS** 포함입니다. 최초 신규 37 PASS 뒤 15개 경계를 추가했습니다.
-- 미등록 정확/다른 selector/잘린·nested revert·reorg, 승인 0/1/2·생성/승인/실행 누락·중복/count/tuple/원자성 불일치, intent 전체·numeric type·sender 및 governance sender 필수·receipt 포함 위치, 원본 hash/소유/키/nonce/발행 위치, 다음 버전 원자 대체, 철회→대체·부활 거부, 첫/둘째 승인·no-op 정지·키 사고·후속 재활성화와 RPC 실패를 검사했습니다.
+- 미등록 정확/다른 selector/잘린·nested revert·reorg, 승인 0/1/2·생성/승인/실행 누락·중복/count/tuple/원자성 불일치, intent 전체·numeric type·sender 및 governance sender 필수·receipt 포함 위치, 원본 hash/소유/키/nonce/발행 위치, 다음 버전 원자 대체, 철회 뒤 SUPERSEDED 표시·부활 거부, 첫/둘째 승인·no-op 정지·키 사고·후속 재활성화와 RPC 실패를 검사했습니다.
 - 공식 lint·구조·Node hash·원본 재생성 후 생성물 diff·공백 검사 PASS. 초기 줄길이/변수명 lint 경고를 수정했습니다. 기능 검사 실패를 숨기거나 거부 기대값을 완화하지 않았습니다.
 - Solidity/ABI 무변경으로 로컬 Foundry 재실행은 생략했습니다. 원격 CI는 PR에서 실제 최종 결과를 별도로 기록합니다.
 - 실제 EVM/RPC 배포·직접 제출·PostgreSQL·API/C port·브라우저·독립 QA·v2/consume 전체 실환경·G07·공개 체인·유료 AI는 **미실행**입니다. SG01~16 공유 상태는 변경하지 않았습니다.
