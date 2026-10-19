@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "document_number": {
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Document Number",
+      "type": "string"
+    },
+    "document_type": {
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Document Type",
+      "type": "string"
+    },
+    "institution_code": {
+      "maxLength": 120,
+      "minLength": 1,
+      "title": "Institution Code",
+      "type": "string"
+    },
+    "subject_token": {
+      "pattern": "^0x[0-9a-f]{64}$",
+      "title": "Subject Token",
+      "type": "string"
+    },
+    "version": {
+      "exclusiveMinimum": 0,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "institution_code",
+    "document_type",
+    "document_number",
+    "subject_token",
+    "version"
+  ],
+  "title": "OfficialDocument",
+  "type": "object"
+}

@@ -37,7 +37,7 @@ Python·uv, FastAPI·Pydantic, SQLAlchemy 2·Alembic·PostgreSQL, Redis·Celery,
 
 ## 6. 기술 결정과 공유 계약
 
-[공유 계약 v5-shared-0.1](docs/shared_contract_v5.md)의 모델·생성 타입/OpenAPI·ABI·Golden을 공통 준비 기준으로 사용합니다. 준비 모델은 기존 API에 자동 연결되지 않습니다. C/B/A/D는 별도 계약 사본을 만들지 않고 원본 변경·재생성으로 조율하며 실제 소유자/소비 리뷰는 확인된 근거로만 기록합니다.
+[공유 계약 v5-shared-0.2](docs/shared_contract_v5.md)의 모델·생성 타입/OpenAPI·ABI·Golden을 공통 준비 기준으로 사용합니다. 준비 모델은 기존 API에 자동 연결되지 않습니다. C/B/A/D는 별도 계약 사본을 만들지 않고 원본 변경·재생성으로 조율하며 실제 소유자/소비 리뷰는 확인된 근거로만 기록합니다.
 
 [ADR 0004](docs/adr/0004-v5-governance-wallet-versioning.md)와 계획서 5~9·11장을 신규 계약 기준으로 적용합니다. ADR 0003의 보관·이메일 코드 기본값과 공통 분석 제한은 유지하고, 입력별 제한은 선정된 형식에만 적용합니다. 기존 3.0.0 납부 필드 제안과 API/보고서는 재사용할 초안이며 새 지갑·버전 계약의 최종 schema·타입·ABI를 뜻하지 않습니다. C/B가 브라우저·Python·Solidity Golden과 전환표를 공유하고 A/D가 소비 계약을 검토합니다. 문서만으로 기존 데이터를 삭제하거나 유료 평가·공개 배포를 실행하지 않습니다.
 
