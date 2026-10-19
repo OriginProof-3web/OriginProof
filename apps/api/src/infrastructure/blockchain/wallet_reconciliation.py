@@ -238,8 +238,9 @@ class WalletReconciler:
                 "publication receipt position mismatch",
             )
         else:
+            # publish only supersedes ACTIVE versions, so a revoked version stays REVOKED.
             require(
-                old["document"]["state"] in (2, 3) and latest["document"]["state"] in (2, 3),
+                old["document"]["state"] == 2 and latest["document"]["state"] == 2,
                 "revocation missing or resurrected",
             )
         return old, latest

@@ -1,9 +1,11 @@
-# 5.0 공유 계약 — v5-shared-0.1
+# 5.1 공유 계약 — v5-shared-0.2
 
 - 작성일: 2026-10-14 · 작업: V5-W1-C / V5-W1-B 경계 준비
-- 상태: **공통 명세·모델·생성물·독립 서명 검사 준비 완료 / B 계약 검토·A/D 소비 검토·실제 서비스 구현은 후속**
+- 상태: **공통 계약·C DB/API 독립 구현 / B Registry·A 지갑·D 분석기 연결과 작성자 외 리뷰는 후속**
 - 기준: [최신 개발 계획서](development_plan.md), [ADR 0004](adr/0004-v5-governance-wallet-versioning.md).
 - 목적: 팀원별로 필드·서명·상태를 따로 정의하지 않고 아래 원본과 예시를 함께 사용합니다. 검토 의견은 이 명세와 원본에 반영하고 다시 생성합니다. 검토 완료 여부는 10절에 실제 근거로 기록합니다.
+
+개정 0.2(2026-10-16)는 분석 검증 세션 참조·Operation 오류 필드·근거 제한·기관 확인/입력/검증 자료 모델과 실행 API를 반영합니다. EIP-712/domain·내용 schema·ABI·Golden digest는 0.1과 동일합니다. 분석 근거는 빈 인용·50개 초과를 거부하고 제한 설명은 최대 20개/각 500자입니다.
 
 ## 1. 공통 원본과 사용 순서
 
@@ -18,7 +20,7 @@
 | 서명 Golden | [wallet_contract_v1.json](../fixtures/golden/wallet_contract_v1.json) | 합성 납부·공식 안내·철회·키 보유 증명 4개와 제안 ID |
 | API/실패 예시 | [shared_contract_cases_v1.json](../fixtures/synthetic/shared_contract_cases_v1.json) | 정상 서명 요청·제출, UNKNOWN·409 예시, SG01~16 후속 검사 |
 
-`originproof_core.wallet_contract`를 명시적으로 import합니다. 기존 `originproof_core`의 v1/v2 이름을 덮어쓰지 않습니다. 신규 인터페이스에는 실행 가능한 Registry 구현·배포 주소가 없고 `/v3` 예정 경로도 서버에 등록하지 않았습니다. `v5-shared-0.1`, API 경로 `/v3`, EIP-712 도메인 버전 `1`, 내용 schema 이름과 문서 개정 번호는 서로 다른 값입니다.
+`originproof_core.wallet_contract`를 명시적으로 import합니다. 기존 `originproof_core`의 v1/v2 이름을 덮어쓰지 않습니다. 신규 Registry 구현·배포 주소는 아직 없으며 C의 `/v3` 경로는 서버에 등록돼 있습니다. 실제 경로/설정/검사·연결 한계는 [C API 인계](api/v5_c_runtime.md)와 [현재 앱 OpenAPI](../packages/schemas/generated/openapi.json)를 확인합니다. `v5-shared-0.2`, API 경로 `/v3`, EIP-712 도메인 버전 `1`, 내용 schema 이름과 문서 개정 번호는 서로 다른 값입니다.
 
 ## 2. 공통 표현과 원본 생성
 
@@ -86,9 +88,9 @@ GovernanceProposal의 ABI 순서는 `uint8 action, bytes32 issuerId, bytes32 key
 
 ## 5. 문서와 현재 상태
 
-최초 version=1, 이후 정확히 latest+1입니다. 등록·최신 포인터 변경·이전 최신의 SUPERSEDED 전이는 같은 트랜잭션입니다. 동시에 같은 다음 버전을 요청하면 하나만 성공하고 나머지는 VERSION_CONFLICT로 현재 최신을 다시 확인합니다.
+최초 version=1, 이후 정확히 latest+1입니다. 등록·최신 포인터 변경·ACTIVE인 이전 최신의 SUPERSEDED 전이는 같은 트랜잭션입니다. 이전 최신이 이미 REVOKED이면 철회 상태를 유지하고 DocumentSuperseded를 발생시키지 않습니다. 새 버전의 DocumentPublished와 업무 nonce 소비는 정상 처리합니다. 동시에 같은 다음 버전을 요청하면 하나만 성공하고 나머지는 VERSION_CONFLICT로 현재 최신을 다시 확인합니다.
 
-체인 저장 state **1=ACTIVE, 2=REVOKED, 3=SUPERSEDED**이며 state 1의 기간 만료는 조회 시 EXPIRED로 계산합니다. REVOKED/SUPERSEDED를 만료나 기관 정지로 덮어쓰지 않습니다. 최신 버전 철회로 과거 버전을 자동 복구하지 않습니다. getDocument의 미존재는 별도 not-found이며 state 0을 ACTIVE로 해석하지 않습니다.
+체인 저장 state **1=ACTIVE, 2=REVOKED, 3=SUPERSEDED**이며 state 1의 기간 만료는 조회 시 EXPIRED로 계산합니다. REVOKED/SUPERSEDED를 만료나 기관 정지로 덮어쓰지 않습니다. 이미 철회된 버전의 재철회는 새 버전 발행 뒤에도 거부하고 실패 nonce를 소비하지 않습니다. 아직 철회하지 않은 과거 SUPERSEDED 버전의 첫 철회는 계속 허용합니다. 최신 버전 철회로 과거 버전을 자동 복구하지 않습니다. getDocument의 미존재는 별도 not-found이며 state 0을 ACTIVE로 해석하지 않습니다.
 
 기관 상태는 0=미등록, 1=ACTIVE, 2=SUSPENDED입니다. `DocumentView.state`, `warnings`, 검사 결과를 각각 읽습니다. 정상 교체로 종료된 과거 발행키의 정상 서명은 유지하고, 사고 키의 과거 안내에는 KEY_COMPROMISED 경고를 표시합니다. getKey의 등록/교체/사고 block과 getDocument의 실제 publishedAt/publishedBlock을 대조합니다. 자기 선언 issuedAt만으로 발행 당시 권한을 소급 만들지 않으며 새 발행은 현재 활성 키로만 허용합니다. getIssuer만으로 과거 키 검사가 완료되지 않습니다.
 
@@ -96,9 +98,9 @@ GovernanceProposal의 ABI 순서는 `uint8 action, bytes32 issuerId, bytes32 key
 
 checks의 공통 name은 signature / original_hash / protected_fields / current_state / content입니다. content는 요청한 전체 비교 완료 여부를 표시하며 다른 세부 체크를 생략하는 허가가 아닙니다. 항목 상태는 PASSED/FAILED/NOT_RUN/UNAVAILABLE입니다. 검증 시각·실제 chain/contract·조회 blockNumber/hash를 남기고 projection의 과거 ACTIVE로 현재 성공을 만들지 않습니다. 사용자 후보·기대 계좌 전체를 공개 오류에 넣지 않습니다.
 
-## 6. 예정 API와 오류
+## 6. API와 오류
 
-정확한 요청·응답·필수/null/타입은 생성 OpenAPI와 모델을 따릅니다. 아래 경로는 **미구현 준비 계약**입니다. 기존 `/v1`·`/v2`와 ADR 0003의 제안 URL을 새 경로의 실행 목록으로 안내하지 않습니다.
+정확한 요청·응답·필수/null/타입은 생성 OpenAPI와 모델을 따릅니다. 아래 경로는 **C 독립 구현**이며 실제 Registry/분석기 주입은 후속입니다. 예정 OpenAPI의 PLANNED 표시는 최초 검토 기준으로 보존하며 실행 정의는 현재 앱 OpenAPI를 사용합니다. 기존 `/v1`·`/v2`와 ADR 0003의 제안 URL을 새 경로의 실행 목록으로 안내하지 않습니다.
 
 | 기능 | 경로 | 응답·권한 |
 | --- | --- | --- |
@@ -132,7 +134,7 @@ SignedSubmission은 signing_request_id와 signature만 전달합니다. 서버�
 
 ## 7. 분석·보고서의 공통 경계
 
-input_ref는 소유권·유효기간 검사를 마친 입력 객체 ID입니다. 생성/업로드 경로·허용 형식은 V5-Q01에서 선정한 뒤 구현하며, 이 모델만으로 이미지/PDF/녹음을 활성화하지 않습니다. Decisions API는 포함하지 않습니다.
+input_ref는 소유권·유효기간 검사를 마친 입력 객체 ID입니다. 텍스트 수락 `/v3/inputs`는 합성 검사용 opt-in으로 추가했고 기본 비활성입니다. 최종 허용 형식은 V5-Q01에서 선정하며 이미지/PDF/녹음을 활성화하지 않습니다. 선택 verification_session_id의 소유권·24시간 유효성을 확인한 C 검증 사본을 집계하고 D가 발행 결과를 정하지 못하도록 검사합니다. Decisions API는 포함하지 않습니다.
 
 AnalysisJob은 QUEUED/RUNNING/COMPLETED/FAILED/CANCELLED/EXPIRED입니다. 보고서 위험 수준은 HIGH/CAUTION/NO_CLEAR_INDICATORS/UNDETERMINED입니다. 발행 검사를 실행하지 않았으면 verification=null과 verification_not_run_reason을 남깁니다. NO_CLEAR_INDICATORS는 발행 진위나 행동 안전을 보증하지 않습니다.
 
@@ -140,7 +142,7 @@ AnalysisJob은 QUEUED/RUNNING/COMPLETED/FAILED/CANCELLED/EXPIRED입니다. 보�
 
 ## 8. DB 전환과 구버전 호환
 
-이 절은 migration 설계이며 현재 DB를 변경하거나 삭제하는 명령이 아닙니다.
+아래 저장 경계는 추가 migration 0007~0009로 구현했습니다. 적용/보존/rollback 조건과 실제 PostgreSQL 검사 범위는 [C API 인계](api/v5_c_runtime.md)를 확인합니다. 기존 자료를 소급 변환하지 않습니다.
 
 | 새/재사용 저장 대상 | 키·필수 불변값 / 기존 활용 |
 | --- | --- |
@@ -176,7 +178,7 @@ node scripts/ci/check_wallet_browser_hashes.mjs
 
 | 담당 | 이번에 제공한 기준 | 후속 확인 / 현재 상태 |
 | --- | --- | --- |
-| C | 모델·생성 Schema/TS/OpenAPI·원본 규칙·멱등/복구·호환·Golden | 준비 구현·독립 검사; 실제 API/DB 구현은 후속 |
+| C | 모델·생성 Schema/TS/OpenAPI·원본 규칙·멱등/복구·호환·Golden | C DB/API 독립 구현·단위/실제 PostgreSQL 검사; 실제 Registry/웹/모델 연결은 후속 |
 | B | 정확한 EIP-712·ABI 구조·제안/업무 nonce·권한·상태·이벤트·교차 검사 | Registry 저장/함수·권한·키 이력·가스/확정 검토; **소유자 리뷰 미확인** |
 | A | 타입·서명 요청/거절·수명·원본 재계산·제안 승인/버전 화면 | 지갑 라이브러리/데모 운영 선정·실제 브라우저 검토; **소비 리뷰 미확인** |
 | D | 위험/검증 분리·근거 형식·SG01~16·기존 회귀 경계 | 선정 입력·grounding·공격/통합 검사; **독립 소비 리뷰 미확인** |

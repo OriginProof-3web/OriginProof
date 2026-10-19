@@ -18,7 +18,7 @@
     "proposal_id": "0xde82e5465542b26fe9480f61d757fab40c3aceb95fc390cc1097407eabe7f6d0"
   },
   "private_key": "NOT_INCLUDED",
-  "revision": "v5-shared-0.1",
+  "revision": "v5-shared-0.2",
   "runtime_status": "SIGNING_ONLY_NO_REGISTRY_IMPLEMENTATION",
   "synthetic": true,
   "vectors": [

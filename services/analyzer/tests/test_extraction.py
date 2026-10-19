@@ -213,7 +213,7 @@ def test_metadata_does_not_record_input_or_candidate(caplog, normal_case):
     )
     metadata = next(record.analyzer for record in caplog.records if hasattr(record, "analyzer"))
     assert metadata["model"] == "deterministic-template-v3"
-    assert metadata["prompt_version"] == "card_payment_notice_v3"
+    assert metadata["prompt_version"] == "card_payment_notice_v4"
     assert metadata["input_kind"] == "text"
     assert metadata["duration_ms"] >= 0
     assert all(

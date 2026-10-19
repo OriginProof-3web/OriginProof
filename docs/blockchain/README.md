@@ -183,7 +183,7 @@ export CHAIN_MOCK_SIGNER_ADDRESS=<ANVIL_LOCAL_TEST_ADDRESS>
 ### 3. 배포와 seed
 
 ```bash
-make deploy-local
+make deploy-local-legacy
 ```
 
 다음 작업이 순서대로 실행됩니다.
