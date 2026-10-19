@@ -92,6 +92,8 @@ def transport(fault=None, sends=None, timeline=None):
                 "0x8": "0x" + "ab" * 32,
                 "0x9": RECEIPT_HASH,
             }
+            if fault == "genesis_regenerated":
+                hashes["0x0"] = "0x" + "ee" * 32
             if params[0] == "0x9":
                 state["canonical_reads"] += 1
                 if fault == "failed_receipt_reorg" and state["canonical_reads"] >= 2:
@@ -286,9 +288,10 @@ async def writer(manifest, fault=None, sends=None, receipt_attempts=2, timeline=
     )
 
 
-async def test_register_issuer_confirms_receipt_and_reread(manifest):
+@pytest.mark.parametrize("fault", [None, "genesis_regenerated"])
+async def test_register_issuer_confirms_receipt_and_reread(manifest, fault):
     sends = []
-    adapter, client = await writer(manifest, sends=sends)
+    adapter, client = await writer(manifest, fault=fault, sends=sends)
     async with client:
         result = await adapter.register_issuer("0x" + "55" * 20, ISSUER, ACCOUNT, METADATA)
     assert result.state == ChainOperationState.CONFIRMED
