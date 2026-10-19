@@ -1,72 +1,67 @@
-name: D pinned C QA
+name: D same-head QA
 
 on:
   pull_request:
     paths:
       - ".github/workflows/d-pinned-c-qa.yml"
       - "fixtures/finals/v5*qa.py"
+      - "fixtures/finals/v5_d_stage_qa_files.txt"
       - "fixtures/synthetic/analysis_consumer_cases_v1.json"
       - "services/analyzer/**"
+      - "apps/api/**"
+      - "packages/python/**"
 
 permissions:
   contents: read
 
 jobs:
-  pinned-c-qa:
-    name: D pinned C / ${{ matrix.suite }}
+  d-qa:
+    # The PR head contains phase/W5 C code, so D QA runs against the same source it merges into.
+    name: D same-head / ${{ matrix.suite }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         suite: [stage, consumer]
     env:
-      C_SHA: eaa0d166269833cf7ee49675cfa777b0208c3725
       LLM_PROVIDER: mock
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ env.C_SHA }}
-          path: .d-qa-c
-          persist-credentials: false
       - uses: astral-sh/setup-uv@v6
         with:
           version: "0.8.17"
           python-version: "3.13"
-      - name: Record immutable sources and install C's locked environment
+      - name: Install the locked environment
         run: |
-          test "$(git -C .d-qa-c rev-parse HEAD)" = "$C_SHA"
           git rev-parse HEAD
-          git -C .d-qa-c rev-parse HEAD
-          uv sync --project .d-qa-c --all-packages --all-groups --locked
-          git -C .d-qa-c diff --exit-code
+          uv sync --all-packages --all-groups --locked
+          git diff --exit-code
       - name: Run explicit D QA (ASGI, SQLite, synthetic Registry, no live model)
         env:
           SUITE: ${{ matrix.suite }}
         shell: bash
         run: |
-          export PYTHONPATH="$PWD/services/analyzer/src:$PWD/.d-qa-c/apps/api/src:$PWD/.d-qa-c/packages/python:$PWD/.d-qa-c/services/indexer/src:$PWD/.d-qa-c/apps/api/tests"
-          tests=()
+          export PYTHONPATH="$PWD/services/analyzer/src:$PWD/apps/api/src:$PWD/packages/python:$PWD/services/indexer/src:$PWD/apps/api/tests"
           if [[ "$SUITE" == consumer ]]; then
-            tests+=(fixtures/finals/v5_analysis_consumer_qa.py)
+            tests=(fixtures/finals/v5_analysis_consumer_qa.py)
           else
-            for file in v5_d_w2_governance_qa v5_d_w3_content_qa v5_d_w4_lifecycle_qa v5_d_analysis_integration_qa; do
-              if [[ -f "fixtures/finals/$file.py" ]]; then
-                tests+=("fixtures/finals/$file.py")
-              fi
-            done
+            mapfile -t tests < <(grep -v '^#' fixtures/finals/v5_d_stage_qa_files.txt | grep .)
           fi
           test "${#tests[@]}" -gt 0
-          .d-qa-c/.venv/bin/ruff check "${tests[@]}"
+          for file in "${tests[@]}"; do
+            test -f "$file" || { echo "missing required QA file: $file"; exit 1; }
+          done
+          echo "running ${#tests[@]} QA files: ${tests[*]}"
+          .venv/bin/ruff check "${tests[@]}"
           mkdir -p qa-results
-          .d-qa-c/.venv/bin/python -m pytest -q -o addopts= \
+          .venv/bin/python -m pytest -q -o addopts= \
             --junitxml="qa-results/$SUITE.xml" "${tests[@]}"
       - name: Preserve actual failures and test counts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: d-pinned-c-${{ matrix.suite }}
+          name: d-same-head-${{ matrix.suite }}
           path: qa-results/*.xml

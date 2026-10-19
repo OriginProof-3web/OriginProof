@@ -67,6 +67,29 @@ async def test_old_version_does_not_revive_after_latest_revocation(wallet):
     assert wallet.chain.sends == []
 
 
+async def test_revoked_version_stays_revoked_after_new_publication(wallet):
+    """V5-F08: synthetic Registry must preserve revocation and refuse another revoke."""
+    await activated(wallet)
+    first = await draft(wallet)
+    old, _ = await confirmed_publication(wallet, first)
+    await confirmed_revocation(wallet, old.document_id, 1)
+    second = await draft(wallet, request_id="req_d_after_revoke", version=2)
+    latest, _ = await confirmed_publication(wallet, second, req="req_d_successor", tx_byte="68")
+    history = await verify(wallet, first, old)
+    assert history["verification_status"] == "VERIFIED"
+    assert history["document"]["state"] == "REVOKED"
+    assert history["document"]["latest_version"] == 2
+    current = await wallet.client.get(f"/v3/documents/{latest.document_id}")
+    assert current.json()["state"] == "ACTIVE" and current.json()["version"] == 2
+    nonce = wallet.chain.issuers[ISSUER_HASH].next_nonce
+    denied = await wallet.client.post(
+        "/v3/revoke-drafts",
+        json={"request_id": "req_d_revoke_again", "document_id": old.document_id, "version": 1},
+    )
+    assert denied.status_code == 409 and denied.json()["detail"] == "DOCUMENT_ALREADY_REVOKED"
+    assert wallet.chain.issuers[ISSUER_HASH].next_nonce == nonce and wallet.chain.sends == []
+
+
 async def test_competing_draft_reservation_is_not_two_successful_publications(wallet):
     """V5-F08: sequential API reservation fence only; actual concurrent chain test is pending."""
     await activated(wallet)
