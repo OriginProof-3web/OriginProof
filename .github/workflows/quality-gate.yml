@@ -17,6 +17,8 @@ permissions:
 
 jobs:
   python-quality:
+    env:
+      PYTHONPATH: apps/api/src:packages/python:services/analyzer/src:services/indexer/src
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -38,7 +40,7 @@ jobs:
       - name: Verify generated contracts are current
         run: |
           make generate
-          git diff --exit-code -- packages/schemas/generated fixtures/golden
+          git diff --exit-code -- packages/schemas/generated fixtures/golden packages/contracts/test/generated/WalletGolden.sol fixtures/synthetic/shared_contract_cases_v1.json packages/contracts/abi
       - name: Run Python tests and lint
         run: |
           uv run pytest
@@ -54,6 +56,27 @@ jobs:
           pnpm --filter originproof-demo-web build
           pnpm --filter originproof-demo-web exec playwright install --with-deps chromium
           pnpm --filter originproof-demo-web test:e2e
+
+  c-recovery:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.8.17"
+          python-version: "3.13"
+      - uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: v1.4.4
+      - name: Install fixed dependencies
+        run: |
+          uv sync --all-packages --all-groups --locked
+          cd packages/contracts
+          forge install OpenZeppelin/openzeppelin-contracts@v5.7.0 foundry-rs/forge-std@v1.16.2
+      - name: Audit locked Python dependencies
+        run: make security
+      - name: Recover actual API processes and restore disposable database
+        run: make test-w6-c-live
 
   contracts:
     runs-on: ubuntu-latest

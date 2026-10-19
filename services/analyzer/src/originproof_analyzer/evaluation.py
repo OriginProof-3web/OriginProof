@@ -78,6 +78,8 @@ def evaluate(fixture_path: Path) -> dict:
         "prompt_version": PROMPT_VERSION,
         "live_model_evaluated": False,
         "confidence_is_calibrated": False,
+        "candidate_outputs_are_unconfirmed": True,
+        "artifact_comparison_performed": False,
         "image_mode": "fixture_replay_only",
         "scope": "Template and adapter contract tests, not OCR accuracy or model performance.",
         "total": len(results),
