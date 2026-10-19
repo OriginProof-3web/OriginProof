@@ -6,10 +6,11 @@ from eth_keys import keys
 from eth_keys.exceptions import BadSignature, ValidationError
 
 from .canonicalization import payload_hash
+from .finals import FinalsSignedProofEnvelope
 from .models import SignedProofEnvelope
 
 
-def signing_payload(envelope: SignedProofEnvelope) -> dict[str, Any]:
+def signing_payload(envelope: SignedProofEnvelope | FinalsSignedProofEnvelope) -> dict[str, Any]:
     """The versioned, domain-separated message committed by an issuer signature."""
     return {
         "app_domain": envelope.app_domain,
@@ -30,11 +31,11 @@ def signing_payload(envelope: SignedProofEnvelope) -> dict[str, Any]:
     }
 
 
-def signing_digest(envelope: SignedProofEnvelope) -> str:
+def signing_digest(envelope: SignedProofEnvelope | FinalsSignedProofEnvelope) -> str:
     return payload_hash(signing_payload(envelope))
 
 
-def signer_address(envelope: SignedProofEnvelope) -> str | None:
+def signer_address(envelope: SignedProofEnvelope | FinalsSignedProofEnvelope) -> str | None:
     """Recover the Ethereum signer address from a 65-byte secp256k1 signature."""
     try:
         signature_bytes = bytes.fromhex(envelope.signature.removeprefix("0x"))
@@ -55,6 +56,8 @@ def signer_address(envelope: SignedProofEnvelope) -> str | None:
         return None
 
 
-def signature_matches(envelope: SignedProofEnvelope, expected_signer: str) -> bool:
+def signature_matches(
+    envelope: SignedProofEnvelope | FinalsSignedProofEnvelope, expected_signer: str
+) -> bool:
     actual = signer_address(envelope)
     return actual is not None and actual.lower() == expected_signer.lower()
