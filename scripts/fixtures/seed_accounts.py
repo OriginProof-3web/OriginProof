@@ -15,7 +15,20 @@ from uuid import uuid4
 from originproof_api.accounts import password_hash
 from originproof_api.database import AccountRow, Database
 from originproof_api.settings import Settings
+from originproof_api.wallet_onboarding import ROSTER
 from sqlalchemy import select
+
+# Synthetic v5 roster accounts: applicant + internal approver per institution, three operators.
+V5_WALLET_ACCOUNTS = (
+    ("v5_bank", "issuer", "iss_origin_mock_bank"),
+    ("v5_bank_approver", "issuer", "iss_origin_mock_bank"),
+    ("v5_office", "issuer", "iss_origin_mock_office"),
+    ("v5_office_approver", "issuer", "iss_origin_mock_office"),
+    ("v5_operator1", "operator", None),
+    ("v5_operator2", "operator", None),
+    ("v5_operator3", "operator", None),
+)
+assert {issuer for _, _, issuer in V5_WALLET_ACCOUNTS if issuer} <= set(ROSTER)
 
 
 async def create_account(username: str, role: str, issuer_id: str | None, password: str) -> None:
@@ -38,17 +51,10 @@ async def create_account(username: str, role: str, issuer_id: str | None, passwo
         await database.dispose()
 
 
-async def seed_p0(password: str) -> None:
+async def seed_prepared(prepared, password: str) -> dict[str, str]:
     """Idempotent synthetic roles; existing credentials and onboarding are preserved."""
-    settings = Settings()
-    database = Database(settings.database_url)
-    prepared = (
-        ("operator", "operator", None),
-        ("bank", "issuer", settings.finals_payment_issuer_id),
-        ("office", "issuer", settings.finals_document_issuer_id),
-        ("recipient", "recipient", None),
-        ("recipient_other", "recipient", None),
-    )
+    database = Database(Settings().database_url)
+    ids = {}
     try:
         async with database.session_factory() as db:
             for username, role, issuer_id in prepared:
@@ -58,10 +64,12 @@ async def seed_p0(password: str) -> None:
                 if existing:
                     if (existing.role, existing.issuer_id) != (role, issuer_id):
                         raise ValueError("existing account identity differs; seed stopped")
+                    ids[username] = existing.account_id
                     continue
+                ids[username] = f"acct_{uuid4().hex}"
                 db.add(
                     AccountRow(
-                        account_id=f"acct_{uuid4().hex}",
+                        account_id=ids[username],
                         username=username,
                         role=role,
                         issuer_id=issuer_id,
@@ -71,6 +79,34 @@ async def seed_p0(password: str) -> None:
             await db.commit()
     finally:
         await database.dispose()
+    return ids
+
+
+async def seed_p0(password: str) -> None:
+    settings = Settings()
+    await seed_prepared(
+        (
+            ("operator", "operator", None),
+            ("bank", "issuer", settings.finals_payment_issuer_id),
+            ("office", "issuer", settings.finals_document_issuer_id),
+            ("recipient", "recipient", None),
+            ("recipient_other", "recipient", None),
+        ),
+        password,
+    )
+
+
+def v5_wallet_env(ids: dict[str, str]) -> list[str]:
+    """Settings lines for the seeded accounts; approver wallet addresses come from deployment."""
+    approvers = {
+        "iss_origin_mock_bank": ids["v5_bank_approver"],
+        "iss_origin_mock_office": ids["v5_office_approver"],
+    }
+    operators = {ids[f"v5_operator{n}"]: f"<approver{n} wallet address>" for n in (1, 2, 3)}
+    return [
+        "API_WALLET_INTERNAL_APPROVERS=" + json.dumps(approvers, separators=(",", ":")),
+        "API_WALLET_OPERATOR_ADDRESSES=" + json.dumps(operators, separators=(",", ":")),
+    ]
 
 
 def synthetic_password(path: Path) -> str:
@@ -119,7 +155,14 @@ def main() -> None:
     parser.add_argument("role", nargs="?", choices=["operator", "issuer", "recipient"])
     parser.add_argument("--issuer-id")
     parser.add_argument("--p0", action="store_true")
+    parser.add_argument("--v5-wallet", action="store_true")
     args = parser.parse_args()
+    if args.v5_wallet:
+        password = synthetic_password(Path(Settings().signer_directory) / "test-accounts.json")
+        ids = asyncio.run(seed_prepared(V5_WALLET_ACCOUNTS, password))
+        print("v5 wallet accounts ready; local credential file: test-accounts.json (0600)")
+        print("\n".join(v5_wallet_env(ids)))
+        return
     if args.p0:
         password = synthetic_password(Path(Settings().signer_directory) / "test-accounts.json")
         asyncio.run(seed_p0(password))
