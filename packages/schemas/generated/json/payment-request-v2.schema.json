@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "amount_minor": {
+      "exclusiveMinimum": 0,
+      "title": "Amount Minor",
+      "type": "integer"
+    },
+    "beneficiary_binding": {
+      "pattern": "^0x[0-9a-f]{64}$",
+      "title": "Beneficiary Binding",
+      "type": "string"
+    },
+    "currency": {
+      "pattern": "^[A-Z]{3}$",
+      "title": "Currency",
+      "type": "string"
+    },
+    "payer_binding": {
+      "pattern": "^0x[0-9a-f]{64}$",
+      "title": "Payer Binding",
+      "type": "string"
+    },
+    "target_hash": {
+      "pattern": "^0x[0-9a-f]{64}$",
+      "title": "Target Hash",
+      "type": "string"
+    }
+  },
+  "required": [
+    "amount_minor",
+    "currency",
+    "payer_binding",
+    "beneficiary_binding",
+    "target_hash"
+  ],
+  "title": "PaymentRequest",
+  "type": "object"
+}
