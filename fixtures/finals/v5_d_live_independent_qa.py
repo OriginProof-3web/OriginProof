@@ -7,6 +7,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 from uuid import uuid4
@@ -310,6 +311,24 @@ async def test_fixed_c63_against_actual_disposable_b_registry(tmp_path, tmp_path
                     result.verification_status == "VERIFIED" and result.document.state == "ACTIVE"
                 )
                 assert result.comparison_scope == "FULL_COMPARISON"
+                cli = await asyncio.to_thread(
+                    command,
+                    sys.executable,
+                    str(Path(support.__file__).parents[1] / "verify_wallet_document.py"),
+                    "--material",
+                    args.material,
+                    "--original",
+                    args.original,
+                    "--metadata",
+                    args.metadata,
+                    "--rpc-url",
+                    url,
+                    "--chain-id",
+                    "31337",
+                    "--registry",
+                    address,
+                )
+                assert json.loads(cli)["verification_status"] == "VERIFIED"
                 args.original, args.candidate = None, str(paths["candidate"])
                 assert (await support.module.verify(args)).verification_status == "VERIFIED"
                 changed = dict(content)
@@ -331,7 +350,8 @@ async def test_fixed_c63_against_actual_disposable_b_registry(tmp_path, tmp_path
                         + hashlib.sha256(original_bytes(second, content)).hexdigest()
                     }
                 )
-                await send("publish", [second, await sign(second)], accounts[4])
+                second_signature = await sign(second)
+                second_mined = await send("publish", [second, second_signature], accounts[4])
                 historic = await support.module.verify(args)
                 assert (
                     historic.verification_status == "VERIFIED"
@@ -352,11 +372,44 @@ async def test_fixed_c63_against_actual_disposable_b_registry(tmp_path, tmp_path
                     historic.document.state == "SUPERSEDED"
                     and historic.document.latest_version == 2
                 )
+                second_raw = original_bytes(second, content)
+                second_material = VerificationMaterial(
+                    signing_request=SigningRequest(
+                        signing_request_id="wsr_D_live_second",
+                        primary_type="Publish",
+                        domain=domain,
+                        message=second,
+                        expected_signer=accounts[3],
+                        content=content,
+                        original_base64=base64.b64encode(second_raw).decode(),
+                    ),
+                    signature=second_signature,
+                    block_number=str(int(second_mined["blockNumber"], 16)),
+                    block_hash=second_mined["blockHash"],
+                )
+                second_material_path, second_original_path = (
+                    directory / "material2",
+                    directory / "original2",
+                )
+                second_material_path.write_text(second_material.model_dump_json())
+                second_original_path.write_bytes(second_raw)
+                current_args = SimpleNamespace(**vars(args))
+                current_args.material, current_args.original = (
+                    str(second_material_path),
+                    str(second_original_path),
+                )
+                current = await support.module.verify(current_args)
+                assert (
+                    current.verification_status == "VERIFIED"
+                    and current.document.state == "REVOKED"
+                )
                 report["scenarios"].append(
                     {
                         "template": template,
                         "original": "VERIFIED",
                         "protected_fields": "VERIFIED",
+                        "actual_cli": "VERIFIED",
+                        "latest_revoked": "REVOKED",
                         "original_tamper": "TAMPERED",
                         "field_tamper": "TAMPERED",
                         "superseded_after_latest_revoked": "PRESERVED",
@@ -367,6 +420,12 @@ async def test_fixed_c63_against_actual_disposable_b_registry(tmp_path, tmp_path
             command("docker", "stop", name)
             assert (await support.module.verify(last_args)).verification_status == "INCONCLUSIVE"
             command("docker", "start", name)
+            rebound_port = (
+                command("docker", "port", name, "8545/tcp").decode().strip().rsplit(":", 1)[1]
+            )
+            report["rpc_endpoint_rebound_on_restart"] = rebound_port != port
+            url = "http://127.0.0.1:" + rebound_port
+            last_args.rpc_url = url
             await ready()
             restored = await support.module.verify(last_args)
             assert (
