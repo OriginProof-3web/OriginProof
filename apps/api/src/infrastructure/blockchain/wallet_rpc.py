@@ -8,7 +8,7 @@ from itertools import count
 
 import httpx
 from eth_abi import decode, encode
-from eth_abi.exceptions import DecodingError
+from eth_abi.exceptions import DecodingError, EncodingError
 from eth_utils import keccak, to_normalized_address
 
 from .errors import BlockchainConfigurationError, BlockchainDependencyError
@@ -53,6 +53,12 @@ def named(fields, values):
     return result
 
 
+class _CallReverted(BlockchainDependencyError):
+    def __init__(self, data):
+        super().__init__("wallet eth_call reverted")
+        self.data = data
+
+
 class WalletRpc:
     def __init__(self, client: httpx.AsyncClient, rpc_url, *, chain_id, address,
                  deployment_block, deployment_hash, runtime_code_hash, abi):
@@ -69,10 +75,13 @@ class WalletRpc:
         self.deployment_block, self.deployment_hash = deployment_block, deployment_hash
         self.runtime_code_hash = runtime_code_hash
         self.functions = {x["name"]: x for x in abi if x["type"] == "function"}
+        if len(self.functions) != sum(x["type"] == "function" for x in abi):
+            raise BlockchainConfigurationError("overloaded/duplicate ABI functions are unsupported")
         self.selectors = {keccak(text=signature(x))[:4]: x for x in self.functions.values()}
         self.events = {
             "0x" + keccak(text=signature(x)).hex(): x for x in abi if x["type"] == "event"
         }
+        self.abi_errors = [x for x in abi if x["type"] == "error"]
         self.ids = count(1)
 
     async def rpc(self, method, params):
@@ -84,8 +93,15 @@ class WalletRpc:
             response.raise_for_status()
             body = response.json()
             if (not isinstance(body, dict) or body.get("jsonrpc") != "2.0"
-                    or body.get("id") != request_id or "error" in body or "result" not in body):
-                raise ValueError("RPC error or invalid envelope")
+                    or body.get("id") != request_id
+                    or ("error" in body) == ("result" in body)):
+                raise ValueError("invalid RPC envelope")
+            if "error" in body:
+                error = body["error"]
+                if method == "eth_call" and isinstance(error, dict):
+                    data = hex_bytes(error.get("data"))
+                    raise _CallReverted(data)
+                raise ValueError("RPC error")
             return body["result"]
         except (httpx.HTTPError, TypeError, ValueError) as exc:
             raise BlockchainDependencyError("wallet RPC unavailable or invalid response") from exc
@@ -136,14 +152,26 @@ class WalletRpc:
         return {"block": block, "values": result}
 
     async def call(self, name, args, block):
-        entry = self.functions[name]
-        if entry.get("stateMutability") not in ("view", "pure"):
-            raise BlockchainConfigurationError("read requires a view function")
-        data = keccak(text=signature(entry))[:4] + encode(
-            [abi_type(x) for x in entry["inputs"]], args,
-        )
-        raw = await self.rpc("eth_call", [{"to": self.address, "data": "0x" + data.hex()},
-                                          self.pin(block)])
+        try:
+            entry = self.functions[name]
+            if entry.get("stateMutability") not in ("view", "pure"):
+                raise BlockchainConfigurationError("read requires a view function")
+            data = keccak(text=signature(entry))[:4] + encode(
+                [abi_type(x) for x in entry["inputs"]], args,
+            )
+        except (KeyError, TypeError, ValueError, EncodingError) as exc:
+            raise BlockchainConfigurationError("invalid wallet view call") from exc
+        try:
+            raw = await self.rpc("eth_call", [{"to": self.address, "data": "0x" + data.hex()},
+                                              self.pin(block)])
+        except _CallReverted as exc:
+            missing = {"getIssuer": "UnknownIssuer", "getKey": "UnknownKey",
+                       "getProposal": "UnknownProposal", "getDocument": "UnknownDocument"}
+            error = next((x for x in self.abi_errors if x["name"] == missing.get(name)), None)
+            if error is None or exc.data != keccak(text=signature(error))[:4]:
+                raise
+            await self.check(block)
+            return None
         try:
             types = [abi_type(x) for x in entry["outputs"]]
             decoded = decode(types, hex_bytes(raw))

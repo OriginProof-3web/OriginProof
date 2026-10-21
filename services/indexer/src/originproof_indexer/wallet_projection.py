@@ -2,20 +2,20 @@
 
 import json
 
-from sqlalchemy import Column, Integer, MetaData, String, Table, delete, insert, select, update
+from sqlalchemy import BigInteger, Column, MetaData, String, Table, delete, insert, select, update
 
 metadata = MetaData()
 journal = Table(
     "wallet_events", metadata,
     Column("deployment", String(256), primary_key=True),
-    Column("block_number", Integer, primary_key=True),
-    Column("log_index", Integer, primary_key=True),
+    Column("block_number", BigInteger, primary_key=True),
+    Column("log_index", BigInteger, primary_key=True),
     Column("payload", String, nullable=False),
 )
 cursors = Table(
     "wallet_checkpoints", metadata,
     Column("deployment", String(256), primary_key=True),
-    Column("block_number", Integer, nullable=False),
+    Column("block_number", BigInteger, nullable=False),
     Column("block_hash", String(66), nullable=False),
 )
 

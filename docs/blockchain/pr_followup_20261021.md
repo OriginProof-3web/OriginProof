@@ -17,3 +17,7 @@
 Registry가 이전 최신이 ACTIVE일 때만 SUPERSEDED 전이/이벤트를 수행하는 것을 읽고 확인했습니다. REVOKED의 저장 전체는 후속 발행 뒤에도 불변이며 새 nonce로 재철회해도 거부·nonce 불변을 검사합니다. 이미 SUPERSEDED인 과거 버전의 정당한 첫 철회는 유지합니다. Foundry 전체101개 PASS, Python609 PASS/10 SKIP, 기존 경고1입니다. B의 기술적 검증 결과이며 사람의 직접 승인·독립 재리뷰 완료가 아닙니다.
 
 기존 Adapter의 `version>1`이면 무조건 Superseded 이벤트를 요구하는 부분은 이 규칙과 맞지 않아 #78에서 보완합니다. Contract·공통 정책을 다시 바꾸지 않습니다.
+
+## #69 · 기준 c5a82cc
+
+#78의 getter별 정확한 custom error 분류를 동일 원본에서 앞당겼습니다. 다른 오류는 dependency로 유지합니다. 잘못된 view 이름/인자를 ConfigurationError로 묶고 중복/overload ABI를 거부합니다. 신규 검사7개 포함 Python666 PASS/10 SKIP, ruff PASS입니다. block/log 위치는 BigInteger로 선언하며 기존 PostgreSQL 테이블을 create_all로 자동 migration한다고 주장하지 않습니다(새 journal 기준, 기존 DB 변경은 별도 인계). C WalletRegistry 원본 변환/주입과 실 API 연결은 후속 검증 대상이며 helper 단독을 완성된 port로 노출하지 않습니다.
