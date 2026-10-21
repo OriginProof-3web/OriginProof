@@ -34,3 +34,8 @@ C가 철회 대조를 REVOKED(2)로 좁힌 수정을 확인했습니다. 추가�
 - 전체 Python **745 PASS / 11 SKIP**, Starlette 기존 경고1. 일반 실행의 live/환경 의존 SKIP은 별도 실제 EVM 1 PASS와 구분합니다. 공식 Ruff·구조·Node hash·원본 기반 make generate 후 Schema/Golden diff·공백 검사 PASS. 최초 생성 명령은 없는 venv/uv 경로로 실패했으며 설치된 uv로 재실행했습니다.
 - top-level Registry 거래만 검색하며 relay contract 내부 호출은 trace 검색하지 않습니다. 빈 결과는 미전송/재전송 허가가 아닙니다. PostgreSQL·C Operation/dispatcher·브라우저·독립 리뷰·G07은 미완료입니다.
 - #83 C 선행 PR의 c-recovery CI 실패와 현재 head 작성자 외 리뷰 대기 때문에 자동 병합하지 않습니다. C 대행 수정의 Codex 기술 검증은 사람 B의 직접 확인이나 지정 리뷰어 승인을 대체하지 않습니다.
+## 추가 확인 — #64 현행 manifest 경로
+
+AI(Codex)가 여하민님 요청으로 수행했습니다. Reader·Writer의 합성 manifest fixture를 실제 현행 출력명 `31337.local.json`으로 맞춰 loader 경로 호환을 기존 정상/거부 검사로 확인합니다. 실제 배포 파일이나 원본 사용자 변경은 읽어 덮어쓰지 않습니다. 이 검사는 MockTransport이며 별도 no-dev Uvicorn 기동과 구분합니다.
+
+현행 파일명 fixture 검사: Reader·Writer **104 PASS**. 새 패키지·버전 변경 없음.
