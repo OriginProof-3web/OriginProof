@@ -212,8 +212,8 @@
     },
     {
       "id": "V5-F20",
-      "supporting_evidence": "Golden/verification material code review",
-      "remaining": "Service-independent actual state verification pending",
+      "supporting_evidence": "Fixed C63 actual CLI against disposable B Registry; two templates, normal/tamper/lifecycle/RPC restart PASS at5b50ac4",
+      "remaining": "Owner review, selected deployment/public-network scope and final-candidate acceptance; local independent verification performed",
       "stage_accepted": false
     },
     {
@@ -371,5 +371,19 @@
     ],
     "report": "v5-d-performance-independent-20261021.json",
     "security": "PR87 merged; inherited lock unchanged"
+  },
+  "latest_development": {
+    "report": "v5-d-development-completion-20261021.json",
+    "phase_sha": "2c81b8e10fbac1d14fa3526dbc4128996e428f7e",
+    "qa_execution_sha": "a24426f80eae372a488b2c6c104dbd71aaee9290",
+    "full_python_passed": 730,
+    "existing_live_skipped": 10,
+    "live_evaluation_safety_tests": 18,
+    "acceptance_unit_tests": 10,
+    "actual_independent_local_evm": "PASS at5b50ac4; no API/DB/browser/public RPC",
+    "g07_actual_fresh": 1,
+    "g07_actual_mixed": 5,
+    "g07_status": "OPEN pending final review",
+    "paid_calls": 0
   }
 }

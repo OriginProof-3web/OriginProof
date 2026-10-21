@@ -1,5 +1,7 @@
 # D G07 후속 반복 재현 절차
 
+> 추가 실제 실행: #64/#68 반영 제품33396ba에서 fresh1/mixed5 각18 PASS입니다. [실행·새 로컬 독립 검증](v5-d-development-completion-20261021.md). C 최종 검토 전 OPEN입니다.
+
 > 최신 2026-10-21: #86/#87 병합 뒤 `d757a267c5381e5a9b528f63a6c3acef852da996`에서 fresh1/mixed3를 실제 실행했습니다. 판정 PASS_REQUIRES_B_C_REVIEW, G07은 B/C 검토 전 OPEN입니다. [회차별 결과](v5-d-performance-independent-20261021.md). 아래 차단 결과는 병합 전 기록입니다.
 
 #86 `61703197399a2f66f18a3e0fcae51fd2bf54131f`는 phase/W5 `d757a267c5381e5a9b528f63a6c3acef852da996`에 병합됐습니다. D 실제 반복이 통과했지만 B/C 증거 검토 전 G07은 OPEN입니다. 과거 fresh18 PASS/mixed17 PASS1 FAIL과 C/B의 후속 검사를 D의 동일 후보 독립 재검증으로 대신하지 않습니다.

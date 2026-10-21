@@ -1,5 +1,7 @@
 # D GitHub 리뷰 공유 현황
 
+> 최신 개발 완료 기록: 제한 모델 평가 실행기·수용 증거 도구·실제 로컬 독립 CLI 검증을 구현했습니다. G07은 fresh1/mixed5 각18 PASS, C 검토 전 OPEN입니다. [실행 SHA·검사·남은 인계](../qa/v5-d-development-completion-20261021.md). 아래 이전 미실행/미병합 표시는 당시 기록입니다.
+
 > 2026-10-21 최신: 최신 공유 기준: 계획5.1/공유0.2, #75/#76 일반 PR, #82/#86/#87 병합 반영. G07 실제 반복 후에도 B/C 검토 전 OPEN. [현재 실행·수치·남은 작업](../qa/v5-d-performance-independent-20261021.md). 아래의 이전 SHA/미병합 표시는 당시 기록입니다.
 
 > 2026-10-21 현재 점검: [W1~W7 작업·동일 HEAD 재검사](../qa/v5-d-weekly-status-20261021.md). 현재 C 0.2에서 DG12는 통과했고, 새 CI 증거 보호와 [의존성 보안 PR #87](https://github.com/OriginProof-3web/OriginProof/pull/87)을 검증했습니다. [후보 근거 평가·G07 사전 검사/반복 도구](../qa/v5-d-development-tools-20261021.md)를 구현했습니다. 실제 모델 평가·G07·사람 리뷰·실제 통합은 별도 대기입니다. 아래 날짜별 과거 결과와 구분합니다.
