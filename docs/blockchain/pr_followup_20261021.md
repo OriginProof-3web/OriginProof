@@ -11,3 +11,9 @@
 - 검사 구성 중 indexer 경로 누락·옛 health 경로404·빈 wallet 주소 환경변수로 인한 실패가 있었고, 이미지 설정/실제 경로/기본 비활성 설정에 맞춰 재검증했습니다. 제품 오류를 숨기거나 성공 응답으로 바꾸지 않았습니다.
 - Python609 PASS/10 SKIP, 기존 Starlette 경고1; 공식 ruff PASS. Foundry80 PASS(기존 phase 포함), shell 문법·lock 검사 PASS. CI는 새 head에서 별도 확인합니다.
 - 원본 작업 폴더의 사용자 미커밋5개는 건드리지 않고 별도 managed worktree에서 진행했습니다.
+
+## 추가 확인 — #64 현행 manifest 경로
+
+AI(Codex)가 여하민님 요청으로 수행했습니다. Reader·Writer의 합성 manifest fixture를 실제 현행 출력명 `31337.local.json`으로 맞춰 loader 경로 호환을 기존 정상/거부 검사로 확인합니다. 실제 배포 파일이나 원본 사용자 변경은 읽어 덮어쓰지 않습니다. 이 검사는 MockTransport이며 별도 no-dev Uvicorn 기동과 구분합니다.
+
+현행 파일명 fixture 검사: Reader·Writer **104 PASS**. 새 패키지·버전 변경 없음.
