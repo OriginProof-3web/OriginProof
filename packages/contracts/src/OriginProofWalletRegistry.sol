@@ -6,7 +6,7 @@ import {SafeCast} from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 import {OriginProofWalletGovernance} from "./OriginProofWalletGovernance.sol";
 import {IOriginProofWalletRegistry as Registry} from "./IOriginProofWalletRegistry.sol";
 
-/// @notice W2 governance and W3 first-version publication; version transitions/revocation are not implemented.
+/// @notice Non-upgradeable wallet governance, signed publication, version transitions and revocation.
 contract OriginProofWalletRegistry is OriginProofWalletGovernance {
     error InvalidPublication();
     error UnsupportedSchema();
@@ -19,9 +19,15 @@ contract OriginProofWalletRegistry is OriginProofWalletGovernance {
     error NonceAlreadyUsed();
     error InvalidPublicationSignature();
     error UnknownDocument();
+    error InvalidRevocation();
+    error InvalidRevocationSignature();
+    error DocumentAlreadyRevoked();
 
     bytes32 private constant PUBLISH_TYPEHASH = keccak256(
         "Publish(uint8 action,bytes32 issuerId,bytes32 docKey,bytes32 documentId,uint64 version,bytes32 keyId,bytes32 originalHash,bytes32 protectedHash,bytes32 contentSchema,bytes32 signatureSchema,uint8 originalHashAlgorithm,uint8 protectedHashAlgorithm,uint64 issuedAt,uint64 expiresAt,uint256 nonce,uint64 deadline)"
+    );
+    bytes32 private constant REVOKE_TYPEHASH = keccak256(
+        "Revoke(uint8 action,bytes32 issuerId,bytes32 docKey,bytes32 documentId,uint64 version,bytes32 keyId,uint256 nonce,uint64 deadline)"
     );
     bytes32 private constant SIGNATURE_SCHEMA = keccak256("originproof.wallet.v1");
     bytes32 private constant PAYMENT_SCHEMA = keccak256("originproof.content.payment.v1");
@@ -29,7 +35,9 @@ contract OriginProofWalletRegistry is OriginProofWalletGovernance {
     uint64 private constant SAFE_INTEGER = 2 ** 53 - 1;
 
     mapping(bytes32 issuerId => uint256) private _nextNonces;
-    mapping(bytes32 documentId => Registry.DocumentVersion) private _documents;
+    mapping(bytes32 documentId => mapping(uint64 version => Registry.DocumentVersion)) private
+        _documents;
+    mapping(bytes32 documentId => uint64) private _latestVersions;
 
     constructor(address[3] memory approvers) OriginProofWalletGovernance(approvers) {}
 
@@ -51,29 +59,31 @@ contract OriginProofWalletRegistry is OriginProofWalletGovernance {
         if (block.timestamp >= message.deadline) revert SignatureExpired();
         Issuer memory issuer = _issuers[message.issuerId];
         if (issuer.state != 1) revert IssuerNotActive();
-        Registry.IssuerKey memory key = _keys[message.keyId];
-        if (
-            message.keyId != issuer.keyId || key.issuerId != message.issuerId
-                || key.signer != issuer.signer || key.registeredBlock == 0 || key.retiredBlock != 0
-                || key.compromiseBlock != 0
-        ) revert KeyNotActive();
+        _requireCurrentKey(message.issuerId, message.keyId, issuer);
         if (message.documentId != keccak256(abi.encode(message.issuerId, message.docKey))) {
             revert InvalidDocumentId();
         }
-        if (message.nonce != _nextNonces[message.issuerId]) revert NonceAlreadyUsed();
-        if (message.version != 1 || _documents[message.documentId].state != 0) {
+        uint64 previous = _latestVersions[message.documentId];
+        if (uint256(message.version) != uint256(previous) + 1 || message.version > SAFE_INTEGER) {
             revert VersionConflict();
         }
+        if (previous != 0) {
+            Registry.DocumentVersion storage old = _documents[message.documentId][previous];
+            if (old.issuerId != message.issuerId || old.docKey != message.docKey) {
+                revert InvalidDocumentId();
+            }
+        }
+        if (message.nonce != _nextNonces[message.issuerId]) revert NonceAlreadyUsed();
         bytes32 digest = _hashTypedDataV4(keccak256(abi.encode(PUBLISH_TYPEHASH, message)));
         (address signer, ECDSA.RecoverError error,) = ECDSA.tryRecover(digest, signature);
         if (error != ECDSA.RecoverError.NoError || signer != issuer.signer) {
             revert InvalidPublicationSignature();
         }
         uint64 publishedBlock = _blockNumber();
-        _documents[message.documentId] = Registry.DocumentVersion(
+        _documents[message.documentId][message.version] = Registry.DocumentVersion(
             message.issuerId,
             message.docKey,
-            1,
+            message.version,
             message.keyId,
             message.originalHash,
             message.protectedHash,
@@ -84,8 +94,55 @@ contract OriginProofWalletRegistry is OriginProofWalletGovernance {
             publishedBlock,
             1
         );
+        if (previous != 0 && _documents[message.documentId][previous].state == 1) {
+            _documents[message.documentId][previous].state = 3;
+            emit Registry.DocumentSuperseded(message.documentId, previous, message.version);
+        }
+        _latestVersions[message.documentId] = message.version;
         ++_nextNonces[message.issuerId];
-        emit Registry.DocumentPublished(message.documentId, 1, message.issuerId);
+        emit Registry.DocumentPublished(message.documentId, message.version, message.issuerId);
+    }
+
+    function revoke(Registry.Revoke calldata message, bytes calldata signature) external {
+        if (
+            message.action != 2 || message.version == 0 || message.version > SAFE_INTEGER
+                || message.deadline > SAFE_INTEGER
+        ) revert InvalidRevocation();
+        if (block.timestamp >= message.deadline) revert SignatureExpired();
+        Issuer memory issuer = _issuers[message.issuerId];
+        if (issuer.state == 0) revert UnknownIssuer();
+        _requireCurrentKey(message.issuerId, message.keyId, issuer);
+        if (message.documentId != keccak256(abi.encode(message.issuerId, message.docKey))) {
+            revert InvalidDocumentId();
+        }
+        Registry.DocumentVersion storage document = _documents[message.documentId][message.version];
+        if (document.state == 0) revert UnknownDocument();
+        if (document.issuerId != message.issuerId || document.docKey != message.docKey) {
+            revert InvalidDocumentId();
+        }
+        if (message.nonce != _nextNonces[message.issuerId]) revert NonceAlreadyUsed();
+        if (document.state == 2) revert DocumentAlreadyRevoked();
+        bytes32 digest = _hashTypedDataV4(keccak256(abi.encode(REVOKE_TYPEHASH, message)));
+        (address signer, ECDSA.RecoverError error,) = ECDSA.tryRecover(digest, signature);
+        if (error != ECDSA.RecoverError.NoError || signer != issuer.signer) {
+            revert InvalidRevocationSignature();
+        }
+        document.state = 2;
+        ++_nextNonces[message.issuerId];
+        emit Registry.DocumentRevoked(message.documentId, message.version, message.issuerId);
+    }
+
+    function _requireCurrentKey(bytes32 issuerId, bytes32 keyId, Issuer memory issuer)
+        private
+        view
+    {
+        Registry.IssuerKey memory key = _keys[keyId];
+        if (
+            keyId != issuer.keyId || key.issuerId != issuerId || key.signer != issuer.signer
+                || key.registeredBlock == 0 || key.retiredBlock != 0 || key.compromiseBlock != 0
+        ) {
+            revert KeyNotActive();
+        }
     }
 
     function nextNonce(bytes32 issuerId) external view returns (uint256) {
@@ -93,7 +150,7 @@ contract OriginProofWalletRegistry is OriginProofWalletGovernance {
     }
 
     function latestVersion(bytes32 documentId) external view returns (uint64) {
-        return _documents[documentId].version;
+        return _latestVersions[documentId];
     }
 
     function getDocument(bytes32 documentId, uint64 version)
@@ -101,8 +158,8 @@ contract OriginProofWalletRegistry is OriginProofWalletGovernance {
         view
         returns (Registry.DocumentVersion memory)
     {
-        Registry.DocumentVersion memory document = _documents[documentId];
-        if (document.state == 0 || version != document.version) revert UnknownDocument();
+        Registry.DocumentVersion memory document = _documents[documentId][version];
+        if (document.state == 0) revert UnknownDocument();
         return document;
     }
 }

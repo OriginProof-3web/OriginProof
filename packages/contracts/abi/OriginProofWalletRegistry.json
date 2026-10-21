@@ -555,6 +555,66 @@
   },
   {
     "type": "function",
+    "name": "revoke",
+    "inputs": [
+      {
+        "name": "message",
+        "type": "tuple",
+        "internalType": "struct IOriginProofWalletRegistry.Revoke",
+        "components": [
+          {
+            "name": "action",
+            "type": "uint8",
+            "internalType": "uint8"
+          },
+          {
+            "name": "issuerId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "docKey",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "documentId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "version",
+            "type": "uint64",
+            "internalType": "uint64"
+          },
+          {
+            "name": "keyId",
+            "type": "bytes32",
+            "internalType": "bytes32"
+          },
+          {
+            "name": "nonce",
+            "type": "uint256",
+            "internalType": "uint256"
+          },
+          {
+            "name": "deadline",
+            "type": "uint64",
+            "internalType": "uint64"
+          }
+        ]
+      },
+      {
+        "name": "signature",
+        "type": "bytes",
+        "internalType": "bytes"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "suspendIssuer",
     "inputs": [
       {
@@ -592,6 +652,56 @@
         "type": "bytes32",
         "indexed": true,
         "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DocumentRevoked",
+    "inputs": [
+      {
+        "name": "documentId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "version",
+        "type": "uint64",
+        "indexed": true,
+        "internalType": "uint64"
+      },
+      {
+        "name": "issuerId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "DocumentSuperseded",
+    "inputs": [
+      {
+        "name": "documentId",
+        "type": "bytes32",
+        "indexed": true,
+        "internalType": "bytes32"
+      },
+      {
+        "name": "version",
+        "type": "uint64",
+        "indexed": true,
+        "internalType": "uint64"
+      },
+      {
+        "name": "replacement",
+        "type": "uint64",
+        "indexed": false,
+        "internalType": "uint64"
       }
     ],
     "anonymous": false
@@ -709,6 +819,11 @@
   },
   {
     "type": "error",
+    "name": "DocumentAlreadyRevoked",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "DuplicateApproval",
     "inputs": []
   },
@@ -755,6 +870,16 @@
   {
     "type": "error",
     "name": "InvalidReasonCode",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidRevocation",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidRevocationSignature",
     "inputs": []
   },
   {
