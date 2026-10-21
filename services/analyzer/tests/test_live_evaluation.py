@@ -107,7 +107,9 @@ def test_invalid_or_mismatched_policy(prepared, key, value):
         live.plan(path, policy)
 
 
-async def test_stop_resume_has_unique_cases_exact_caps_private_checkpoint(prepared, response_body):
+async def test_stop_resume_has_unique_cases_exact_caps_private_checkpoint(
+    prepared, response_body, monkeypatch
+):
     path, policy, journal = prepared
     seen = []
 
@@ -140,6 +142,21 @@ async def test_stop_resume_has_unique_cases_exact_caps_private_checkpoint(prepar
     stored = journal.read_text()
     assert "PRIVATE_API_KEY" not in stored and all(text not in stored for text in seen)
     assert not journal.with_name(journal.name + ".lock").exists()
+    installed_version = live.importlib.metadata.version
+    monkeypatch.setattr(
+        live.importlib.metadata,
+        "version",
+        lambda name: "different-runtime" if name == "httpx" else installed_version(name),
+    )
+    with pytest.raises(ValueError):
+        await live.execute(
+            path,
+            policy,
+            journal,
+            api_key="PRIVATE_API_KEY",
+            resume=True,
+            transport=httpx.MockTransport(lambda r: pytest.fail("no mixed-runtime replay")),
+        )
 
 
 @pytest.mark.parametrize("failure", ["429", "503", "timeout"])

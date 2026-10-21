@@ -6,12 +6,14 @@ import hashlib
 import importlib.metadata
 import json
 import os
+import sys
 import tempfile
 from pathlib import Path
 from statistics import median
 
 import httpx
 from openai import AsyncOpenAI
+from originproof_core import wallet_contract
 
 from .evidence_evaluation import CandidateEvidenceObserver
 from .phishing_evaluation import classification_metrics, evaluate_phishing, load_corpus
@@ -251,6 +253,11 @@ async def execute(path, policy, journal, *, api_key, resume=False, stop_after=No
             Path(__file__).with_name("providers.py"),
             Path(__file__).with_name("phishing.py"),
             Path(__file__).with_name("evidence_evaluation.py"),
+            Path(__file__).with_name("settings.py"),
+            Path(__file__).with_name("errors.py"),
+            Path(__file__).with_name("inputs.py"),
+            Path(wallet_contract.__file__),
+            Path(wallet_contract.__file__).with_name("models.py"),
             Path(__file__).parent / "prompts/phishing_analysis_v1.md",
         )
     }
@@ -259,7 +266,11 @@ async def execute(path, policy, journal, *, api_key, resume=False, stop_after=No
         "source_sha256": code,
         "transport_scope": "SDK_MOCK_TRANSPORT_TEST" if transport else "OPENAI_HTTPS",
         "output_cap": policy["max_output_tokens"],
-        "sdk_version": importlib.metadata.version("openai"),
+        "dependencies": {
+            name: importlib.metadata.version(name)
+            for name in ("openai", "httpx", "pydantic", "pydantic-settings")
+        },
+        "python": sys.version.split()[0],
     }
     journal.parent.mkdir(parents=True, exist_ok=True)
     lock = journal.with_name(journal.name + ".lock")
