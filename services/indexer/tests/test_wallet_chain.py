@@ -30,17 +30,21 @@ def make_log(name="ProposalApproved", number=2, block_hash=H2, index=0):
     entry = next(x for x in ABI if x.get("name") == name and x["type"] == "event")
     topics, data = ["0x" + keccak(text=signature(entry)).hex()], []
     for field in entry["inputs"]:
-        value = {"bytes32": b"x" * 32, "address": SENDER, "uint8": 1, "uint64": 1}[
-            field["type"]
-        ]
+        value = {"bytes32": b"x" * 32, "address": SENDER, "uint8": 1, "uint64": 1}[field["type"]]
         if field["indexed"]:
             topics.append("0x" + encode([field["type"]], [value]).hex())
         else:
             data.append((field["type"], value))
-    return {"address": ADDRESS, "topics": topics,
-            "data": "0x" + encode([x[0] for x in data], [x[1] for x in data]).hex(),
-            "blockNumber": hex(number), "blockHash": block_hash, "transactionHash": TX,
-            "logIndex": hex(index), "removed": False}
+    return {
+        "address": ADDRESS,
+        "topics": topics,
+        "data": "0x" + encode([x[0] for x in data], [x[1] for x in data]).hex(),
+        "blockNumber": hex(number),
+        "blockHash": block_hash,
+        "transactionHash": TX,
+        "logIndex": hex(index),
+        "removed": False,
+    }
 
 
 class Chain:
@@ -49,14 +53,28 @@ class Chain:
         self.head = "0x2"
         self.logs = [make_log()]
         entry = next(x for x in ABI if x.get("name") == "approve")
-        self.tx = {"hash": TX, "to": ADDRESS, "from": SENDER, "chainId": "0x7a69",
-                   "value": "0x0", "blockHash": H2, "blockNumber": "0x2",
-                   "transactionIndex": "0x0", "input": "0x" + (
-                       keccak(text=signature(entry))[:4] + encode(["bytes32"], [b"x" * 32])
-                   ).hex()}
-        self.receipt = {"transactionHash": TX, "to": ADDRESS, "from": SENDER,
-                        "blockHash": H2, "blockNumber": "0x2", "status": "0x1",
-                        "transactionIndex": "0x0", "logs": self.logs}
+        self.tx = {
+            "hash": TX,
+            "to": ADDRESS,
+            "from": SENDER,
+            "chainId": "0x7a69",
+            "value": "0x0",
+            "blockHash": H2,
+            "blockNumber": "0x2",
+            "transactionIndex": "0x0",
+            "input": "0x"
+            + (keccak(text=signature(entry))[:4] + encode(["bytes32"], [b"x" * 32])).hex(),
+        }
+        self.receipt = {
+            "transactionHash": TX,
+            "to": ADDRESS,
+            "from": SENDER,
+            "blockHash": H2,
+            "blockNumber": "0x2",
+            "status": "0x1",
+            "transactionIndex": "0x0",
+            "logs": self.logs,
+        }
         self.calls = []
         self.override = None
         self.call_result = "0x" + encode(["uint256"], [5]).hex()
@@ -68,7 +86,8 @@ class Chain:
         results = {
             "eth_chainId": lambda: "0x7a69",
             "eth_getBlockByNumber": lambda: self.blocks[
-                self.head if params[0] == "latest" else params[0]],
+                self.head if params[0] == "latest" else params[0]
+            ],
             "eth_getCode": lambda: "0x" + CODE.hex(),
             "eth_call": lambda: self.call_result,
             "eth_getLogs": lambda: self.logs,
@@ -86,9 +105,16 @@ class Chain:
 async def setup():
     chain = Chain()
     async with httpx.AsyncClient(transport=httpx.MockTransport(chain.handle)) as client:
-        rpc = WalletRpc(client, "http://chain.test", chain_id=31337, address=ADDRESS,
-                        deployment_block=1, deployment_hash=H1,
-                        runtime_code_hash="0x" + keccak(CODE).hex(), abi=ABI)
+        rpc = WalletRpc(
+            client,
+            "http://chain.test",
+            chain_id=31337,
+            address=ADDRESS,
+            deployment_block=1,
+            deployment_hash=H1,
+            runtime_code_hash="0x" + keccak(CODE).hex(),
+            abi=ABI,
+        )
         yield chain, rpc
 
 
@@ -110,10 +136,15 @@ async def test_all_seven_events_from_compiled_abi(setup, name):
     assert set(result["arguments"]) == {x["name"] for x in entry["inputs"]}
 
 
-@pytest.mark.parametrize("method,result", [
-    ("eth_chainId", "0x1"), ("eth_getCode", "0x"),
-    ("eth_getCode", "0xdeadbeef"), ("eth_getBlockByNumber", None),
-])
+@pytest.mark.parametrize(
+    "method,result",
+    [
+        ("eth_chainId", "0x1"),
+        ("eth_getCode", "0x"),
+        ("eth_getCode", "0xdeadbeef"),
+        ("eth_getBlockByNumber", None),
+    ],
+)
 async def test_wrong_deployment_never_falls_back(setup, method, result):
     chain, rpc = setup
     chain.override = lambda name, body: {**body, "result": result} if name == method else body
@@ -121,10 +152,15 @@ async def test_wrong_deployment_never_falls_back(setup, method, result):
         await rpc.snapshot()
 
 
-@pytest.mark.parametrize("change", [
-    lambda body: {**body, "id": -1}, lambda body: {**body, "error": {"code": -32000}},
-    lambda body: [], lambda body: {"jsonrpc": "2.0", "id": body["id"]},
-])
+@pytest.mark.parametrize(
+    "change",
+    [
+        lambda body: {**body, "id": -1},
+        lambda body: {**body, "error": {"code": -32000}},
+        lambda body: [],
+        lambda body: {"jsonrpc": "2.0", "id": body["id"]},
+    ],
+)
 async def test_rpc_errors_are_dependency_failures(setup, change):
     chain, rpc = setup
     chain.override = lambda _, body: change(body)
@@ -132,10 +168,17 @@ async def test_rpc_errors_are_dependency_failures(setup, change):
         await rpc.snapshot()
 
 
-@pytest.mark.parametrize("mutation", [
-    {"removed": True}, {"address": SENDER}, {"blockHash": H3},
-    {"blockNumber": "0x3"}, {"data": "0x"}, {"topics": []},
-])
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        {"removed": True},
+        {"address": SENDER},
+        {"blockHash": H3},
+        {"blockNumber": "0x3"},
+        {"data": "0x"},
+        {"topics": []},
+    ],
+)
 async def test_invalid_event_page_fails(setup, mutation):
     chain, rpc = setup
     head = await rpc.snapshot()
@@ -180,13 +223,21 @@ async def test_direct_transaction_evidence_decodes_actual_calldata(setup):
     assert not any(method.startswith("eth_send") for method, _ in chain.calls)
 
 
-@pytest.mark.parametrize("target,patch", [
-    ("tx", {"to": SENDER}), ("tx", {"chainId": "0x1"}),
-    ("tx", {"value": "0x1"}), ("tx", {"input": "0xdeadbeef"}),
-    ("tx", {"input": "0x"}), ("tx", {"blockHash": H3}),
-    ("receipt", {"from": ADDRESS}), ("receipt", {"blockHash": H3}),
-    ("receipt", {"status": "0x2"}), ("receipt", {"transactionHash": H3}),
-])
+@pytest.mark.parametrize(
+    "target,patch",
+    [
+        ("tx", {"to": SENDER}),
+        ("tx", {"chainId": "0x1"}),
+        ("tx", {"value": "0x1"}),
+        ("tx", {"input": "0xdeadbeef"}),
+        ("tx", {"input": "0x"}),
+        ("tx", {"blockHash": H3}),
+        ("receipt", {"from": ADDRESS}),
+        ("receipt", {"blockHash": H3}),
+        ("receipt", {"status": "0x2"}),
+        ("receipt", {"transactionHash": H3}),
+    ],
+)
 async def test_direct_transaction_identity_rejections(setup, target, patch):
     chain, rpc = setup
     getattr(chain, target).update(patch)
@@ -235,9 +286,13 @@ async def test_page_rollback_preserves_checkpoint(setup):
         chain.logs = [make_log(number=3, block_hash=H3)]
         # Simulate inconsistent persisted data: insertion failure must undo cursor update.
         with engine.begin() as conn:
-            conn.execute(insert(journal).values(deployment=store.deployment,
-                         block_number=3, log_index=0, payload="existing"))
+            conn.execute(
+                insert(journal).values(
+                    deployment=store.deployment, block_number=3, log_index=0, payload="existing"
+                )
+            )
         from sqlalchemy.exc import IntegrityError
+
         with pytest.raises(IntegrityError):
             await store.sync()
         assert store.checkpoint() == (2, H2)
@@ -345,3 +400,55 @@ async def test_regressed_rpc_head_is_not_success(setup):
         assert store.checkpoint() == (2, H2)
     finally:
         engine.dispose()
+
+
+@pytest.mark.parametrize("name,args", [("not_in_abi", []), ("nextNonce", [])])
+async def test_invalid_view_input_is_configuration_error(setup, name, args):
+    _, rpc = setup
+    from infrastructure.blockchain.errors import BlockchainConfigurationError
+
+    with pytest.raises(BlockchainConfigurationError):
+        await rpc.call(name, args, block(2, H2))
+
+
+async def test_duplicate_abi_function_rejected(setup):
+    _, rpc = setup
+    from infrastructure.blockchain.errors import BlockchainConfigurationError
+
+    duplicate = next(x for x in ABI if x["type"] == "function")
+    with pytest.raises(BlockchainConfigurationError):
+        WalletRpc(
+            rpc.client,
+            rpc.url,
+            chain_id=31337,
+            address=ADDRESS,
+            deployment_block=1,
+            deployment_hash=H1,
+            runtime_code_hash="0x" + keccak(CODE).hex(),
+            abi=ABI + [duplicate],
+        )
+
+
+@pytest.mark.parametrize(
+    "getter,error,args",
+    [
+        ("getIssuer", "UnknownIssuer", [b"i" * 32]),
+        ("getKey", "UnknownKey", [b"k" * 32]),
+        ("getDocument", "UnknownDocument", [b"d" * 32, 1]),
+        ("getProposal", "UnknownProposal", [b"p" * 32]),
+    ],
+)
+async def test_getter_specific_absence_is_available_in_first_adapter_pr(setup, getter, error, args):
+    chain, rpc = setup
+
+    def missing(method, body):
+        if method == "eth_call":
+            return {
+                "jsonrpc": "2.0",
+                "id": body["id"],
+                "error": {"code": 3, "data": "0x" + keccak(text=error + "()")[:4].hex()},
+            }
+        return body
+
+    chain.override = missing
+    assert (await rpc.read(getter, args))["values"] is None

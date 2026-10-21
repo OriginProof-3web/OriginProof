@@ -8,7 +8,7 @@ from itertools import count
 
 import httpx
 from eth_abi import decode, encode
-from eth_abi.exceptions import DecodingError
+from eth_abi.exceptions import DecodingError, EncodingError
 from eth_utils import keccak, to_normalized_address
 
 from .errors import BlockchainConfigurationError, BlockchainDependencyError
@@ -75,6 +75,8 @@ class WalletRpc:
         self.deployment_block, self.deployment_hash = deployment_block, deployment_hash
         self.runtime_code_hash = runtime_code_hash
         self.functions = {x["name"]: x for x in abi if x["type"] == "function"}
+        if len(self.functions) != sum(x["type"] == "function" for x in abi):
+            raise BlockchainConfigurationError("overloaded/duplicate ABI functions are unsupported")
         self.selectors = {keccak(text=signature(x))[:4]: x for x in self.functions.values()}
         self.events = {
             "0x" + keccak(text=signature(x)).hex(): x for x in abi if x["type"] == "event"
@@ -150,12 +152,15 @@ class WalletRpc:
         return {"block": block, "values": result}
 
     async def call(self, name, args, block):
-        entry = self.functions[name]
-        if entry.get("stateMutability") not in ("view", "pure"):
-            raise BlockchainConfigurationError("read requires a view function")
-        data = keccak(text=signature(entry))[:4] + encode(
-            [abi_type(x) for x in entry["inputs"]], args,
-        )
+        try:
+            entry = self.functions[name]
+            if entry.get("stateMutability") not in ("view", "pure"):
+                raise BlockchainConfigurationError("read requires a view function")
+            data = keccak(text=signature(entry))[:4] + encode(
+                [abi_type(x) for x in entry["inputs"]], args,
+            )
+        except (KeyError, TypeError, ValueError, EncodingError) as exc:
+            raise BlockchainConfigurationError("invalid wallet view call") from exc
         try:
             raw = await self.rpc("eth_call", [{"to": self.address, "data": "0x" + data.hex()},
                                               self.pin(block)])
