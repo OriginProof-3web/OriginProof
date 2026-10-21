@@ -5,7 +5,7 @@
 ## 현재 실행 경계
 
 - `.github/workflows/d-pinned-c-qa.yml`은 PR head SHA를 checkout하고 해당 lockfile로 설치합니다. `apps/api/**`, `packages/python/**`, `services/analyzer/**`, `services/indexer/**`, `uv.lock`과 D QA/guard/manifest 변경이 trigger입니다.
-- stage manifest의 필수 파일과 JUnit testcase·summary를 검증합니다. 단계 누적 기대값은 #72 W2=12, #73 W2+W3=25, #74 W2+W3+W4=31(철회 후 과거 비활성 회귀 포함), #75/#76 분석 연결까지=43입니다. consumer는 별도 31입니다. failures/errors/skips=0이어야 하며 개수 변경은 기대값과 함께 리뷰해야 합니다.
+- stage manifest의 필수 파일과 JUnit testcase·summary를 검증합니다. 단계 누적 기대값은 #72 W2=12, #73 W2+W3=25, #74/#75 W2+W3+W4=31(철회 후 과거 비활성 회귀 포함), #76 분석 연결까지=43입니다. consumer는 별도 31입니다. failures/errors/skips=0이어야 하며 개수 변경은 기대값과 함께 리뷰해야 합니다.
 - JUnit은 `d-same-head-<suite>-<head SHA>` artifact로 보존합니다. CI 결과는 현재 PR Checks를 확인하고 로컬 결과와 구분합니다. C의 DG12 겹친 인용 수정이 포함돼 consumer 31개가 통과하는 기준입니다.
 - ASGI·SQLite·합성 Registry·mock/SDK transport 검사입니다. 실제 PostgreSQL·EVM·브라우저·유료 모델·입력 선정·G07 해결·단계 완료를 뜻하지 않습니다. B #68 Foundry 회귀와 D 합성 Registry QA는 별개입니다.
 - AI(Codex)가 기술 검증·workflow·문서를 보완했습니다. 사람의 대행 변경 확인·작성자 외 승인을 대신하지 않습니다.
