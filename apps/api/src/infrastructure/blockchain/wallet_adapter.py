@@ -18,7 +18,8 @@ from originproof_core.wallet_ports import (
 )
 from originproof_core.wallet_signatures import document_id as calculate_document_id
 
-from .errors import BlockchainDependencyError
+from .errors import BlockchainConfigurationError, BlockchainDependencyError
+from .wallet_creation import ADDRESS, WalletCreationProof, verified_approvers
 from .wallet_reconciliation import WalletReconciler, require
 from .wallet_rpc import hex_bytes, named, quantity
 
@@ -52,8 +53,11 @@ def port_arguments(fields, actual):
 class WalletRegistryReadAdapter:
     """Injectable read subset; unconfigured mutation/authorization paths fail closed."""
 
-    def __init__(self, rpc):
+    def __init__(self, rpc, *, creation_proof: WalletCreationProof | None = None):
         self.rpc = rpc
+        if creation_proof is not None and not isinstance(creation_proof, WalletCreationProof):
+            raise BlockchainConfigurationError("creation_proof must be WalletCreationProof")
+        self.creation_proof = creation_proof
         self.reconciler = WalletReconciler(rpc)
 
     def _position(self, block):
@@ -265,10 +269,14 @@ class WalletRegistryReadAdapter:
             block_hash=evidence["block"]["hash"],
         )
 
+    @dependency_boundary
     async def is_approver(self, address: str) -> bool:
-        raise DependencyUnavailableError(
-            "verified approver deployment provenance is not configured"
-        )
+        candidate = ADDRESS.validate_python(address)
+        if self.creation_proof is None:
+            raise DependencyUnavailableError(
+                "verified approver deployment provenance is not configured"
+            )
+        return candidate in await verified_approvers(self.rpc, self.creation_proof)
 
     async def submit(self, request: SigningRequest, signature: str) -> str | None:
         raise DependencyUnavailableError("read-only adapter: relayer submission is not configured")

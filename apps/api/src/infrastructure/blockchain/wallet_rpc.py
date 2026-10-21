@@ -82,6 +82,7 @@ class WalletRpc:
             "0x" + keccak(text=signature(x)).hex(): x for x in abi if x["type"] == "event"
         }
         self.abi_errors = [x for x in abi if x["type"] == "error"]
+        self.constructor = next((x for x in abi if x["type"] == "constructor"), None)
         self.ids = count(1)
 
     async def rpc(self, method, params):

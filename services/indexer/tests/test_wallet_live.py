@@ -15,9 +15,11 @@ from eth_abi import encode
 from eth_utils import keccak
 from infrastructure.blockchain.errors import BlockchainDependencyError
 from infrastructure.blockchain.wallet_adapter import WalletRegistryReadAdapter
+from infrastructure.blockchain.wallet_creation import WalletCreationProof
 from infrastructure.blockchain.wallet_reconciliation import WalletReconciler
 from infrastructure.blockchain.wallet_recovery import WalletRecovery, calldata
 from infrastructure.blockchain.wallet_rpc import WalletRpc, hex_bytes, named
+from originproof_core import DependencyUnavailableError
 from originproof_core.canonicalization import canonical_json_bytes
 from originproof_core.wallet_contract import (
     GovernanceProposal,
@@ -153,6 +155,8 @@ async def test_disposable_wallet_registry_recovery_and_reorg(tmp_path):
             report["manifest"] = {k: v for k, v in config.items() if k != "abi"}
             report["manifest"].update(
                 deployment_tx=deploy_hash,
+                creation_bytecode_keccak256="0x"
+                + keccak(hex_bytes(artifact["bytecode"]["object"])).hex(),
                 constructor_arguments=[approvers],
                 contract="OriginProofWalletRegistry",
                 non_upgradeable=True,
@@ -260,7 +264,23 @@ async def test_disposable_wallet_registry_recovery_and_reorg(tmp_path):
             assert not (await reconciler.proposal(pid))["executed"]
             await send("approve_second", "approve", approve, approvers[1])
             assert (await reconciler.proposal(pid))["approvals"] == approvers[:2]
-            adapter = WalletRegistryReadAdapter(reader)
+            creation_proof = WalletCreationProof(
+                deploy_hash, hex_bytes(artifact["bytecode"]["object"])
+            )
+            adapter = WalletRegistryReadAdapter(reader, creation_proof=creation_proof)
+            for actor in approvers:
+                assert await adapter.is_approver(actor)
+            assert not await adapter.is_approver(institution)
+            assert not await adapter.is_approver(relayer)
+            wrong_proof = WalletCreationProof(deploy_hash, b"wrong build")
+            with pytest.raises(DependencyUnavailableError):
+                await WalletRegistryReadAdapter(reader, creation_proof=wrong_proof).is_approver(
+                    approvers[0]
+                )
+            report["scenarios"].append(
+                "verified top-level CREATE proves three approvers, "
+                "excludes issuer/relayer, rejects wrong build"
+            )
             assert (await adapter.issuer(issuer)).state == "ACTIVE"
             assert (await adapter.key(key)).issuer_id == issuer
             assert (await adapter.proposal(pid)).proposal.status == "EXECUTED"
@@ -551,6 +571,8 @@ async def test_disposable_wallet_registry_recovery_and_reorg(tmp_path):
             await asyncio.to_thread(process.wait, 5)
             with pytest.raises(BlockchainDependencyError):
                 await reader.snapshot()
+            with pytest.raises(DependencyUnavailableError):
+                await adapter.is_approver(approvers[0])
             report["scenarios"].append("wrong chain and actual RPC outage fail closed")
             output = os.environ.get("ORIGINPROOF_WALLET_LIVE_OUTPUT")
             if output:
