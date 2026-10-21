@@ -8,6 +8,10 @@ on:
       - "fixtures/finals/v5_d_stage_qa_files.txt"
       - "fixtures/finals/v5_d_junit_guard.py"
       - "fixtures/finals/test_v5_d_junit_guard.py"
+      - "fixtures/finals/v5_d_g07_runner.py"
+      - "fixtures/finals/test_v5_d_g07_runner.py"
+      - "fixtures/finals/w5_p0_api_qa.py"
+      - "fixtures/finals/w5_projection_qa.py"
       - "fixtures/synthetic/analysis_consumer_cases_v1.json"
       - "services/analyzer/**"
       - "services/indexer/**"
@@ -43,11 +47,14 @@ jobs:
           git rev-parse HEAD
           uv sync --all-packages --all-groups --locked
           git diff --exit-code
-      - name: Test the D evidence guard
+      - name: Test D evidence guard and G07 preflight
         if: matrix.suite == 'stage'
         run: |
-          .venv/bin/ruff check fixtures/finals/v5_d_junit_guard.py fixtures/finals/test_v5_d_junit_guard.py
-          .venv/bin/python -m pytest -q fixtures/finals/test_v5_d_junit_guard.py
+          .venv/bin/ruff check \
+            fixtures/finals/v5_d_junit_guard.py fixtures/finals/test_v5_d_junit_guard.py \
+            fixtures/finals/v5_d_g07_runner.py fixtures/finals/test_v5_d_g07_runner.py \
+            fixtures/finals/w5_p0_api_qa.py
+          .venv/bin/python -m pytest -q fixtures/finals/test_v5_d_junit_guard.py fixtures/finals/test_v5_d_g07_runner.py
       - name: Run explicit D QA (ASGI, SQLite, synthetic Registry, no live model)
         env:
           SUITE: ${{ matrix.suite }}

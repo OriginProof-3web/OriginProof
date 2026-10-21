@@ -25,10 +25,14 @@ import httpx
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-PRODUCT_SHA = "9651062c9f36e124b76796278c996764678e1c77"
+LEGACY_PRODUCT_SHA = "9651062c9f36e124b76796278c996764678e1c77"
+PRODUCT_SHA = os.getenv("W5_D_PRODUCT_SHA", LEGACY_PRODUCT_SHA)
 W4_QA_SHA = "0bb5da42d64b9ce298cb2de2951b327da6bc4fc7"
 W4_PREP_SHA = "78cce405357ae1f509a9bfebdbb07af4b02b2411"
-DEPLOYER = "originproof-w5-d-qa-deployer:9651062"
+DEPLOYER = (
+    "originproof-w5-d-qa-deployer:9651062" if PRODUCT_SHA == LEGACY_PRODUCT_SHA
+    else f"originproof-w5-d-qa-deployer:{PRODUCT_SHA}"
+)
 
 
 def command(args, cwd=ROOT, timeout=240):
@@ -58,7 +62,8 @@ def materialize(out):
     product.mkdir()
     with tarfile.open(fileobj=io.BytesIO(command(["git", "archive", PRODUCT_SHA]))) as archive:
         archive.extractall(product, filter="data")
-    assert (product / "uv.lock").read_bytes() == (ROOT / "uv.lock").read_bytes()
+    if (product / "uv.lock").read_bytes() != (ROOT / "uv.lock").read_bytes():
+        raise ValueError("candidate and QA lockfiles differ")
     sources = {}
     for sha, path in (
         (W4_QA_SHA, "fixtures/finals/test_w4_lifecycle_qa.py"),
@@ -66,8 +71,9 @@ def materialize(out):
         (W4_PREP_SHA, "fixtures/finals/prepare_w4_d3.py"),
     ):
         target = product / path
-        assert not target.exists()
         blob = command(["git", "show", f"{sha}:{path}"])
+        if target.exists() and target.read_bytes() != blob:
+            raise ValueError("candidate helper differs from immutable reuse source")
         target.write_bytes(blob)
         sources[path] = {"sha": sha, "sha256": hashlib.sha256(blob).hexdigest()}
     (product / ".env").write_text("LLM_PROVIDER=mock\nOPENAI_MODEL=gpt-6-luna\n")
@@ -1054,12 +1060,20 @@ def other_network(settings, prepared, helper, chain_id):
 def main():
     if os.getenv("W5_D_API_QA") != "1":
         raise SystemExit("W5_D_API_QA=1 required for owned disposable provisioning")
+    if "W5_D_PRODUCT_SHA" in os.environ:
+        from v5_d_g07_runner import preflight
+
+        if preflight(PRODUCT_SHA)["status"] != "READY_TO_EXECUTE_NOT_TESTED":
+            raise SystemExit("candidate preflight blocked; run v5_d_g07_runner.py first")
     os.environ.update(LLM_PROVIDER="mock", OPENAI_MODEL="gpt-6-luna")
     os.environ.pop("OPENAI_API_KEY", None)
-    out = ROOT / "build/w5-d-api" / uuid4().hex
+    out = Path(os.getenv("W5_D_OUTPUT_ROOT", str(ROOT / "build/w5-d-api"))) / uuid4().hex
     out.mkdir(parents=True, mode=0o700)
     summary = {
         "product_sha": PRODUCT_SHA,
+        "verification_scope": (
+            "MERGED_G07_CANDIDATE" if "W5_D_PRODUCT_SHA" in os.environ else "LEGACY_FIXED_SHA"
+        ),
         "qa_git_head": command(["git", "rev-parse", "HEAD"]).decode().strip(),
         "qa_source_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "projection_source_sha256": hashlib.sha256(
