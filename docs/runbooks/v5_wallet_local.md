@@ -10,9 +10,10 @@ C의 `/v3` 지갑 API를 로컬에서 띄우고 합성 계정·설정을 준비�
 ## 1. 기동과 DB
 
 ```sh
-make mvp-up
-make db-upgrade
+make finals-up      # mvp-up → deploy-local → api-reload → finals-seed(P0 계정), 끝에서 /health/ready 200 확인
 ```
+
+v5 계정만 확인할 때는 `make mvp-up`, `make db-upgrade`만으로도 2·3절을 진행할 수 있습니다. 다만 이때 `/health/ready`는 503입니다(6절).
 
 ## 2. v5 합성 계정
 
@@ -50,3 +51,21 @@ PYTHONPATH=apps/api/src:packages/python:services/analyzer/src:services/indexer/s
 ```
 
 실제 PostgreSQL·프로세스 복구 검사와 독립 RPC 검증 도구는 W6(#63, `phase/W6`에서 병합 예정)에서 다룹니다. 합성 Registry 결과를 실제 체인 연결 성공으로 보고하지 않습니다.
+
+## 6. health 판정과 완료 기준
+
+`/health/live`는 프로세스가 떠 있으면 200입니다. `/health/ready`는 v5 전용 검사가 아니라 P0 전체 준비 상태(`readiness.py`)를 봅니다. migration head, `operator`·`recipient`·`issuer` 역할 계정, `API_FINALS_*_ISSUER_ID` 두 기관의 issuer 계정, 체인 조회, projection 동기화가 모두 맞아야 200입니다.
+
+| 준비한 것 | `/health/ready` | 이유 |
+| --- | --- | --- |
+| `mvp-up`·`db-upgrade`·`v5-wallet-seed`만 | **503 (정상)** | v5 계정에는 `recipient`와 finals 기관 issuer가 없습니다 |
+| 1절 `make finals-up` + `v5-wallet-seed`, `API_WALLET_REGISTRY_ADDRESS` 비움 | 200 | 기존 P0 계정·legacy 체인(Anvil)·projection으로 판정합니다. `finals-up`이 마지막에 이 200을 확인하며, Registry 주소를 넣은 `.env`로 실행하면 이 단계에서 실패합니다 |
+| `API_WALLET_REGISTRY_ADDRESS` 설정, Registry 미주입 | **503 (현재 한계)** | 각 기관을 Registry로 조회하는데 `wallet_chain=None`이라 실패합니다. B Adapter 연결(4절) 뒤 200이 됩니다 |
+
+이 runbook 단계(합성 계정·설정)의 완료 기준은 다음과 같습니다. ready 200은 위 둘째 줄 조건에서만 기대합니다.
+
+1. `make v5-wallet-seed`를 두 번 실행해 같은 계정 ID와 같은 설정 두 줄이 나오고, 기존 계정이 바뀌지 않습니다.
+2. 출력값을 `.env`에 넣고 `make api-reload` 한 뒤 API 설정에 그대로 반영됩니다.
+3. `/health/live`가 200입니다.
+
+2026-10-21 D 독립 실행(격리 PostgreSQL)에서 1~3과 seed만 한 상태의 ready 503을 확인했습니다. 둘째 줄은 기존 `finals-up`의 ready 확인에 기댄 설명이며, v5 seed를 더한 조합은 이 PR에서 실행하지 않았습니다.
