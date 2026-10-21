@@ -86,6 +86,8 @@ def transport(issuer=1, key=1, fault=None, calls=None):
             }[params[0]]
             if fault == "deployment" and params[0] == "0x1":
                 expected = "0x" + "ff" * 32
+            if fault == "genesis_regenerated" and params[0] == "0x0":
+                expected = "0x" + "ee" * 32
             if params[0] == "0x8":
                 current_block_reads += 1
                 if fault == "snapshot_reorg" and current_block_reads > 1:
@@ -286,6 +288,15 @@ async def test_failure_is_dependency_unavailable(manifest, fault):
         )
         with pytest.raises(DependencyUnavailableError, match="^blockchain state unavailable$"):
             await reader.get_key(KEY)
+
+
+async def test_regenerated_genesis_keeps_deployment_identity(manifest):
+    # G07: Anvil --state restarts can return a new genesis; deployment hash still decides.
+    async with httpx.AsyncClient(transport=transport(fault="genesis_regenerated")) as client:
+        reader = JsonRpcBlockchainReader(
+            "http://test", manifest, issuer_ids=[ISSUER], client=client
+        )
+        assert (await reader.get_issuer(ISSUER)) is not None
 
 
 async def test_invalid_enum_and_naive_time(manifest):
