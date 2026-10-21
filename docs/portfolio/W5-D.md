@@ -74,3 +74,7 @@ Codex가 D1 추적 자료와 D2 문서를 작성했습니다. 읽기 전용 보�
 - 기본 provider/model은 mock/gpt-6-luna, 유료 호출0. 개인 .env·사용자 작업·기존 서비스·Serena/Graphify 보존. 새 소유 합성 자원의 migration/로컬 배포·종료를 수행했으며 운영 DB/배포는 하지 않았습니다.
 
 W5-D2의 실제 UI·QR·키 관리·consume·접근성은 A/C의 같은 통합 화면 인계 뒤 실행합니다. W5-D3는 P0 완료 후로 보류입니다. Codex가 D 코드·실행·보고를 수행했고 사람의 결과/기여 사실 확인과 작성자 외 리뷰는 PENDING입니다. 초기 문서 준비 당시 기능 미실행 기록은 당시 범위로 보존합니다.
+
+## 2026-10-21 — D 입력 의존성 보안 보완
+
+D 전체 단계 QA 중 공통 CI의 `make security`가 Pillow8/certifi1 총9건으로 중단되는 것을 확인했습니다. 사용자 지시로 Codex가 기존 두 패키지만 갱신하여 감사0건·phase 기반600 PASS/10 SKIP을 확인했습니다. 실행 코드 `781b96ea9654a2bf277fa3adf38f9f4269bf46e1`, 기존 이미지 parser/SDK·공통 모델은 재사용했습니다. 새 입력 활성화·실제 모델 평가는 하지 않았고 공유 lockfile/major 갱신의 C 리뷰는 대기입니다. [원인·검사·한계](../qa/v5-d-dependency-security-20261021.md).
