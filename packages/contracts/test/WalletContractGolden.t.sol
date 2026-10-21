@@ -102,4 +102,123 @@ contract WalletContractGoldenTest is Test {
             ) != vm.addr(1)
         );
     }
+
+    // Flip one ABI word at a time; this checks signing coverage, not Registry validation.
+    function assertEachWordBindsSigner(bytes memory encoded, bytes memory signature) internal pure {
+        for (uint256 word = 1; word < encoded.length / 32; ++word) {
+            uint256 offset = 32 + word * 32;
+            assembly ("memory-safe") {
+                mstore(add(encoded, offset), xor(mload(add(encoded, offset)), 1))
+            }
+            assertTrue(ECDSA.recover(defaultDigest(keccak256(encoded)), signature) != vm.addr(1));
+            assembly ("memory-safe") {
+                mstore(add(encoded, offset), xor(mload(add(encoded, offset)), 1))
+            }
+        }
+    }
+
+    function testEveryPublishFieldIsSignatureBound() public pure {
+        assertEachWordBindsSigner(
+            abi.encode(PUBLISH_TYPEHASH, Golden.payment_request()), Golden.PAYMENT_REQUEST_SIGNATURE
+        );
+        assertEachWordBindsSigner(
+            abi.encode(PUBLISH_TYPEHASH, Golden.official_document()),
+            Golden.OFFICIAL_DOCUMENT_SIGNATURE
+        );
+    }
+
+    function testEveryRevokeFieldIsSignatureBound() public pure {
+        assertEachWordBindsSigner(
+            abi.encode(REVOKE_TYPEHASH, Golden.revoke()), Golden.REVOKE_SIGNATURE
+        );
+    }
+
+    function testEveryKeyProofFieldIsSignatureBound() public pure {
+        assertEachWordBindsSigner(
+            abi.encode(KEY_PROOF_TYPEHASH, Golden.key_proof()), Golden.KEY_PROOF_SIGNATURE
+        );
+    }
+
+    function testEveryProposalWordIsIdentifierBound() public pure {
+        for (uint256 word; word < 9; ++word) {
+            bytes memory encoded = abi.encode(
+                uint256(31337),
+                address(0x1212121212121212121212121212121212121212),
+                Golden.proposal()
+            );
+            uint256 offset = 32 + word * 32;
+            assembly ("memory-safe") {
+                mstore(add(encoded, offset), xor(mload(add(encoded, offset)), 1))
+            }
+            assertTrue(keccak256(encoded) != Golden.PROPOSAL_ID);
+        }
+    }
+
+    function testDomainNameAndVersionBindSignature() public pure {
+        bytes32 hash = keccak256(abi.encode(PUBLISH_TYPEHASH, Golden.payment_request()));
+        for (uint256 field; field < 2; ++field) {
+            bytes32 separator = keccak256(
+                abi.encode(
+                    keccak256(
+                        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+                    ),
+                    keccak256(bytes(field == 0 ? "OtherService" : "OriginProof")),
+                    keccak256(bytes(field == 1 ? "2" : "1")),
+                    uint256(31337),
+                    address(0x1212121212121212121212121212121212121212)
+                )
+            );
+            bytes32 changed = keccak256(abi.encodePacked(hex"1901", separator, hash));
+            assertTrue(ECDSA.recover(changed, Golden.PAYMENT_REQUEST_SIGNATURE) != vm.addr(1));
+        }
+    }
+
+    function testRejectsMalleableAndMalformedSignatures() public pure {
+        bytes memory signature = Golden.PAYMENT_REQUEST_SIGNATURE;
+        bytes32 r;
+        bytes32 s;
+        assembly ("memory-safe") {
+            r := mload(add(signature, 32))
+            s := mload(add(signature, 64))
+        }
+        uint256 order = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141;
+        bytes memory highS = abi.encodePacked(
+            r, bytes32(order - uint256(s)), uint8(signature[64]) == 27 ? uint8(28) : uint8(27)
+        );
+        (address recovered, ECDSA.RecoverError error,) =
+            ECDSA.tryRecover(Golden.PAYMENT_REQUEST_DIGEST, highS);
+        assertEq(recovered, address(0));
+        assertTrue(error == ECDSA.RecoverError.InvalidSignatureS);
+
+        signature[64] = bytes1(uint8(0));
+        (recovered, error,) = ECDSA.tryRecover(Golden.PAYMENT_REQUEST_DIGEST, signature);
+        assertEq(recovered, address(0));
+        assertTrue(error != ECDSA.RecoverError.NoError);
+        (recovered, error,) = ECDSA.tryRecover(Golden.PAYMENT_REQUEST_DIGEST, hex"00");
+        assertEq(recovered, address(0));
+        assertTrue(error == ECDSA.RecoverError.InvalidSignatureLength);
+    }
+
+    function testFuzzNonceAndDeadlineAreSignatureBound(uint256 nonce, uint64 deadline) public pure {
+        Registry.Publish memory message = Golden.payment_request();
+        if (nonce != message.nonce) {
+            message.nonce = nonce;
+            assertTrue(
+                ECDSA.recover(
+                    defaultDigest(keccak256(abi.encode(PUBLISH_TYPEHASH, message))),
+                    Golden.PAYMENT_REQUEST_SIGNATURE
+                ) != vm.addr(1)
+            );
+        }
+        message = Golden.payment_request();
+        if (deadline != message.deadline) {
+            message.deadline = deadline;
+            assertTrue(
+                ECDSA.recover(
+                    defaultDigest(keccak256(abi.encode(PUBLISH_TYPEHASH, message))),
+                    Golden.PAYMENT_REQUEST_SIGNATURE
+                ) != vm.addr(1)
+            );
+        }
+    }
 }
