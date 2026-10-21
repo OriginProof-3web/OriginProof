@@ -191,7 +191,35 @@ class WalletReconciler:
                 "arguments": identity,
             }
         ]
-        if function == "publish" and message["version"] > 1:
+        if function == "publish" and message["version"] > 1 and len(evidence["events"]) == 1:
+            previous = await self.rpc.call(
+                "getDocument",
+                [
+                    hex_bytes(message["documentId"], 32),
+                    message["version"] - 1,
+                ],
+                receipt,
+            )
+            require(previous is not None, "predecessor absent")
+            field = self.rpc.functions["getDocument"]["outputs"][0]
+            predecessor = named(field["components"], previous[0])
+            require(
+                predecessor["state"] == 2
+                and predecessor["version"] == message["version"] - 1
+                and predecessor["issuerId"] == message["issuerId"]
+                and predecessor["docKey"] == message["docKey"],
+                "missing supersession without revoked predecessor",
+            )
+            block_logs = await self.rpc.logs(quantity(receipt["number"]), receipt)
+            publications = [x for x in block_logs if x["decoded"] == expected[0]]
+            require(len(publications) == 1, "canonical publication missing/ambiguous")
+            canonical = [
+                x["decoded"]
+                for x in block_logs
+                if x["transactionHash"] == publications[0]["transactionHash"]
+            ]
+            require(canonical == evidence["events"], "receipt omits canonical transaction events")
+        elif function == "publish" and message["version"] > 1:
             expected.insert(
                 0,
                 {

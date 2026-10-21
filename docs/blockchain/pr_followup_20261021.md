@@ -21,3 +21,7 @@ Registry가 이전 최신이 ACTIVE일 때만 SUPERSEDED 전이/이벤트를 수
 ## #69 · 기준 c5a82cc
 
 #78의 getter별 정확한 custom error 분류를 동일 원본에서 앞당겼습니다. 다른 오류는 dependency로 유지합니다. 잘못된 view 이름/인자를 ConfigurationError로 묶고 중복/overload ABI를 거부합니다. 신규 검사7개 포함 Python666 PASS/10 SKIP, ruff PASS입니다. block/log 위치는 BigInteger로 선언하며 기존 PostgreSQL 테이블을 create_all로 자동 migration한다고 주장하지 않습니다(새 journal 기준, 기존 DB 변경은 별도 인계). C WalletRegistry 원본 변환/주입과 실 API 연결은 후속 검증 대상이며 helper 단독을 완성된 port로 노출하지 않습니다.
+
+## #78 · 기준4b010a5 / 대행 변경 재검증
+
+C가 철회 대조를 REVOKED(2)로 좁힌 수정을 확인했습니다. 추가로 Registry의 'REVOKED 이전 버전 뒤 새 발행은 대체 이벤트 없음'과 Adapter의 무조건 대체 이벤트 요구가 충돌하는 결함을 수정했습니다. 이벤트가1개일 때는 이전 버전의 소유/번호/REVOKED 상태와 해당 block의 canonical 전체 tx 이벤트를 대조합니다. ACTIVE 이전 버전의 대체 이벤트 누락은 계속 거부합니다. 새 회귀2개 포함 대조 검사54 PASS, 공식 ruff PASS입니다. 입력 검증 병합 충돌은 양쪽 검증·tx inclusion을 보존했습니다. C port/제품 연결 완료와 이 독립 대조 검증을 구분합니다.
