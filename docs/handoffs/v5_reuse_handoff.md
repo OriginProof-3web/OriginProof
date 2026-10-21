@@ -3,7 +3,7 @@
 - 문서 버전: **1.0** · 작성/PR 상태 확인: **2026-10-15, 한국시간**
 - 계획 기준: [개발 계획서 5.1](../development_plan.md) 3·4·11.3·15장, V5-Q08.
 - 목적: 종료된 과거 PR의 코드를 재사용할 때 에이전트와 담당자가 같은 원본·범위·미완료를 확인하도록 합니다.
-- 현재 상태: **PR 정리·원본 보존·인계 문서 작성 완료 / 새 5.0 반영·실제 연결·기능 검증 미확인**.
+- 현재 상태(2026-10-18): **C #59~#63 독립 구현·리뷰 보완 반영 / B·A·D 실제 연결·소유자 리뷰 대기**. [C 구현 기록](v5_c_implementation.md)과 [검증 후보 기록](../qa/v5_premerge_cbd.md)을 확인합니다.
 - GitHub [최초 통합 인계 댓글](https://github.com/OriginProof-3web/OriginProof/pull/56#issuecomment-6172682875)의 내용을 저장소 문서로 옮겼습니다. 이후 진행 상태는 이 문서에서 갱신하며 댓글의 과거 기록은 보존합니다.
 
 ## 1. 사용하는 방법과 완료 처리
@@ -167,6 +167,205 @@
 - **구버전 보존:** 기존 v1/v2 서명·binding·consume·자료 읽기와 해당 회귀를 유지합니다. 서버 기관키 백업은 레거시 한정이며 신규 기관키를 서버에 수집/보관하지 않습니다.
 - **입력/AI:** 입력 지원은 팀 회의 후 확정하며 Decisions API는 현재 개발 범위 밖입니다. 과거 입력 코드의 존재나 높은 confidence를 입력 선정·grounding 성공으로 취급하지 않습니다.
 - **승인/기여:** PR 종료·문서 기록·Codex 기술 검토와 사람의 개인 기여 확인·소유자/소비 리뷰·단계 완료를 구분합니다. 담당자 이름은 기존 역할 기준이며 실제 착수/확인까지 완료로 표시하지 않습니다.
+
+## 4.1 V5-W1-B 계약 검토·독립 검사 (2026-10-16)
+
+- 담당: B 여하민님 `@hamin1228`; Codex가 비교·검사·기록을 보조했습니다. 사람의 소유자 승인과 C/A/D 리뷰는 미확인입니다.
+- 상태: **계약 차이 검토·독립 서명 검사 완료 / 후속 설계·소비자 리뷰·실제 연결 대기**. W1 단계 완료나 R39/R37/R38/R55 전체 인계 완료가 아닙니다.
+- 브랜치: `codex/v5-w1-b-contract-review`; 시작 기준 `9feec138bf3d6d8a379b211583f92db1716e54f2` (integration `33bc4f4` + 로컬 기여 보존).
+- 과거 phase/W1~W4는 보존합니다. 새 v5 단계 통합 브랜치가 정해질 때 PR 대상을 C와 조율하며 과거 phase를 다시 전진시키지 않습니다. 원격 push/PR은 이번 범위에서 미실행입니다.
+- 로컬 기준은 계획서 5.1·v5-shared-0.1입니다. C 비교 원본은 [#63의 고정 head](https://github.com/OriginProof-3web/OriginProof/tree/6e0e924c77e9a5b83a8522df4d3cfdc797e8822c), 계약 **v5-shared-0.2**이며 미병합 Draft 소비 계약으로만 대조했습니다. 다른 담당 브랜치를 병합하거나 0.2로 로컬 버전을 올리지 않았습니다.
+
+### 기존 구현과 신규 계약의 전환표
+
+| 영역 | 기존/재사용 | 신규 경계·필수 검사 | 작업 |
+| --- | --- | --- | --- |
+| 기관 권한 | IssuerRegistry의 상태 검사·실패 사례 | 서로 다른 고정 승인자 3명 중 2명; 단독 등록/재활성화·중복/만료 거부, 배포자 우회 없음 | W2-B / V5-F02~03 |
+| 키 | IssuerKeyRegistry·구배포 조회/검사 | KeyProof 일회성·issuer/signer 고정; 등록/교체/사고 block; 구키 신규 발행 차단과 과거 정상 서명 구분 | W2/W4-B / V5-F05,09 |
+| 서명 | 원본 canonical JSON·Golden·OpenZeppelin ECDSA | Publish/Revoke/KeyProof·domain·알고리즘/schema·nonce/deadline; 서명 검증과 실제 nonce 소비/만료 거부는 별도 | W1/W3-B / V5-F04~05 |
+| 문서 | 과거 ProofStatusRegistry는 고정 SHA의 레거시 원본 | documentId 소유 고정·최신+1·원자적 대체·철회 후 구버전 미복구; 신규 공개 안내에 consume 없음 | W3/W4-B / V5-F06,08,19 |
+| Reader/Writer | RPC 오류 분리·기존 Operation/UNKNOWN·manifest 자산 | 기존 issuerStatus/keyStatus selector·getKey 반환 해석을 새 ABI에 재사용하지 않음; 새 WalletRegistry Adapter와 배포 식별 | W3/W5-B / V5-F12~13 |
+| Indexer | 이벤트 중복·checkpoint·명시적 reorg 회복 검사 | 현재 저장 키에는 계약/배포 구분이 없음. 새 이벤트·배포 분리와 canonical 상태 직접 대조 필요 | W5/W6-B / V5-F13 |
+
+R39(`ab86892`), R37(`9651062`), R38(`3ef1fd4`), R55(`56dbd82`)는 앞선 고정 원본을 사용합니다. R38의 R37 포함과 R55의 A 누적 중복을 유지하고 과거 PR 전체를 재병합하지 않습니다. 기존 로컬 bytes Reader·SQLite projection·검사는 baseline에서 보존돼 있습니다. 현재 작업본에 없는 Writer/ProofStatusRegistry/consume 전체는 과거 원본을 참조하며 이번 W1 검사로 실행 완료를 주장하지 않습니다.
+
+### C 소비 계약 대조와 후속 설계 항목
+
+고정 C head의 [WalletRegistry port](https://github.com/OriginProof-3web/OriginProof/blob/6e0e924c77e9a5b83a8522df4d3cfdc797e8822c/packages/python/originproof_core/wallet_ports.py)와 [실행 API 인계](https://github.com/OriginProof-3web/OriginProof/blob/6e0e924c77e9a5b83a8522df4d3cfdc797e8822c/docs/api/v5_c_runtime.md)를 읽었습니다.
+
+- 공유 Solidity 인터페이스·커밋 ABI·Python wallet_signatures 원본은 로컬 0.1과 C 0.2가 byte 동일합니다. Golden도 revision을 제외한 domain/message/digest/signature/proposal 전체가 동일합니다. 0.2의 Operation 오류·분석 참조/제약 추가를 새로운 서명 규격으로 해석하지 않습니다.
+- `issuer/key/document/proposal`은 같은 canonical chain/contract/blockNumber/hash 근거를 반환해야 합니다. `getIssuer` 외 별도 nonce 조회를 포함한 RPC 호출은 동일 조회 위치로 고정합니다. 0 block sentinel은 port의 선택 block=None으로 변환하며 과거 키 이력을 보존합니다.
+- `transaction/find_transaction`은 실제 calldata 해독·sender·canonical receipt·필요 이벤트/현재 상태를 검증합니다. intent echo나 hash 존재만으로 CONFIRMED를 반환하지 않습니다. `find_transaction`은 검색만 하며 재전송하지 않습니다.
+- REACTIVATE는 ABI상 전 필드 0의 KeyProof와 빈 signature `0x`입니다. API의 선택 null을 ABI null로 넣지 않습니다. 철회 확정은 실제 REVOKED 상태가 필요합니다.
+- **B-C01 승인자 확인:** port의 `is_approver(address)`에 대응하는 조회 함수가 준비 ABI에 없습니다. 고정 승인자 manifest/검증된 배포 근거로 확인할지 additive getter를 둘지 C/B가 연결 전에 정해야 합니다. 이번에는 ABI를 임의 변경하지 않았습니다.
+- **B-C02 승인자 목록:** getProposal은 승인 수만 반환하지만 C ProposalView는 주소 목록을 소비합니다. ProposalApproved 이벤트의 중복 없는 canonical replay/조회 block 일치·count 대조가 필요합니다. 이벤트 복원/검색 범위는 B Adapter에서 정의하고 C와 확인합니다.
+- **B-C03 UNKNOWN/배포:** find_transaction의 검색 시작 block·로그/nonce 범위·RPC 불가 결과와 새 manifest/확정 기준은 B 구현과 C Operation 복구 검토가 필요합니다. G07과 신규 ABI 실제 연결은 미해결입니다.
+
+### 독립 검사와 근거
+
+검증한 코드 SHA: `dee70526af24c0878f00bac322d6670c97e5e427` (로컬 커밋, 원격 미공유). 이후 기록 커밋은 문서만 변경합니다. 검사 대상은 Solidity Golden 검사의 W1 보강본이며 생성 fixture는 수정하지 않았습니다. [개인 기록](../portfolio/W1-B.md)에 과거 기여와 이번 범위를 구분합니다.
+
+| 실행 | 결과 | 의미·한계 |
+| --- | --- | --- |
+| `forge test --root packages/contracts --offline` | **21 PASS**, 0 FAIL/SKIP | 기존 Registry 10 + Golden 11(기존 4/신규 7). 두 fuzz 각각 512회. 새 Registry 상태/실제 지갑 검사는 아님 |
+| `UV_PROJECT_ENVIRONMENT=.uv-venv uv run --locked --all-packages --all-groups pytest -q packages/python/tests/test_wallet_contract.py` | **24 PASS** | Python 모델/서명·기존 생성 ABI 검사 |
+| `node scripts/ci/check_wallet_browser_hashes.mjs` | PASS | 두 템플릿 원본·보호 필드 hash, 실제 브라우저 지갑 아님 |
+| `make generate` 및 생성물 diff | PASS, 생성물 변경 없음 | Schema/TypeScript/예정 OpenAPI·ABI·구/신규 Golden·합성 예시 보존 |
+| 변경 Solidity format·문서 링크·diff·사용자 원본 hash | PASS | 사용자 파일 5개 상태/내용 보존 |
+
+신규 검사는 Publish 두 템플릿의 16필드, Revoke 8필드, KeyProof 6필드를 각각 단독 변조해 기존 서명자의 불일치를 확인합니다. 제안 ID의 chain/address/7필드와 EIP domain name/version 변경, high-s·잘못된 v·잘못된 길이 거부, uint256 nonce/uint64 deadline fuzz를 추가했습니다. 만료 시각 비교·nonce의 원자적 소비·2-of-3 실행은 Registry가 없어 검증하지 않았습니다.
+
+SG01~16은 계속 NOT_EXECUTED입니다. 실제 Registry 배포/receipt·신규 DB/Adapter·브라우저·v2/consume 전체 회귀·G07 재현·공개 체인·유료 AI·C Draft CI/사람 리뷰는 이번 미실행입니다. 입력 종류는 회의 후 결정하고 Decisions API는 범위 밖입니다.
+
+## 4.2 V5-W2-B 공동승인·키 증명·정지 독립 구현 (2026-10-16)
+
+- 담당: B 여하민님 `@hamin1228`, Codex 구현·검사 보조. 상태: **W2 Contract 독립 구현·검사 완료 / 배포·Adapter·C/A/D 실제 연결·작성자 외 리뷰 대기**. W2 단계 완료가 아닙니다.
+- 브랜치: `codex/v5-w2-b-governance`; 시작 SHA `c2111e379889d8550aa6ff893d44f576fb78189a` (자기 W1 준비 결과). 구현 `fa333c699d33a223b0d00d97ea353a29fe058f75`; Golden 교차 검사를 포함한 최종 검증 코드 **`0f240dbd2ee42c059e26e4bdbb3d0dc843858fd7`**. 이후 기록 커밋은 문서만 변경합니다.
+- 범위: B의 Contract·컴파일 ABI·Foundry 검사와 인계/기여 기록만 수정했습니다. C API/모델·A 웹·D 분석기, 기존 사용자 변경·구배포·과거 phase는 변경하지 않았습니다. 원격 push/PR·새 환경 배포는 미실행입니다.
+
+### 산출물과 동작
+
+- [OriginProofWalletGovernance.sol](../../packages/contracts/src/OriginProofWalletGovernance.sol)은 **공유 Registry의 W2 부분 구현**입니다. 전체 IOriginProofWalletRegistry를 구현했다고 선언하지 않습니다. 발행/철회/문서/업무 nonce 함수는 아직 없으며 호출하면 성공하지 않습니다. 이 산출물을 새 발행 Registry로 연결하지 않습니다.
+- [실제 컴파일 ABI](../../packages/contracts/abi/OriginProofWalletGovernance.json)는 W2의 propose/approve/suspendIssuer/governanceNonce/getIssuer/getKey/getProposal 7개 함수와 4개 이벤트가 기존 준비 ABI와 완전히 같습니다. 상속한 OpenZeppelin EIP712의 표준 domain 조회·오류/생성자는 실제 ABI에 포함됩니다. isApprover·권한 변경·업그레이드·배포자 우회 함수는 추가하지 않았습니다. 공유 인터페이스/ABI·모델·서명·Golden 버전은 그대로입니다.
+- 배포 생성자에서 서로 다른 0이 아닌 승인자 3명을 고정합니다. 생성자는 추가 관리자가 아니며 세 주소 중 하나일 때만 동일한 한 표를 갖습니다. 승인자 교체/업그레이드 경로는 없습니다.
+- REGISTER/ROTATE 제안 생성은 승인으로 세지 않습니다. 기관·새 signer·application/challenge·만료에 묶인 EIP-712 KeyProof를 검증하고 challenge를 한 번 소비합니다. domain은 실제 chain/address, OriginProof/1이며 low-s·65 bytes·v=27/28을 검사합니다.
+- 제안은 chain/address와 모든 proposal 필드로 고정됩니다. 서로 다른 승인자 2명의 두 번째 승인에서만 실행·기관/키 이력·governance nonce 전이가 원자적으로 일어납니다. 중복/만료/같은 nonce 경쟁·이미 실행된 제안은 거부합니다. 두 번째 승인 중 실패하면 승인 수와 상태·nonce가 함께 되돌아갑니다.
+- 긴급 정지는 승인자 1명 또는 해당 기관의 현재 키만 수행합니다. OTHER/ABUSE_REPORT/KEY_COMPROMISE hash만 받습니다. 최초 정지는 governance nonce를 증가시켜 정지 전 제안을 무효화합니다. 반복 정지로 복구 제안 nonce를 계속 소모하지 않습니다. 이미 정지 중 새로 발견한 키 사고는 compromiseBlock을 기록하고 기존 재활성화 제안의 실행도 차단합니다.
+- 키 교체는 이전 registered/retired/compromise block을 보존하고, 정지 상태를 자동 해제하지 않습니다. keyId는 전역 재사용 불가이며 같은 기관에서 이미 사용한 signer 주소도 새 keyId로 다시 활성화하지 않습니다. 사고 키의 재활성화는 거부하고 새 키 공동 교체 후 공동 재활성화가 필요합니다. REACTIVATE의 proof는 전부 0이고 signature는 빈 bytes이며 현재 키/주소/메타데이터를 바꿀 수 없습니다.
+- 키 이력의 0 block은 미등록 sentinel이므로 block 0 실행은 거부하고, block은 SafeCast로 uint64 범위를 확인합니다. 정상 배포/이벤트 block은 새 manifest와 함께 소비해야 합니다.
+
+### 기존 검사·생성물과 결과
+
+[Foundry 검사](../../packages/contracts/test/OriginProofWalletGovernance.t.sol)에 정상·거부·재전송·시각 경계·동시 nonce 경쟁·실패 원자성·키 사고 복구·이벤트 재구성·fuzz를 추가했습니다.
+
+| 검사 | 실제 결과·범위 |
+| --- | --- |
+| `forge test --root packages/contracts --offline` | **48 PASS / 0 FAIL / 0 SKIP**. 기존 Registry 10 + 공유 Golden 11 + W2 27. W2의 승인자 쌍/비승인자와 기존 2개 fuzz 각각 512회 |
+| 기존 Python 생성 Golden 직접 소비 | 위 27개 중 1개. fixture의 합성 주소에 컨트랙트 runtime을 etch하고 chain/time을 고정하여 원본 Python 서명·제안 ID로 2-of-3 활성화 성공. 실제 RPC 배포/지갑 검사가 아님 |
+| Python 공유 계약 | `UV_PROJECT_ENVIRONMENT=.uv-venv uv run --locked --all-packages --all-groups pytest -q packages/python/tests/test_wallet_contract.py` **24 PASS** |
+| 브라우저 hash 교차 검사 | `node scripts/ci/check_wallet_browser_hashes.mjs` PASS, 두 합성 템플릿. 실제 브라우저 지갑 서명 아님 |
+| 생성 일관성 | `make generate` 후 기존 Schema/TS/예정 OpenAPI·공유 ABI·구/신규 Golden·예시 diff 없음. 신규 ABI는 out artifact와 JSON 동일·공유 7함수/4이벤트 동일 |
+| 변경 파일 품질·보존 | 두 Solidity format·문서 내부 링크·diff 검사 통과. 사용자 원본 5개 상태/내용 hash 동일. 의존성/lockfile 변경 없음 |
+
+신규 ABI 재생성은 저장소 루트에서 다음 명령을 사용합니다. forge 설치 위치에 맞춰 PATH를 설정하며 공유 ABI exporter나 C 생성기를 수정하지 않습니다.
+
+```sh
+forge inspect --root packages/contracts --offline OriginProofWalletGovernance abi --json > packages/contracts/abi/OriginProofWalletGovernance.json
+```
+
+### 소비자 인계와 남은 경계
+
+B-C01은 선택한 기존 ABI를 유지하므로 실제 is_approver 확인을 위한 고정 승인자 constructor/배포 근거·manifest 검증이 후속입니다. B-C02는 ProposalApproved의 proposalId/approver/count와 두 번째 ProposalExecuted 이벤트를 검사했습니다. canonical block 고정·이벤트 replay·getProposal count와 주소 목록 대조를 하는 실제 Adapter는 아직 없습니다. B-C03 UNKNOWN 검색·새 배포 식별과 G07은 미해결입니다.
+
+API가 W2 artifact에 nextNonce/document 등을 호출하거나 readiness 성공으로 처리해서는 안 됩니다. W3의 publish/업무 nonce, W4의 버전/철회가 추가된 실제 통합 Registry 및 새 manifest/Adapter 준비 뒤 C와 연결합니다. 이번 작업은 C Draft 0.2와 기존 준비 ABI의 W2 부분에 대한 B 구현이지 C의 API/DB나 A/D 동작을 검증한 것이 아닙니다.
+
+실제 RPC/receipt·API/DB·브라우저 지갑·공개 체인·배포/가스 실측·D 독립 QA·구 v2/consume 전체 회귀·G07 재현은 미실행입니다. SG01~16의 공유 실행 상태는 그대로 NOT_EXECUTED이며 이번 단위 검사 결과로 일괄 PASS로 바꾸지 않습니다. [W2 B 개인 기록](../portfolio/W2-B.md)에 과거 기여와 이번 결과를 구분합니다. W3 기능은 이번에 시작하지 않았습니다.
+
+## 4.3 V5-W3-B 최초 버전 기관 서명 발행 (2026-10-16)
+
+- 담당 B `@hamin1228`, Codex 구현·검사 보조. **Contract 독립 구현·검사 완료 / 실제 배포·Adapter/API/DB·지갑·작성자 외 리뷰 대기**입니다. W3 단계 전체 완료가 아닙니다.
+- 브랜치 `codex/v5-w3-b-publication`, 시작 `5f91ac8e3405ac2f3bbe9ae19e15b81dd1f58c6e` (자기 W2 결과).
+- 검증 코드 **`f8cc461f725340e0a0d4f992aa849288a200780f`**. 이후 인계 커밋은 문서만 변경합니다.
+- 선행 공유: [기준 #64](https://github.com/OriginProof-3web/OriginProof/pull/64) → [W1 #65](https://github.com/OriginProof-3web/OriginProof/pull/65) → [W2 #66](https://github.com/OriginProof-3web/OriginProof/pull/66). 모두 Draft이며 승인/병합·단계 완료를 뜻하지 않습니다. 착수 때 #66의 python-quality/contracts SUCCESS를 확인했습니다. 과거 문서의 push/PR 미실행 표기는 해당 기록 시점이며 이 절에서 후속 공유와 구분합니다.
+
+### 실제 변경과 계약
+
+[OriginProofWalletRegistry.sol](../../packages/contracts/src/OriginProofWalletRegistry.sol)은 W2 권한 관리를 상속하고 `publish`, `nextNonce`, `latestVersion`, `getDocument`를 추가합니다. W2의 기관/키 저장소와 block 변환 helper만 private→internal로 열었으며 외부 W2 ABI와 권한 동작은 유지합니다. W2 PR 자체 브랜치는 변경하지 않습니다.
+
+1. Publish action=1, 지원 내용/서명 schema, SHA-256 알고리즘 코드 1, 0이 아닌 원본/보호 hash를 검사합니다. 보호 필드/원본 bytes 자체는 체인에 제출하지 않으며 실제 내용과 hash의 일치는 C/A가 별도로 재계산합니다. 컨트랙트 서명 성공을 원문의 사실성으로 해석하지 않습니다.
+2. 공유 JSON 정수 범위와 `issuedAt < deadline <= expiresAt`, `현재 시각 < deadline`을 검사합니다. issuedAt은 서명된 자기 선언 시각이며 과거 발행 권한의 근거로 삼지 않습니다. 실제 발행 시각·block은 별도 기록합니다.
+3. 등록·ACTIVE 기관과 현재 keyId/signer·기관 소유·등록/미교체/비사고 키를 확인합니다. msg.sender는 중계자일 수 있으며 기관 업무 서명을 대신하지 않습니다.
+4. `documentId = keccak256(abi.encode(issuerId, docKey))`, 기관별 정확한 다음 업무 nonce와 최초 version=1·미등록 문서를 확인합니다. 같은 기관에서도 기존 문서 덮어쓰기/새 버전은 아직 허용하지 않습니다.
+5. 실제 chain/address의 OriginProof/1 EIP-712로 16개 필드 전체를 검증합니다. 서명은 65-byte·v27/28·low-s이며 등록 기관의 현재 signer여야 합니다.
+6. 성공 시에만 불변 문서 버전·publishedAt/publishedBlock을 저장하고 업무 nonce를 하나 소비한 뒤 DocumentPublished를 기록합니다. governance nonce는 발행으로 변경하지 않습니다. 실패 요청은 문서/nonce를 변경하지 않습니다.
+
+getDocument는 없는 문서/버전을 UnknownDocument로 거부합니다. latestVersion은 미등록 시 0, 등록 시 1입니다. 저장 state=1은 ACTIVE이고 기간 만료/기관 정지·키 사고 경고는 조회 시각/기관·키 이력과 함께 소비해야 합니다. 정상 키 교체 뒤에도 과거 문서의 keyId/hash/기록은 보존됩니다.
+
+[실제 W3 ABI](../../packages/contracts/abi/OriginProofWalletRegistry.json)는 컴파일 out과 JSON 동일하며 공유 계약의 **11함수/5이벤트**와 완전히 일치합니다. OpenZeppelin 표준 EIP712 domain 조회/오류·생성자를 포함하고, `revoke`는 아직 없습니다. 전체 공유 인터페이스 구현 또는 발행/철회/버전 기능 완료로 표시하지 않습니다. C/A/D 원본·공유 인터페이스·서명 모델·Schema·Golden·lockfile은 변경하지 않았습니다.
+
+```sh
+forge inspect --root packages/contracts --offline OriginProofWalletRegistry abi --json > packages/contracts/abi/OriginProofWalletRegistry.json
+```
+
+### 검사와 실제 한계
+
+| 검사 | 실제 결과·환경 |
+| --- | --- |
+| `forge test --root packages/contracts --offline` | **68 PASS / 0 FAIL / 0 SKIP** = 기존 48 + W3 20, 총 fuzz 5개 각 512회. Foundry 내부 EVM·합성 키/기관 |
+| 16필드 변조/권한/복구 경계 | 서명 필드 변조·잘못된 chain/contract·high-s/v/길이·타 기관 ID/키·구키 발행·정지/사고·재전송/nonce gap·만료/시간/스키마·덮어쓰기 거부, 실패 후 nonce/문서 불변 |
+| 원본 Python Golden | 납부·공식 안내 2개를 새 runtime의 합성 fixture 주소에 etch해 원본 KeyProof/Publish 서명으로 활성화/발행 성공. 실제 RPC 배포 아님 |
+| 전체 Python | `UV_PROJECT_ENVIRONMENT=.uv-venv uv run --locked --all-packages --all-groups pytest -q` **179 PASS / 1 live SKIP**, 기존 anyio deprecation warning 1 |
+| 생성·소비 대조 | Node 두 템플릿 hash PASS; make generate 후 기존 공유 ABI·Schema/TS/OpenAPI·Golden/예시 무변경, W2 실제 ABI 유지, 신규 ABI compiler와 동일 |
+| 품질·보존 | 변경 Solidity format·diff·문서 내부 링크 PASS, 기존 사용자 5개 변경 hash 보존. 최초 fmt 확인의 assembly 줄바꿈은 재포맷 후 통과, 로직 변경 없음 |
+
+실제 RPC/receipt/manifest·API/DB·브라우저 지갑·D 독립 QA·공개 체인·성능/가스 운영 비용·G07·v2/consume 전체 재검사는 미실행입니다. SG01~16의 공유 상태는 계속 NOT_EXECUTED이며 단위 검사 결과로 일괄 바꾸지 않습니다. 기존 회귀 수치를 실제 지갑 연결 또는 새로운 기능 수용 완료로 합산하지 않습니다.
+
+### 다음 담당과 W4 경계
+
+B의 Adapter·canonical event/receipt/배포 식별(B-C01~03), C/A의 원본 재계산·저장/서명 요청·실제 소비 연결, D 독립 재현이 남습니다. C Draft 0.2의 타입/서명과 같은 원본을 소비하며 아직 다른 담당 브랜치를 병합하지 않았습니다.
+
+다음 버전·SUPERSEDED 전이·철회·철회용 nonce 소비는 **W4 후속**입니다. 이번 W3에서는 version=2/revoke가 성공하지 않습니다. 다음 단계는 같은 기관의 최신+1·원자적 대체와 정지 중 현재 키 철회를 구현하고, 최신 철회로 과거 버전이 복구되지 않는지 검사해야 합니다. 입력 회의 결정·Decisions 제외·G07 미해결·레거시 원본 보존 방침은 유지합니다. [W3 B 기여 기록](../portfolio/W3-B.md)에 개인/재사용·실제 검증·미완료를 구분합니다.
+
+## 4.4 V5-W4-B 버전·원자적 대체·서명 철회 (2026-10-16)
+
+- 담당 B `@hamin1228`, Codex 구현·검사 보조. 상태: **Contract 독립 구현·검사 완료 / 실제 배포·Adapter/API/DB·지갑·D 독립 검증·작성자 외 리뷰 대기**입니다. W4 단계 전체 완료가 아닙니다.
+- 브랜치 `codex/v5-w4-b-document-lifecycle`, 시작 `004f774e89a278ec8ab4c5dba233d0d7c3eb0a97` (자기 W3). 검증 코드 **`a7b47fdd91e516d67c1a7d1db6be43f967ceabe8`**, 이후 인계 커밋은 문서만 변경합니다.
+- 선행 [W3 Draft #67](https://github.com/OriginProof-3web/OriginProof/pull/67)은 착수 시 python-quality/contracts SUCCESS를 확인했습니다. 자기 선행 브랜치 대상으로 후속 Draft를 공유하며 과거 phase와 다른 담당 브랜치를 변경/병합하지 않습니다.
+
+### 동작·저장·호환
+
+[OriginProofWalletRegistry.sol](../../packages/contracts/src/OriginProofWalletRegistry.sol)에 문서별 버전 mapping과 별도 최신 포인터를 둡니다. 최초는 1, 이후 정확히 최신+1이고 공유 JSON safe integer 범위를 지킵니다. 같은 documentId의 기관/docKey는 고정하며 기존 버전의 hash·키·시각/block은 덮어쓰지 않습니다.
+
+새 버전 저장·ACTIVE인 이전 최신의 state=SUPERSEDED(3)·최신 포인터·업무 nonce·DocumentSuperseded/DocumentPublished 이벤트가 한 거래에서 처리됩니다. 이미 REVOKED인 이전 최신은 상태를 보존하고 DocumentSuperseded 없이 새 버전의 DocumentPublished만 발생시킵니다. 동일 다음 버전의 경쟁에서는 하나만 성공하고 나머지는 VersionConflict입니다. 이 검사 순서를 nonce보다 앞에 두어, 기존 W3의 같은 버전 재전송도 VersionConflict로 거부됩니다. 거부와 상태 불변 회귀를 유지하면서 해당 기대 오류만 W4 규칙에 맞췄습니다.
+
+`revoke`는 action=2·자신의 기관/문서/버전·현재 활성 비사고 키·chain/address/domain·nonce·deadline을 검사합니다. 기관 ACTIVE/SUSPENDED 모두에서 현재 키 철회를 허용하며 사고/교체된 구키는 거부합니다. 성공 시 해당 버전 state=REVOKED(2), 동일한 기관별 publish/revoke nonce 소비·DocumentRevoked 이벤트만 변경하고 최신 포인터·원본/키 이력을 보존합니다. 같은 nonce 재전송과 새 nonce로 이미 철회된 버전을 다시 철회하는 요청은 각각 거부하며 실패 nonce는 소비하지 않습니다.
+
+- 최신 철회로 과거 버전을 ACTIVE로 복구하지 않습니다. 만료/정지는 REVOKED/SUPERSEDED를 덮지 않습니다. expired는 저장 enum이 아닌 조회 시각의 파생 상태입니다.
+- 과거 SUPERSEDED 버전도 소유 기관의 현재 키로 철회할 수 있으며 최신 버전에 영향을 주지 않습니다.
+- 철회된 최신 버전 다음에도 정확한 최신+1을 발행할 수 있습니다. 이전 버전은 REVOKED(2)를 유지하며 새 nonce로 다시 철회해도 DocumentAlreadyRevoked로 거부합니다. 원본/hash·키·발행 시각/block과 최신 포인터는 보존하고 실패 nonce를 소비하지 않습니다.
+- 정상 키 교체 후 과거 정상 서명/발행 키 이력을 보존하고 현재 키로 과거 문서를 철회합니다. 사고 시에는 정지→새 키 공동 교체→정지 상태에서 필요한 버전 철회→공동 재활성화 순서를 적용합니다.
+- 발행/revoke 원본·서명은 여전히 체인 밖에 둡니다. hash/서명 성공은 내용의 사실성·행동 안전을 보증하지 않습니다. 레거시 binding/consume을 신규 안내에 추가하지 않습니다.
+
+[실제 ABI](../../packages/contracts/abi/OriginProofWalletRegistry.json)는 컴파일 out과 동일하며 공유 인터페이스의 **12함수·7이벤트 전체**와 일치합니다. 공유 인터페이스/준비 ABI·서명 모델/Golden·C/A/D 코드는 변경하지 않았습니다. 전체 ABI 형태 일치가 실제 API/웹·운영 연결 완료를 뜻하지 않습니다.
+
+저장 layout은 W3의 단일 버전에서 버전별 mapping/최신 포인터로 바뀝니다. 이 컨트랙트는 업그레이드/관리자 우회 경로가 없으며 기존 주소에 덮어쓰지 않습니다. 실제 배포 시 별도 새 manifest/주소·배포 구분과 상태 이관/검증 범위를 B/C가 정해야 합니다. 이번에 어떤 실제 배포나 DB migration도 실행하지 않았습니다. W2/W3의 기존 코드/브랜치·배포 자료를 보존했습니다.
+
+### 검사·실패와 수정
+
+| 검사 | 결과·범위 |
+| --- | --- |
+| Foundry 전체 offline | **88 PASS / 0 FAIL / 0 SKIP** = 기존68 + W4 20. 버전별 이력/경쟁/실패 불변·철회/nonce 경쟁 양순서·정지/사고/정상 교체·원본 Golden 포함 |
+| 철회 high-s/v 추가 확인 | 최종 코드에서 해당 검사 **1 PASS**. 전체 통과 뒤 같은 검사에 high-s/잘못된 v 사례를 추가해 대상만 재실행 |
+| fuzz | 총6개 각512회. W4는 2~8버전 이력 뒤 최신 철회·과거 미복구를 검사 |
+| Python 전체 | `UV_PROJECT_ENVIRONMENT=.uv-venv uv run --locked --all-packages --all-groups pytest -q`: **179 PASS / 1 live SKIP**, 기존 anyio warning1 |
+| 생성·Node·ABI | make generate·두 템플릿 Node hash PASS. 기존 Schema/TS/OpenAPI·공유 ABI·W2 ABI·구/신규 Golden·예시 무변경, W4 ABI compiler/공유 계약 일치 |
+| 품질/보존 | 변경 Solidity format·문서 내부 링크·diff PASS. 사용자 파일 5개의 원본 상태/hash 보존, 의존성/lockfile 변경 없음 |
+
+최초 W4 확장 검사에서는 82 PASS/6 FAIL이었습니다. 내부 nextVersion 도우미가 memory struct를 참조로 받아 이전 버전 기대값까지 바꾼 것이 원인이었습니다. 도우미가 ABI encode/decode로 별도 사본을 만들도록 고쳤고 기대값·거부 규칙을 완화하지 않고 전체 88 PASS로 재검증했습니다. 변수 shadow warning도 이름을 구분해 해소했습니다. 원본 Python Revoke Golden도 실제 컨트랙트 runtime에서 소비했으며 합성 fixture 주소 etch 방식이지 실제 RPC/지갑 배포는 아닙니다.
+
+실제 RPC/receipt·동시 네트워크 거래·manifest/Adapter·API/DB·브라우저·D 독립 QA·공개 체인·v2/consume 전체 재검사·G07·성능/가스 운영 실측은 미실행입니다. Foundry의 합성 거래 순서 검사를 실제 네트워크 동시성·receipt 검증으로 합산하지 않습니다. SG01~16은 공유 fixture에서 계속 NOT_EXECUTED입니다.
+
+### 2026-10-18 철회 상태 보존 리뷰 보완
+
+사용자님의 명시적인 #68/#77 수정 지시에 따라 Codex가 기존 B 구현의 상태 전이만
+보완했습니다. 기존 소유자의 작성/검토 이력과 이번 보완을 구분하며 B의 확인·재리뷰를
+대신 기록하지 않습니다. 이전 구현에서는 철회 후 새 버전을 발행하면 철회 상태가 대체로
+바뀌어 재철회가 성공했습니다. 새 회귀를 먼저 실행해 `next call did not revert as expected`로
+재현한 뒤, 이전 최신이 ACTIVE일 때만 대체하도록 한 조건을 수정했습니다.
+
+이 단계 Foundry 전체 **89 PASS / 0 FAIL / 0 SKIP**, fuzz 각512회입니다. 기존 대체 버전의
+정상 첫 철회도 통과합니다. 철회된 버전의 모든 저장 필드 보존·잘못된 대체 이벤트 부재·새
+버전 발행/nonce·재철회 거부와 실패 후 nonce/두 버전 불변을 검사했습니다. 컴파일한 전체
+Registry ABI는 커밋 ABI와 동일하며 서명/domain·Golden·storage 선언·의존성은 바뀌지
+않았습니다. 공유 명세/ADR/계획에 철회 상태 보존 예외를 명시했습니다.
+
+Contract bytecode는 변경되지만 비업그레이드 계약의 기존 주소를 수정하지 않습니다.
+이번에 배포/상태 이관은 실행하지 않았습니다. 실제 적용은 새 배포·manifest와 B/C 연결
+검증이 필요하며 #77에서는 이 커밋을 그대로 반영해 기존 C/D 검사와 함께 재검증합니다.
+
+### 인계·다음 단계
+
+ABI 재생성 명령은 4.3절과 같습니다. B-C01 승인자 배포 근거·B-C02 canonical 승인 목록/이벤트·B-C03 UNKNOWN 검색/배포 식별은 실제 Adapter에서 남아 있습니다. 이후 W5는 신규 이벤트·현재 상태 직접 조회를 기존 indexer와 연결하고 지연된 projection으로 현재 성공을 만들지 않도록 검증합니다. G07은 별도 재현/원인/수정·D 재검사가 필요합니다. 입력 회의 결정과 Decisions 제외는 유지합니다. [W4 B 기여 기록](../portfolio/W4-B.md)에 과거 기록·이번 기여·실제 범위를 구분합니다.
 
 ## 5. 완료 기록
 
