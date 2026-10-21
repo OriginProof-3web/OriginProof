@@ -17,3 +17,8 @@
 Registry가 이전 최신이 ACTIVE일 때만 SUPERSEDED 전이/이벤트를 수행하는 것을 읽고 확인했습니다. REVOKED의 저장 전체는 후속 발행 뒤에도 불변이며 새 nonce로 재철회해도 거부·nonce 불변을 검사합니다. 이미 SUPERSEDED인 과거 버전의 정당한 첫 철회는 유지합니다. Foundry 전체101개 PASS, Python609 PASS/10 SKIP, 기존 경고1입니다. B의 기술적 검증 결과이며 사람의 직접 승인·독립 재리뷰 완료가 아닙니다.
 
 기존 Adapter의 `version>1`이면 무조건 Superseded 이벤트를 요구하는 부분은 이 규칙과 맞지 않아 #78에서 보완합니다. Contract·공통 정책을 다시 바꾸지 않습니다.
+## 추가 확인 — #64 현행 manifest 경로
+
+AI(Codex)가 여하민님 요청으로 수행했습니다. Reader·Writer의 합성 manifest fixture를 실제 현행 출력명 `31337.local.json`으로 맞춰 loader 경로 호환을 기존 정상/거부 검사로 확인합니다. 실제 배포 파일이나 원본 사용자 변경은 읽어 덮어쓰지 않습니다. 이 검사는 MockTransport이며 별도 no-dev Uvicorn 기동과 구분합니다.
+
+현행 파일명 fixture 검사: Reader·Writer **104 PASS**. 새 패키지·버전 변경 없음.
