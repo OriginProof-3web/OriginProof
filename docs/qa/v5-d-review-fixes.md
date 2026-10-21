@@ -1,29 +1,31 @@
-# D 리뷰 수정과 고정 C QA
+# D 리뷰 수정과 동일 HEAD QA
 
-2026-10-18, 계획서 5.1 / 병합 공통 계약 v5-shared-0.1 기준입니다. D W2 준비 브랜치부터 최신 `integration@54705588d660aceea71ff1cb03eefb5aefe37aa4`(#80 포함)를 merge로 반영하고, 뒤 단계에는 D 선행 브랜치를 순서대로 merge합니다. 과거 phase·병합된 #70/#71·타 담당 제품을 수정하지 않습니다. PR 대상 변경/단계 승격은 C 조율 후 별도입니다.
+2026-10-21 기준 계획서 5.1 / 공통 계약 v5-shared-0.2입니다. C phase/W5 코드는 각 D PR head에 이미 포함돼 있으며, QA와 API·코어·indexer를 **동일 HEAD**에서 실행합니다. 과거 C SHA를 별도 checkout하거나 소스를 섞지 않습니다. 아래 과거 기록은 당시 실행 근거로만 보존합니다.
 
-## 실행 경계
+## 현재 실행 경계
 
-기존 Quality Gate의 기본 pytest에는 C v5 모듈을 요구하는 D 명시 QA가 포함되지 않습니다. 새 `.github/workflows/d-pinned-c-qa.yml`은 PR head와 C #62 고정 소스 `eaa0d166269833cf7ee49675cfa777b0208c3725`를 **별도로** checkout하고 C lockfile 환경에서 실행합니다. D analyzer를 먼저 import하고 C API·공통 모델·fixture를 재사용합니다. C 후보 v5-shared-0.2 소비 실험이며 병합 계약 또는 실제 연결 완료가 아닙니다.
+- `.github/workflows/d-pinned-c-qa.yml`은 PR head SHA를 checkout하고 해당 lockfile로 설치합니다. `apps/api/**`, `packages/python/**`, `services/analyzer/**`, `services/indexer/**`, `uv.lock`과 D QA/guard/manifest 변경이 trigger입니다.
+- stage manifest의 필수 파일과 JUnit testcase·summary를 검증합니다. 단계 누적 기대값은 #72 W2=12, #73 W2+W3=25, #74/#75 W2+W3+W4=31(철회 후 과거 비활성 회귀 포함), #76 분석 연결까지=43입니다. consumer는 별도 31입니다. failures/errors/skips=0이어야 하며 개수 변경은 기대값과 함께 리뷰해야 합니다.
+- JUnit은 `d-same-head-<suite>-<head SHA>` artifact로 보존합니다. CI 결과는 현재 PR Checks를 확인하고 로컬 결과와 구분합니다. C의 DG12 겹친 인용 수정이 포함돼 consumer 31개가 통과하는 기준입니다.
+- ASGI·SQLite·합성 Registry·mock/SDK transport 검사입니다. 실제 PostgreSQL·EVM·브라우저·유료 모델·입력 선정·G07 해결·단계 완료를 뜻하지 않습니다. B #68 Foundry 회귀와 D 합성 Registry QA는 별개입니다.
+- AI(Codex)가 기술 검증·workflow·문서를 보완했습니다. 사람의 대행 변경 확인·작성자 외 승인을 대신하지 않습니다.
 
-- trigger: D 명시 QA·분석기·workflow·consumer manifest를 바꾸는 pull_request.
-- 권한: contents read. 별도 서비스/API secret 불필요, 유료 모델 0회. 합성 소켓 차단 fixture를 유지합니다.
-- `stage`: 해당 D 단계 head에 존재하는 W2/W3/W4/분석 연결 파일을 **명시 실행**합니다. 예상 개수는 단계별 12/25/30/42입니다. 빈 목록은 실패합니다.
-- `consumer`: 병합된 W1의 `v5_analysis_consumer_qa.py` 31개를 별도 실행합니다. C의 **DG12 겹친 인용 미해결** 때문에 고정 C에서 30 PASS / 1 FAIL이 예상됩니다. 실패를 skip/xfail/continue-on-error로 바꾸지 않았으므로 이 check는 수정된 C 소비 전까지 실패할 수 있습니다. 녹색 stage와 합쳐 전체 통과로 보고하지 않습니다.
-- 실제 GitHub 실행 결과는 PR Checks와 JUnit artifact를 확인합니다. 로컬 ASGI/SQLite/합성 Registry 결과는 실제 PostgreSQL/EVM/브라우저·유료 OpenAI 검사가 아닙니다. G07은 계속 미해결입니다.
-
-## 같은 명령으로 재현
-
-저장소 밖에 C SHA를 checkout한 뒤 D 작업 루트에서 실행합니다. `$C`는 해당 checkout의 절대 경로입니다.
+## 같은 HEAD에서 재현
 
 ```sh
-uv sync --project "$C" --all-packages --all-groups --locked
-export PYTHONPATH="$PWD/services/analyzer/src:$C/apps/api/src:$C/packages/python:$C/services/indexer/src:$C/apps/api/tests"
-"$C/.venv/bin/python" -m pytest -q -o addopts= fixtures/finals/v5_d_w2_governance_qa.py
-"$C/.venv/bin/python" -m pytest -q -o addopts= fixtures/finals/v5_analysis_consumer_qa.py
+UV_PROJECT_ENVIRONMENT=.uv-venv uv sync --all-packages --all-groups --locked
+export PYTHONPATH="$PWD/services/analyzer/src:$PWD/apps/api/src:$PWD/packages/python:$PWD/services/indexer/src:$PWD/apps/api/tests"
+.uv-venv/bin/python -m pytest -q -o addopts= --junitxml=stage.xml $(sed '/^#/d; /^$/d' fixtures/finals/v5_d_stage_qa_files.txt)
+.uv-venv/bin/python fixtures/finals/v5_d_junit_guard.py stage.xml --suite stage
+.uv-venv/bin/python -m pytest -q -o addopts= --junitxml=consumer.xml fixtures/finals/v5_analysis_consumer_qa.py
+.uv-venv/bin/python fixtures/finals/v5_d_junit_guard.py consumer.xml --suite consumer
 ```
 
-W3/W4/분석 연결 PR에서는 그 head에 있는 `v5_d_w3_content_qa.py`, `v5_d_w4_lifecycle_qa.py`, `v5_d_analysis_integration_qa.py`를 첫 pytest 명령에 추가합니다. 생성 파일·공통 모델·C helper를 복제하거나 수동 수정하지 않습니다.
+환경 fingerprint·소스 SHA와 JUnit을 함께 보존합니다. 보안 PR #87은 phase/W5에서 리뷰 대기 중이며, 이전 lockfile의 보안 감사 결과는 D 기능 검사와 별도로 보고합니다.
+
+## 과거 실행 기록 (2026-10-18, 당시 별도 C 소스 조합)
+
+다음 수치는 과거 소스 조합의 기록이며 현재 재현 명령이나 현재 통과 판정이 아닙니다.
 
 ## 로컬 재검사
 

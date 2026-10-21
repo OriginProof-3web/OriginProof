@@ -127,3 +127,6 @@ D가 새로 구현한 것은 stage/consumer의 필수 module·파일별 최소 �
 ## 2026-10-21 — D 입력 의존성 보안 보완
 
 D 전체 단계 QA 중 공통 CI의 `make security`가 Pillow8/certifi1 총9건으로 중단되는 것을 확인했습니다. 사용자 지시로 Codex가 기존 두 패키지만 갱신하여 감사0건·phase 기반600 PASS/10 SKIP을 확인했습니다. 실행 코드 `781b96ea9654a2bf277fa3adf38f9f4269bf46e1`, 기존 이미지 parser/SDK·공통 모델은 재사용했습니다. 새 입력 활성화·실제 모델 평가는 하지 않았고 공유 lockfile/major 갱신의 C 리뷰는 대기입니다. [원인·검사·한계](../qa/v5-d-dependency-security-20261021.md).
+## 2026-10-21 AI 동일 HEAD 검사 전파
+
+Codex가 #72→#73→#74의 JUnit 정확 수·summary·skip 보호와 indexer/lockfile trigger·재현 안내를 #75로 전파했습니다. guard 16 / stage 31 / consumer 31, 별도 분석기+consumer 352 PASS(각 skip 0). [환경·겹치는 범위·미완료](../qa/v5-d-same-head-w5-20261021.md). C 대행 기여와 기존 기록을 보존했습니다. 사람 확인/외부 리뷰는 대기입니다.

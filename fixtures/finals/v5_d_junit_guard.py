@@ -1,11 +1,12 @@
-"""Fail D QA when required modules lose tests or contain skips/failures; no live services."""
+"""Validate exact D QA counts and zero skips/failures; no live services."""
 
 import argparse
 from collections import Counter
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
-STAGE_MINIMUMS = {
+STAGE_MODULE_COUNT = 4  # Required cumulative D modules on this PR.
+STAGE_COUNTS = {
     "v5_d_w2_governance_qa": 12,
     "v5_d_w3_content_qa": 13,
     "v5_d_w4_lifecycle_qa": 6,
@@ -14,13 +15,17 @@ STAGE_MINIMUMS = {
 
 
 def check_report(path: Path, suite: str) -> dict[str, int]:
-    minimums = STAGE_MINIMUMS if suite == "stage" else {"v5_analysis_consumer_qa": 31}
+    minimums = (
+        dict(list(STAGE_COUNTS.items())[:STAGE_MODULE_COUNT])
+        if suite == "stage"
+        else {"v5_analysis_consumer_qa": 31}
+    )
     if suite == "stage":
         manifest = Path(__file__).with_name("v5_d_stage_qa_files.txt").read_text().splitlines()
         listed = [line for line in manifest if line.strip() and not line.startswith("#")]
         expected = {f"fixtures/finals/{name}.py" for name in minimums}
         if len(listed) != len(expected) or set(listed) != expected:
-            raise ValueError("stage manifest must contain all four required QA files exactly once")
+            raise ValueError("stage manifest must contain the required QA files exactly once")
     try:
         root = ET.parse(path).getroot()
     except (OSError, ET.ParseError) as error:
@@ -28,10 +33,20 @@ def check_report(path: Path, suite: str) -> dict[str, int]:
     for node in root.iter():
         if node.tag in {"failure", "error", "skipped"}:
             raise ValueError("D QA must have zero failures, errors and skips")
-        if node.tag == "testsuite" and any(
+        if node.tag in {"testsuite", "testsuites"} and any(
             int(node.get(key, "0")) != 0 for key in ("failures", "errors", "skipped")
         ):
             raise ValueError("D QA suite summary reports a failure, error or skip")
+        if node.tag == "testsuite" or (node.tag == "testsuites" and "tests" in node.attrib):
+            actual = sum(1 for _ in node.iter("testcase"))
+            try:
+                total = int(node.attrib["tests"])
+            except (KeyError, ValueError) as error:
+                raise ValueError("D QA suite must report an integer test count") from error
+            if total != actual:
+                raise ValueError(
+                    f"D QA suite test count disagrees with testcases: {total} != {actual}"
+                )
     counts, seen = Counter(), set()
     for case in root.iter("testcase"):
         identity = (case.get("classname"), case.get("name"))
@@ -43,8 +58,10 @@ def check_report(path: Path, suite: str) -> dict[str, int]:
     if set(counts) != set(expected_counts):
         raise ValueError("D QA JUnit has missing or unexpected test modules")
     for name, minimum in expected_counts.items():
-        if counts[name] < minimum:
-            raise ValueError(f"D QA test count decreased: {name}: {counts[name]} < {minimum}")
+        if counts[name] != minimum:
+            raise ValueError(
+                f"D QA test count differs from expectation: {name}: {counts[name]} != {minimum}"
+            )
     return dict(counts)
 
 

@@ -10,6 +10,8 @@ on:
       - "fixtures/finals/test_v5_d_junit_guard.py"
       - "fixtures/synthetic/analysis_consumer_cases_v1.json"
       - "services/analyzer/**"
+      - "services/indexer/**"
+      - "uv.lock"
       - "apps/api/**"
       - "packages/python/**"
 
