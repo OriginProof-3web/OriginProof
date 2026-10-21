@@ -8,6 +8,9 @@ on:
       - "fixtures/finals/v5_d_stage_qa_files.txt"
       - "fixtures/finals/v5_d_junit_guard.py"
       - "fixtures/finals/test_v5_d_junit_guard.py"
+      - "fixtures/finals/v5_d_acceptance_runner.py"
+      - "fixtures/finals/test_v5_d_acceptance_runner.py"
+      - "fixtures/synthetic/v5_d_live_evaluation_policy.example.json"
       - "fixtures/finals/v5_d_g07_runner.py"
       - "fixtures/finals/test_v5_d_g07_runner.py"
       - "fixtures/finals/w5_p0_api_qa.py"
@@ -56,8 +59,10 @@ jobs:
           .venv/bin/ruff check \
             fixtures/finals/v5_d_junit_guard.py fixtures/finals/test_v5_d_junit_guard.py \
             fixtures/finals/v5_d_g07_runner.py fixtures/finals/test_v5_d_g07_runner.py \
-            fixtures/finals/w5_p0_api_qa.py
-          .venv/bin/python -m pytest -q fixtures/finals/test_v5_d_junit_guard.py fixtures/finals/test_v5_d_g07_runner.py
+            fixtures/finals/w5_p0_api_qa.py \
+            fixtures/finals/v5_d_acceptance_runner.py fixtures/finals/test_v5_d_acceptance_runner.py \
+            fixtures/finals/v5_d_live_independent_qa.py
+          .venv/bin/python -m pytest -q fixtures/finals/test_v5_d_junit_guard.py fixtures/finals/test_v5_d_g07_runner.py fixtures/finals/test_v5_d_acceptance_runner.py
       - name: Measure synthetic verification roundtrips (100 per template)
         if: matrix.suite == 'stage'
         env:

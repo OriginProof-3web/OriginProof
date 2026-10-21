@@ -91,7 +91,7 @@ def classification_metrics(rows: list[dict]) -> dict:
 
 
 async def evaluate_phishing(
-    path: Path, *, processor=None, provider=None, split="development"
+    path: Path, *, processor=None, provider=None, split="development", case_ids=None
 ) -> dict:
     manifest = load_corpus(path)
     if split not in {"development", "holdout"}:
@@ -100,10 +100,19 @@ async def evaluate_phishing(
         raise ValueError("select processor or observed provider, not both")
     observer = CandidateEvidenceObserver(provider) if provider is not None else None
     analyzer = processor or PhishingAnalyzer(observer or MockLLMProvider())
+    selected = [case for case in manifest["cases"] if case["split"] == split]
+    if case_ids is not None:
+        if (
+            not case_ids
+            or len(set(case_ids)) != len(case_ids)
+            or not set(case_ids) <= {c["id"] for c in selected}
+        ):
+            raise ValueError("invalid selected case identity")
+        selected = [case for case in selected if case["id"] in case_ids]
     rows, durations = [], []
     quote_total = expected_quotes = located_quotes = model_failures = 0
     grounding_rejected_reports = 0
-    for case in (case for case in manifest["cases"] if case["split"] == split):
+    for case in selected:
         started = perf_counter()
         row = {
             "id": case["id"],

@@ -170,8 +170,8 @@
     },
     {
       "id": "V5-F13",
-      "supporting_evidence": "Historical G07 evidence retained; PR86 read",
-      "remaining": "Fix not in phase; D repeated mixed run pending",
+      "supporting_evidence": "PR86 merged; D actual fresh1/mixed5 each18 PASS on phase33396ba; earlier failures preserved",
+      "remaining": "C final evidence review remains; B reviewed prior d757a26 fresh1/mixed3; new wallet integration and final-candidate regression pending",
       "stage_accepted": false
     },
     {
