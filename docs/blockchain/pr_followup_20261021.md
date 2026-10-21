@@ -25,3 +25,8 @@ Registry가 이전 최신이 ACTIVE일 때만 SUPERSEDED 전이/이벤트를 수
 ## #78 · 기준4b010a5 / 대행 변경 재검증
 
 C가 철회 대조를 REVOKED(2)로 좁힌 수정을 확인했습니다. 추가로 Registry의 'REVOKED 이전 버전 뒤 새 발행은 대체 이벤트 없음'과 Adapter의 무조건 대체 이벤트 요구가 충돌하는 결함을 수정했습니다. 이벤트가1개일 때는 이전 버전의 소유/번호/REVOKED 상태와 해당 block의 canonical 전체 tx 이벤트를 대조합니다. ACTIVE 이전 버전의 대체 이벤트 누락은 계속 거부합니다. 새 회귀2개 포함 대조 검사54 PASS, 공식 ruff PASS입니다. 입력 검증 병합 충돌은 양쪽 검증·tx inclusion을 보존했습니다. C port/제품 연결 완료와 이 독립 대조 검증을 구분합니다.
+## 추가 확인 — #64 현행 manifest 경로
+
+AI(Codex)가 여하민님 요청으로 수행했습니다. Reader·Writer의 합성 manifest fixture를 실제 현행 출력명 `31337.local.json`으로 맞춰 loader 경로 호환을 기존 정상/거부 검사로 확인합니다. 실제 배포 파일이나 원본 사용자 변경은 읽어 덮어쓰지 않습니다. 이 검사는 MockTransport이며 별도 no-dev Uvicorn 기동과 구분합니다.
+
+현행 파일명 fixture 검사: Reader·Writer **104 PASS**. 새 패키지·버전 변경 없음.
