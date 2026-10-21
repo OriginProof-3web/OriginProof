@@ -579,3 +579,32 @@ async def test_governance_requires_stored_expected_sender(env, function):
     _, _, reconciler = env
     with pytest.raises(BlockchainConfigurationError, match="sender is required"):
         await reconciler.transaction(TX, function=function, arguments={})
+
+
+@pytest.mark.parametrize("predecessor_state", [1, 2])
+async def test_successor_after_revoked_predecessor_needs_no_supersession_event(
+    env, monkeypatch, predecessor_state
+):
+    oracle, rpc, reconciler = env
+    publication = (*PUBLISH[:4], 2, *PUBLISH[5:])
+    oracle.install(
+        "publish",
+        [publication, b"z" * 65],
+        [event("DocumentPublished", {"documentId": DOC_ID, "version": 2, "issuerId": ISSUER})],
+    )
+    oracle.views["getDocument"] = ((*DOC[:2], 2, *DOC[3:]),)
+    oracle.views["latestVersion"] = (2,)
+    original = rpc.call
+
+    async def call(name, args, block):
+        if name == "getDocument" and args[1] == 1:
+            return ((*DOC[:-1], predecessor_state),)
+        return await original(name, args, block)
+
+    monkeypatch.setattr(rpc, "call", call)
+    if predecessor_state == 2:
+        result = await reconciler.transaction(TX, function="publish", arguments=oracle.intent)
+        assert result["receipt_state"]["document"]["state"] == 1
+    else:
+        with pytest.raises(BlockchainDependencyError, match="revoked predecessor"):
+            await reconciler.transaction(TX, function="publish", arguments=oracle.intent)
