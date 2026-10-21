@@ -130,3 +130,8 @@ D 전체 단계 QA 중 공통 CI의 `make security`가 Pillow8/certifi1 총9건�
 ## 2026-10-21 AI 동일 HEAD 검사 전파
 
 Codex가 #72→#73→#74의 JUnit 정확 수·summary·skip 보호와 indexer/lockfile trigger·재현 안내를 #75로 전파했습니다. guard 16 / stage 31 / consumer 31, 별도 분석기+consumer 352 PASS(각 skip 0). [환경·겹치는 범위·미완료](../qa/v5-d-same-head-w5-20261021.md). C 대행 기여와 기존 기록을 보존했습니다. 사람 확인/외부 리뷰는 대기입니다.
+
+
+## 2026-10-21 AI 후속 독립 재현·사람 인계
+
+Codex가 #72~#76 JUnit 정확 수/summary와 trigger를 전파하고 C 대행 기록·기존 기여를 보존했습니다. #76 guard16/stage43/consumer31, #75 분석기+consumer352 PASS. #85 실제 PostgreSQL seed/설정 재생성·역할 충돌 무변경 거부를 확인했고 live200/ready503을 구분했습니다. [실제 DB 보고](../qa/v5-d-wallet-seed-live-20261021.md), [팀 요청·사람용 초안](../handoffs/v5_d_human_review_drafts_20261021.md). #86 미병합으로 G07 반복은 미실행이며 준비 절차만 기록했습니다. 사람 확인·외부 승인·실제 Registry·입력/유료 평가·단계 완료는 대기입니다.

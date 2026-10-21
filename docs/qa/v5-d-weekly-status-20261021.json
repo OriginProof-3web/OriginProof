@@ -276,5 +276,44 @@
     },
     "c_lock_review": "PENDING",
     "g07_closed": false
+  },
+  "followup_exact_junit": {
+    "execution_sha": "babe3639eaf5b47aa0f621c2e41d09d7e6176d1e",
+    "guard_passed": 16,
+    "stage_per_pr": {
+      "72": 12,
+      "73": 25,
+      "74": 31,
+      "75": 31,
+      "76": 43
+    },
+    "consumer_each": 31,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "summary_matches_testcases": true,
+    "indexer_lock_triggers": true,
+    "analyzer_consumer_on_pr75": 352,
+    "human_approval": "PENDING",
+    "g07": "NOT_RUN: PR86 is unmerged"
+  },
+  "wallet_seed_live": {
+    "source_sha": "ea49318989f3a17895cf973065672936d701ce48",
+    "project": "originproof-d85-20261021",
+    "existing_legacy_accounts": 5,
+    "existing_total_accounts": 12,
+    "fresh_accounts": 7,
+    "existing_seed_repeats": 2,
+    "fresh_seed_repeats": 2,
+    "settings_reload_verified": true,
+    "credential_mode": "0600",
+    "external_ports": false,
+    "actual_registry": false,
+    "paid_model_calls": 0,
+    "fresh_settings_reload_verified": true,
+    "role_conflict_rejected": true,
+    "resources_removed": true,
+    "health_ready_status": 503,
+    "full_runtime_ready": false
   }
 }

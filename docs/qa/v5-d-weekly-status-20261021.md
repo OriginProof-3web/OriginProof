@@ -19,7 +19,7 @@
 ## 이번에 먼저 처리한 작업
 
 1. C가 D를 대행한 `d099808`의 같은 HEAD CI·필수 파일 manifest, 단계별 파일 추가(`597c4fb`, `22ec98a`, `f42766e`), `064891d`의 철회 이력 사례, W3-D의 과거65개 기여 기록 보존을 실제 코드와 대조했습니다. 같은 검증 source/lock에서 다시 실행했습니다. **Codex의 기술 대조·실행 기록이며 여인준 본인의 사실 확인/승인 코멘트는 아닙니다.** 대행자의 작성 이력을 보존했습니다.
-2. 최신 리뷰에서 남은 테스트 수 감소·skip 은폐 방지를 구현했습니다. [JUnit 검사기](../../fixtures/finals/v5_d_junit_guard.py)는 W2 12/W3 13/W4 6/분석 연결12, consumer31의 파일별 하한·필수 module을 확인합니다. skip/failure/error·빈/손상 XML·중복 test ID·빠진 module·4파일 manifest 누락은 실패합니다. 새 경계 검사 11개가 통과했고 CI가 이를 먼저 실행합니다. 향후 검사를 추가하면 상향은 허용하며 기존 기준을 낮추거나 skip을 늘리는 변경은 통과하지 않습니다. 의미상 동일한 수로 다른 검사를 바꾸는 것까지 자동 판정하는 장치는 아닙니다.
+2. 최신 리뷰에서 남은 테스트 수 감소·skip 은폐 방지를 구현했습니다. [JUnit 검사기](../../fixtures/finals/v5_d_junit_guard.py)는 W2 12/W3 13/W4 6/분석 연결12, consumer31의 파일별 정확 수·필수 module을 확인합니다. skip/failure/error·빈/손상 XML·중복 test ID·빠진 module·4파일 manifest 누락은 실패합니다. 새 경계 검사 16개가 통과했고 CI가 이를 먼저 실행합니다. 검사를 추가·제거할 때는 기대값을 함께 수정하고 리뷰해야 합니다. JUnit summary의 tests와 실제 testcase 수도 일치해야 합니다. 의미상 동일한 수로 다른 검사를 바꾸는 것까지 자동 판정하는 장치는 아닙니다.
 3. stage/consumer의 JUnit artifact 이름에 실제 PR head SHA를 붙였습니다. [같은 HEAD workflow](../../.github/workflows/d-pinned-c-qa.yml)는 `contents: read`, 별도 secret 없이 mock/합성 범위로 실행합니다. 옛 고정 C `eaa0d16`을 현재 후보 대신 검사하지 않습니다. 재현 명령은 아래에 있습니다.
 4. #84용 D 계약 소비 검토를 기록했습니다. 0.2의 실제 모델과 D의 validator/adapter/보관 callback을 대조했고 새 모델 사본이나 계약 변경 없이 실행했습니다. 이 문서는 작성자 외 승인·A/B 검토·이슈 체크 완료를 대신하지 않습니다.
 
@@ -41,7 +41,7 @@
 | D stage 명시4파일 | **43 PASS / 0 SKIP** | W2 12/W3 13/W4 6/분석 연결12, ASGI/SQLite·합성 Registry·실제 ECDSA |
 | D C-consumer | **31 PASS / 0 SKIP**, DG12 포함 | manifest30사례+계약 revision1. 과거 `30 PASS/1 FAIL`의 C 소스와 구분 |
 | 분석기 경로+consumer | **352 PASS** | 분석기 경로321(기존 W3 코어 회귀65 포함)+consumer31, 위/전체 수와 중복 합산하지 않음 |
-| 새 JUnit 보호 회귀 | **11 PASS** | 누락/감소/skip/실패/오류/중복/손상·정상 경계 |
+| 새 JUnit 보호 회귀 | **16 PASS** | 누락/감소/skip/실패/오류/중복/손상·정상 경계 |
 | `make generate` | PASS·전체 생성 경로 diff 없음 | 원본 생성 모델/Schema/TS/OpenAPI/ABI/Golden·합성 예시 |
 | Node Web Crypto 교차 hash | PASS, 두 템플릿 | 실제 브라우저/지갑 E2E 검사는 아님 |
 | Ruff·workflow YAML/bash·diff | PASS | 기존/새 D 파일과 최소 권한 확인 |
@@ -82,3 +82,12 @@ D 전용 [보안 PR #87](https://github.com/OriginProof-3web/OriginProof/pull/87
 - #87 CI에서는 의존성 감사와 실제 API 프로세스/폐기용 DB 복구 단계가 모두 통과했습니다. 이는 C의 기존 복구 시나리오이며 D의 G07 반복 재검사·새 지갑 E2E를 대신하지 않습니다.
 
 [보안 근거·호환성·한계](v5-d-dependency-security-20261021.md). 사용자 원본을 수정하거나 source/lock 보안 검사를 완화하지 않았으며 원격 PR 병합·실제 모델 호출은 하지 않았습니다. W1~W7 단계 전체 완료가 아니라 지금 가능한 D 보완을 구현·검사·공유한 상태입니다.
+
+
+## 후속: D PR 전파와 독립 PostgreSQL 재현
+
+#72→#73→#74→#75→#76에 정확한 JUnit 수/summary·skip 보호와 `services/indexer/**`·`uv.lock` trigger를 merge로 전파했습니다. 단계 기대값은 12→25→31→31→43, consumer는 각31입니다. #75의 분석 연결 QA는 후속 #76 소유이므로 파일을 복제하지 않았습니다. #75에서 분석기321+consumer31=352 PASS를 별도 확인했습니다. #76 검사 소스 `babe3639eaf5b47aa0f621c2e41d09d7e6176d1e`에서 guard16 / stage43 / consumer31 PASS, 모두 skip0입니다. 이들은 이전 전체684/10skip 실행과 범위가 겹치며 합산하지 않습니다.
+
+공통 모델·생성 경로·계약·lockfile·패키지 버전은 이번 후속에서 변경하지 않았습니다. #76 guard add/add 충돌은 기존 기능에 summary/정확 수 검증을 합쳤고, W5-D 추가 기록은 양쪽 기여를 유지했습니다. 계약/동작 판단이 필요한 충돌은 없었습니다.
+
+#85 고정 소스의 실제 PostgreSQL seed/컨테이너 재생성 검사를 완료했습니다. [실행 근거와 readiness503 한계](v5-d-wallet-seed-live-20261021.md), [사람용 리뷰 초안·팀 요청](../handoffs/v5_d_human_review_drafts_20261021.md)을 확인합니다. G07은 #86 미병합으로 재검사 미실행이며 [후속 절차](v5-d-g07-retest-plan-20261021.md)만 준비했습니다. 담당자 대행 확인·외부 리뷰·새 Registry 연결·단계 완료는 대기입니다.
