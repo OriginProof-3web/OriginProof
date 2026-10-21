@@ -45,7 +45,7 @@ async def scan(settings):
             issuer_ids=[settings.blockchain_issuer_id],
             expected_chain_id=manifest.chain_id,
         )
-        # B Reader validates chain/genesis/deployment/code before scanning this environment.
+        # B Reader validates chain/deployment/code before scanning this environment.
         await reader.get_issuer(settings.blockchain_issuer_id)
         with httpx.Client(timeout=5) as client:
 
