@@ -193,7 +193,7 @@ make deploy-local-legacy
 3. `Origin Mock Bank` 등록
 4. Mock Bank 서명 키 등록
 5. ABI 생성
-6. `packages/contracts/deployments/31337.json` 생성
+6. `packages/contracts/deployments/31337.legacy.local.json` 생성 (legacy 전용; 현행 API loader에 전달하지 않음)
 
 Manifest에는 chain ID, 배포 블록, Git SHA, Contract 주소와 constructor 인자만 기록하며 private key와 RPC token은 기록하지 않습니다.
 
