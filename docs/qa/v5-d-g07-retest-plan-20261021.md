@@ -1,24 +1,36 @@
-# D G07 후속 반복 재현 절차 (미실행)
+# D G07 후속 반복 재현 절차 (실환경 미실행)
 
-2026-10-21 확인: #86 `61703197399a2f66f18a3e0fcae51fd2bf54131f`는 미병합입니다. 현재 G07은 OPEN이며 이 문서는 준비 절차입니다. 과거 fresh18 PASS/mixed17 PASS1 FAIL, 이후 임시 반복 통과는 서로 다른 실행 근거로 보존합니다. C의 반복 통과와 B의 합성 검사 의견을 D 독립 재검증으로 대신하지 않습니다.
+#86 `61703197399a2f66f18a3e0fcae51fd2bf54131f`는 미병합입니다. 현재 G07은 OPEN입니다. 과거 fresh18 PASS/mixed17 PASS1 FAIL과 C/B의 후속 검사를 D의 동일 후보 독립 재검증으로 대신하지 않습니다.
 
-## 실행 전에 받을 인계
+## 실행 전 인계와 준비
 
-B/C가 #86 병합·외부 리뷰를 마친 **동일한 불변 제품 SHA**, Reader/Writer/indexer/ABI·배포 manifest·lockfile·실행 명령을 전달해야 합니다. 그 SHA에 #86이 포함되는지 `git merge-base --is-ancestor 61703197399a2f66f18a3e0fcae51fd2bf54131f <candidate SHA>`로 확인합니다. 이후 보완 커밋이 있으면 최신 수정 계보도 확인합니다. 공유/보존 phase에 직접 commit하지 않습니다.
+B/C가 #86 외부 리뷰·병합 후 **불변 제품 SHA**, Reader/Writer/indexer·ABI·배포 manifest·lockfile·실행 명령을 전달합니다. #87 보안 수정도 현재 D QA와 동일한 잠금 환경에 반영돼야 합니다. 전용 clean D checkout에서 fetch하고 실제 후보를 반영해 소스/lockfile을 일치시킵니다. lockfile만 복사하거나 일치 검사를 삭제하지 않습니다. 공유·보존 phase에서 직접 작업하지 않습니다.
 
-## 사용할 기존 자산과 필요한 전환
+## 사전 검사 (서비스를 띄우지 않음)
 
-- [w5_p0_api_qa.py](../../fixtures/finals/w5_p0_api_qa.py)의 fresh/mixed 모드와 [projection QA](../../fixtures/finals/w5_projection_qa.py)를 재사용합니다. 현재 runner의 PRODUCT_SHA는 과거9651062로 고정돼 있습니다. **이 runner를 그대로 실행하면 새 #86 제품 검증이 아닙니다.**
-- D 검증 branch/격리 clone에서만 PRODUCT_SHA를 C가 준 후보로, DEPLOYER 태그도 해당 SHA로 맞춥니다. 후보 lockfile과 실행 환경을 일치시키고 기존 `materialize()` lockfile 동일성 검사를 유지합니다. 검증 소스/제품 SHA·변경 diff를 따로 기록합니다. 원본 helper SHA는 고정 재사용 원본으로 유지합니다.
-- 예전 lockfile을 복사해 맞추거나 일치 검사를 삭제하지 않습니다. 새 의존성/공유 경로 변경이 필요하면 C와 조율합니다. 유료 key를 child 환경에서 제거하고 mock을 사용합니다.
+```sh
+git fetch --prune origin
+# CANDIDATE_SHA는 B/C가 전달한 40자리 고정 commit SHA로 설정
+.uv-venv/bin/python fixtures/finals/v5_d_g07_runner.py --product-sha "$CANDIDATE_SHA"
+```
 
-## 실제 실행 순서와 판정
+runner는 현재 phase가 #86을 포함하는지, 후보가 현재 phase를 포함하는지, QA가 clean인지, 후보 uv.lock과 QA uv.lock이 같은지 검사합니다. READY_TO_EXECUTE_NOT_TESTED는 준비 조건만 충족했다는 뜻입니다. BLOCKED/exit2이면 실제 환경은 기동하지 않습니다. 미래 #86 수정이 squash/rebase돼 원본 SHA 계보가 바뀌면 C의 실제 병합 근거를 확인하고 guard 기준을 리뷰로 갱신해야 합니다.
 
-1. 새 소유 PostgreSQL/Anvil/API 프로세스에서 fresh를1회 실행하고 원본/manifest/checkpoint·receipt 근거를 보존합니다.
-2. 동일한 후보 SHA에서 mixed를 최소3회, 각 회 새 격리 자원으로 반복합니다. RPC stop/start→projection replay→worker 재시작/reorg→ordered lifecycle의 순서와 추가 Anvil 재시작을 유지합니다. 실행 순서를 바꿔 실패를 감추지 않습니다.
-3. 같은 chain ID의 새 빈 RPC/다른 배포 block hash 거부, 정상 같은 배포의 restart 후 복구, receipt 유실/UNKNOWN 동일 Operation 재조회, checkpoint 보존·canonical reorg 대조를 각각 확인합니다.
-4. 각 회 명령은 `W5_D_API_QA=1 .uv-venv/bin/python fixtures/finals/w5_p0_api_qa.py`, mixed는 `W5_D_MIXED_STACK_QA=1`도 설정합니다. 앞 절의 후보/lockfile 전환과 검토 후에만 실행합니다.
-5. 회차별 `build/w5-d-api/<UUID>/summary.json`·소스 SHA·fingerprint·실패 로그·resources_closed를 보존합니다. 기대 정상 verify가 INCONCLUSIVE/UNAVAILABLE이면 실패로 남기며 skip/xfail/retry 성공으로 대체하지 않습니다.
-6. 같은 후보에서 Reader/Writer/indexer 단위·receipt/checkpoint 회귀와 C 실제 프로세스/DB복구 검사도 구분해 기록합니다. B/C 원인 수정 확인과 D 반복 결과가 모두 있을 때만 G07 종료를 제안합니다. 브라우저·신규 지갑 수용/단계 완료와는 별개입니다.
+## 준비 조건 충족 후 명시 실행
 
-현재는 **0회 실행 / G07 미해결**입니다. 준비만으로 레거시 runner를 새 제품 검증 완료로 보고하지 않습니다.
+```sh
+.uv-venv/bin/python fixtures/finals/v5_d_g07_runner.py \
+  --product-sha "$CANDIDATE_SHA" --execute --mixed-runs 3
+```
+
+- 후보와 같은 lock의 `uv run --locked` 환경에서 기존 w5_p0_api_qa.py를 실행합니다. 과거 runner의 PRODUCT_SHA를 수동 편집하지 않습니다. 기본 과거 실행과 명시 후보 실행은 metadata에서 구분합니다.
+- fresh1회 뒤 mixed3회(최대20회 지정 가능), 각 회 독립 DB/Anvil/프로세스와 출력 디렉터리를 사용합니다. fresh 실패 시 중단합니다. mixed의 실패는 후속 성공으로 덮지 않습니다.
+- RPC stop/start→projection replay→worker 재시작/reorg→ordered lifecycle·추가 Anvil 재시작 순서를 유지합니다. 다른 chain ID/같은 ID 빈 RPC/배포 block hash 불일치 거부, receipt 유실·UNKNOWN 동일 Operation, checkpoint 보존·canonical reorg를 포함한18개 필수 그룹이 모두 있어야 합니다.
+- 보고서는 `build/w5-d-g07/<UUID>/summary.json`, 회차별 legacy 보고서·private runner.log를 연결합니다. 제품/QA SHA·lock hash·mode·예상 그룹·mock/paid0·resources_closed를 확인하며 missing/skip/중복/잘못된 SHA는 실패입니다.
+- 통과 상태도 PASS_REQUIRES_B_C_REVIEW입니다. B/C의 원인 수정·리뷰와 D의 실제 반복 근거를 확인한 뒤 G07 종료를 제안합니다. 신규 지갑/브라우저 수용·단계 완료와 구분합니다.
+
+## 현재 실행 상태
+
+도구27개 단위 검사는 임시 Git 이력과 simulated child로 PASS입니다. 현재 phase를 넣은 실제 CLI 사전 검사는 #86 미반영·lock 불일치로 BLOCKED였습니다(개발 중 dirty도 차단). **실제 fresh/mixed 실행0회 / G07 미해결**입니다. Docker·운영/데모 DB·실제 모델은 실행하지 않았습니다.
+
+[구현·지표·전체 검사 근거](v5-d-development-tools-20261021.md).

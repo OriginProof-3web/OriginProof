@@ -91,3 +91,8 @@ D 전용 [보안 PR #87](https://github.com/OriginProof-3web/OriginProof/pull/87
 공통 모델·생성 경로·계약·lockfile·패키지 버전은 이번 후속에서 변경하지 않았습니다. #76 guard add/add 충돌은 기존 기능에 summary/정확 수 검증을 합쳤고, W5-D 추가 기록은 양쪽 기여를 유지했습니다. 계약/동작 판단이 필요한 충돌은 없었습니다.
 
 #85 고정 소스의 실제 PostgreSQL seed/컨테이너 재생성 검사를 완료했습니다. [실행 근거와 readiness503 한계](v5-d-wallet-seed-live-20261021.md), [사람용 리뷰 초안·팀 요청](../handoffs/v5_d_human_review_drafts_20261021.md)을 확인합니다. G07은 #86 미병합으로 재검사 미실행이며 [후속 절차](v5-d-g07-retest-plan-20261021.md)만 준비했습니다. 담당자 대행 확인·외부 리뷰·새 Registry 연결·단계 완료는 대기입니다.
+
+
+## 후속 개발: 후보 근거 지표와 G07 실행 도구
+
+[새 개발 보고](v5-d-development-tools-20261021.md)에 원시 provider 후보를 grounding 전에 집계하는 평가0.3, 불변 후보/#86/phase/lockfile/clean 조건을 검증하는 G07 반복 도구를 구현·기록했습니다. 새 평가17개와 G07 단위27개, 전체 기본701 PASS/기존10 SKIP, stage43/consumer31 PASS입니다. 기존684 PASS 기록과 중복 합산하지 않습니다. 제어된 합성 replay는 scorer 검사이며 실제 모델 평가가 아닙니다. 실제 G07은0회·OPEN, 입력 선정/유료 평가/라벨 리뷰·실제 Registry/브라우저 연결과 단계 완료는 여전히 후속입니다.

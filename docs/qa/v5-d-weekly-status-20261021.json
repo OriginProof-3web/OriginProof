@@ -315,5 +315,21 @@
     "resources_removed": true,
     "health_ready_status": 503,
     "full_runtime_ready": false
+  },
+  "development_tools": {
+    "code_sha": "73ef6034a69a0bb1427a4490a65a3de8e6fd8ceb",
+    "evaluation_version": "v5-d-evaluation-0.3",
+    "new_evidence_tests": 17,
+    "evidence_tests_with_existing": 26,
+    "g07_tool_tests_simulated": 27,
+    "make_test_passed": 701,
+    "make_test_skipped_existing_live": 10,
+    "stage_passed": 43,
+    "consumer_passed": 31,
+    "paid_calls": 0,
+    "holdout_predictions": 0,
+    "g07_actual_runs": 0,
+    "g07_status": "OPEN / preflight BLOCKED: fix not in phase, lock differs",
+    "candidate_scorer_check": "controlled synthetic replay, not model quality"
   }
 }

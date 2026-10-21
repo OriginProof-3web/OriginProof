@@ -36,7 +36,7 @@
 
 ### G07 #86
 
-> #86은 현재 미병합이고 D mixed 재검증은 미실행입니다. [후속 절차](../qa/v5-d-g07-retest-plan-20261021.md)를 준비했습니다. B/C가 외부 리뷰 후 실제 병합 후보 SHA/lockfile/manifest를 공유하면 동일 후보 fresh와 mixed 반복·배포 식별 거부·receipt/checkpoint를 재검증하겠습니다. G07은 OPEN을 유지합니다.
+> #86은 현재 미병합이고 D mixed 재검증은 미실행입니다. [후속 절차와 사전 검사·반복 실행 도구](../qa/v5-d-g07-retest-plan-20261021.md)를 준비했습니다. 도구 단위27개는 가짜 실행 결과/임시 Git 검사이며 실환경 재검사는0회입니다. B/C가 외부 리뷰 후 실제 병합 후보 SHA/lockfile/manifest를 공유하면 동일 후보 fresh와 mixed 반복·배포 식별 거부·receipt/checkpoint를 재검증하겠습니다. G07은 OPEN을 유지합니다.
 
 ## 팀원에게 요청할 사항 (미발송)
 
