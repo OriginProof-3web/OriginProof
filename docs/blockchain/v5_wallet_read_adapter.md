@@ -30,13 +30,17 @@ app = create_app(settings=settings, database=database, wallet_chain=adapter)
 
 C factory를 호출해 app.state.wallet_runtime.chain과 rpc 결과 모델·503 변환을 검사했습니다. 이 검사는 API 서버를 기동하거나 lifespan/DB 연결·인증된 HTTP workflow를 실행한 것이 아닙니다. 기존 asyncpg 엔진 객체 생성/정리만 수행했고 PostgreSQL에 연결하지 않았습니다. C의 main.py·설정·DB 코드는 수정하지 않았으므로 자동으로 활성화되지 않습니다.
 
+## 2026-10-21 후속 — B-C01 승인자 확인
+
+읽기 변환 이후 `creation_proof`를 설정하면 top-level CREATE·신뢰 build·canonical 배포 증거에서 고정 승인자를 도출하도록 구현했습니다. [승인자 근거 사용법·검사·한계](v5_wallet_approver_provenance.md)를 따릅니다. proof 없는 인스턴스는 기존 거부 동작을 유지합니다. 아래42/788 및41dc6f5 증거는 읽기 Adapter 당시 실행 이력이며 후속 실행은43개 추가·전체831 PASS/11 SKIP·별도 실제 Anvil1 PASS at4292801입니다.
+
 ## 안전하게 미연결로 남긴 부분
 
-- is_approver: B-C01의 승인자 constructor/배포 provenance 미연결. 임의 세 주소나 DB operator를 승인자로 반환하지 않음.
+- is_approver: 검증된 creation_proof가 없는 경우 사용 불가. proof가 있으면 후속 B-C01 검증을 수행하며 임의 세 주소나 DB operator를 승인자로 반환하지 않음.
 - submit: 실제 relayer/Operation 저장·dispatch 미연결. 키 수집/자동 전송/가짜 hash 없음.
 - find_transaction: B helper는 유지하지만 C port의 페이지 진행점/보관 연결 미합의. 빈None으로 오인시키지 않고 dependency 오류.
 
-세 메서드는 모두 명시적인 DependencyUnavailableError이며 C 경계에서는503입니다. 모든 write/operator/recovery 흐름을 이 read-only 인스턴스로 완성했다고 주장하지 않습니다. production injection은 C와 위 한계를 확인한 뒤 진행해야 합니다. C/D에게 별도 메시지나 사람 승인 코멘트는 발송하지 않았습니다.
+proof 없는 is_approver와 나머지 두 메서드는 명시적인 DependencyUnavailableError이며 C 경계에서는503입니다. 모든 write/operator/recovery 흐름을 이 read-only 인스턴스로 완성했다고 주장하지 않습니다. production injection은 C와 위 한계를 확인한 뒤 진행해야 합니다. C/D에게 별도 메시지나 사람 승인 코멘트는 발송하지 않았습니다.
 
 ## 검사·근거
 

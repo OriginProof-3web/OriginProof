@@ -15,7 +15,7 @@ AI(Codex)가 여하민님 요청으로 #69의 감사 요청을 정리했습니�
 
 ## 2026-10-21 구현 상태
 
-`WalletRegistryReadAdapter`에 issuer/key/document/proposal/transaction의 원본 DTO 변환과 C factory 주입 단위 검사를 구현했습니다. [사용법·검사·한계](v5_wallet_read_adapter.md)를 따릅니다. 승인자 배포 provenance·submit·find_transaction의 C 연결은 아직 없으며 이 세 호출은 명시적인 DependencyUnavailableError를 반환합니다. 이 구현을 제품 전체 port/서비스 연결 완료로 취급하지 않습니다.
+`WalletRegistryReadAdapter`에 issuer/key/document/proposal/transaction의 원본 DTO 변환과 C factory 주입 단위 검사를 구현했습니다. [사용법·검사·한계](v5_wallet_read_adapter.md)를 따릅니다. 고정 승인자 근거는 후속 [top-level CREATE 검증](v5_wallet_approver_provenance.md)을 구현했습니다. proof가 없으면 is_approver는 명시적 dependency 오류이며, submit·find_transaction의 C 연결은 아직 없어 두 호출은 계속 사용 불가입니다. 생산 설정·C 소비 리뷰는 후속입니다. 이 구현을 제품 전체 port/서비스 연결 완료로 취급하지 않습니다.
 
 ## 오류·주입 규칙
 
