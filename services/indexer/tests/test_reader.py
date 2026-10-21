@@ -22,7 +22,7 @@ def word(value):
 
 @pytest.fixture
 def manifest(tmp_path):
-    path = tmp_path / "manifest.json"
+    path = tmp_path / "31337.local.json"
     path.write_text(
         json.dumps(
             {
