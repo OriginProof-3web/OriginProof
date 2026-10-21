@@ -5,7 +5,7 @@ from collections import Counter
 from pathlib import Path
 from xml.etree import ElementTree as ET
 
-STAGE_MODULE_COUNT = 1  # W2; subsequent D PRs extend this to 2, 3 and 4.
+STAGE_MODULE_COUNT = 2  # W2; subsequent D PRs extend this to 2, 3 and 4.
 STAGE_COUNTS = {
     "v5_d_w2_governance_qa": 12,
     "v5_d_w3_content_qa": 13,
