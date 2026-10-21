@@ -1,0 +1,251 @@
+{
+  "as_of": "2026-10-21 Asia/Seoul",
+  "role": "D / yijun0330",
+  "plan": "5.1",
+  "shared_contract": "v5-shared-0.2",
+  "model": "gpt-6-luna",
+  "integration_sha": "1d9b349e4d8dbe697be0979dc51901827110fe5d",
+  "phase_sha": "15c5588f9e96e2f530bb0e891c76af79b22a123c",
+  "d_remote_input_sha": "f42766e5a0818a6688ea7516782424c371c85d5a",
+  "execution_sha": "e36e6ea2a0c93f1d4a199a73d993bcbfed2c2a5f",
+  "lock_sha256": "e5122f523c7bc1e1bedf6795244cbdd2baaaeec9dc9c7f3fb088e2f064806dd6",
+  "checks": {
+    "make_test": {
+      "passed": 684,
+      "skipped": 10,
+      "failed": 0
+    },
+    "stage": {
+      "passed": 43,
+      "skipped": 0,
+      "failed": 0,
+      "per_file": [
+        12,
+        13,
+        6,
+        12
+      ]
+    },
+    "consumer": {
+      "passed": 31,
+      "skipped": 0,
+      "failed": 0,
+      "dg12": "PASS on current merged C"
+    },
+    "analyzer_and_consumer": {
+      "passed": 352,
+      "analyzer_path": 321,
+      "consumer": 31
+    },
+    "new_junit_guard": {
+      "passed": 11
+    },
+    "generation": "PASS/no diff",
+    "node_web_crypto": "PASS/two templates",
+    "ruff_yaml_bash_diff": "PASS"
+  },
+  "weeks": [
+    {
+      "week": "W1",
+      "task_id": "V5-W1-D",
+      "done": "기존 안전성/fixture 재사용·공유 계약 소비 검사, #70/#71 병합",
+      "remaining": "입력 종류/우선순위 결정, 합성60개 라벨/분할 A/C 리뷰 후 동결",
+      "dependencies": "Q01·A/C"
+    },
+    {
+      "week": "W2",
+      "task_id": "V5-W2-D",
+      "done": "기관 승인 실패 QA 12 PASS, #72 일반 PR",
+      "remaining": "실제 신규 기관 신청→2-of-3→재조회·긴급 정지와 기존 #51 브라우저 실패 재검사",
+      "dependencies": "A/B/C 동일 후보·#85 seed/실제 Registry"
+    },
+    {
+      "week": "W3",
+      "task_id": "V5-W3-D",
+      "done": "내용/DB 변조 QA 13 PASS, 이전65개 fixture/기여 기록 보존",
+      "remaining": "실제 두 기관/템플릿 발행·QR·원본 bytes·기관 격리·v1/v2 회귀",
+      "dependencies": "A 지갑/QR·B Adapter·C API/DB"
+    },
+    {
+      "week": "W4",
+      "task_id": "V5-W4-D",
+      "done": "버전/키 QA 6 PASS; C 대행 추가 철회 이력 사례 포함",
+      "remaining": "실제 동시 다음 버전·키 교체/사고·공동 복구·기존 consume 회귀",
+      "dependencies": "B #68~#79·A/C 실제 연결"
+    },
+    {
+      "week": "W5",
+      "task_id": "V5-W5-D",
+      "done": "규칙/OpenAI adapter·원문 대조·D callback 12 PASS; 최종 gpt-6-luna 확정",
+      "remaining": "선정 입력 실제 변환·원시 후보 근거 품질/누락/위치·실제 모델 평가·통합 웹",
+      "dependencies": "Q01·유료 범위/예산·라벨/분할 리뷰"
+    },
+    {
+      "week": "W6",
+      "task_id": "V5-W6-D",
+      "done": "과거 fresh/mixed·clean 기록 보존; 현재 전체 회귀 684 PASS/10 SKIP",
+      "remaining": "동일 통합 SHA 수용표·G07 반복 재검사·성능·다른 장비·서비스 API 밖 검증·동결 차단표",
+      "dependencies": "#86 phase 반영·A/B/C 통합·W5 승격 후 phase/W6"
+    },
+    {
+      "week": "W7",
+      "task_id": "V5-W7-D",
+      "done": "실행/제출 조건과 기존 인계 기록 확인",
+      "remaining": "동일 RC 전체 리허설 3회·대체 장비/영상 전환·파일/링크/제출표",
+      "dependencies": "실행 RC·행사 조건·실제 통합 수용 결과"
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "V5-F01",
+      "supporting_evidence": "W2 governance12",
+      "remaining": "ASGI/synthetic; actual onboarding browser pending",
+      "stage_accepted": false
+    },
+    {
+      "id": "V5-F02",
+      "supporting_evidence": "W2 approval snapshots",
+      "remaining": "Synthetic consumer fence; real 2-of-3 execution pending",
+      "stage_accepted": false
+    },
+    {
+      "id": "V5-F03",
+      "supporting_evidence": "W4 suspended issuer test",
+      "remaining": "Actual emergency-stop/reactivation E2E pending",
+      "stage_accepted": false
+    },
+    {
+      "id": "V5-F04",
+      "supporting_evidence": "Generated golden and Node Web Crypto",
+      "remaining": "Actual wallet/browser/contract path pending",
+      "stage_accepted": false
+    },
+    {
+      "id": "V5-F05",
+      "supporting_evidence": "W2 stale/expired mutation and W4 old-key/deadline",
+      "remaining": "Real chain replay/action/domain attacks pending",
+      "stage_accepted": false
+    },
+    {
+      "id": "V5-F06",
+      "supporting_evidence": "W3 two-template synthetic publication",
+      "remaining": "Actual two institutions and ownership E2E pending",
+      "stage_accepted": false
+    },
+    {
+      "id": "V5-F07",
+      "supporting_evidence": "W3 tampering and partial/ID-only",
+      "remaining": "Actual original byte input comparison/browser pending",
+      "stage_accepted": false
+    },
+    {
+      "id": "V5-F08",
+      "supporting_evidence": "W4 version/revoked history six cases",
+      "remaining": "Real concurrent version atomicity pending",
+      "stage_accepted": false
+    },
+    {
+      "id": "V5-F09",
+      "supporting_evidence": "W4 key rotation/compromise/suspension",
+      "remaining": "Actual multisig recovery pending",
+      "stage_accepted": false
+    },
+    {
+      "id": "V5-F10",
+      "supporting_evidence": "W3 DB bytes/content/metadata/name/version",
+      "remaining": "Real DB manipulation and integrated chain pending",
+      "stage_accepted": false
+    },
+    {
+      "id": "V5-F11",
+      "supporting_evidence": "W3 copied ID/partial and W4 old state",
+      "remaining": "QR/browser forwarded message pending",
+      "stage_accepted": false
+    },
+    {
+      "id": "V5-F12",
+      "supporting_evidence": "Synthetic unknown/receipt checks and native API unit tests",
+      "remaining": "Actual v3 interruption/restart/recovery pending",
+      "stage_accepted": false
+    },
+    {
+      "id": "V5-F13",
+      "supporting_evidence": "Historical G07 evidence retained; PR86 read",
+      "remaining": "Fix not in phase; D repeated mixed run pending",
+      "stage_accepted": false
+    },
+    {
+      "id": "V5-F14",
+      "supporting_evidence": "Common synthetic text limits only",
+      "remaining": "Input selection/actual conversion/not-supported UX pending",
+      "stage_accepted": false
+    },
+    {
+      "id": "V5-F15",
+      "supporting_evidence": "D grounding/SDK mock/timeout/cancellation checks",
+      "remaining": "Actual model evaluation pending",
+      "stage_accepted": false
+    },
+    {
+      "id": "V5-F16",
+      "supporting_evidence": "D callback AI/issuance independence cases",
+      "remaining": "Actual integrated UX and RPC/model failures pending",
+      "stage_accepted": false
+    },
+    {
+      "id": "V5-F17",
+      "supporting_evidence": "D callback retention four options/owner/deletion",
+      "remaining": "Real v3 restart and retention boundaries pending",
+      "stage_accepted": false
+    },
+    {
+      "id": "V5-F18",
+      "supporting_evidence": "Native C security and D unit/synthetic evidence",
+      "remaining": "Independent integrated browser security/accessibility pending",
+      "stage_accepted": false
+    },
+    {
+      "id": "V5-F19",
+      "supporting_evidence": "Legacy v1/v2 unit/fixture regressions preserved",
+      "remaining": "Live signature/lifecycle/recipient/consume pending",
+      "stage_accepted": false
+    },
+    {
+      "id": "V5-F20",
+      "supporting_evidence": "Golden/verification material code review",
+      "remaining": "Service-independent actual state verification pending",
+      "stage_accepted": false
+    },
+    {
+      "id": "V5-F21",
+      "supporting_evidence": "Preparation records only",
+      "remaining": "Same RC/reproduction/three rehearsals and submissions pending",
+      "stage_accepted": false
+    }
+  ],
+  "contract_review": {
+    "source": "issue84 + actual 0.2 models",
+    "scope": "D validator/provider/callback; mock ASGI SQLite only",
+    "result": "no additional defect found in tested consumption",
+    "independent_approval": false,
+    "issue_comment_posted": false
+  },
+  "c_proxy_changes": {
+    "read_and_retested_by": "Codex under D user instruction",
+    "human_owner_confirmation": "PENDING; not impersonated",
+    "authorship": "preserved"
+  },
+  "not_run": [
+    "live OpenAI/paid evaluation",
+    "holdout predictions",
+    "new v3 actual PostgreSQL/Registry/browser integration",
+    "G07 after PR86 merge",
+    "different physical laptop",
+    "three RC rehearsals"
+  ],
+  "g07": "OPEN; PR86 not merged into phase, D repeated verification pending",
+  "paid_calls": 0,
+  "remote_merge": false,
+  "future_phase_created": false,
+  "human_approvals_inferred": false
+}

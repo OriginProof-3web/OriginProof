@@ -1,4 +1,4 @@
-"""D V5-W4 lifecycle failures; C #62 eaa0d16 synthetic chain, no atomicity/EVM claim."""
+"""D V5-W4 lifecycle failures; same-head synthetic chain, no atomicity/EVM claim."""
 
 import socket
 

@@ -117,3 +117,10 @@ D가 수정한 것은 평가 분모의 해석, 거부 보고서 집계, 안전�
 ## 2026-10-18 — 사용자 모델 선택 반영
 
 사용자가 최종 분석 모델을 OpenAI GPT-6 Luna (`gpt-6-luna`)로 선택했습니다. D가 공식 API ID·기존 설정과 `.env.example`의 동일 값을 대조하고 [분석 인계](../handoffs/v5_d_analysis.md)·[후속 결정 목록 L05](../final_deliverables_pending_decisions.md)에 반영했습니다. 실행 코드·기존 평가 결과는 변경하지 않았습니다. 문서/설정 일관성 검사만 수행하며 유료 모델 평가·기능 검사를 새로 통과한 것으로 기록하지 않습니다. 입력·유료 범위/예산·A/C 라벨/분할 리뷰, DG12/G07은 후속입니다.
+
+
+## 2026-10-21 — D 전체 단계 점검과 CI 증거 보호
+
+D 사용자 지시로 Codex가 W1~W7·V5-F01~21·최신 PR/계약0.2를 대조하고 [현재 작업표와 실제 검사](../qa/v5-d-weekly-status-20261021.md)를 작성했습니다. 실행 코드 `e36e6ea2a0c93f1d4a199a73d993bcbfed2c2a5f`에서 전체684 PASS/10 opt-in SKIP, stage43 PASS, consumer31 PASS(DG12 포함), 분석기 경로+consumer352 PASS를 확인했습니다. 중복 수를 합산하지 않습니다.
+
+D가 새로 구현한 것은 stage/consumer의 필수 module·파일별 최소 검사 수·skip/실패/오류·중복/손상 JUnit 거부와 head SHA별 artifact입니다. 11개 경계 검사·Ruff·YAML/bash/diff·생성물/두 템플릿 Node hash 검사가 통과했습니다. C 대행의 같은 HEAD CI/manifest·철회 이력 추가와 과거 W3 기여 기록 보존을 재사용했으며 작성 이력을 바꾸지 않았습니다. 이 기록은 담당자 본인 확인/작성자 외 승인·실제 지갑/브라우저·모델 평가를 대신하지 않습니다. G07은 #86 phase 반영 뒤 D 반복 재검사 전까지 미해결입니다.

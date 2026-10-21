@@ -1,8 +1,4 @@
-"""D callback against C #62 eaa0d16: ASGI/SQLite, synthetic Registry and LLM.
-
-Explicit run only; C's immutable export supplies test_wallet_runtime and shared models.
-No deployed input gate, user database, paid provider or browser is exercised.
-"""
+"""D callback against the same-head C API: ASGI/SQLite, synthetic Registry and LLM."""
 
 import asyncio
 import hashlib

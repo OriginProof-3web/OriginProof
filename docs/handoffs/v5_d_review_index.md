@@ -1,5 +1,7 @@
 # D GitHub 리뷰 공유 현황
 
+> 2026-10-21 현재 점검: [W1~W7 작업·동일 HEAD 재검사](../qa/v5-d-weekly-status-20261021.md). 현재 C 0.2에서 DG12는 통과했고 G07·사람 리뷰·실제 통합은 별도 대기입니다. 아래 날짜별 과거 결과와 구분합니다.
+
 2026-10-18 한국시간 갱신. 10월16일 사용자 요청으로 아래 D 전용 브랜치와 PR을 공유했고, #70/#71은 병합됐습니다. #72~#76의 변경 요청을 수정해 기존 PR에 반영합니다. 이전 인계/QA JSON의 push·PR 미수행 표시는 해당 검사 시점의 역사 기록이며 현재 공유 상태는 이 문서를 따릅니다.
 
 계획서 5.1 / 병합 기준 v5-shared-0.1입니다. 과거 보존 phase/W1~W4와 integration은 직접 수정하지 않았고, D 단계별 준비 stack으로 변경 범위를 분리했습니다. 현재 #72~#74는 일반 PR, #75/#76은 Draft이며 재리뷰/최종 승인은 대기입니다. **PR/브랜치 공유는 작성자 외 리뷰·실제 연결·단계 완료를 뜻하지 않습니다.**
@@ -8,7 +10,7 @@
 | --- | --- | --- | --- |
 | 1 | [#70 · 기준 반영·기존 D W1 보존](https://github.com/OriginProof-3web/OriginProof/pull/70) | `codex/v5-1-d-baseline` | `integration` |
 | 2 | [#71 · W1 안전성 재사용·근거 소비](https://github.com/OriginProof-3web/OriginProof/pull/71) | `codex/v5-w1-d-safety-qa` | `codex/v5-1-d-baseline` |
-| 3 | [#72 · W2 기관 승인·governance 실패 QA](https://github.com/OriginProof-3web/OriginProof/pull/72) | `codex/v5-w2-d-governance-qa` | `codex/v5-w1-d-safety-qa` |
+| 3 | [#72 · W2 기관 승인·governance 실패 QA](https://github.com/OriginProof-3web/OriginProof/pull/72) | `codex/v5-w2-d-governance-qa` | `phase/W5` |
 | 4 | [#73 · W3 내용·DB 변조 QA](https://github.com/OriginProof-3web/OriginProof/pull/73) | `codex/v5-w3-d-content-qa` | `codex/v5-w2-d-governance-qa` |
 | 5 | [#74 · W4 버전·키 상태 QA](https://github.com/OriginProof-3web/OriginProof/pull/74) | `codex/v5-w4-d-lifecycle-qa` | `codex/v5-w3-d-content-qa` |
 | 6 | [#75 · W5 규칙·OpenAI 분석기·평가 초안](https://github.com/OriginProof-3web/OriginProof/pull/75) | `codex/v5-w5-d-analysis` | `codex/v5-w4-d-lifecycle-qa` |
