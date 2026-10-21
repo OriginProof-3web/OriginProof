@@ -112,6 +112,24 @@ security:
 	$(UV) export --frozen --all-packages --all-groups --no-emit-workspace --no-header --no-annotate --output-file build/security/requirements.txt >/dev/null
 	uv tool run --from pip-audit==2.10.1 pip-audit --disable-pip --no-deps --requirement build/security/requirements.txt --format json --output build/security/python-audit.json
 
+# Retained local M3/M4 commands; deploy-local above remains the current MVP flow.
+FOUNDRY_BIN_DIR ?= $(HOME)/.foundry/bin
+.PHONY: bootstrap-contracts test-python chain deploy-local-legacy export-abi
+bootstrap-contracts:
+	./packages/contracts/script/bootstrap_dependencies.sh
+
+test-python:
+	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run pytest -q
+
+chain:
+	$(FOUNDRY_BIN_DIR)/anvil --chain-id 31337
+
+deploy-local-legacy:
+	./packages/contracts/script/deploy_local.sh
+
+export-abi:
+	./packages/contracts/script/export_abi.sh
+
 
 # Preserves existing DB, issuer signer files and account credentials.
 finals-seed: db-upgrade
