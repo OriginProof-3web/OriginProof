@@ -33,3 +33,8 @@ Codex가 D 사례·검사·실행·기록을 작성했고 기존 Graphify 지도
 
 - 본인 사실 확인: 대기.
 - 작성자 외 리뷰: #72의 변경 요청을 반영 중이며 재리뷰/승인은 대기입니다.
+
+
+## 2026-10-21 AI 검사 증거 보완
+
+Codex가 #72 JUnit 정확 수·summary·skip 보호와 indexer/lockfile trigger, 동일 HEAD 재현 안내를 보완했습니다. 로컬 guard 16 / W2 12 / consumer 31 PASS(각 skip 0), [환경·한계](../qa/v5-d-same-head-w2-20261021.md). 사람의 대행 변경 확인·리뷰·단계 완료는 대기입니다.
