@@ -11,3 +11,9 @@
 - 검사 구성 중 indexer 경로 누락·옛 health 경로404·빈 wallet 주소 환경변수로 인한 실패가 있었고, 이미지 설정/실제 경로/기본 비활성 설정에 맞춰 재검증했습니다. 제품 오류를 숨기거나 성공 응답으로 바꾸지 않았습니다.
 - Python609 PASS/10 SKIP, 기존 Starlette 경고1; 공식 ruff PASS. Foundry80 PASS(기존 phase 포함), shell 문법·lock 검사 PASS. CI는 새 head에서 별도 확인합니다.
 - 원본 작업 폴더의 사용자 미커밋5개는 건드리지 않고 별도 managed worktree에서 진행했습니다.
+
+## #68 · 대행 수정 2d1df07 / 기준 0459f4f
+
+Registry가 이전 최신이 ACTIVE일 때만 SUPERSEDED 전이/이벤트를 수행하는 것을 읽고 확인했습니다. REVOKED의 저장 전체는 후속 발행 뒤에도 불변이며 새 nonce로 재철회해도 거부·nonce 불변을 검사합니다. 이미 SUPERSEDED인 과거 버전의 정당한 첫 철회는 유지합니다. Foundry 전체101개 PASS, Python609 PASS/10 SKIP, 기존 경고1입니다. B의 기술적 검증 결과이며 사람의 직접 승인·독립 재리뷰 완료가 아닙니다.
+
+기존 Adapter의 `version>1`이면 무조건 Superseded 이벤트를 요구하는 부분은 이 규칙과 맞지 않아 #78에서 보완합니다. Contract·공통 정책을 다시 바꾸지 않습니다.
