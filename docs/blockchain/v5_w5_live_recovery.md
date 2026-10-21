@@ -66,3 +66,7 @@ B-C03의 bounded 원본 검색·receipt/nonce 재조회와 실제 로컬 UNKNOWN
 **G07은 미해결**이며 fresh 로컬 reorg 성공을 mixed 과거 실패 해결로 올리지 않습니다. SG01~16, W5 전체 단계/리뷰 상태를 일괄 PASS로 바꾸지 않습니다. 계획서5.1은5.0 범위 유지·인계 갱신이며 입력은 회의 후 결정하고 Decisions API는 범위 밖입니다.
 
 Codex가 B의 Recovery·합성/실제 검사를 작성하고 B1·2차 RPC/Reconciler/Indexer, W2~W4 Registry·생성 ABI와 C 공통 모델/hash/서명 코드를 재사용했습니다. C/A/D 생산 코드·공통 계약·의존성·운영 배포를 변경하지 않았습니다. 사용자 원본5개와 고정 과거/legacy를 보존하고 사람의 직접 작성·리뷰/기여 비율을 추정하지 않습니다. 팀 Draft PR과 비공개 개인 GitHub에 실제 커밋·검사 근거를 함께 보관합니다.
+
+## 2026-10-21 재검증
+
+실행 SHA `b92be2e30de20576933622dae2fbff88354808be`, [새 실제 EVM 증거](evidence/v5_w5_live_b92be2e.json): 실제 Anvil 1 PASS. fresh HTTP/RPC 클라이언트의 응답 유실 복구와 REVOKED v2 뒤 v3 발행을 추가 확인했습니다. API/DB 프로세스 재시작은 미실행입니다. 최신 일반 검사는 745 PASS/11 SKIP이며 이전 306 PASS 기록은 당시 실행 이력입니다. 자세한 수정·검사·미완료는 [PR 후속 확인](pr_followup_20261021.md)을 따릅니다.
