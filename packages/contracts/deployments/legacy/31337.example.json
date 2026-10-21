@@ -1,0 +1,16 @@
+{
+  "schema_version": "1.0.0",
+  "chain_id": 31337,
+  "deployment_commit_sha": "replace-after-git-init",
+  "deployment_block": 0,
+  "contracts": {
+    "IssuerRegistry": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "constructor_arguments": ["<deployer-address>"]
+    },
+    "IssuerKeyRegistry": {
+      "address": "0x0000000000000000000000000000000000000000",
+      "constructor_arguments": ["<deployer-address>", "<issuer-registry-address>"]
+    }
+  }
+}
