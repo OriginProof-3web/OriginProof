@@ -9,7 +9,7 @@
 ## W3-B1 — 발행·검증용 현재 Registry snapshot
 
 `JsonRpcBlockchainReader.get_issuer_key_snapshot(issuer_id, key_id, at)`은 한 번의
-호출에서 chain ID, genesis/deployment identity와 두 Registry bytecode를 확인한 뒤
+호출에서 chain ID, deployment block identity와 두 Registry bytecode를 확인한 뒤
 기관과 키를 같은 명시적 block tag에서 읽는다.
 
 ```python
