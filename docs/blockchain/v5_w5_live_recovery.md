@@ -9,7 +9,7 @@
 
 1. C가 제출 **이전 저장한** 전체 ABI 인자·function·업무 nonce/서명·대상 chain/deployment와 검색 시작 block을 B에 전달합니다. `WalletRecovery(rpc).find_transaction(...)`은 B의 내부 증거 경계이며 C `WalletRegistry` port의 완성 구현이 아닙니다.
 2. 알려진 tx hash가 있으면 2차 `WalletReconciler`로 먼저 조회합니다. pending/미발견을 성공이나 전송 실패로 바꾸지 않습니다. 다른 intent의 tx hash를 자기 거래로 채택하지 않습니다.
-3. 없거나 추가 재조회가 필요하면 canonical block의 실제 transaction 목록을 읽고 **전체 calldata**·대상 주소·필요 제출자가 일치하는 후보를 찾습니다. 제안/승인/정지는 저장한 sender가 필수입니다. 발행/철회는 relay sender를 선택적으로 제한할 수 있습니다. type/누락 인자·혼합 block/hash/index·잘못된 배포·불일치 receipt는 거부합니다.
+3. 검색 범위는 top-level `tx.to == Registry` 거래입니다. relay contract 내부 호출(`tx.to != Registry`)은 trace 검색을 하지 않아 찾지 못합니다. 빈 결과는 재전송 허가가 아닙니다. 없거나 추가 재조회가 필요하면 canonical block의 실제 transaction 목록을 읽고 **전체 calldata**·대상 주소·필요 제출자가 일치하는 후보를 찾습니다. 제안/승인/정지는 저장한 sender가 필수입니다. 발행/철회는 relay sender를 선택적으로 제한할 수 있습니다. type/누락 인자·혼합 block/hash/index·잘못된 배포·불일치 receipt는 거부합니다.
 4. 각 후보를 2차의 이벤트/receipt 블록·현재 상태 대조로 재검증합니다. 성공과 실패 시도가 모두 있을 수 있으므로 `attempts` 목록을 반환하며 첫 실패만 보고 전체 요청을 FAILED로 만들지 않습니다. tx hash가 알려진 경우에도 중복 항목은 추가하지 않습니다.
 5. 후보 탐색 페이지 기본128/max1024 block, 기본4096/max16384 transaction 제한입니다. 예산 초과·RPC 불가·mined 후보 receipt 누락은 dependency 오류이며 진행점을 반환하지 않습니다. 이 제한은 후보 탐색용이고 승인 대조의 기존 배포 이후 canonical 이벤트 replay까지 합산한 전역 RPC 예산은 아닙니다. 운영 provider의 getLogs chunk/보존 범위 대응은 후속입니다.
 6. `checkpoint=(block, hash)`, `next_block`으로 C가 진행점을 저장할 수 있습니다. 다음 호출에 `previous_checkpoint`를 전달하면 바로 앞 block/height/hash를 검증합니다. reorg 시 계속 진행하지 않고 UNKNOWN을 유지하여 canonical 재검색해야 합니다. B helper는 Operation/DB·자동 재시도 스케줄을 변경하지 않습니다.

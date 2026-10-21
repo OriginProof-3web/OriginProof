@@ -346,9 +346,16 @@ async def test_disposable_wallet_registry_recovery_and_reorg(tmp_path):
                 await asyncio.sleep(0.02)
             else:
                 pytest.fail("accepted local transaction remained unmined")
-            recovered = await recovery.find_transaction(
-                function="publish", arguments=args2, start_block=int(before["number"], 16)
-            )
+            # Recreate clients from serialized intent, as after a client restart.
+            # This does not claim an API/Operation database process restart.
+            saved_args = json.loads(json.dumps(args2))
+            async with httpx.AsyncClient(timeout=5) as restarted_client:
+                restarted_rpc = WalletRpc(restarted_client, url, **config)
+                recovered = await WalletRecovery(restarted_rpc).find_transaction(
+                    function="publish",
+                    arguments=saved_args,
+                    start_block=int(before["number"], 16),
+                )
             assert len(recovered["attempts"]) == 1
             hash2 = recovered["attempts"][0]["tx_hash"]
             assert recovered["attempts"][0]["evidence"]["receipt_status"] == 1
@@ -370,7 +377,7 @@ async def test_disposable_wallet_registry_recovery_and_reorg(tmp_path):
                 "block_hash": recovered["attempts"][0]["evidence"]["block"]["hash"],
             }
             report["scenarios"].append(
-                "real accepted-send response loss recovered without hash/resend"
+                "real accepted-send response loss recovered by fresh client without hash/resend"
             )
             history = await reconciler.transaction(hash1, function="publish", arguments=args1)
             assert history["current_state"]["document"]["state"] == 3
@@ -400,9 +407,32 @@ async def test_disposable_wallet_registry_recovery_and_reorg(tmp_path):
                 "atomic supersession, revoke, failed replay and original success"
             )
 
+            publish3 = publish2.model_copy(update={"version": 3, "nonce": "3"})
+            publish3 = publish3.model_copy(
+                update={
+                    "original_hash": "0x"
+                    + hashlib.sha256(original_bytes(publish3, content2)).hexdigest()
+                }
+            )
+            validate_content(publish3, content2)
+            args3 = arguments(
+                "publish", [model_tuple("publish", "message", publish3), await sign(publish3)]
+            )
+            hash3 = await send("publish_v3_after_revoked_v2", "publish", args3, relayer)
+            evidence3 = await reconciler.transaction(hash3, function="publish", arguments=args3)
+            assert len(evidence3["events"]) == 1
+            revoked_history = await reader.read(
+                "getDocument", [hex_bytes(publish.document_id, 32), 2]
+            )
+            document_fields = reader.functions["getDocument"]["outputs"][0]["components"]
+            assert named(document_fields, revoked_history["values"][0])["state"] == 2
+            report["scenarios"].append(
+                "publish successor after revoked predecessor without supersession event"
+            )
+
             suspend_args = arguments("suspendIssuer", [hex_bytes(issuer, 32), keccak(text="OTHER")])
             await send("suspend", "suspendIssuer", suspend_args, approvers[0])
-            revoke1 = revoke.model_copy(update={"version": 1, "nonce": "3"})
+            revoke1 = revoke.model_copy(update={"version": 1, "nonce": "4"})
             await send(
                 "revoke_old_while_suspended",
                 "revoke",
