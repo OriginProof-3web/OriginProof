@@ -148,7 +148,8 @@ roles.registry_admin / issuer_manager / key_manager / issuer_account
 
 `deployment_id`는 chain·genesis·배포 block/hash·source SHA·계약 주소/인자/ABI hash의
 canonical JSON SHA-256으로 만든 `dep_<64 hex>` 값이다. Reader와 Writer는 chain ID,
-genesis hash, deployment block hash와 bytecode를 매 작업 전에 확인한다. 다른 Anvil
+deployment block hash와 bytecode를 매 작업 전에 확인한다. 배포 block hash가 genesis까지의
+조상을 포함하므로 genesis는 다시 조회하지 않는다(Anvil `--state` 재기동이 genesis를 재생성하는 G07 대응). 다른 Anvil
 재기동이나 재배포의 주소·receipt·checkpoint를 현재 성공 근거로 재사용하지 않는다.
 
 배포 명령은 기존 `make deploy-local` 흐름을 유지한다. 명령이 전달하는 source SHA는
