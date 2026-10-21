@@ -92,7 +92,6 @@ class JsonRpcBlockchainReader:
             manifest = load_manifest(manifest_path, expected_chain_id)
             self._deployment_block = manifest.deployment_block
             self._deployment_block_hash = manifest.deployment_block_hash
-            self._genesis_block_hash = manifest.genesis_block_hash
             self.deployment_id = manifest.deployment_id
             self._issuer = manifest.contract("IssuerRegistry").address
             self._key = manifest.contract("IssuerKeyRegistry").address
@@ -222,14 +221,12 @@ class JsonRpcBlockchainReader:
             block = await self._rpc(client, "eth_blockNumber", [])
             if not isinstance(block, str) or int(block, 16) < self._deployment_block:
                 raise ValueError("stale manifest")
-            genesis = await self._rpc(client, "eth_getBlockByNumber", ["0x0", False])
+            # Deployment block hash commits to its ancestry; Anvil --state can regenerate genesis.
             deployed = await self._rpc(
                 client, "eth_getBlockByNumber", [hex(self._deployment_block), False]
             )
             if (
-                not isinstance(genesis, dict)
-                or not isinstance(deployed, dict)
-                or genesis.get("hash", "").lower() != self._genesis_block_hash
+                not isinstance(deployed, dict)
                 or deployed.get("hash", "").lower() != self._deployment_block_hash
             ):
                 raise ValueError("deployment identity mismatch")

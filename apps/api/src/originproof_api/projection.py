@@ -59,6 +59,14 @@ async def scan(settings):
     try:
         manifest = load_manifest(settings.blockchain_manifest_path, settings.blockchain_chain_id)
         rpc_url = await verified_rpc_url(settings, manifest)
+        reader = JsonRpcBlockchainReader(
+            rpc_url,
+            settings.blockchain_manifest_path,
+            issuer_ids=[settings.blockchain_issuer_id],
+            expected_chain_id=manifest.chain_id,
+        )
+        # B Reader validates chain/deployment/code before scanning this environment.
+        await reader.get_issuer(settings.blockchain_issuer_id)
         with httpx.Client(timeout=5) as client:
 
             def rpc(method, params):

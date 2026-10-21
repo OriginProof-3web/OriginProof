@@ -11,13 +11,15 @@ dev = [
   "pytest>=9.1.1,<10",
   "pytest-asyncio>=1.4,<1.5",
   "ruff>=0.9,<0.10",
+  "respx>=0.22,<1",
 ]
 
 [tool.uv.workspace]
 members = ["apps/api", "services/analyzer", "packages/python"]
 
 [tool.pytest.ini_options]
-testpaths = ["apps/api/tests", "packages/python/tests", "services/analyzer/tests", "services/indexer/tests", "scripts/ci"]
+pythonpath = ["apps/api/src", "packages/python", "services/analyzer/src", "services/indexer/src"]
+testpaths = ["apps/api/tests", "packages/python/tests", "services/analyzer/tests", "scripts/ci", "services/indexer/tests"]
 asyncio_mode = "auto"
 
 [tool.ruff]
