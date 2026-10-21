@@ -451,3 +451,32 @@ async def test_getter_specific_absence_is_available_in_first_adapter_pr(setup, g
 
     chain.override = missing
     assert (await rpc.read(getter, args))["values"] is None
+
+
+def test_bigint_positions_preserve_values_above_int4(tmp_path):
+    from sqlalchemy.dialects.postgresql import dialect
+    from sqlalchemy.schema import CreateTable
+
+    assert "block_number BIGINT" in str(CreateTable(journal).compile(dialect=dialect()))
+    assert "log_index BIGINT" in str(CreateTable(journal).compile(dialect=dialect()))
+    assert "block_number BIGINT" in str(CreateTable(cursors).compile(dialect=dialect()))
+    engine = create_engine("sqlite:///" + str(tmp_path / "bigint.db"))
+    try:
+        journal.metadata.create_all(engine)
+        position = 2**31 + 1
+        with engine.begin() as conn:
+            conn.execute(
+                insert(journal).values(
+                    deployment="preserved", block_number=position, log_index=position, payload="{}"
+                )
+            )
+            conn.execute(
+                insert(cursors).values(deployment="preserved", block_number=position, block_hash=H1)
+            )
+        with engine.connect() as conn:
+            row = conn.execute(select(journal)).mappings().one()
+            checkpoint = conn.execute(select(cursors)).mappings().one()
+        assert row["block_number"] == row["log_index"] == checkpoint["block_number"] == position
+        assert row["deployment"] == checkpoint["deployment"] == "preserved"
+    finally:
+        engine.dispose()
