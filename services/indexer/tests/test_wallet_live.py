@@ -14,6 +14,7 @@ import pytest
 from eth_abi import encode
 from eth_utils import keccak
 from infrastructure.blockchain.errors import BlockchainDependencyError
+from infrastructure.blockchain.wallet_adapter import WalletRegistryReadAdapter
 from infrastructure.blockchain.wallet_reconciliation import WalletReconciler
 from infrastructure.blockchain.wallet_recovery import WalletRecovery, calldata
 from infrastructure.blockchain.wallet_rpc import WalletRpc, hex_bytes, named
@@ -259,6 +260,10 @@ async def test_disposable_wallet_registry_recovery_and_reorg(tmp_path):
             assert not (await reconciler.proposal(pid))["executed"]
             await send("approve_second", "approve", approve, approvers[1])
             assert (await reconciler.proposal(pid))["approvals"] == approvers[:2]
+            adapter = WalletRegistryReadAdapter(reader)
+            assert (await adapter.issuer(issuer)).state == "ACTIVE"
+            assert (await adapter.key(key)).issuer_id == issuer
+            assert (await adapter.proposal(pid)).proposal.status == "EXECUTED"
             report["scenarios"].append("real EIP712 KeyProof, 2-of-3 and canonical approvals")
 
             doc_key = identifier_hash("live-document-key")
@@ -426,6 +431,15 @@ async def test_disposable_wallet_registry_recovery_and_reorg(tmp_path):
             )
             document_fields = reader.functions["getDocument"]["outputs"][0]["components"]
             assert named(document_fields, revoked_history["values"][0])["state"] == 2
+            assert (await adapter.document(publish.document_id, None)).document.version == 3
+            assert (await adapter.document(publish.document_id, 2)).document.state == "REVOKED"
+            converted_tx = await adapter.transaction(hash3)
+            assert converted_tx.status == "CONFIRMED"
+            assert converted_tx.arguments["message"] == publish3.model_dump(by_alias=True)
+            assert converted_tx.arguments["signature"] == args3["signature"]
+            report["scenarios"].append(
+                "B read adapter to C original DTOs: issuer/key/proposal/document/transaction"
+            )
             report["scenarios"].append(
                 "publish successor after revoked predecessor without supersession event"
             )

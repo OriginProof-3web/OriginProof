@@ -1,4 +1,4 @@
-"""B's ABI evidence boundary. C owns conversion to wallet_ports runtime models.
+"""B's ABI evidence boundary. wallet_adapter consumes C-owned runtime models.
 
 All observations use a hash-pinned canonical block. Projection is never read here.
 The supplied ABI is the compiled Registry ABI, not a second contract definition.
