@@ -180,16 +180,14 @@ class JsonRpcBlockchainWriter:
         chain = await self._rpc(client, "eth_chainId", [])
         if not isinstance(chain, str) or int(chain, 16) != self._manifest.chain_id:
             raise ValueError("wrong chain")
-        genesis = await self._rpc(client, "eth_getBlockByNumber", ["0x0", False])
+        # The deployment block hash commits to its ancestry; Anvil --state can regenerate genesis.
         deployed = await self._rpc(
             client,
             "eth_getBlockByNumber",
             [hex(self._manifest.deployment_block), False],
         )
         if (
-            not isinstance(genesis, dict)
-            or not isinstance(deployed, dict)
-            or genesis.get("hash", "").lower() != self._manifest.genesis_block_hash
+            not isinstance(deployed, dict)
             or deployed.get("hash", "").lower() != self._manifest.deployment_block_hash
         ):
             raise ValueError("deployment identity mismatch")
