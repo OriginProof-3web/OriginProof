@@ -12,6 +12,9 @@ on:
       - "fixtures/finals/test_v5_d_g07_runner.py"
       - "fixtures/finals/w5_p0_api_qa.py"
       - "fixtures/finals/w5_projection_qa.py"
+      - "fixtures/finals/v5_d_verification_benchmark.py"
+      - "fixtures/finals/test_v5_d_verification_benchmark.py"
+      - "fixtures/finals/test_v5_d_independent_verifier.py"
       - "fixtures/synthetic/analysis_consumer_cases_v1.json"
       - "services/analyzer/**"
       - "services/indexer/**"
@@ -55,6 +58,23 @@ jobs:
             fixtures/finals/v5_d_g07_runner.py fixtures/finals/test_v5_d_g07_runner.py \
             fixtures/finals/w5_p0_api_qa.py
           .venv/bin/python -m pytest -q fixtures/finals/test_v5_d_junit_guard.py fixtures/finals/test_v5_d_g07_runner.py
+      - name: Measure synthetic verification roundtrips (100 per template)
+        if: matrix.suite == 'stage'
+        env:
+          D_PERF_REPORT_DIR: qa-results/performance
+        run: |
+          export PYTHONPATH="$PWD/services/analyzer/src:$PWD/apps/api/src:$PWD/packages/python:$PWD/services/indexer/src:$PWD/apps/api/tests"
+          .venv/bin/ruff check fixtures/finals/v5_d_verification_benchmark.py fixtures/finals/test_v5_d_verification_benchmark.py
+          mkdir -p qa-results
+          .venv/bin/python -m pytest -q -o addopts= --junitxml=qa-results/benchmark.xml fixtures/finals/test_v5_d_verification_benchmark.py
+      - name: Preserve synthetic benchmark evidence
+        if: always() && matrix.suite == 'stage'
+        uses: actions/upload-artifact@v4
+        with:
+          name: d-benchmark-synthetic-${{ github.event.pull_request.head.sha }}
+          path: |
+            qa-results/benchmark.xml
+            qa-results/performance/*.json
       - name: Run explicit D QA (ASGI, SQLite, synthetic Registry, no live model)
         env:
           SUITE: ${{ matrix.suite }}
@@ -81,4 +101,40 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: d-same-head-${{ matrix.suite }}-${{ github.event.pull_request.head.sha }}
-          path: qa-results/*.xml
+          path: qa-results/${{ matrix.suite }}.xml
+
+  independent-verifier:
+    name: D independent verifier / pinned C63
+    runs-on: ubuntu-latest
+    env:
+      LLM_PROVIDER: mock
+      D_C63_SOURCE_DIR: build/qa-c63
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: 68ea0c20718937cd0c93d683e3cfa9b3995a9666
+          path: build/qa-c63
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.8.17"
+          python-version: "3.13"
+      - name: Test fixed C verifier with current D shared-model consumers
+        run: |
+          uv sync --all-packages --all-groups --locked
+          git diff --exit-code
+          .venv/bin/ruff check fixtures/finals/test_v5_d_independent_verifier.py
+          mkdir -p qa-results
+          .venv/bin/python -m pytest -q -o addopts= --junitxml=qa-results/independent.xml \
+            fixtures/finals/test_v5_d_independent_verifier.py \
+            build/qa-c63/scripts/ci/test_wallet_independent_verifier.py
+      - name: Preserve independent verifier candidate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: d-independent-c63-${{ github.event.pull_request.head.sha }}
+          path: qa-results/independent.xml
