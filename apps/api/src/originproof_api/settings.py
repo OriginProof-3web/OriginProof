@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from infrastructure.blockchain.network import CHAIN_TARGETS, chain_target, rpc_urls
 from originproof_core.wallet_contract import Address
-from pydantic import Field, SecretStr
+from pydantic import AliasChoices, Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -9,8 +10,14 @@ class Settings(BaseSettings):
     """Runtime settings. Secrets are loaded from the environment and never logged."""
 
     database_url: str = "postgresql+asyncpg://originproof:originproof@postgres:5432/originproof"
-    blockchain_rpc_url: str | None = None
+    # One switch (CHAIN_TARGET=anvil|sepolia) selects chain ID, wallet manifest and RPC rules.
+    chain_target: str = Field(
+        default="anvil", validation_alias=AliasChoices("CHAIN_TARGET", "chain_target")
+    )
+    blockchain_rpc_url: str | None = Field(default=None, repr=False)
+    blockchain_rpc_fallback_url: str | None = Field(default=None, repr=False)
     blockchain_manifest_path: str | None = None
+    wallet_manifest_path: str | None = None
     blockchain_issuer_id: str = "iss_origin_mock_bank"
     blockchain_chain_id: int = 31337
     projection_enabled: bool = False
@@ -42,4 +49,33 @@ class Settings(BaseSettings):
         env_file=".env",
         env_prefix="API_",
         extra="ignore",
+        # Startup errors must not echo inputs such as provider-keyed RPC URLs.
+        hide_input_in_errors=True,
     )
+
+    @field_validator("chain_target")
+    @classmethod
+    def _known_chain_target(cls, value: str) -> str:
+        return chain_target(value).name
+
+    @model_validator(mode="after")
+    def _select_chain(self):
+        target = CHAIN_TARGETS[self.chain_target]
+        if (
+            "blockchain_chain_id" in self.model_fields_set
+            and self.blockchain_chain_id != target.chain_id
+        ):
+            raise ValueError(f"API_BLOCKCHAIN_CHAIN_ID conflicts with CHAIN_TARGET={target.name}")
+        self.blockchain_chain_id = target.chain_id
+        self.wallet_manifest_path = self.wallet_manifest_path or str(target.wallet_manifest_path)
+        if target.name == "sepolia" or self.blockchain_rpc_url or self.blockchain_rpc_fallback_url:
+            rpc_urls(target, self.blockchain_rpc_url, self.blockchain_rpc_fallback_url)
+        return self
+
+    @property
+    def blockchain_rpc_urls(self) -> tuple[str, ...]:
+        """Primary then fallback. Reader/projection reads fail over; writes use the primary only."""
+        if not self.blockchain_rpc_url:
+            return ()
+        target = CHAIN_TARGETS[self.chain_target]
+        return rpc_urls(target, self.blockchain_rpc_url, self.blockchain_rpc_fallback_url)

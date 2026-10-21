@@ -59,6 +59,17 @@ def address(value):
     return validate_address(value)
 
 
+@dataclass(frozen=True)
+class _Endpoint:
+    """One RPC URL bound to the shared client for a single read operation."""
+
+    client: object
+    url: str
+
+    async def post(self, **kwargs):
+        return await self.client.post(self.url, **kwargs)
+
+
 def uint(word, bits):
     value = int.from_bytes(word, "big")
     if value >= 2**bits:
@@ -99,7 +110,12 @@ class JsonRpcBlockchainReader:
         except Exception:
             raise DependencyUnavailableError("invalid blockchain configuration") from None
         self._chain_id = expected_chain_id
-        self._url, self._timeout, self._client = rpc_url, timeout, client
+        # Dual-RPC: a URL or an ordered (primary, fallback, ...) sequence. Each read operation is
+        # retried whole on the next URL, so chain/genesis/deployment/code identity is re-checked.
+        self._urls = (rpc_url,) if isinstance(rpc_url, str) else tuple(rpc_url or ())
+        if not self._urls or not all(isinstance(url, str) and url for url in self._urls):
+            raise DependencyUnavailableError("invalid blockchain configuration")
+        self._timeout, self._client = timeout, client
         self._ids = count(1)
 
     @staticmethod
@@ -110,7 +126,6 @@ class JsonRpcBlockchainReader:
     async def _rpc(self, client, method, params):
         request_id = next(self._ids)
         response = await client.post(
-            self._url,
             timeout=self._timeout,
             json={
                 "jsonrpc": "2.0",
@@ -188,6 +203,18 @@ class JsonRpcBlockchainReader:
 
     async def _run(self, operation, identifier, at=None):
         client = self._client or httpx.AsyncClient()
+        try:
+            for url in self._urls:
+                try:
+                    return await self._run_on(_Endpoint(client, url), operation, identifier, at)
+                except Exception:
+                    continue
+            raise DependencyUnavailableError("blockchain state unavailable")
+        finally:
+            if self._client is None:
+                await client.aclose()
+
+    async def _run_on(self, client, operation, identifier, at):
         try:
             chain = await self._rpc(client, "eth_chainId", [])
             if not isinstance(chain, str) or int(chain, 16) != self._chain_id:
@@ -324,9 +351,6 @@ class JsonRpcBlockchainReader:
             )
         except Exception:
             raise DependencyUnavailableError("blockchain state unavailable") from None
-        finally:
-            if self._client is None:
-                await client.aclose()
 
     async def get_issuer(self, issuer_id: str) -> IssuerRecord | None:
         return await self._run("issuer", issuer_id)
