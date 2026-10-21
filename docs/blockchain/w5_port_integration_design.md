@@ -1,6 +1,6 @@
 # W5 B → C WalletRegistry 연결 설계 메모 (미합의 초안)
 
-AI(Codex)가 여하민님 요청으로 #69의 감사 요청을 정리했습니다. 원본은 `packages/python/originproof_core/wallet_ports.py`이고 소비 지점은 C의 `WalletRuntime.rpc` 및 `create_app(wallet_chain=...)`입니다. 공통 DTO·Schema·ABI 복제 없이 원본을 import합니다. **연결 구현·C 합의·실제 API/DB 연결 완료가 아닙니다.** 공개 네트워크도 미검증입니다.
+AI(Codex)가 여하민님 요청으로 #69의 감사 요청을 정리했습니다. 원본은 `packages/python/originproof_core/wallet_ports.py`이고 소비 지점은 C의 `WalletRuntime.rpc` 및 `create_app(wallet_chain=...)`입니다. 공통 DTO·Schema·ABI 복제 없이 원본을 import합니다. **전체 port 연결·C 합의·실제 API/DB 연결 완료가 아닙니다.** 공개 네트워크도 미검증입니다.
 
 | port 메서드 | B의 변환·증거 책임 | C와 확인할 경계 |
 | --- | --- | --- |
@@ -13,12 +13,16 @@ AI(Codex)가 여하민님 요청으로 #69의 감사 요청을 정리했습니�
 | submit | 서명/전체 intent와 실제 relayer 경계를 별도 구현 | 기관 개인키 수집 금지, 미구현이면 dependency 오류, 가짜 tx hash 반환 금지 |
 | find_transaction | 저장된 전체 intent·actor·deployment부터 bounded Recovery 검색 | C port는 페이지 진행점 필드가 없으므로 DB 보관·범위/예산을 C와 먼저 합의, 완료 페이지의 빈 결과도 재전송 허가 아님 |
 
+## 2026-10-21 구현 상태
+
+`WalletRegistryReadAdapter`에 issuer/key/document/proposal/transaction의 원본 DTO 변환과 C factory 주입 단위 검사를 구현했습니다. [사용법·검사·한계](v5_wallet_read_adapter.md)를 따릅니다. 승인자 배포 provenance·submit·find_transaction의 C 연결은 아직 없으며 이 세 호출은 명시적인 DependencyUnavailableError를 반환합니다. 이 구현을 제품 전체 port/서비스 연결 완료로 취급하지 않습니다.
+
 ## 오류·주입 규칙
 
 1. getter별 정확한 Unknown custom error만 None으로 반환합니다. RPC/ABI/배포 불일치와 getter와 다른 Unknown 오류는 dependency입니다. pending/missing 거래는 None으로 유지하고 CONFIRMED로 바꾸지 않습니다.
 2. B의 BlockchainDependencyError는 경계에서 C가 처리하는 `originproof_core.DependencyUnavailableError`로 번역해야 합니다. B 내부 오류를 그대로 C에 흘려 500으로 만들지 않습니다. 모델 validation 실패도 dependency로 처리합니다.
 3. ChainPosition은 한 snapshot의 chain/contract/block/hash를 공유하고 reorg 재검사를 통과해야 합니다. C는 WalletRuntime에서 다시 모델/domain/identity와 저장 intent를 검증합니다.
-4. 실제 배포 검증을 마친 adapter 인스턴스를 C factory의 `create_app(wallet_chain=adapter)`에 주입하고 HTTP client 수명은 app lifespan과 맞춥니다. 현재 default None의 503 fail-closed를 유지합니다. 운영 설정/수명주기 변경은 C 소유자가 합니다. 이 문서는 실제 adapter 인스턴스를 제공하지 않습니다.
+4. 실제 배포 검증을 마친 adapter 인스턴스를 C factory의 `create_app(wallet_chain=adapter)`에 주입하고 HTTP client 수명은 app lifespan과 맞춥니다. 현재 default None의 503 fail-closed를 유지합니다. 운영 설정/수명주기 변경은 C 소유자가 합니다. 읽기용 인스턴스 구성 예시는 별도 인계 문서에 있으며 생산 설정·C lifespan은 변경하지 않았습니다.
 5. C가 저장한 intent의 `action`, `arguments`, 선택 actor를 소비합니다. `WalletTransaction.arguments`에 요청 값을 복사하지 않고 실제 calldata를 반환합니다. 성공/실패 후보가 함께 있으면 첫 실패를 원 요청 실패로 확정하지 않습니다.
 
 ## 연결 후 수용 검사

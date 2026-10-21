@@ -78,3 +78,9 @@ CI·외부 리뷰·C 실제 API/DB 연결은 아직 확인하지 않았다. 유�
 
 - 본인 확인: `@hamin1228` / 2026-10-02 / 기록 확인 대기
 - 작성자 외 리뷰: 미확인
+
+## 2026-10-21 · W5 읽기 모델 Adapter
+
+사용자가 B 다음 개발1번을 선택했고 Codex가 B WalletRegistryReadAdapter·42개 검사와 기존 Anvil 검사 확장을 수행했습니다. 코드 `41dc6f5eb704383cb0fa27baed91da05acf579fc`, 시작e7d0bae. 원본 C DTO·factory와 B RPC/Reconciler/ABI/합성 fixture를 그대로 재사용했습니다. 실제 사람 작성·독립 리뷰·기여 비율을 추정하지 않습니다.
+
+전체 Python788 PASS/11 SKIP, 새 Adapter 합성42 PASS·별도 실제 Anvil1 PASS. 생성물·Golden 불변, 공식 Ruff·compileall·구조·Node 해시 PASS. 실제 Anvil에서 기관/키/제안/문서/거래의 C 모델 변환과 원본 C 서명 인자 일치를 확인했습니다. C factory 주입은 단위 검사이며 DB/lifespan/API 서버 workflow 검사가 아닙니다. 승인자 provenance·submit·find_transaction C 연결은 명시적으로 사용 불가, 생산 API/DB/공개 체인·D mixed QA는 미완료입니다. G07을 해결 처리하지 않습니다. [사용법·실패 이력·증거·한계](../blockchain/v5_wallet_read_adapter.md).
