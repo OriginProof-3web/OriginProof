@@ -1,6 +1,8 @@
-# D G07 후속 반복 재현 절차 (실환경 미실행)
+# D G07 후속 반복 재현 절차
 
-#86 `61703197399a2f66f18a3e0fcae51fd2bf54131f`는 미병합입니다. 현재 G07은 OPEN입니다. 과거 fresh18 PASS/mixed17 PASS1 FAIL과 C/B의 후속 검사를 D의 동일 후보 독립 재검증으로 대신하지 않습니다.
+> 최신 2026-10-21: #86/#87 병합 뒤 `d757a267c5381e5a9b528f63a6c3acef852da996`에서 fresh1/mixed3를 실제 실행했습니다. 판정 PASS_REQUIRES_B_C_REVIEW, G07은 B/C 검토 전 OPEN입니다. [회차별 결과](v5-d-performance-independent-20261021.md). 아래 차단 결과는 병합 전 기록입니다.
+
+#86 `61703197399a2f66f18a3e0fcae51fd2bf54131f`는 phase/W5 `d757a267c5381e5a9b528f63a6c3acef852da996`에 병합됐습니다. D 실제 반복이 통과했지만 B/C 증거 검토 전 G07은 OPEN입니다. 과거 fresh18 PASS/mixed17 PASS1 FAIL과 C/B의 후속 검사를 D의 동일 후보 독립 재검증으로 대신하지 않습니다.
 
 ## 실행 전 인계와 준비
 
@@ -29,7 +31,7 @@ runner는 현재 phase가 #86을 포함하는지, 후보가 현재 phase를 포�
 - 보고서는 `build/w5-d-g07/<UUID>/summary.json`, 회차별 legacy 보고서·private runner.log를 연결합니다. 제품/QA SHA·lock hash·mode·예상 그룹·mock/paid0·resources_closed를 확인하며 missing/skip/중복/잘못된 SHA는 실패입니다.
 - 통과 상태도 PASS_REQUIRES_B_C_REVIEW입니다. B/C의 원인 수정·리뷰와 D의 실제 반복 근거를 확인한 뒤 G07 종료를 제안합니다. 신규 지갑/브라우저 수용·단계 완료와 구분합니다.
 
-## 현재 실행 상태
+## 병합 전 실행 기록 (이력 보존)
 
 도구27개 단위 검사는 임시 Git 이력과 simulated child로 PASS입니다. 현재 phase를 넣은 실제 CLI 사전 검사는 #86 미반영·lock 불일치로 BLOCKED였습니다(개발 중 dirty도 차단). **실제 fresh/mixed 실행0회 / G07 미해결**입니다. Docker·운영/데모 DB·실제 모델은 실행하지 않았습니다.
 

@@ -331,5 +331,45 @@
     "g07_actual_runs": 0,
     "g07_status": "OPEN / preflight BLOCKED: fix not in phase, lock differs",
     "candidate_scorer_check": "controlled synthetic replay, not model quality"
+  },
+  "latest_followup": {
+    "integration_sha": "ec8e15c6bc684ae1e8d68f53ea40b4a8e47aad67",
+    "phase_sha": "d757a267c5381e5a9b528f63a6c3acef852da996",
+    "execution_sha": "31ba879853c368c92801396b498504343f3a332a",
+    "ci_counts": {
+      "stage": 43,
+      "consumer": 31,
+      "benchmark": 16,
+      "independent_total": 71,
+      "independent_c_reused": 49,
+      "independent_d_added": 22
+    },
+    "independent_verifier": {
+      "source_sha": "68ea0c20718937cd0c93d683e3cfa9b3995a9666",
+      "transport": "synthetic eth_* JSON-RPC / socket denied",
+      "shared_models": "current D head, not original C63 lock",
+      "actual_chain": false,
+      "service_api_invoked": false
+    },
+    "g07": {
+      "status": "PASS_REQUIRES_B_C_REVIEW",
+      "product_sha": "d757a267c5381e5a9b528f63a6c3acef852da996",
+      "qa_sha": "31ba879853c368c92801396b498504343f3a332a",
+      "fresh_runs": 1,
+      "mixed_runs": 3,
+      "resolution": "OPEN pending B/C review; never auto-closed",
+      "each_run_groups_passed": 18,
+      "all_owned_resources_removed": true
+    },
+    "not_run": [
+      "actual v3 Registry/browser integration",
+      "actual PostgreSQL/RPC/network performance",
+      "actual independent EVM/public RPC verification",
+      "live OpenAI evaluation",
+      "different physical laptop",
+      "RC rehearsal x3"
+    ],
+    "report": "v5-d-performance-independent-20261021.json",
+    "security": "PR87 merged; inherited lock unchanged"
   }
 }
