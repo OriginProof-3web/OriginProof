@@ -124,3 +124,6 @@ D가 수정한 것은 평가 분모의 해석, 거부 보고서 집계, 안전�
 D 사용자 지시로 Codex가 W1~W7·V5-F01~21·최신 PR/계약0.2를 대조하고 [현재 작업표와 실제 검사](../qa/v5-d-weekly-status-20261021.md)를 작성했습니다. 실행 코드 `e36e6ea2a0c93f1d4a199a73d993bcbfed2c2a5f`에서 전체684 PASS/10 opt-in SKIP, stage43 PASS, consumer31 PASS(DG12 포함), 분석기 경로+consumer352 PASS를 확인했습니다. 중복 수를 합산하지 않습니다.
 
 D가 새로 구현한 것은 stage/consumer의 필수 module·파일별 최소 검사 수·skip/실패/오류·중복/손상 JUnit 거부와 head SHA별 artifact입니다. 11개 경계 검사·Ruff·YAML/bash/diff·생성물/두 템플릿 Node hash 검사가 통과했습니다. C 대행의 같은 HEAD CI/manifest·철회 이력 추가와 과거 W3 기여 기록 보존을 재사용했으며 작성 이력을 바꾸지 않았습니다. 이 기록은 담당자 본인 확인/작성자 외 승인·실제 지갑/브라우저·모델 평가를 대신하지 않습니다. G07은 #86 phase 반영 뒤 D 반복 재검사 전까지 미해결입니다.
+## 2026-10-21 — D 입력 의존성 보안 보완
+
+D 전체 단계 QA 중 공통 CI의 `make security`가 Pillow8/certifi1 총9건으로 중단되는 것을 확인했습니다. 사용자 지시로 Codex가 기존 두 패키지만 갱신하여 감사0건·phase 기반600 PASS/10 SKIP을 확인했습니다. 실행 코드 `781b96ea9654a2bf277fa3adf38f9f4269bf46e1`, 기존 이미지 parser/SDK·공통 모델은 재사용했습니다. 새 입력 활성화·실제 모델 평가는 하지 않았고 공유 lockfile/major 갱신의 C 리뷰는 대기입니다. [원인·검사·한계](../qa/v5-d-dependency-security-20261021.md).
