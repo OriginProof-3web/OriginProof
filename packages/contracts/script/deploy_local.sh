@@ -48,6 +48,6 @@ jq -n \
         constructor_arguments: [$deployer, $issuer_address]
       }
     }
-  }' > "deployments/${chain_id}.json"
+  }' > "deployments/${chain_id}.legacy.local.json"
 
-echo "deployment manifest: packages/contracts/deployments/${chain_id}.json"
+echo "deployment manifest: packages/contracts/deployments/${chain_id}.legacy.local.json"
