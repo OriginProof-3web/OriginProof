@@ -21,3 +21,8 @@ Registry가 이전 최신이 ACTIVE일 때만 SUPERSEDED 전이/이벤트를 수
 ## #69 · 기준 c5a82cc
 
 #78의 getter별 정확한 custom error 분류를 동일 원본에서 앞당겼습니다. 다른 오류는 dependency로 유지합니다. 잘못된 view 이름/인자를 ConfigurationError로 묶고 중복/overload ABI를 거부합니다. 신규 검사7개 포함 Python666 PASS/10 SKIP, ruff PASS입니다. block/log 위치는 BigInteger로 선언하며 기존 PostgreSQL 테이블을 create_all로 자동 migration한다고 주장하지 않습니다(새 journal 기준, 기존 DB 변경은 별도 인계). C WalletRegistry 원본 변환/주입과 실 API 연결은 후속 검증 대상이며 helper 단독을 완성된 port로 노출하지 않습니다.
+## 추가 확인 — #64 현행 manifest 경로
+
+AI(Codex)가 여하민님 요청으로 수행했습니다. Reader·Writer의 합성 manifest fixture를 실제 현행 출력명 `31337.local.json`으로 맞춰 loader 경로 호환을 기존 정상/거부 검사로 확인합니다. 실제 배포 파일이나 원본 사용자 변경은 읽어 덮어쓰지 않습니다. 이 검사는 MockTransport이며 별도 no-dev Uvicorn 기동과 구분합니다.
+
+현행 파일명 fixture 검사: Reader·Writer **104 PASS**. 새 패키지·버전 변경 없음.
