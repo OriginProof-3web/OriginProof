@@ -247,5 +247,34 @@
   "paid_calls": 0,
   "remote_merge": false,
   "future_phase_created": false,
-  "human_approvals_inferred": false
+  "human_approvals_inferred": false,
+  "security_followup": {
+    "first_ci_head": "c943e7cc8d49e0447f59222bd635319fb267f76a",
+    "first_ci_c_recovery": "failed at security audit; live recovery not run",
+    "before": {
+      "pillow": "12.3.0",
+      "certifi": "2026.7.22",
+      "vulnerabilities": 9
+    },
+    "after": {
+      "pillow": "13.0.0",
+      "certifi": "2026.10.19",
+      "vulnerabilities": 0
+    },
+    "pr": "https://github.com/OriginProof-3web/OriginProof/pull/87",
+    "patch_execution_sha": "781b96ea9654a2bf277fa3adf38f9f4269bf46e1",
+    "d_retest_sha": "ffbf59e4388642458e7f092afca2228d694c621c",
+    "phase_retest": {
+      "passed": 600,
+      "skipped": 10
+    },
+    "d_retest": {
+      "passed": 684,
+      "skipped": 10,
+      "stage": 43,
+      "consumer": 31
+    },
+    "c_lock_review": "PENDING",
+    "g07_closed": false
+  }
 }

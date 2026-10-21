@@ -69,3 +69,16 @@ export PYTHONPATH="$PWD/services/analyzer/src:$PWD/apps/api/src:$PWD/packages/py
 5. W6의 성능·선정 입력/실제 모델·다른 장비·서비스 API 밖 검증과 V5-F01~21을 모아 동결 차단 목록을 갱신합니다. 이후 W7 동일 RC 리허설3회·대체 영상·제출 조건/파일을 확인합니다. 해당 선행 없이 미래 통과/완료를 기록하지 않습니다.
 
 [구조화 단계·수용표](v5-d-weekly-status-20261021.json), [현재 D 리뷰 목록](../handoffs/v5_d_review_index.md). 작성·검사: 사용자의 D 작업 지시에 따른 Codex. 작성자 외 리뷰/사람 라벨 승인/단계 승격은 후속입니다.
+
+
+## 후속: 실행 중 발견한 의존성 보안 차단 해소
+
+첫 새 CI `c943e7c`에서는 D stage43/consumer31·python-quality·contracts가 통과했으나, 공통 c-recovery가 `make security`의 Pillow8/certifi1 총9건으로 중단됐습니다. 실제 프로세스 복구는 이 감사 실패 뒤 실행되지 않았습니다.
+
+D 전용 [보안 PR #87](https://github.com/OriginProof-3web/OriginProof/pull/87)을 `phase/W5@15c5588`에서 분리했습니다. Pillow12.3.0→13.0.0/certifi2026.7.22→2026.10.19 두 버전만 갱신하고 새 라이브러리는 추가하지 않았습니다. C의 공유 lock/major 갱신 리뷰는 대기입니다. 같은 보안 commit을 D QA에 정상 merge하여 중복 사본을 만들지 않았습니다.
+
+- 보안 패치 실행 SHA `781b96ea9654a2bf277fa3adf38f9f4269bf46e1`: `make security` **0건**, phase 기반600 PASS/10 SKIP.
+- 보안 수정 포함 D 실행 SHA `ffbf59e4388642458e7f092afca2228d694c621c`: 전체 **684 PASS/10 SKIP**, stage **43 PASS**, consumer **31 PASS**, JUnit 감소/skip 거부 통과.
+- #87 CI에서는 의존성 감사와 실제 API 프로세스/폐기용 DB 복구 단계가 모두 통과했습니다. 이는 C의 기존 복구 시나리오이며 D의 G07 반복 재검사·새 지갑 E2E를 대신하지 않습니다.
+
+[보안 근거·호환성·한계](v5-d-dependency-security-20261021.md). 사용자 원본을 수정하거나 source/lock 보안 검사를 완화하지 않았으며 원격 PR 병합·실제 모델 호출은 하지 않았습니다. W1~W7 단계 전체 완료가 아니라 지금 가능한 D 보완을 구현·검사·공유한 상태입니다.
