@@ -81,3 +81,8 @@ Codex가 fixture·테스트·기록을 작성하고 실행했습니다. 사용�
 C/B 선행 반영 후 D2 실제 발행 권한·동시성·서명/저장/RPC 실패·제한 조회 검사,
 A 연결 후 D3 새 발행→익명 ID/링크 조회→지정 수신자 정상/변조 비교를 진행합니다.
 전체 단계 리뷰·A~D 기록·최종 phase SHA와 integration 승격은 별도입니다.
+
+
+## 2026-10-21 AI 동일 HEAD 검사 보완
+
+Codex가 앞 D PR의 정확한 JUnit 검사/trigger/재현 안내를 전파했습니다. guard 16 / stage 25 / consumer 31 PASS(각 skip 0). [환경·범위·미완료](../qa/v5-d-same-head-w3-20261021.md). 기존 기록은 보존하고 사람 확인·외부 리뷰·실제 연결 수용은 대기합니다.
