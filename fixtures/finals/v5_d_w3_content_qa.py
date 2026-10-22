@@ -1,4 +1,4 @@
-"""D V5-W3 content/DB failure matrix; immutable C #62 eaa0d16, no real chain/browser."""
+"""D V5-W3 content/DB failure matrix; same-head C API, no real chain/browser."""
 
 import socket
 

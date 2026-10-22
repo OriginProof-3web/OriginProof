@@ -1,3 +1,5 @@
 # Required D stage QA files for this branch; CI fails if any is missing.
 fixtures/finals/v5_d_w2_governance_qa.py
 fixtures/finals/v5_d_w3_content_qa.py
+fixtures/finals/v5_d_w4_lifecycle_qa.py
+fixtures/finals/v5_d_analysis_integration_qa.py

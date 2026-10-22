@@ -1,0 +1,853 @@
+{
+  "source": "synthetic",
+  "fixture_version": "phishing-sources-draft-0.1",
+  "purpose": "Candidate original text prototypes; no input modality is activated.",
+  "review_status": "DRAFT_REVIEW_REQUIRED",
+  "labels_human_reviewed": false,
+  "input_selection": "UNDECIDED",
+  "model_selection": "UNDECIDED",
+  "split_policy": "Proposed development 24 / holdout 36, 6/9 per class; all future variants keep the source_group split.",
+  "holdout_model_evaluation": "NOT_RUN",
+  "cases": [
+    {
+      "id": "DP-H01",
+      "source": "synthetic",
+      "source_group": "DP-H01",
+      "split": "development",
+      "label": "HIGH",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "Origin Mock Bank 보안팀입니다. 본인 확인을 위해 인증번호를 알려주세요.",
+      "expected_evidence": [
+        {
+          "quote": "인증번호를 알려주세요",
+          "start_offset": 35,
+          "end_offset": 46
+        }
+      ],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-H02",
+      "source": "synthetic",
+      "source_group": "DP-H02",
+      "split": "development",
+      "label": "HIGH",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "계정이 도용되었습니다. OTP를 보내주세요. 상담원이 대신 처리합니다.",
+      "expected_evidence": [
+        {
+          "quote": "OTP를 보내주세요",
+          "start_offset": 13,
+          "end_offset": 23
+        }
+      ],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-H03",
+      "source": "synthetic",
+      "source_group": "DP-H03",
+      "split": "development",
+      "label": "HIGH",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "Origin Mock Office 점검을 위해 원격제어 앱을 설치해 주세요.",
+      "expected_evidence": [
+        {
+          "quote": "원격제어 앱을 설치해 주세요",
+          "start_offset": 26,
+          "end_offset": 41
+        }
+      ],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-H04",
+      "source": "synthetic",
+      "source_group": "DP-H04",
+      "split": "development",
+      "label": "HIGH",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "수사 협조 대상입니다. 지금 아래 계좌로 송금하세요.",
+      "expected_evidence": [
+        {
+          "quote": "지금 아래 계좌로 송금하세요",
+          "start_offset": 13,
+          "end_offset": 28
+        }
+      ],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-H05",
+      "source": "synthetic",
+      "source_group": "DP-H05",
+      "split": "development",
+      "label": "HIGH",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "본인 보호 절차입니다. 은행에 확인하지 마세요. 조사 내용은 비밀입니다.",
+      "expected_evidence": [
+        {
+          "quote": "은행에 확인하지 마세요",
+          "start_offset": 13,
+          "end_offset": 25
+        }
+      ],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-H06",
+      "source": "synthetic",
+      "source_group": "DP-H06",
+      "split": "development",
+      "label": "HIGH",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "청구 계좌가 바뀌었습니다. 즉시 변경된 계좌로 입금해 주세요.",
+      "expected_evidence": [
+        {
+          "quote": "즉시 변경된 계좌로 입금해 주세요",
+          "start_offset": 15,
+          "end_offset": 33
+        }
+      ],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-H07",
+      "source": "synthetic",
+      "source_group": "DP-H07",
+      "split": "holdout",
+      "label": "HIGH",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "위험한 상황이니 가족에게 연락하지 마세요. 저희 지시만 따르면 됩니다.",
+      "expected_evidence": [
+        {
+          "quote": "가족에게 연락하지 마세요",
+          "start_offset": 9,
+          "end_offset": 22
+        }
+      ],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-H08",
+      "source": "synthetic",
+      "source_group": "DP-H08",
+      "split": "holdout",
+      "label": "HIGH",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "보안 재설정 링크 화면에 인증번호를 입력하세요. 기존 창구는 이용하지 마세요.",
+      "expected_evidence": [
+        {
+          "quote": "인증번호를 입력하세요",
+          "start_offset": 14,
+          "end_offset": 25
+        }
+      ],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-H09",
+      "source": "synthetic",
+      "source_group": "DP-H09",
+      "split": "holdout",
+      "label": "HIGH",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "환급을 받으려면 보안카드 번호를 전달해 주세요. 상담원이 등록합니다.",
+      "expected_evidence": [
+        {
+          "quote": "보안카드 번호를 전달해 주세요",
+          "start_offset": 9,
+          "end_offset": 25
+        }
+      ],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-H10",
+      "source": "synthetic",
+      "source_group": "DP-H10",
+      "split": "holdout",
+      "label": "HIGH",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "검사를 위해 비밀번호를 공유해 주세요. 귀하의 계정을 저희가 점검합니다.",
+      "expected_evidence": [
+        {
+          "quote": "비밀번호를 공유해 주세요",
+          "start_offset": 7,
+          "end_offset": 20
+        }
+      ],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-H11",
+      "source": "synthetic",
+      "source_group": "DP-H11",
+      "split": "holdout",
+      "label": "HIGH",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "피싱 예방팀입니다. 안전 조치를 위해 인증번호를 알려주세요.",
+      "expected_evidence": [
+        {
+          "quote": "인증번호를 알려주세요",
+          "start_offset": 21,
+          "end_offset": 32
+        }
+      ],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-H12",
+      "source": "synthetic",
+      "source_group": "DP-H12",
+      "split": "holdout",
+      "label": "HIGH",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "중복 결제를 막으려면 3분 이내 임시 계좌로 이체해 주세요.",
+      "expected_evidence": [
+        {
+          "quote": "3분 이내 임시 계좌로 이체해 주세요",
+          "start_offset": 12,
+          "end_offset": 32
+        }
+      ],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-H13",
+      "source": "synthetic",
+      "source_group": "DP-H13",
+      "split": "holdout",
+      "label": "HIGH",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "새 보안 절차입니다. OTP를 이 대화로 전송해 주세요. 직접 로그인하지 마세요.",
+      "expected_evidence": [
+        {
+          "quote": "OTP를 이 대화로 전송해 주세요",
+          "start_offset": 12,
+          "end_offset": 30
+        }
+      ],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-H14",
+      "source": "synthetic",
+      "source_group": "DP-H14",
+      "split": "holdout",
+      "label": "HIGH",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "압류를 막으려면 당장 안전 계좌로 입금하세요.",
+      "expected_evidence": [
+        {
+          "quote": "당장 안전 계좌로 입금하세요",
+          "start_offset": 9,
+          "end_offset": 24
+        }
+      ],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-H15",
+      "source": "synthetic",
+      "source_group": "DP-H15",
+      "split": "holdout",
+      "label": "HIGH",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "원격 지원 프로그램을 실행해 주세요. 이후 계정 비밀값을 상담원에게 보내야 합니다.",
+      "expected_evidence": [
+        {
+          "quote": "원격 지원 프로그램을 실행해 주세요",
+          "start_offset": 0,
+          "end_offset": 19
+        }
+      ],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-C01",
+      "source": "synthetic",
+      "source_group": "DP-C01",
+      "split": "development",
+      "label": "CAUTION",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "안내드립니다. 변경된 계좌로 입금해 주세요. 변경 사유와 담당자는 적혀 있지 않습니다.",
+      "expected_evidence": [
+        {
+          "quote": "변경된 계좌로 입금해 주세요",
+          "start_offset": 8,
+          "end_offset": 23
+        }
+      ],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-C02",
+      "source": "synthetic",
+      "source_group": "DP-C02",
+      "split": "development",
+      "label": "CAUTION",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "신청한 기억이 없는 환급 안내가 왔습니다. https://refund.example.invalid 에서 접수하라고 합니다.",
+      "expected_evidence": [
+        {
+          "quote": "https://refund.example.invalid 에서 접수하라고 합니다",
+          "start_offset": 24,
+          "end_offset": 67
+        }
+      ],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-C03",
+      "source": "synthetic",
+      "source_group": "DP-C03",
+      "split": "development",
+      "label": "CAUTION",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "알 수 없는 발신자가 서류 확인을 위해 링크에 이름과 생년월일을 입력해 달라고 합니다.",
+      "expected_evidence": [
+        {
+          "quote": "이름과 생년월일을 입력해 달라고 합니다",
+          "start_offset": 26,
+          "end_offset": 47
+        }
+      ],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-C04",
+      "source": "synthetic",
+      "source_group": "DP-C04",
+      "split": "development",
+      "label": "CAUTION",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "처음 보는 관리자가 업무용이라고 설명하며 일반 앱 설치 파일을 보내왔습니다.",
+      "expected_evidence": [
+        {
+          "quote": "일반 앱 설치 파일을 보내왔습니다",
+          "start_offset": 23,
+          "end_offset": 41
+        }
+      ],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-C05",
+      "source": "synthetic",
+      "source_group": "DP-C05",
+      "split": "development",
+      "label": "CAUTION",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "기존 안내와 계좌가 다른 납부 문서를 받았습니다. 실제 변경 승인 여부는 확인되지 않았습니다.",
+      "expected_evidence": [
+        {
+          "quote": "기존 안내와 계좌가 다른 납부 문서",
+          "start_offset": 0,
+          "end_offset": 19
+        }
+      ],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-C06",
+      "source": "synthetic",
+      "source_group": "DP-C06",
+      "split": "development",
+      "label": "CAUTION",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "Origin Mock Office를 사칭하는지 알 수 없는 계정이 개인 대화로 수수료 납부를 요구합니다.",
+      "expected_evidence": [
+        {
+          "quote": "개인 대화로 수수료 납부를 요구합니다",
+          "start_offset": 37,
+          "end_offset": 57
+        }
+      ],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-C07",
+      "source": "synthetic",
+      "source_group": "DP-C07",
+      "split": "holdout",
+      "label": "CAUTION",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "요청하지 않은 배송 문자에 주소 변경용 짧은 링크가 포함되어 있습니다. 물품 주문 여부는 불명확합니다.",
+      "expected_evidence": [
+        {
+          "quote": "주소 변경용 짧은 링크",
+          "start_offset": 15,
+          "end_offset": 27
+        }
+      ],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-C08",
+      "source": "synthetic",
+      "source_group": "DP-C08",
+      "split": "holdout",
+      "label": "CAUTION",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "수신자 이름이 없는 신규 청구서가 도착했고 추가 납부를 요청합니다. 청구 근거가 없습니다.",
+      "expected_evidence": [
+        {
+          "quote": "추가 납부를 요청합니다",
+          "start_offset": 24,
+          "end_offset": 36
+        }
+      ],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-C09",
+      "source": "synthetic",
+      "source_group": "DP-C09",
+      "split": "holdout",
+      "label": "CAUTION",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "기존 거래처와 비슷한 이름의 계정에서 새 계좌로 송금해 주세요라는 요청을 받았습니다.",
+      "expected_evidence": [
+        {
+          "quote": "새 계좌로 송금해 주세요",
+          "start_offset": 21,
+          "end_offset": 34
+        }
+      ],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-C10",
+      "source": "synthetic",
+      "source_group": "DP-C10",
+      "split": "holdout",
+      "label": "CAUTION",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "교육 등록 안내에 낯선 외부 사이트에서 신분 정보 제출을 요청하는 문구가 있습니다.",
+      "expected_evidence": [
+        {
+          "quote": "신분 정보 제출을 요청하는 문구",
+          "start_offset": 22,
+          "end_offset": 39
+        }
+      ],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-C11",
+      "source": "synthetic",
+      "source_group": "DP-C11",
+      "split": "holdout",
+      "label": "CAUTION",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "확인되지 않은 QR 안내가 별도 로그인 화면으로 연결된다고 설명합니다. 실제 페이지는 방문하지 않았습니다.",
+      "expected_evidence": [
+        {
+          "quote": "별도 로그인 화면으로 연결된다고 설명합니다",
+          "start_offset": 15,
+          "end_offset": 38
+        }
+      ],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-C12",
+      "source": "synthetic",
+      "source_group": "DP-C12",
+      "split": "holdout",
+      "label": "CAUTION",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "기관 직원을 자칭한 메시지가 개인 명의 계좌로 보증금을 보내 달라고 합니다.",
+      "expected_evidence": [
+        {
+          "quote": "개인 명의 계좌로 보증금을 보내 달라고 합니다",
+          "start_offset": 16,
+          "end_offset": 41
+        }
+      ],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-C13",
+      "source": "synthetic",
+      "source_group": "DP-C13",
+      "split": "holdout",
+      "label": "CAUTION",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "채용 안내가 합격 사실을 알리며 업무 시작 전 장비 비용 선납을 요구합니다. 채용 내역은 불명확합니다.",
+      "expected_evidence": [
+        {
+          "quote": "장비 비용 선납을 요구합니다",
+          "start_offset": 26,
+          "end_offset": 41
+        }
+      ],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-C14",
+      "source": "synthetic",
+      "source_group": "DP-C14",
+      "split": "holdout",
+      "label": "CAUTION",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "청구 담당자 변경 안내와 함께 암호가 걸린 첨부 파일을 받았습니다. 발신 경로가 확인되지 않았습니다.",
+      "expected_evidence": [
+        {
+          "quote": "암호가 걸린 첨부 파일",
+          "start_offset": 17,
+          "end_offset": 29
+        }
+      ],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-C15",
+      "source": "synthetic",
+      "source_group": "DP-C15",
+      "split": "holdout",
+      "label": "CAUTION",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "사용하지 않는 서비스가 이용료가 밀렸다고 안내합니다. 금액과 계약 정보는 없고 문의 채널이 개인 계정입니다.",
+      "expected_evidence": [
+        {
+          "quote": "문의 채널이 개인 계정입니다",
+          "start_offset": 44,
+          "end_offset": 59
+        }
+      ],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-N01",
+      "source": "synthetic",
+      "source_group": "DP-N01",
+      "split": "development",
+      "label": "NO_CLEAR_INDICATORS",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "Origin Mock Bank는 문자나 전화로 인증번호를 요청하지 않습니다. 공식 앱에서 안내를 확인하세요.",
+      "expected_evidence": [],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-N02",
+      "source": "synthetic",
+      "source_group": "DP-N02",
+      "split": "development",
+      "label": "NO_CLEAR_INDICATORS",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "합성 시설의 정기 점검은 다음 주 화요일입니다. 점검 중 일부 조회가 지연될 수 있습니다.",
+      "expected_evidence": [],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-N03",
+      "source": "synthetic",
+      "source_group": "DP-N03",
+      "split": "development",
+      "label": "NO_CLEAR_INDICATORS",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "사기 예방 예시: \"지금 아래 계좌로 송금하세요\"라는 문구를 받으면 응하지 말고 공식 창구에서 확인하세요.",
+      "expected_evidence": [],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-N04",
+      "source": "synthetic",
+      "source_group": "DP-N04",
+      "split": "development",
+      "label": "NO_CLEAR_INDICATORS",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "Origin Mock Office의 신청 문서는 방문 창구에서 수령할 수 있습니다. 신분 확인은 현장에서 진행합니다.",
+      "expected_evidence": [],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-N05",
+      "source": "synthetic",
+      "source_group": "DP-N05",
+      "split": "development",
+      "label": "NO_CLEAR_INDICATORS",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "이미 처리된 신청이며 추가 납부는 없습니다. 이번 안내는 진행 상태를 알려드리는 문서입니다.",
+      "expected_evidence": [],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-N06",
+      "source": "synthetic",
+      "source_group": "DP-N06",
+      "split": "development",
+      "label": "NO_CLEAR_INDICATORS",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "인증번호나 비밀번호를 누구에게도 알려주지 마세요. 의심되면 기존 공식 연락처를 직접 찾아 확인하세요.",
+      "expected_evidence": [],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-N07",
+      "source": "synthetic",
+      "source_group": "DP-N07",
+      "split": "holdout",
+      "label": "NO_CLEAR_INDICATORS",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "사무실 휴관일은 주말입니다. 다음 영업일에 정상 운영합니다.",
+      "expected_evidence": [],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-N08",
+      "source": "synthetic",
+      "source_group": "DP-N08",
+      "split": "holdout",
+      "label": "NO_CLEAR_INDICATORS",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "피싱 교육 사례: ‘원격제어 앱을 설치해 주세요’는 사기 예시입니다. 이런 설치 요구를 거절하세요.",
+      "expected_evidence": [],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-N09",
+      "source": "synthetic",
+      "source_group": "DP-N09",
+      "split": "holdout",
+      "label": "NO_CLEAR_INDICATORS",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "Origin Mock Office 안내 문서의 제목 오탈자를 정정했습니다. 내용 변경 이력은 문서 목록에서 확인하세요.",
+      "expected_evidence": [],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-N10",
+      "source": "synthetic",
+      "source_group": "DP-N10",
+      "split": "holdout",
+      "label": "NO_CLEAR_INDICATORS",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "예약 일정이 금요일 오후로 변경되었습니다. 비용이나 로그인 정보 제출은 요청하지 않습니다.",
+      "expected_evidence": [],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-N11",
+      "source": "synthetic",
+      "source_group": "DP-N11",
+      "split": "holdout",
+      "label": "NO_CLEAR_INDICATORS",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "직원이 원격제어 앱을 설치하라고 하더라도 설치하지 마세요. 개인정보를 제공하지 마세요.",
+      "expected_evidence": [],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-N12",
+      "source": "synthetic",
+      "source_group": "DP-N12",
+      "split": "holdout",
+      "label": "NO_CLEAR_INDICATORS",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "신문 교육란에서 인증번호 탈취와 계좌 변경 사기의 수법을 설명합니다. 실제 송금 요청은 없습니다.",
+      "expected_evidence": [],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-N13",
+      "source": "synthetic",
+      "source_group": "DP-N13",
+      "split": "holdout",
+      "label": "NO_CLEAR_INDICATORS",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "문의는 사용하던 공식 앱의 고객센터 메뉴로 접수하세요. 이 메시지에는 접속 링크가 없습니다.",
+      "expected_evidence": [],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-N14",
+      "source": "synthetic",
+      "source_group": "DP-N14",
+      "split": "holdout",
+      "label": "NO_CLEAR_INDICATORS",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "동아리 도서 반납일을 안내합니다. 다음 모임에 대여한 책을 가져와 주세요.",
+      "expected_evidence": [],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-N15",
+      "source": "synthetic",
+      "source_group": "DP-N15",
+      "split": "holdout",
+      "label": "NO_CLEAR_INDICATORS",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "공식 경고: \"인증번호를 알려주세요\"라는 요청은 무시하세요. 은행은 해당 값을 받지 않습니다.",
+      "expected_evidence": [],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-U01",
+      "source": "synthetic",
+      "source_group": "DP-U01",
+      "split": "development",
+      "label": "UNDETERMINED",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "입금... [이후 내용 누락]",
+      "expected_evidence": [],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-U02",
+      "source": "synthetic",
+      "source_group": "DP-U02",
+      "split": "development",
+      "label": "UNDETERMINED",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "1234 5678 90",
+      "expected_evidence": [],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-U03",
+      "source": "synthetic",
+      "source_group": "DP-U03",
+      "split": "development",
+      "label": "UNDETERMINED",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "???? …",
+      "expected_evidence": [],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-U04",
+      "source": "synthetic",
+      "source_group": "DP-U04",
+      "split": "development",
+      "label": "UNDETERMINED",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "그쪽 번호 먼저 확인하고 보내주세요.",
+      "expected_evidence": [],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-U05",
+      "source": "synthetic",
+      "source_group": "DP-U05",
+      "split": "development",
+      "label": "UNDETERMINED",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "[합성 판독 불가: 요청 내용 없음]",
+      "expected_evidence": [],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-U06",
+      "source": "synthetic",
+      "source_group": "DP-U06",
+      "split": "development",
+      "label": "UNDETERMINED",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "아까 말한 절차대로 진행하시면 됩니다.",
+      "expected_evidence": [],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-U07",
+      "source": "synthetic",
+      "source_group": "DP-U07",
+      "split": "holdout",
+      "label": "UNDETERMINED",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "계좌가 [가려짐]이라 확인할 수 없습니다.",
+      "expected_evidence": [],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-U08",
+      "source": "synthetic",
+      "source_group": "DP-U08",
+      "split": "holdout",
+      "label": "UNDETERMINED",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "발신자와 요청이 모두 누락된 메시지 조각입니다.",
+      "expected_evidence": [],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-U09",
+      "source": "synthetic",
+      "source_group": "DP-U09",
+      "split": "holdout",
+      "label": "UNDETERMINED",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "네, 그것을 처리해 주세요.",
+      "expected_evidence": [],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-U10",
+      "source": "synthetic",
+      "source_group": "DP-U10",
+      "split": "holdout",
+      "label": "UNDETERMINED",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "서로 상충하는 두 안내만 있고 원문은 없습니다.",
+      "expected_evidence": [],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-U11",
+      "source": "synthetic",
+      "source_group": "DP-U11",
+      "split": "holdout",
+      "label": "UNDETERMINED",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "확인했나요?",
+      "expected_evidence": [],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-U12",
+      "source": "synthetic",
+      "source_group": "DP-U12",
+      "split": "holdout",
+      "label": "UNDETERMINED",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "링크 부분만 삭제되어 무엇을 요구하는지 알 수 없습니다.",
+      "expected_evidence": [],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-U13",
+      "source": "synthetic",
+      "source_group": "DP-U13",
+      "split": "holdout",
+      "label": "UNDETERMINED",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "[합성 전사 미확보: 분석할 발화 내용 없음]",
+      "expected_evidence": [],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-U14",
+      "source": "synthetic",
+      "source_group": "DP-U14",
+      "split": "holdout",
+      "label": "UNDETERMINED",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "수수료는 그때와 같다고 합니다. 어떤 거래인지는 적혀 있지 않습니다.",
+      "expected_evidence": [],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    },
+    {
+      "id": "DP-U15",
+      "source": "synthetic",
+      "source_group": "DP-U15",
+      "split": "holdout",
+      "label": "UNDETERMINED",
+      "label_status": "DRAFT_REVIEW_REQUIRED",
+      "text": "사진 속 글자는 읽을 수 없다는 설명만 전달되었습니다.",
+      "expected_evidence": [],
+      "basis": "D-authored contextual label proposal; A/C review required before final evaluation."
+    }
+  ]
+}
