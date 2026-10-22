@@ -171,7 +171,7 @@
     {
       "id": "V5-F13",
       "supporting_evidence": "PR86 merged; D actual fresh1/mixed5 each18 PASS on phase33396ba; earlier failures preserved",
-      "remaining": "C final evidence review remains; B reviewed prior d757a26 fresh1/mixed3; new wallet integration and final-candidate regression pending",
+      "remaining": "Legacy G07 resolved with B/C review; actual new v3 final-candidate RPC/reorg integration acceptance remains",
       "stage_accepted": false
     },
     {
@@ -243,7 +243,7 @@
     "different physical laptop",
     "three RC rehearsals"
   ],
-  "g07": "OPEN; PR86 not merged into phase, D repeated verification pending",
+  "g07": "RESOLVED_LOCAL_LEGACY; B/C review documented 2026-10-22; new v3/public/browser acceptance excluded",
   "paid_calls": 0,
   "remote_merge": false,
   "future_phase_created": false,
@@ -385,5 +385,34 @@
     "g07_actual_mixed": 5,
     "g07_status": "OPEN pending final review",
     "paid_calls": 0
+  },
+  "g07_history_initial_snapshot": "OPEN; PR86 not merged into phase, D repeated verification pending",
+  "latest_postmerge": {
+    "report": "v5-d-postmerge-20261022.json",
+    "phase_execution_sha": "f6e7fdb6727f6b7957d8acc7f3e0bf7e7674ea5f",
+    "python_passed": 953,
+    "opt_in_skipped": 11,
+    "g07": {
+      "status": "RESOLVED_LOCAL_LEGACY",
+      "resolution_basis": "identified cause + merged fix + repeated actual runs + B/C review",
+      "fix_pr": 86,
+      "fix_merge_sha": "d757a267c5381e5a9b528f63a6c3acef852da996",
+      "first_product": "d757a267c5381e5a9b528f63a6c3acef852da996",
+      "first_run": "fresh1/mixed3 each18 PASS, owned resources removed",
+      "second_product": "33396ba409662ef33ddee339eba670263bbcb761",
+      "second_run": "fresh1/mixed5 each18 PASS, owned resources removed",
+      "b_review": "https://github.com/OriginProof-3web/OriginProof/pull/76#issuecomment-6314138173",
+      "c_review": "https://github.com/OriginProof-3web/OriginProof/pull/76#issuecomment-6318989928",
+      "prior_failures_preserved": true,
+      "new_live_run_this_followup": false,
+      "scope_excludes": [
+        "new v3 wallet integration",
+        "public RPC/deployment",
+        "browser E2E",
+        "stage acceptance"
+      ]
+    },
+    "pr76_state": "MERGED_BY_TEAM",
+    "owner_confirmation": "PENDING; not impersonated"
   }
 }

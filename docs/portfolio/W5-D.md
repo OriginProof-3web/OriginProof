@@ -149,3 +149,7 @@ Codex가 #72~#76 JUnit 정확 수/summary와 trigger를 전파하고 C 대행 �
 ## 2026-10-21 가능한 D 후속 개발 완료 (AI 보조)
 
 사용자의 전체 진행 지시로 Codex가 기존 평가기/provider를 재사용한 opt-in 제한 평가 실행기·원자적0600 journal/중단재개/불명 요청 재호출 방지, 같은 QA HEAD의 V5-F01~21 supporting 증거 도구를 구현했습니다. B 계약/ABI·C63 고정 검증기·공통 Golden을 재사용해 실제 폐기 Anvil에서 두 템플릿의 CLI/원본/필드/변조/버전·철회·RPC 복구도 실행했습니다. 최초 하네스 재시작 port 실패를 보존하고 새 매핑 조회로 수정했습니다. 기본730 PASS/기존10 SKIP, 새 SDK mock18/수용10 PASS, 실제 독립 EVM1 PASS, G07 fresh1/mixed5 각18 PASS입니다. 기능d35e8d1·실제 QA수정5b50ac4·최신 기준/수용 실행a24426f80eae372a488b2c6c104dbd71aaee9290를 문서 HEAD와 구분합니다. [명령·재사용·실패 원인·한계](../qa/v5-d-development-completion-20261021.md). 유료 호출·입력 활성화·사람 승인·단계 완료·원격 병합은0이며 B/C 최신 인계/리뷰·선정 입력·실환경 성능·다른 장비/RC는 남습니다.
+
+## 2026-10-22 병합 후 D 검증·G07 범위 판정 (AI 보조)
+
+팀이 #72~#76을 병합한 뒤 사용자 계속 진행 지시로 Codex가 phase `f6e7fdb6727f6b7957d8acc7f3e0bf7e7674ea5f`에서 별도 D 브랜치를 만들어 기본953 PASS/opt-in11 SKIP, supporting43/31/16/22, guard/도구/고정C63 124 PASS와 생성물 불변·Ruff를 확인했습니다. Git shim PATH 오류27개를 실제 G07 실패와 구분하고 수정 명령으로 통과시켰습니다. B/C의 기존 실제 반복 검토에 근거해 G07을 로컬 legacy 범위 해결로 갱신했으며 과거 실패·실행 SHA를 보존했습니다. [리뷰 URL·범위·미실행](../qa/v5-d-postmerge-20261022.md). 새로운 live/유료 실행·사람 확인/Approve·원격 병합·단계 완료는 수행하지 않았습니다.

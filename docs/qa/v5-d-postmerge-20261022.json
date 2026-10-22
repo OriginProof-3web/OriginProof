@@ -1,0 +1,371 @@
+{
+  "as_of": "2026-10-22 Asia/Seoul",
+  "plan": "5.1",
+  "shared_contract": "v5-shared-0.2",
+  "branch": "codex/v5-d-postmerge-qa",
+  "phase_execution_sha": "f6e7fdb6727f6b7957d8acc7f3e0bf7e7674ea5f",
+  "merged_pr76": {
+    "head_sha": "9270a841276ec14542683c26983083567d34e6fe",
+    "merge_sha": "be93c7ff135bc5986a23394749f1dc971f902230",
+    "merged_at_utc": "2026-10-22T00:21:42Z",
+    "external_approval": "https://github.com/OriginProof-3web/OriginProof/pull/76#pullrequestreview-5607814995"
+  },
+  "checks": {
+    "default_python": {
+      "passed": 953,
+      "skipped_opt_in": 11,
+      "warnings_existing": 1
+    },
+    "supporting": {
+      "qa_sha": "f6e7fdb6727f6b7957d8acc7f3e0bf7e7674ea5f",
+      "lock_sha256": "bd617d34973fcae555ddc543388aacf017a3ef71616e407c125f73de089e812f",
+      "python": "3.13.7",
+      "packages": {
+        "pytest": "9.1.1",
+        "httpx": "0.28.1",
+        "openai": "2.54.0",
+        "fastapi": "0.142.2",
+        "sqlalchemy": "2.0.52"
+      },
+      "scope": "ASGI_SQLITE_SYNTHETIC_REGISTRY_AND_RPC_NOT_ACTUAL_ACCEPTANCE",
+      "suites": {
+        "stage": {
+          "modules": [
+            "fixtures/finals/v5_d_w2_governance_qa.py",
+            "fixtures/finals/v5_d_w3_content_qa.py",
+            "fixtures/finals/v5_d_w4_lifecycle_qa.py",
+            "fixtures/finals/v5_d_analysis_integration_qa.py"
+          ],
+          "expected_tests": 43
+        },
+        "consumer": {
+          "modules": [
+            "fixtures/finals/v5_analysis_consumer_qa.py"
+          ],
+          "expected_tests": 31
+        },
+        "benchmark": {
+          "modules": [
+            "fixtures/finals/test_v5_d_verification_benchmark.py"
+          ],
+          "expected_tests": 16
+        },
+        "independent": {
+          "modules": [
+            "fixtures/finals/test_v5_d_independent_verifier.py"
+          ],
+          "expected_tests": 22
+        }
+      },
+      "status": "SUPPORTING_SUITES_PASS_ACCEPTANCE_BLOCKED",
+      "executed": true,
+      "results": {
+        "stage": {
+          "status": "PASS",
+          "tests": 43,
+          "failure": 0,
+          "error": 0,
+          "skipped": 0,
+          "expected_tests": 43,
+          "sha256": "ec78d1d061aeb0a117de2c45a24828194a4d8738bef107cd95da8fe9c7ed209d"
+        },
+        "consumer": {
+          "status": "PASS",
+          "tests": 31,
+          "failure": 0,
+          "error": 0,
+          "skipped": 0,
+          "expected_tests": 31,
+          "sha256": "6f3314007a6e93bcb19207a51d776087615d98f88677093fadfe95cd1b7839ff"
+        },
+        "benchmark": {
+          "status": "PASS",
+          "tests": 16,
+          "failure": 0,
+          "error": 0,
+          "skipped": 0,
+          "expected_tests": 16,
+          "sha256": "511579b52aaadf40d7751007b03c884877ac6c62fa6b793a645e3e0ff621d77a"
+        },
+        "independent": {
+          "status": "PASS",
+          "tests": 22,
+          "failure": 0,
+          "error": 0,
+          "skipped": 0,
+          "expected_tests": 22,
+          "sha256": "c72c7d152179cdff2e97a5bcbc32fe2fcdc7eceef2c0f097063223e9185945c4"
+        }
+      },
+      "source_consistent": true,
+      "acceptance": [
+        {
+          "id": "V5-F01",
+          "supporting_suites": [
+            "stage"
+          ],
+          "supporting_status": "PASS",
+          "actual_acceptance": "BLOCKED",
+          "stage_accepted": false,
+          "remaining": "ASGI/synthetic; actual onboarding browser pending"
+        },
+        {
+          "id": "V5-F02",
+          "supporting_suites": [
+            "stage"
+          ],
+          "supporting_status": "PASS",
+          "actual_acceptance": "BLOCKED",
+          "stage_accepted": false,
+          "remaining": "Synthetic consumer fence; real 2-of-3 execution pending"
+        },
+        {
+          "id": "V5-F03",
+          "supporting_suites": [
+            "stage"
+          ],
+          "supporting_status": "PASS",
+          "actual_acceptance": "BLOCKED",
+          "stage_accepted": false,
+          "remaining": "Actual emergency-stop/reactivation E2E pending"
+        },
+        {
+          "id": "V5-F04",
+          "supporting_suites": [
+            "stage",
+            "independent"
+          ],
+          "supporting_status": "PASS",
+          "actual_acceptance": "BLOCKED",
+          "stage_accepted": false,
+          "remaining": "Actual wallet/browser/contract path pending"
+        },
+        {
+          "id": "V5-F05",
+          "supporting_suites": [
+            "stage",
+            "independent"
+          ],
+          "supporting_status": "PASS",
+          "actual_acceptance": "BLOCKED",
+          "stage_accepted": false,
+          "remaining": "Real chain replay/action/domain attacks pending"
+        },
+        {
+          "id": "V5-F06",
+          "supporting_suites": [
+            "stage"
+          ],
+          "supporting_status": "PASS",
+          "actual_acceptance": "BLOCKED",
+          "stage_accepted": false,
+          "remaining": "Actual two institutions and ownership E2E pending"
+        },
+        {
+          "id": "V5-F07",
+          "supporting_suites": [
+            "stage",
+            "independent"
+          ],
+          "supporting_status": "PASS",
+          "actual_acceptance": "BLOCKED",
+          "stage_accepted": false,
+          "remaining": "Actual original byte input comparison/browser pending"
+        },
+        {
+          "id": "V5-F08",
+          "supporting_suites": [
+            "stage",
+            "independent"
+          ],
+          "supporting_status": "PASS",
+          "actual_acceptance": "BLOCKED",
+          "stage_accepted": false,
+          "remaining": "Real concurrent version atomicity pending"
+        },
+        {
+          "id": "V5-F09",
+          "supporting_suites": [
+            "stage",
+            "independent"
+          ],
+          "supporting_status": "PASS",
+          "actual_acceptance": "BLOCKED",
+          "stage_accepted": false,
+          "remaining": "Actual multisig recovery pending"
+        },
+        {
+          "id": "V5-F10",
+          "supporting_suites": [
+            "stage"
+          ],
+          "supporting_status": "PASS",
+          "actual_acceptance": "BLOCKED",
+          "stage_accepted": false,
+          "remaining": "Real DB manipulation and integrated chain pending"
+        },
+        {
+          "id": "V5-F11",
+          "supporting_suites": [
+            "stage"
+          ],
+          "supporting_status": "PASS",
+          "actual_acceptance": "BLOCKED",
+          "stage_accepted": false,
+          "remaining": "QR/browser forwarded message pending"
+        },
+        {
+          "id": "V5-F12",
+          "supporting_suites": [],
+          "supporting_status": "NOT_RUN",
+          "actual_acceptance": "BLOCKED",
+          "stage_accepted": false,
+          "remaining": "Actual v3 interruption/restart/recovery pending"
+        },
+        {
+          "id": "V5-F13",
+          "supporting_suites": [
+            "independent"
+          ],
+          "supporting_status": "PASS",
+          "actual_acceptance": "BLOCKED",
+          "stage_accepted": false,
+          "remaining": "C final evidence review remains; B reviewed prior d757a26 fresh1/mixed3; new wallet integration and final-candidate regression pending"
+        },
+        {
+          "id": "V5-F14",
+          "supporting_suites": [],
+          "supporting_status": "NOT_RUN",
+          "actual_acceptance": "BLOCKED",
+          "stage_accepted": false,
+          "remaining": "Input selection/actual conversion/not-supported UX pending"
+        },
+        {
+          "id": "V5-F15",
+          "supporting_suites": [
+            "stage",
+            "consumer"
+          ],
+          "supporting_status": "PASS",
+          "actual_acceptance": "BLOCKED",
+          "stage_accepted": false,
+          "remaining": "Actual model evaluation pending"
+        },
+        {
+          "id": "V5-F16",
+          "supporting_suites": [
+            "stage",
+            "consumer"
+          ],
+          "supporting_status": "PASS",
+          "actual_acceptance": "BLOCKED",
+          "stage_accepted": false,
+          "remaining": "Actual integrated UX and RPC/model failures pending"
+        },
+        {
+          "id": "V5-F17",
+          "supporting_suites": [
+            "stage",
+            "consumer"
+          ],
+          "supporting_status": "PASS",
+          "actual_acceptance": "BLOCKED",
+          "stage_accepted": false,
+          "remaining": "Real v3 restart and retention boundaries pending"
+        },
+        {
+          "id": "V5-F18",
+          "supporting_suites": [],
+          "supporting_status": "NOT_RUN",
+          "actual_acceptance": "BLOCKED",
+          "stage_accepted": false,
+          "remaining": "Independent integrated browser security/accessibility pending"
+        },
+        {
+          "id": "V5-F19",
+          "supporting_suites": [],
+          "supporting_status": "NOT_RUN",
+          "actual_acceptance": "BLOCKED",
+          "stage_accepted": false,
+          "remaining": "Live signature/lifecycle/recipient/consume pending"
+        },
+        {
+          "id": "V5-F20",
+          "supporting_suites": [
+            "independent"
+          ],
+          "supporting_status": "PASS",
+          "actual_acceptance": "BLOCKED",
+          "stage_accepted": false,
+          "remaining": "Owner review, selected deployment/public-network scope and final-candidate acceptance; local independent verification performed"
+        },
+        {
+          "id": "V5-F21",
+          "supporting_suites": [],
+          "supporting_status": "NOT_RUN",
+          "actual_acceptance": "BLOCKED",
+          "stage_accepted": false,
+          "remaining": "Same RC/reproduction/three rehearsals and submissions pending"
+        }
+      ],
+      "paid_calls": 0,
+      "g07": "USE_SEPARATE_FIXED_PRODUCT_REPORT_AND_B_C_REVIEW",
+      "missing_actual_evidence": [
+        "selected input/model evaluation",
+        "wallet/browser/Registry integration",
+        "actual RPC performance/independent verifier",
+        "other physical laptop",
+        "same RC rehearsals x3",
+        "human review"
+      ]
+    },
+    "additional_tools_and_fixed_c63": {
+      "passed": 124,
+      "guard": 16,
+      "g07_unit": 27,
+      "acceptance_unit": 10,
+      "independent_d": 22,
+      "independent_c_reused": 49
+    },
+    "generation": "PASS/no diff",
+    "ruff": "PASS",
+    "first_local_tools_attempt": "97 PASS/27 setup errors: macOS Git shim; G0727 rerun with Command Line Tools PATH PASS"
+  },
+  "pr76_ci": {
+    "quality_run": "https://github.com/OriginProof-3web/OriginProof/actions/runs/39591674030",
+    "d_run": "https://github.com/OriginProof-3web/OriginProof/actions/runs/39591674050",
+    "checks_passed": 6,
+    "default_python_passed": 788,
+    "skipped": 10,
+    "stage": 43,
+    "consumer": 31,
+    "benchmark": 16,
+    "independent_total": 71,
+    "security_audit": 0
+  },
+  "g07": {
+    "status": "RESOLVED_LOCAL_LEGACY",
+    "resolution_basis": "identified cause + merged fix + repeated actual runs + B/C review",
+    "fix_pr": 86,
+    "fix_merge_sha": "d757a267c5381e5a9b528f63a6c3acef852da996",
+    "first_product": "d757a267c5381e5a9b528f63a6c3acef852da996",
+    "first_run": "fresh1/mixed3 each18 PASS, owned resources removed",
+    "second_product": "33396ba409662ef33ddee339eba670263bbcb761",
+    "second_run": "fresh1/mixed5 each18 PASS, owned resources removed",
+    "b_review": "https://github.com/OriginProof-3web/OriginProof/pull/76#issuecomment-6314138173",
+    "c_review": "https://github.com/OriginProof-3web/OriginProof/pull/76#issuecomment-6318989928",
+    "prior_failures_preserved": true,
+    "new_live_run_this_followup": false,
+    "scope_excludes": [
+      "new v3 wallet integration",
+      "public RPC/deployment",
+      "browser E2E",
+      "stage acceptance"
+    ]
+  },
+  "actual_independent_verifier": "Previous actual local Anvil/CLI at5b50ac4 retained; not rerun or relabeled as f6e7fdb execution",
+  "paid_calls": 0,
+  "human_owner_confirmation_impersonated": false,
+  "remote_merge_performed_by_this_task": false,
+  "phase_complete": false
+}
