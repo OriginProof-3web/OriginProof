@@ -1,0 +1,1025 @@
+{
+  "as_of": "2026-10-21 Asia/Seoul",
+  "plan": "5.1",
+  "shared_contract": "v5-shared-0.2",
+  "integration_sha": "ec8e15c6bc684ae1e8d68f53ea40b4a8e47aad67",
+  "phase_sha": "d757a267c5381e5a9b528f63a6c3acef852da996",
+  "execution_sha": "31ba879853c368c92801396b498504343f3a332a",
+  "tool_code_commit": "ebd9b01ef9721ded0124e864cc8283e686ea0141",
+  "lock_sha256": "ff740f712def1f869f0a68c113164fd693507319ccf63b3313d79ced9f1bc112",
+  "local_platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+  "local_performance_provenance": "measured before PR86 merge; benchmark source SHA256 in each report; latest-head evidence is the CI measurement",
+  "local_synthetic_performance": {
+    "payment": {
+      "schema_version": "v5-d-verification-benchmark-result-0.1",
+      "source": "synthetic",
+      "scope": "ASGI_SQLITE_SYNTHETIC_REGISTRY",
+      "benchmark_code_sha256": "5a742ad69fe988cfc289a394bcb18b633f3c1dad044e4807ee9bf784a6194437",
+      "config_sha256": "6f9b7bb1e1d9e6dc99dbeb426c4b6a05bcc49f9a8af0d5e324da574cbc5adf22",
+      "attempts": 100,
+      "matching_results": 100,
+      "failures": 0,
+      "error_rate": 0.0,
+      "http_status_counts": {
+        "200": 100
+      },
+      "error_counts": {},
+      "latency_seconds_all_attempts": {
+        "p50": 0.0068067914980929345,
+        "p95": 0.007498082995880395,
+        "max": 0.008476499991957098
+      },
+      "samples_seconds": [
+        0.007803292013704777,
+        0.007156917010433972,
+        0.006877082982100546,
+        0.007185790978837758,
+        0.0070582079933956265,
+        0.007116124965250492,
+        0.00687449995893985,
+        0.007436125015374273,
+        0.007159958011470735,
+        0.006968625006265938,
+        0.007453415950294584,
+        0.007536209013778716,
+        0.007280500023625791,
+        0.00676891696639359,
+        0.006772082997485995,
+        0.006969749985728413,
+        0.006726749998051673,
+        0.006625457957852632,
+        0.007363915967289358,
+        0.006976042001042515,
+        0.007128625002223998,
+        0.0070182919735088944,
+        0.006771541957277805,
+        0.007008665998000652,
+        0.0072445840341970325,
+        0.006739625008776784,
+        0.006516124994959682,
+        0.0064830000046640635,
+        0.006492583022918552,
+        0.006570875004399568,
+        0.0067910419893451035,
+        0.006457249983213842,
+        0.00662558403564617,
+        0.0064556670258753,
+        0.006652875046711415,
+        0.00686837499961257,
+        0.00656424998305738,
+        0.006797249952796847,
+        0.006637124984990805,
+        0.006579542008694261,
+        0.006871459016110748,
+        0.006463791010901332,
+        0.006510290957521647,
+        0.006552624981850386,
+        0.00676966697210446,
+        0.0070281249936670065,
+        0.006928415969014168,
+        0.0067164580104872584,
+        0.006502999982330948,
+        0.006578499975148588,
+        0.006738708994816989,
+        0.0070176669978536665,
+        0.006977707962505519,
+        0.006562082970049232,
+        0.0066183339804410934,
+        0.006878375017549843,
+        0.006721124984323978,
+        0.00677491701208055,
+        0.007004541985224932,
+        0.0068793329992331564,
+        0.006786833982914686,
+        0.006542832998093218,
+        0.006607707997318357,
+        0.00674608297413215,
+        0.0074700419791042805,
+        0.006803791970014572,
+        0.006554374995175749,
+        0.006725374958477914,
+        0.006470124993938953,
+        0.007188916963059455,
+        0.007121083966922015,
+        0.007424500014167279,
+        0.006967000022996217,
+        0.006839999987278134,
+        0.00676966697210446,
+        0.006634124962147325,
+        0.006792500033043325,
+        0.006781125033739954,
+        0.006740625016391277,
+        0.006634457968175411,
+        0.006704333995003253,
+        0.007705541967879981,
+        0.007117708039004356,
+        0.007176624960266054,
+        0.0072575840167701244,
+        0.0069995420053601265,
+        0.006938125006854534,
+        0.007498082995880395,
+        0.006809791026171297,
+        0.007538374979048967,
+        0.0071566670085303485,
+        0.007349208986852318,
+        0.0072450420120731,
+        0.0072850839933380485,
+        0.0073959590517915785,
+        0.006604541966225952,
+        0.006542750052176416,
+        0.006630500021856278,
+        0.006751833017915487,
+        0.008476499991957098
+      ],
+      "functional_success": true,
+      "p95_target_seconds": 3.0,
+      "latency_target_met": true,
+      "measurement_passed": true,
+      "timing_boundary": "client POST roundtrip; client result validation excluded",
+      "included": [
+        "API processing",
+        "DB session writes",
+        "RPC reads if target uses them"
+      ],
+      "not_invoked": [
+        "AI",
+        "chain writes"
+      ],
+      "not_isolated": [
+        "server core time",
+        "RPC-only time",
+        "internal cache effects"
+      ],
+      "integration_acceptance": "NOT_DECLARED_BY_THIS_MEASUREMENT"
+    },
+    "official": {
+      "schema_version": "v5-d-verification-benchmark-result-0.1",
+      "source": "synthetic",
+      "scope": "ASGI_SQLITE_SYNTHETIC_REGISTRY",
+      "benchmark_code_sha256": "5a742ad69fe988cfc289a394bcb18b633f3c1dad044e4807ee9bf784a6194437",
+      "config_sha256": "6e4f772b9ad189489474c349bdaf30b1e9eb55209e86cb5e9667d39f2c7335f8",
+      "attempts": 100,
+      "matching_results": 100,
+      "failures": 0,
+      "error_rate": 0.0,
+      "http_status_counts": {
+        "200": 100
+      },
+      "error_counts": {},
+      "latency_seconds_all_attempts": {
+        "p50": 0.006584146001841873,
+        "p95": 0.007109540980309248,
+        "max": 0.007405542011838406
+      },
+      "samples_seconds": [
+        0.0069894170155748725,
+        0.006815375003498048,
+        0.006414791976567358,
+        0.00644650001777336,
+        0.006367875030264258,
+        0.0065257499809376895,
+        0.007205958012491465,
+        0.006498500006273389,
+        0.006426250038202852,
+        0.006487749982625246,
+        0.006588040967471898,
+        0.006617832987103611,
+        0.006401665974408388,
+        0.00642141600837931,
+        0.006423167011234909,
+        0.006553333951160312,
+        0.006494667031802237,
+        0.0064269580179825425,
+        0.006306916009634733,
+        0.006302667025011033,
+        0.006365666980855167,
+        0.0066984580480493605,
+        0.006444500002544373,
+        0.0064348329906351864,
+        0.006441500037908554,
+        0.006379792001098394,
+        0.006673666997812688,
+        0.006469749961979687,
+        0.0063319590408355,
+        0.006359457969665527,
+        0.006435749994125217,
+        0.007025874976534396,
+        0.007405542011838406,
+        0.006795457971747965,
+        0.007109540980309248,
+        0.006964957981836051,
+        0.006928291986696422,
+        0.0071407080395147204,
+        0.006470374995842576,
+        0.006639082974288613,
+        0.006994416995439678,
+        0.006443875026889145,
+        0.006342999986372888,
+        0.006575417006388307,
+        0.006527291028760374,
+        0.006940374965779483,
+        0.0067806250299327075,
+        0.006652084004599601,
+        0.006642791035119444,
+        0.007124916999600828,
+        0.00648720795288682,
+        0.006652249954640865,
+        0.006732957961503416,
+        0.006947000045329332,
+        0.006719624972902238,
+        0.006993124959990382,
+        0.0068214579951018095,
+        0.006859167013317347,
+        0.006580667046364397,
+        0.006777041999157518,
+        0.006658665952272713,
+        0.0065094580058939755,
+        0.006376917008310556,
+        0.006345416011754423,
+        0.006345209025312215,
+        0.006478625000454485,
+        0.0063824160024523735,
+        0.006339959043543786,
+        0.006359292019624263,
+        0.006349249975755811,
+        0.0064146670047193766,
+        0.006591374985873699,
+        0.0064609579858370125,
+        0.006370999966748059,
+        0.006305790971964598,
+        0.006704750005155802,
+        0.006999832985457033,
+        0.0066531249904073775,
+        0.006729957996867597,
+        0.006452291971072555,
+        0.006469833024311811,
+        0.006757666007615626,
+        0.006656832993030548,
+        0.006702459009829909,
+        0.00650595803745091,
+        0.006772833003196865,
+        0.006724582985043526,
+        0.0065717080142349005,
+        0.006718709017150104,
+        0.006587624957319349,
+        0.006481458025518805,
+        0.0069807079853489995,
+        0.006794416985940188,
+        0.007004208047874272,
+        0.006657916004769504,
+        0.0065666669979691505,
+        0.007268708024639636,
+        0.007061375014018267,
+        0.006789958046283573,
+        0.0065919169574044645
+      ],
+      "functional_success": true,
+      "p95_target_seconds": 3.0,
+      "latency_target_met": true,
+      "measurement_passed": true,
+      "timing_boundary": "client POST roundtrip; client result validation excluded",
+      "included": [
+        "API processing",
+        "DB session writes",
+        "RPC reads if target uses them"
+      ],
+      "not_invoked": [
+        "AI",
+        "chain writes"
+      ],
+      "not_isolated": [
+        "server core time",
+        "RPC-only time",
+        "internal cache effects"
+      ],
+      "integration_acceptance": "NOT_DECLARED_BY_THIS_MEASUREMENT"
+    }
+  },
+  "ci_synthetic_performance": {
+    "official": {
+      "schema_version": "v5-d-verification-benchmark-result-0.1",
+      "source": "synthetic",
+      "scope": "ASGI_SQLITE_SYNTHETIC_REGISTRY",
+      "benchmark_code_sha256": "5a742ad69fe988cfc289a394bcb18b633f3c1dad044e4807ee9bf784a6194437",
+      "config_sha256": "6e4f772b9ad189489474c349bdaf30b1e9eb55209e86cb5e9667d39f2c7335f8",
+      "attempts": 100,
+      "matching_results": 100,
+      "failures": 0,
+      "error_rate": 0.0,
+      "http_status_counts": {
+        "200": 100
+      },
+      "error_counts": {},
+      "latency_seconds_all_attempts": {
+        "p50": 0.008796559000003867,
+        "p95": 0.010860883999981752,
+        "max": 0.012440413000007311
+      },
+      "samples_seconds": [
+        0.009582508999983474,
+        0.008768443999997544,
+        0.008684590000001435,
+        0.008556281000011268,
+        0.008680583999989722,
+        0.008660705000011149,
+        0.008639624000011281,
+        0.0086952260000146,
+        0.008751088999986223,
+        0.00875028799998745,
+        0.008677048999999215,
+        0.008664541000001691,
+        0.008692932999991854,
+        0.008693964000002552,
+        0.008637290999985225,
+        0.008696497999977737,
+        0.008764468999999053,
+        0.008666433000001916,
+        0.00862294899999938,
+        0.008715367000007745,
+        0.008882542999998577,
+        0.008984714999996868,
+        0.008803166000006968,
+        0.00868348899999205,
+        0.008789024999998674,
+        0.008762106000006042,
+        0.008568709000002173,
+        0.00862774699999136,
+        0.00913177200001769,
+        0.008637400999987221,
+        0.008657480000010764,
+        0.008605743999993365,
+        0.008627345000007836,
+        0.008741088999983049,
+        0.008646347999984982,
+        0.008609382999992476,
+        0.008651186000008693,
+        0.008518247000012025,
+        0.008803591999992477,
+        0.008626678999974047,
+        0.008631245999993098,
+        0.008605737999999974,
+        0.008615501999997832,
+        0.008766377000000602,
+        0.008870813000015687,
+        0.008847478999996383,
+        0.008764475000020866,
+        0.008861498999976902,
+        0.009015178999987938,
+        0.008956440999980941,
+        0.008948027999991837,
+        0.008912014999992834,
+        0.009061778000017284,
+        0.008720678999992515,
+        0.008726046999981918,
+        0.00865805600000158,
+        0.008694669999982807,
+        0.008713918999973203,
+        0.00866925299999366,
+        0.008887647999983983,
+        0.008789952000000767,
+        0.008748569999994515,
+        0.008893397000008463,
+        0.00871831500001008,
+        0.008653969999983246,
+        0.008550214999985428,
+        0.008862551000021313,
+        0.010216041000006726,
+        0.010630929999990713,
+        0.010342689999987442,
+        0.010455898999992996,
+        0.010973030999991806,
+        0.011033311000005597,
+        0.010860883999981752,
+        0.010632923999992272,
+        0.010015941999995448,
+        0.00934193599999844,
+        0.009871817000004057,
+        0.010123433000018167,
+        0.012440413000007311,
+        0.009440344000012146,
+        0.009168367000000899,
+        0.010088470999988886,
+        0.010123332999995682,
+        0.009549155999991399,
+        0.00909564899998827,
+        0.009266643999978896,
+        0.009555444999989504,
+        0.009631068000004461,
+        0.010899883000007549,
+        0.01090953700000341,
+        0.01070323900000858,
+        0.010451842999998462,
+        0.010757279000017661,
+        0.010330522000003839,
+        0.010095822000010912,
+        0.009422656999987566,
+        0.009252103000022771,
+        0.009146434000001591,
+        0.009203219999989187
+      ],
+      "functional_success": true,
+      "p95_target_seconds": 3.0,
+      "latency_target_met": true,
+      "measurement_passed": true,
+      "timing_boundary": "client POST roundtrip; client result validation excluded",
+      "included": [
+        "API processing",
+        "DB session writes",
+        "RPC reads if target uses them"
+      ],
+      "not_invoked": [
+        "AI",
+        "chain writes"
+      ],
+      "not_isolated": [
+        "server core time",
+        "RPC-only time",
+        "internal cache effects"
+      ],
+      "integration_acceptance": "NOT_DECLARED_BY_THIS_MEASUREMENT"
+    },
+    "payment": {
+      "schema_version": "v5-d-verification-benchmark-result-0.1",
+      "source": "synthetic",
+      "scope": "ASGI_SQLITE_SYNTHETIC_REGISTRY",
+      "benchmark_code_sha256": "5a742ad69fe988cfc289a394bcb18b633f3c1dad044e4807ee9bf784a6194437",
+      "config_sha256": "f84d922b6efae20b74c8283ec5e71c65530ccec8493fd155b4c08a4bef0d7205",
+      "attempts": 100,
+      "matching_results": 100,
+      "failures": 0,
+      "error_rate": 0.0,
+      "http_status_counts": {
+        "200": 100
+      },
+      "error_counts": {},
+      "latency_seconds_all_attempts": {
+        "p50": 0.011978494500013426,
+        "p95": 0.014154895000018541,
+        "max": 0.015479403999989927
+      },
+      "samples_seconds": [
+        0.015479403999989927,
+        0.013393027999995866,
+        0.013134304999994129,
+        0.012425686000000269,
+        0.012303155000012111,
+        0.012695945999979585,
+        0.013665411000005179,
+        0.014111872000000858,
+        0.013845517000021346,
+        0.013897804999999153,
+        0.01411816999998905,
+        0.012885285999999496,
+        0.012329935000025216,
+        0.01226357600000938,
+        0.012733932999992703,
+        0.013244487999998,
+        0.013642848000017693,
+        0.01294785899997919,
+        0.012848241999989796,
+        0.012517160999976795,
+        0.013118521999984978,
+        0.01359379499999136,
+        0.01301092200000653,
+        0.012582499000018288,
+        0.012354951000020264,
+        0.012987336999998433,
+        0.01279236900001024,
+        0.012936311999993677,
+        0.012684199000005947,
+        0.012288562999998476,
+        0.012821252000009054,
+        0.011964194000000816,
+        0.011892738000000236,
+        0.011948690999986411,
+        0.011966066000013598,
+        0.011922962999989295,
+        0.012072673999995231,
+        0.01206096699999648,
+        0.012129727999990791,
+        0.012004383000004282,
+        0.011986026000016636,
+        0.012050651999999218,
+        0.011962761000006594,
+        0.011935480999994752,
+        0.011905407000000423,
+        0.011966838000006419,
+        0.01199802400000749,
+        0.011902302000009968,
+        0.012079182999997329,
+        0.011906417999995256,
+        0.011970963000010215,
+        0.012873638999991499,
+        0.014347510000021657,
+        0.014075727000005145,
+        0.01412492000000043,
+        0.014422620999994251,
+        0.014227492999992819,
+        0.014109928000010541,
+        0.014133463000007396,
+        0.014154895000018541,
+        0.014156877999994322,
+        0.012562438999992764,
+        0.010048468000007915,
+        0.010486826999994037,
+        0.01063943299999437,
+        0.00981577400000333,
+        0.009437284000000545,
+        0.00937192799997888,
+        0.009286742000000459,
+        0.009378857999990942,
+        0.009481890000017756,
+        0.009989300999990292,
+        0.010571243000015329,
+        0.01120459000000551,
+        0.010858097000010503,
+        0.010319800000019086,
+        0.009712702000001627,
+        0.009634796000000279,
+        0.01020157499999641,
+        0.0104514950000123,
+        0.009561859000001505,
+        0.009716838000002781,
+        0.010599313000000166,
+        0.010578051999999616,
+        0.010539926000006972,
+        0.009992807000003268,
+        0.009580475999996452,
+        0.009406087999991541,
+        0.009316584999993438,
+        0.009205941999994138,
+        0.009199953000006644,
+        0.009397524999997131,
+        0.00911195300000145,
+        0.010245850000018208,
+        0.009958135000005086,
+        0.009666503999994802,
+        0.009878616999998258,
+        0.010170197999997299,
+        0.009698681000003262,
+        0.009226201999979367
+      ],
+      "functional_success": true,
+      "p95_target_seconds": 3.0,
+      "latency_target_met": true,
+      "measurement_passed": true,
+      "timing_boundary": "client POST roundtrip; client result validation excluded",
+      "included": [
+        "API processing",
+        "DB session writes",
+        "RPC reads if target uses them"
+      ],
+      "not_invoked": [
+        "AI",
+        "chain writes"
+      ],
+      "not_isolated": [
+        "server core time",
+        "RPC-only time",
+        "internal cache effects"
+      ],
+      "integration_acceptance": "NOT_DECLARED_BY_THIS_MEASUREMENT"
+    }
+  },
+  "ci_evidence_run": "https://github.com/OriginProof-3web/OriginProof/actions/runs/39586073332",
+  "ci_counts": {
+    "stage": 43,
+    "consumer": 31,
+    "benchmark": 16,
+    "independent_total": 71,
+    "independent_c_reused": 49,
+    "independent_d_added": 22
+  },
+  "independent_verifier": {
+    "source_sha": "68ea0c20718937cd0c93d683e3cfa9b3995a9666",
+    "transport": "synthetic eth_* JSON-RPC / socket denied",
+    "shared_models": "current D head, not original C63 lock",
+    "actual_chain": false,
+    "service_api_invoked": false
+  },
+  "g07": {
+    "status": "PASS_REQUIRES_B_C_REVIEW",
+    "product_sha": "d757a267c5381e5a9b528f63a6c3acef852da996",
+    "qa_sha": "31ba879853c368c92801396b498504343f3a332a",
+    "fresh_runs": 1,
+    "mixed_runs": 3,
+    "runs": [
+      {
+        "mode": "FRESH",
+        "runner_status": "PASS",
+        "exit_code": 0,
+        "report_sha256": "492970ac4801a217dc16468f3f0da289b5d2084c713fa72a666d71b9564dd9ee",
+        "groups": [
+          {
+            "id": "two_types_comparison",
+            "status": "PASS"
+          },
+          {
+            "id": "mutation_permission_matrix",
+            "status": "PASS"
+          },
+          {
+            "id": "unregistered",
+            "status": "PASS"
+          },
+          {
+            "id": "ownership",
+            "status": "PASS"
+          },
+          {
+            "id": "operation_audit_reconciliation",
+            "status": "PASS"
+          },
+          {
+            "id": "suspended_new_issuance",
+            "status": "PASS"
+          },
+          {
+            "id": "rpc_outage_recovery",
+            "status": "PASS"
+          },
+          {
+            "id": "same_operation_recovery",
+            "status": "PASS"
+          },
+          {
+            "id": "private_fields",
+            "status": "PASS"
+          },
+          {
+            "id": "approval_chain_boundary",
+            "status": "PASS"
+          },
+          {
+            "id": "default_request_limit",
+            "status": "PASS"
+          },
+          {
+            "id": "default_login_limit",
+            "status": "PASS"
+          },
+          {
+            "id": "origin_body_boundaries",
+            "status": "PASS"
+          },
+          {
+            "id": "different_rpc_chain",
+            "status": "PASS"
+          },
+          {
+            "id": "same_chain_fresh_rpc_guard",
+            "status": "PASS"
+          },
+          {
+            "id": "projection_replay_process_restart_reorg",
+            "status": "PASS"
+          },
+          {
+            "id": "current_candidate_lifecycle_regression",
+            "status": "PASS"
+          },
+          {
+            "id": "legacy_v1_expiry",
+            "status": "PASS"
+          }
+        ],
+        "resources_closed": true,
+        "resource_absence": {
+          "owned_containers_absent": true,
+          "owned_network_absent": true
+        },
+        "environment": {
+          "python": "3.13.7",
+          "llm_provider": "mock",
+          "paid_calls": 0,
+          "source_config_sha256": {
+            "uv.lock": "ff740f712def1f869f0a68c113164fd693507319ccf63b3313d79ced9f1bc112",
+            ".tool-versions": "9e238d2a904c0fe8d489505fbe1e6a51185ba327ada08d34db8cf8d7bd9f94e2",
+            "docker-compose.yml": "ec2dd83ba35a0e2df0aa6d7dbe6086774034721561fd127101a73eebd0117c0d",
+            "infra/docker/api.Dockerfile": "0efa69ea5bc8bdec0061588014ea2bcb8ff5ba0899e7e97f06f0faa0abea80ed",
+            "infra/docker/deployer.Dockerfile": "b34edd32f46ea1cb2f05dc0fcbe42d3c7202a2f8c8c71b2f2e5867be53d5e5c7"
+          }
+        },
+        "product_sha": "d757a267c5381e5a9b528f63a6c3acef852da996",
+        "qa_git_head": "31ba879853c368c92801396b498504343f3a332a",
+        "scope": "MERGED_G07_CANDIDATE",
+        "browser_e2e": "NOT_RUN"
+      },
+      {
+        "mode": "MIXED_DIAGNOSTIC",
+        "runner_status": "PASS",
+        "exit_code": 0,
+        "report_sha256": "d07f37552ce814aa34e800bf070f666a9d1cf16faa004779531523fb07ff649f",
+        "groups": [
+          {
+            "id": "two_types_comparison",
+            "status": "PASS"
+          },
+          {
+            "id": "mutation_permission_matrix",
+            "status": "PASS"
+          },
+          {
+            "id": "unregistered",
+            "status": "PASS"
+          },
+          {
+            "id": "ownership",
+            "status": "PASS"
+          },
+          {
+            "id": "operation_audit_reconciliation",
+            "status": "PASS"
+          },
+          {
+            "id": "suspended_new_issuance",
+            "status": "PASS"
+          },
+          {
+            "id": "rpc_outage_recovery",
+            "status": "PASS"
+          },
+          {
+            "id": "same_operation_recovery",
+            "status": "PASS"
+          },
+          {
+            "id": "private_fields",
+            "status": "PASS"
+          },
+          {
+            "id": "approval_chain_boundary",
+            "status": "PASS"
+          },
+          {
+            "id": "default_request_limit",
+            "status": "PASS"
+          },
+          {
+            "id": "default_login_limit",
+            "status": "PASS"
+          },
+          {
+            "id": "origin_body_boundaries",
+            "status": "PASS"
+          },
+          {
+            "id": "different_rpc_chain",
+            "status": "PASS"
+          },
+          {
+            "id": "same_chain_fresh_rpc_guard",
+            "status": "PASS"
+          },
+          {
+            "id": "projection_replay_process_restart_reorg",
+            "status": "PASS"
+          },
+          {
+            "id": "current_candidate_lifecycle_regression",
+            "status": "PASS"
+          },
+          {
+            "id": "legacy_v1_expiry",
+            "status": "PASS"
+          }
+        ],
+        "resources_closed": true,
+        "resource_absence": {
+          "owned_containers_absent": true,
+          "owned_network_absent": true
+        },
+        "environment": {
+          "python": "3.13.7",
+          "llm_provider": "mock",
+          "paid_calls": 0,
+          "source_config_sha256": {
+            "uv.lock": "ff740f712def1f869f0a68c113164fd693507319ccf63b3313d79ced9f1bc112",
+            ".tool-versions": "9e238d2a904c0fe8d489505fbe1e6a51185ba327ada08d34db8cf8d7bd9f94e2",
+            "docker-compose.yml": "ec2dd83ba35a0e2df0aa6d7dbe6086774034721561fd127101a73eebd0117c0d",
+            "infra/docker/api.Dockerfile": "0efa69ea5bc8bdec0061588014ea2bcb8ff5ba0899e7e97f06f0faa0abea80ed",
+            "infra/docker/deployer.Dockerfile": "b34edd32f46ea1cb2f05dc0fcbe42d3c7202a2f8c8c71b2f2e5867be53d5e5c7"
+          }
+        },
+        "product_sha": "d757a267c5381e5a9b528f63a6c3acef852da996",
+        "qa_git_head": "31ba879853c368c92801396b498504343f3a332a",
+        "scope": "MERGED_G07_CANDIDATE",
+        "browser_e2e": "NOT_RUN"
+      },
+      {
+        "mode": "MIXED_DIAGNOSTIC",
+        "runner_status": "PASS",
+        "exit_code": 0,
+        "report_sha256": "7cacd34f64bef5527302fc0238a6ec6e3bd75767e63291f78e32a7dcaa5811cc",
+        "groups": [
+          {
+            "id": "two_types_comparison",
+            "status": "PASS"
+          },
+          {
+            "id": "mutation_permission_matrix",
+            "status": "PASS"
+          },
+          {
+            "id": "unregistered",
+            "status": "PASS"
+          },
+          {
+            "id": "ownership",
+            "status": "PASS"
+          },
+          {
+            "id": "operation_audit_reconciliation",
+            "status": "PASS"
+          },
+          {
+            "id": "suspended_new_issuance",
+            "status": "PASS"
+          },
+          {
+            "id": "rpc_outage_recovery",
+            "status": "PASS"
+          },
+          {
+            "id": "same_operation_recovery",
+            "status": "PASS"
+          },
+          {
+            "id": "private_fields",
+            "status": "PASS"
+          },
+          {
+            "id": "approval_chain_boundary",
+            "status": "PASS"
+          },
+          {
+            "id": "default_request_limit",
+            "status": "PASS"
+          },
+          {
+            "id": "default_login_limit",
+            "status": "PASS"
+          },
+          {
+            "id": "origin_body_boundaries",
+            "status": "PASS"
+          },
+          {
+            "id": "different_rpc_chain",
+            "status": "PASS"
+          },
+          {
+            "id": "same_chain_fresh_rpc_guard",
+            "status": "PASS"
+          },
+          {
+            "id": "projection_replay_process_restart_reorg",
+            "status": "PASS"
+          },
+          {
+            "id": "current_candidate_lifecycle_regression",
+            "status": "PASS"
+          },
+          {
+            "id": "legacy_v1_expiry",
+            "status": "PASS"
+          }
+        ],
+        "resources_closed": true,
+        "resource_absence": {
+          "owned_containers_absent": true,
+          "owned_network_absent": true
+        },
+        "environment": {
+          "python": "3.13.7",
+          "llm_provider": "mock",
+          "paid_calls": 0,
+          "source_config_sha256": {
+            "uv.lock": "ff740f712def1f869f0a68c113164fd693507319ccf63b3313d79ced9f1bc112",
+            ".tool-versions": "9e238d2a904c0fe8d489505fbe1e6a51185ba327ada08d34db8cf8d7bd9f94e2",
+            "docker-compose.yml": "ec2dd83ba35a0e2df0aa6d7dbe6086774034721561fd127101a73eebd0117c0d",
+            "infra/docker/api.Dockerfile": "0efa69ea5bc8bdec0061588014ea2bcb8ff5ba0899e7e97f06f0faa0abea80ed",
+            "infra/docker/deployer.Dockerfile": "b34edd32f46ea1cb2f05dc0fcbe42d3c7202a2f8c8c71b2f2e5867be53d5e5c7"
+          }
+        },
+        "product_sha": "d757a267c5381e5a9b528f63a6c3acef852da996",
+        "qa_git_head": "31ba879853c368c92801396b498504343f3a332a",
+        "scope": "MERGED_G07_CANDIDATE",
+        "browser_e2e": "NOT_RUN"
+      },
+      {
+        "mode": "MIXED_DIAGNOSTIC",
+        "runner_status": "PASS",
+        "exit_code": 0,
+        "report_sha256": "5f7a457776c1a02ab2695e1682dcd67ef82061d0323888b990c09cd7e5e94f09",
+        "groups": [
+          {
+            "id": "two_types_comparison",
+            "status": "PASS"
+          },
+          {
+            "id": "mutation_permission_matrix",
+            "status": "PASS"
+          },
+          {
+            "id": "unregistered",
+            "status": "PASS"
+          },
+          {
+            "id": "ownership",
+            "status": "PASS"
+          },
+          {
+            "id": "operation_audit_reconciliation",
+            "status": "PASS"
+          },
+          {
+            "id": "suspended_new_issuance",
+            "status": "PASS"
+          },
+          {
+            "id": "rpc_outage_recovery",
+            "status": "PASS"
+          },
+          {
+            "id": "same_operation_recovery",
+            "status": "PASS"
+          },
+          {
+            "id": "private_fields",
+            "status": "PASS"
+          },
+          {
+            "id": "approval_chain_boundary",
+            "status": "PASS"
+          },
+          {
+            "id": "default_request_limit",
+            "status": "PASS"
+          },
+          {
+            "id": "default_login_limit",
+            "status": "PASS"
+          },
+          {
+            "id": "origin_body_boundaries",
+            "status": "PASS"
+          },
+          {
+            "id": "different_rpc_chain",
+            "status": "PASS"
+          },
+          {
+            "id": "same_chain_fresh_rpc_guard",
+            "status": "PASS"
+          },
+          {
+            "id": "projection_replay_process_restart_reorg",
+            "status": "PASS"
+          },
+          {
+            "id": "current_candidate_lifecycle_regression",
+            "status": "PASS"
+          },
+          {
+            "id": "legacy_v1_expiry",
+            "status": "PASS"
+          }
+        ],
+        "resources_closed": true,
+        "resource_absence": {
+          "owned_containers_absent": true,
+          "owned_network_absent": true
+        },
+        "environment": {
+          "python": "3.13.7",
+          "llm_provider": "mock",
+          "paid_calls": 0,
+          "source_config_sha256": {
+            "uv.lock": "ff740f712def1f869f0a68c113164fd693507319ccf63b3313d79ced9f1bc112",
+            ".tool-versions": "9e238d2a904c0fe8d489505fbe1e6a51185ba327ada08d34db8cf8d7bd9f94e2",
+            "docker-compose.yml": "ec2dd83ba35a0e2df0aa6d7dbe6086774034721561fd127101a73eebd0117c0d",
+            "infra/docker/api.Dockerfile": "0efa69ea5bc8bdec0061588014ea2bcb8ff5ba0899e7e97f06f0faa0abea80ed",
+            "infra/docker/deployer.Dockerfile": "b34edd32f46ea1cb2f05dc0fcbe42d3c7202a2f8c8c71b2f2e5867be53d5e5c7"
+          }
+        },
+        "product_sha": "d757a267c5381e5a9b528f63a6c3acef852da996",
+        "qa_git_head": "31ba879853c368c92801396b498504343f3a332a",
+        "scope": "MERGED_G07_CANDIDATE",
+        "browser_e2e": "NOT_RUN"
+      }
+    ],
+    "resolution": "OPEN pending B/C review; never auto-closed"
+  },
+  "paid_calls": 0,
+  "human_approval": false,
+  "phase_complete": false,
+  "not_run": [
+    "actual v3 Registry/browser integration",
+    "actual PostgreSQL/RPC/network performance",
+    "actual independent EVM/public RPC verification",
+    "live OpenAI evaluation",
+    "different physical laptop",
+    "RC rehearsal x3"
+  ]
+}

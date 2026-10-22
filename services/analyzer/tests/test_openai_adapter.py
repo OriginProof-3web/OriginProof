@@ -19,39 +19,6 @@ from originproof_core import CardPaymentNoticeCandidate
 from PIL import Image
 
 
-def response_body(data, *, status="completed", refusal=False, empty=False):
-    part = (
-        {"type": "refusal", "refusal": "PRIVATE_REFUSAL"}
-        if refusal
-        else {
-            "type": "output_text",
-            "text": json.dumps(data),
-            "annotations": [],
-        }
-    )
-    return {
-        "id": "resp_test_only",
-        "object": "response",
-        "created_at": 0,
-        "status": status,
-        "model": "configured-model",
-        "error": None,
-        "incomplete_details": {"reason": "max_output_tokens"} if status == "incomplete" else None,
-        "output": []
-        if empty
-        else [
-            {
-                "id": "msg_test",
-                "type": "message",
-                "status": "completed",
-                "role": "assistant",
-                "content": [part],
-            }
-        ],
-        "usage": {"input_tokens": 12, "output_tokens": 34, "total_tokens": 46},
-    }
-
-
 @pytest.fixture
 def make_provider():
     clients = []
@@ -77,7 +44,9 @@ def make_provider():
 
 
 @pytest.mark.parametrize("image_input", [False, True])
-def test_sdk_roundtrip_uses_authoritative_shared_schema(make_provider, normal_case, image_input):
+def test_sdk_roundtrip_uses_authoritative_shared_schema(
+    make_provider, normal_case, image_input, response_body
+):
     observed = []
 
     def handler(request):
@@ -159,7 +128,7 @@ def test_timeout_is_safe_and_never_falls_back_to_mock(make_provider):
         ({"status": "failed", "empty": True}, "PROVIDER_UNAVAILABLE"),
     ],
 )
-def test_response_failures(make_provider, normal_case, kwargs, expected):
+def test_response_failures(make_provider, normal_case, kwargs, expected, response_body):
     body = response_body(normal_case["expected"], **kwargs)
     with pytest.raises(AnalyzerError) as caught:
         make_provider(lambda request: httpx.Response(200, json=body)).extract_card_payment_notice(
@@ -169,7 +138,9 @@ def test_response_failures(make_provider, normal_case, kwargs, expected):
     assert "PRIVATE" not in str(caught.value)
 
 
-def test_incomplete_truncated_json_keeps_incomplete_error(make_provider, normal_case):
+def test_incomplete_truncated_json_keeps_incomplete_error(
+    make_provider, normal_case, response_body
+):
     body = response_body(normal_case["expected"], status="incomplete")
     body["output"][0]["content"][0]["text"] = '{"amount_minor":154'
     with pytest.raises(AnalyzerError) as caught:
@@ -203,7 +174,7 @@ def test_incomplete_truncated_json_keeps_incomplete_error(make_provider, normal_
         {"missing_fields": ["verification_status"]},
     ],
 )
-def test_schema_mismatch_is_strict_and_safe(make_provider, normal_case, changes):
+def test_schema_mismatch_is_strict_and_safe(make_provider, normal_case, changes, response_body):
     body = response_body({**normal_case["expected"], **changes})
     with pytest.raises(AnalyzerError) as caught:
         make_provider(lambda request: httpx.Response(200, json=body)).extract_card_payment_notice(
@@ -221,7 +192,7 @@ def test_malformed_envelope_is_safe(make_provider, body):
     assert caught.value.code == "SCHEMA_MISMATCH"
 
 
-def test_missing_transaction_id_is_not_invented(make_provider, cases):
+def test_missing_transaction_id_is_not_invented(make_provider, cases, response_body):
     case = next(item for item in cases if item["id"] == "readme_missing_transaction")
     provider = make_provider(
         lambda request: httpx.Response(200, json=response_body(case["expected"]))
@@ -231,7 +202,7 @@ def test_missing_transaction_id_is_not_invented(make_provider, cases):
     assert candidate.missing_fields == ["transaction_id"]
 
 
-def test_low_confidence_domain_gate(make_provider, normal_case):
+def test_low_confidence_domain_gate(make_provider, normal_case, response_body):
     body = response_body({**normal_case["expected"], "confidence": 0.2})
     provider = make_provider(lambda request: httpx.Response(200, json=body))
     with pytest.raises(AnalyzerError) as caught:
@@ -250,7 +221,9 @@ def test_low_confidence_domain_gate(make_provider, normal_case):
     )["cases"],
     ids=lambda case: case["id"],
 )
-def test_sdk_schema_valid_hallucination_is_still_unconfirmed(make_provider, normal_case, case):
+def test_sdk_schema_valid_hallucination_is_still_unconfirmed(
+    make_provider, normal_case, case, response_body
+):
     data = {**normal_case["expected"], **case["candidate_changes"], "confidence": 0.999}
     provider = make_provider(lambda request: httpx.Response(200, json=response_body(data)))
     text = normal_case["text"]
@@ -266,7 +239,9 @@ def test_sdk_schema_valid_hallucination_is_still_unconfirmed(make_provider, norm
     assert response.headers["X-OriginProof-Artifact-Comparison"] == "not-performed"
 
 
-def test_sdk_prompt_does_not_authorize_embedded_instructions(make_provider, normal_case):
+def test_sdk_prompt_does_not_authorize_embedded_instructions(
+    make_provider, normal_case, response_body
+):
     observed = []
 
     def handler(request):

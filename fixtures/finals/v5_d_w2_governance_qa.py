@@ -1,4 +1,4 @@
-"""D V5-W2 failure matrix; C #62 eaa0d16 helpers, ASGI/SQLite/synthetic Registry only."""
+"""D V5-W2 failure matrix; same-head C API, ASGI/SQLite/synthetic Registry only."""
 
 import socket
 import time

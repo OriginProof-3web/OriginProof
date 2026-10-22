@@ -1,0 +1,14 @@
+{
+  "schema_version": "v5-d-live-policy-0.1",
+  "approved_for_paid_calls": false,
+  "corpus_sha256": "944e6e1ec87b24510c6d1cad2e1a6aac4f51e373230bc387e66f542b265595e9",
+  "model": "gpt-6-luna",
+  "split": "development",
+  "review_reference": "",
+  "budget_reference": "",
+  "input_selection": "UNDECIDED",
+  "max_calls": 0,
+  "max_output_tokens": 0,
+  "output_token_budget": 0,
+  "max_input_characters": 0
+}

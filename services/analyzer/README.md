@@ -155,3 +155,13 @@ uv run --package originproof-analyzer python -m originproof_analyzer.evaluation 
 SDK 테스트는 실제 OpenAI 클라이언트와 `httpx.MockTransport`를 사용한다.
 Analyzer 테스트에서는 socket 연결을 차단하여 외부 네트워크/개인 API Key에 의존하지 않는다.
 `make mvp-test`의 Contract 검사는 Docker Compose의 고정 Foundry 컨테이너를 사용합니다. 호스트 Foundry 설치는 필수가 아니며 Docker 실행 환경이 필요합니다.
+
+## 5.0 분석 콜백·평가 준비
+
+`originproof_analyzer.phishing.PhishingAnalyzer`는 C의 async `analysis_processor(text)`에
+주입할 공통 `AnalysisReport`를 반환합니다. 규칙·LLM 근거는 원문과 대조하고 발행 판정은
+생성하지 않습니다. 기본 mock은 LLM 분석 미실행을 표시하며 규칙 없는 경우 판단 보류합니다.
+새 사용자 입력 경로나 HTTP endpoint는 활성화하지 않았습니다.
+
+입력/모델은 아직 미정이며 60개 원본·24/36 분할은 리뷰 전 초안입니다.
+[분석기·평가 인계](../../docs/handoffs/v5_d_analysis.md)의 실행법·실측값·한계를 확인합니다.
