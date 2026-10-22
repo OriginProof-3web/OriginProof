@@ -21,6 +21,19 @@ Registry가 이전 최신이 ACTIVE일 때만 SUPERSEDED 전이/이벤트를 수
 ## #69 · 기준 c5a82cc
 
 #78의 getter별 정확한 custom error 분류를 동일 원본에서 앞당겼습니다. 다른 오류는 dependency로 유지합니다. 잘못된 view 이름/인자를 ConfigurationError로 묶고 중복/overload ABI를 거부합니다. 신규 검사7개 포함 Python666 PASS/10 SKIP, ruff PASS입니다. block/log 위치는 BigInteger로 선언하며 기존 PostgreSQL 테이블을 create_all로 자동 migration한다고 주장하지 않습니다(새 journal 기준, 기존 DB 변경은 별도 인계). C WalletRegistry 원본 변환/주입과 실 API 연결은 후속 검증 대상이며 helper 단독을 완성된 port로 노출하지 않습니다.
+
+## #78 · 기준4b010a5 / 대행 변경 재검증
+
+C가 철회 대조를 REVOKED(2)로 좁힌 수정을 확인했습니다. 추가로 Registry의 'REVOKED 이전 버전 뒤 새 발행은 대체 이벤트 없음'과 Adapter의 무조건 대체 이벤트 요구가 충돌하는 결함을 수정했습니다. 이벤트가1개일 때는 이전 버전의 소유/번호/REVOKED 상태와 해당 block의 canonical 전체 tx 이벤트를 대조합니다. ACTIVE 이전 버전의 대체 이벤트 누락은 계속 거부합니다. 새 회귀2개 포함 대조 검사54 PASS, 공식 ruff PASS입니다. 입력 검증 병합 충돌은 양쪽 검증·tx inclusion을 보존했습니다. C port/제품 연결 완료와 이 독립 대조 검증을 구분합니다.
+
+## #79 — 최종 후보 재검증
+
+- 실행 코드 `b92be2e30de20576933622dae2fbff88354808be`: 실제 폐기 가능한 Anvil 검사 **1 PASS**. [새 증거](evidence/v5_w5_live_b92be2e.json)는 이전 증거를 덮어쓰지 않습니다.
+- 실제 응답 유실 뒤 JSON 직렬화 intent와 새 HTTP/RPC/Recovery 클라이언트로 hash 없이 원본을 찾았습니다. 반복 조회 시 relayer nonce 증가 없음. 이는 C API/DB/Operation 프로세스 재시작 검사가 아닙니다.
+- 철회된 v2 뒤 v3 발행에서 Superseded 이벤트 없이 정상 receipt를 검증하고 v2 REVOKED 보존을 확인했습니다. 후속 철회 nonce는 실제 소비에 맞췄습니다.
+- 전체 Python **745 PASS / 11 SKIP**, Starlette 기존 경고1. 일반 실행의 live/환경 의존 SKIP은 별도 실제 EVM 1 PASS와 구분합니다. 공식 Ruff·구조·Node hash·원본 기반 make generate 후 Schema/Golden diff·공백 검사 PASS. 최초 생성 명령은 없는 venv/uv 경로로 실패했으며 설치된 uv로 재실행했습니다.
+- top-level Registry 거래만 검색하며 relay contract 내부 호출은 trace 검색하지 않습니다. 빈 결과는 미전송/재전송 허가가 아닙니다. PostgreSQL·C Operation/dispatcher·브라우저·독립 리뷰·G07은 미완료입니다.
+- #83 C 선행 PR의 c-recovery CI 실패와 현재 head 작성자 외 리뷰 대기 때문에 자동 병합하지 않습니다. C 대행 수정의 Codex 기술 검증은 사람 B의 직접 확인이나 지정 리뷰어 승인을 대체하지 않습니다.
 ## 추가 확인 — #64 현행 manifest 경로
 
 AI(Codex)가 여하민님 요청으로 수행했습니다. Reader·Writer의 합성 manifest fixture를 실제 현행 출력명 `31337.local.json`으로 맞춰 loader 경로 호환을 기존 정상/거부 검사로 확인합니다. 실제 배포 파일이나 원본 사용자 변경은 읽어 덮어쓰지 않습니다. 이 검사는 MockTransport이며 별도 no-dev Uvicorn 기동과 구분합니다.
