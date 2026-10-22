@@ -34,6 +34,7 @@
 ## 남은 인계와 사람 확인
 
 - #84에는 [A의 소비 검토](https://github.com/OriginProof-3web/OriginProof/issues/84#issuecomment-6334429744)와 [대표 지시의 B/D 대행 검토](https://github.com/OriginProof-3web/OriginProof/issues/84#issuecomment-6334500736)가 있습니다. D 본인 확인과 Codex의 기술 실행은 구분합니다. 사용자 본인의 대행 변경 확인 코멘트는 AI가 대신 게시하지 않았습니다.
+- C #85 runbook은 이제 seed-only ready503, P0 준비 뒤 ready200, Registry 주소 설정+미주입 때503을 구분합니다. 기존 D의 준비 조건 문서화 요청은 반영됐고, 실제 Registry 주입/새 지갑 왕복 검사는 남습니다.
 - B 읽기 Adapter는 병합됐지만 submit/find_transaction은 명시적인 dependency 오류이며 C 생산 주입·중계/Operation 연결, A 실제 왕복은 후속입니다. 실제 API 성능·새 지갑 브라우저/DB/보관·복구 수용과 구분합니다.
 - 입력 종류/우선순위·라벨/분할 사람 리뷰·유료 평가 범위/예산이 정해지기 전 실제 모델/보류36개 예측·미선정 변환을 실행하지 않습니다. 모델gpt-6-luna와 Decisions API 범위 밖 결정은 유지합니다.
 - 선정 공개 환경(#89는 준비 PR), 다른 노트북·동일 RC3회, phase 승격의 별도 검사/리뷰가 남습니다. 과거 PR을 다시 병합하거나 이번 문서로 기능/단계 완료를 만들지 않았습니다.
