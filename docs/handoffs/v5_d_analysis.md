@@ -1,7 +1,10 @@
 # D 비동기 분석기·평가 초안 인계
 
+> 2026-10-21 후속: [평가0.3의 검증 전 후보 집계](../qa/v5-d-development-tools-20261021.md)를 구현하고 합성 scorer 검사를 완료했습니다. 실제 모델 품질·입력 선정·유료 평가는 여전히 미완료입니다.
+> 현재 GitHub 공유 상태: [D PR #70~#76 현재 리뷰 목록](v5_d_review_index.md). 아래 실행 기록의 push/PR 미수행 표시는 당시 상태로 보존합니다.
+
 - 작업: V5-W5-D, V5-W1-D의 평가 준비 후속. 사용자 입력은 **미정**입니다. 2026-10-16 최종 후속 지시로 **Jev 도입을 취소하고 OpenAI 모델만 사용**합니다. 최종 모델은 2026-10-18 사용자가 **OpenAI GPT-6 Luna (`gpt-6-luna`)**로 확정했습니다. 유료 평가/전송 범위·예산은 미정입니다.
-- 기준: 계획서 5.1·공유 계약 v5-shared-0.1. C 후보의 v5-shared-0.2는 별도 소비 대상으로 검토합니다.
+- 현재 소비 기준: 계획서 5.1·공유 계약 v5-shared-0.2. 2026-10-21에는 C가 포함된 같은 HEAD에서 재검사했습니다. [현재 근거·계약 검토](../qa/v5-d-weekly-status-20261021.md). 과거 고정0.1/0.2 후보 검사는 아래 날짜별 기록으로 보존합니다.
 - 브랜치: `codex/v5-w5-d-analysis`, 구현/검증 SHA `98d2c5400aa0e3e398dbb8df720b6d1445fae6db`.
 - 상태: 독립 구현·합성/mock/SDK 검사 완료. 실제 모델 평가·입력 활성화·A/B/C 실제 연결·리뷰는 후속입니다.
 
@@ -21,7 +24,8 @@ OpenAI 구현은 [공식 Structured Outputs 문서](https://developers.openai.co
 
 ```python
 from originproof_analyzer.phishing import PhishingAnalyzer
-processor = PhishingAnalyzer()  # 기존 mock 기본값, 유료 요청 없음
+from originproof_analyzer.providers import MockLLMProvider
+processor = PhishingAnalyzer(MockLLMProvider())  # 환경 설정과 무관하게 유료 요청 없음
 # C 후보: create_app(analysis_processor=processor, ...)
 # wallet_text_input_enabled는 기본 false를 유지합니다.
 ```
@@ -54,6 +58,10 @@ CLI는 환경의 provider 설정과 무관하게 명시적 mock/rules를 사용�
 - 최초 새 SDK 검사 1 FAIL은 비동기 raw response의 parse를 await한 호출 오류였습니다. 설치 SDK의 raw.parse는 동기 메서드이므로 수정 후 새 SDK·기존 SDK 검사와 전체 회귀가 통과했습니다.
 - Ruff·diff 검사 PASS, 의존성·공통 모델·API·Schema 원본 변경 없음.
 - 실제 LLM·입력 변환·보류 분할 평가·브라우저/신규 Registry 연결·성능 목표·사람 리뷰는 미실행입니다. 보존 브랜치와 기존 사용자 작업을 유지하고 push/PR은 하지 않았습니다.
+
+## 후속 독립 QA
+
+[`codex/v5-d-independent-qa`](../qa/v5-d-independent-qa.md)에서 같은 분석 소스를 C #62 고정 후보에 주입해 ASGI/SQLite/합성 Registry 12개를 통과했습니다. C 후보 환경의 Analyzer 251개도 통과했습니다. 실제 신규 A/B/C 통합 완료와 구분합니다. 과거 고정 제품의 PostgreSQL/Anvil mixed 18그룹이 이번에 통과했지만 G07은 원인·수정 인계 전까지 미해결을 유지합니다. 상세 SHA/명령/실행 경계는 연결된 QA 보고서에 있습니다.
 
 ## 2026-10-16 최종 사용자 선택: OpenAI만 사용
 

@@ -16,6 +16,7 @@ from typing import get_args
 from originproof_core.wallet_contract import AnalysisReport
 
 from .errors import AnalyzerError
+from .evidence_evaluation import CandidateEvidenceObserver
 from .phishing import RULE_VERSION, PhishingAnalyzer, validate_analysis_report
 from .providers import ANALYSIS_PROMPT_VERSION, MockLLMProvider
 
@@ -89,15 +90,29 @@ def classification_metrics(rows: list[dict]) -> dict:
     }
 
 
-async def evaluate_phishing(path: Path, *, processor=None, split="development") -> dict:
+async def evaluate_phishing(
+    path: Path, *, processor=None, provider=None, split="development", case_ids=None
+) -> dict:
     manifest = load_corpus(path)
     if split not in {"development", "holdout"}:
         raise ValueError("select development or holdout explicitly")
-    analyzer = processor or PhishingAnalyzer(MockLLMProvider())
+    if processor is not None and provider is not None:
+        raise ValueError("select processor or observed provider, not both")
+    observer = CandidateEvidenceObserver(provider) if provider is not None else None
+    analyzer = processor or PhishingAnalyzer(observer or MockLLMProvider())
+    selected = [case for case in manifest["cases"] if case["split"] == split]
+    if case_ids is not None:
+        if (
+            not case_ids
+            or len(set(case_ids)) != len(case_ids)
+            or not set(case_ids) <= {c["id"] for c in selected}
+        ):
+            raise ValueError("invalid selected case identity")
+        selected = [case for case in selected if case["id"] in case_ids]
     rows, durations = [], []
     quote_total = expected_quotes = located_quotes = model_failures = 0
     grounding_rejected_reports = 0
-    for case in (case for case in manifest["cases"] if case["split"] == split):
+    for case in selected:
         started = perf_counter()
         row = {
             "id": case["id"],
@@ -106,6 +121,8 @@ async def evaluate_phishing(path: Path, *, processor=None, split="development") 
             "error_code": None,
         }
         expected_quotes += len(case["expected_evidence"])
+        if observer is not None:
+            observer.expected = case["expected_evidence"]
         try:
             # Only original text crosses the processor boundary, never labels or expected quotes.
             report = validate_analysis_report(await analyzer(case["text"]), case["text"])
@@ -147,7 +164,7 @@ async def evaluate_phishing(path: Path, *, processor=None, split="development") 
     ordered = sorted(durations)
     return {
         "source": "synthetic",
-        "evaluation_version": "v5-d-evaluation-0.2",
+        "evaluation_version": "v5-d-evaluation-0.3",
         "corpus_version": manifest["fixture_version"],
         "corpus_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
         "review_status": manifest["review_status"],
@@ -168,7 +185,11 @@ async def evaluate_phishing(path: Path, *, processor=None, split="development") 
             "validated_quote_count": quote_total,
             "output_safety_scope": "VALIDATED_OUTPUT_ONLY_NOT_CANDIDATE_ACCURACY",
             "grounding_rejected_reports": grounding_rejected_reports,
-            "candidate_grounding": {
+            "candidate_grounding": observer.metrics(
+                expected_spans=expected_quotes, total_cases=len(rows)
+            )
+            if observer is not None
+            else {
                 "status": "NOT_EVALUATED",
                 "reason": "RAW_PROVIDER_CANDIDATES_NOT_OBSERVED",
                 "candidate_quote_count": None,
