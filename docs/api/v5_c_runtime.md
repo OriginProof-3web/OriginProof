@@ -4,6 +4,7 @@ V5-W1~W5-C의 독립 구현입니다. 재사용 원본·브랜치는 [구현 기
 
 ## 계약과 기동
 
+- 로컬 실행·합성 계정·설정: [v5 지갑 API 로컬 실행](../runbooks/v5_wallet_local.md).
 - 현재 HTTP 정의: [실제 앱 OpenAPI](../../packages/schemas/generated/openapi.json). `create_app().openapi()`에서 생성합니다.
 - 신규 타입: [wallet-contract.ts](../../packages/schemas/generated/types/wallet-contract.ts). 기존 api.ts의 v1/v2 `OperationView`와 이름이 같으므로 모듈을 구분합니다.
 - [예정 OpenAPI](../../packages/schemas/generated/openapi/wallet-contract.openapi.json)는 최초 22개 경로의 검토 기준을 보존합니다. 실제 추가 경로·응답은 앱 OpenAPI를 사용합니다.
