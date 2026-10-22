@@ -29,6 +29,19 @@ PYTHONPATH=apps/api/src:packages/python:services/indexer/src uv run --all-packag
 
 readiness는 migration head·세 역할·설정된 두 기관 계정·Registry 조회·활성 projection/worker 상태를 검사합니다. 신규 지갑 모드에서 서버 기관키 디렉터리를 요구하지 않습니다. 기존 projection은 구 Registry용이므로 실제 새 projection 연결을 별도로 확인합니다. 기존 DB·기존 기동 명령은 그대로 유지합니다. 새 모드의 두 계정 기관 ID는 명부의 iss_origin_mock_bank/iss_origin_mock_office와 맞춰 준비하며, 개인 .env의 기존 finals 기관 ID/projection 설정을 검토합니다.
 
+## 의존성 상향 승인
+
+| 패키지 | integration `1d9b349` | `phase/W5` |
+| --- | --- | --- |
+| fastapi | 0.115.14 | 0.142.2 |
+| starlette (uv 제약) | 0.46.2 | 1.7.0 |
+| pytest | 8.4.2 | 9.1.1 |
+| pytest-asyncio | 0.25.3 | 1.4.0 |
+| annotated-doc (fastapi 전이 의존성, 신규) | 없음 | 0.0.5 |
+| opentelemetry-api (fastapi 전이 의존성, 신규) | 없음 | 1.45.0 |
+
+출처는 미병합 종료된 #38 계열의 `28a3e00`(2026-10-03, "patch shared security dependencies")이며 C W1 재사용 기준(#57)으로 들어왔습니다. `uv.lock`에서 integration 대비 버전이 바뀌거나 새로 생긴 패키지는 위 6개뿐이며, httpx·pydantic·uvicorn은 바뀌지 않았습니다. 2026-10-19 C(사용자님 `@Jordi2801K`)가 lockfile 조율 담당(AGENTS 4절)으로서 위 버전을 승인했습니다. 근거는 `phase/W5` `15c5588`의 Quality Gate SUCCESS(CI 전체 Python 600 passed / 10 skipped, 로컬 같은 소스 601 PASS / 9 SKIP)입니다. 이 승인 기록은 작성자 외 리뷰를 대신하지 않으며, analyzer(D)와 B 코드에 미치는 영향은 하민님·인준님 확인을 받습니다. 실행 이미지·웹 등 다른 소비자 영향은 각 담당 리뷰에서 확인합니다. eth-abi의 API 실행 의존성 이동은 B #64 범위로 따로 다룹니다.
+
 ## A: 화면에서 사용할 순서
 
 기존 `/v1/auth/login` 세션 cookie와 상태 변경의 `X-CSRF-Token`을 재사용합니다. 실제 계정 ID·기관은 세션에서 결정합니다. 비공개 객체의 타인 접근은 404입니다. v3 오류는 `detail`·선택 `field_paths`와 `Retry-After`를 읽으며 제출값 전체를 오류에 넣지 않습니다.
