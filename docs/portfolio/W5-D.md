@@ -75,6 +75,77 @@ Codex가 D1 추적 자료와 D2 문서를 작성했습니다. 읽기 전용 보�
 
 W5-D2의 실제 UI·QR·키 관리·consume·접근성은 A/C의 같은 통합 화면 인계 뒤 실행합니다. W5-D3는 P0 완료 후로 보류입니다. Codex가 D 코드·실행·보고를 수행했고 사람의 결과/기여 사실 확인과 작성자 외 리뷰는 PENDING입니다. 초기 문서 준비 당시 기능 미실행 기록은 당시 범위로 보존합니다.
 
+## 2026-10-16 · V5-W5-D 분석·평가 준비
+
+사용자가 D의 분석기·평가 준비·독립 QA 착수를 지시했습니다. 기존 W5의 고정 후보/실패 기록은
+위에 그대로 보존합니다. 이번 코드는 `codex/v5-w5-d-analysis@98d2c5400aa0e3e398dbb8df720b6d1445fae6db`입니다.
+
+- D 추가: 공통 AnalysisReport를 소비하는 문맥 규칙·async provider·원문 근거 대조·취소/안전한 실패 처리, 60개 원본 및 제안 24/36 분할, 평가 분모/실패 집계.
+- 재사용: 기존 OpenAI/Mock/LLMProvider·SDK/설정·고정 오류, C의 공통 모델. 공통 모델과 C/B/A 제품 소스는 수정하지 않았습니다.
+- 검증: 전체 Python 292 PASS. 개발 24개 규칙 기준선 macro-F1 0.451863/보류17. 실제 모델이나 최종 성능 목표 달성으로 기록하지 않습니다.
+- 상태: 입력·모델 미정, 라벨/분할은 리뷰 전 초안. 보류 36개 모델 평가·실제 연결·유료 호출·사람 리뷰는 미실행입니다.
+- AI 활용: Codex가 구현·초안 라벨·검사를 수행했습니다. 사용자/타인의 라벨·코드 승인과 기여 비율을 대신 기록하지 않았습니다.
+
+[분석·평가 인계](../handoffs/v5_d_analysis.md), [개발 분할 실제 결과](../qa/v5-d-development-evaluation.json).
+
+## 2026-10-16 · V5 D 독립 연결 QA와 G07 재검사
+
+- D 신규 검사: C #62 `eaa0d166269833cf7ee49675cfa777b0208c3725`의 고정 archive에 실제 D callback을 주입했습니다. 보관 4조합·타인 접근·삭제 후 늦은 결과·AI/발행 독립 12 PASS입니다. ASGI/SQLite/합성 Registry/mock 범위이며 입력은 테스트 app에서만 켰습니다. C 환경 Analyzer는 251 PASS이고 전체 292개와 중복 합산하지 않습니다.
+- D 재사용: `a3f55c6991061ac445d2223f19ff1b2a48acab0e`에서 HTTP/projection QA 두 파일만 동일하게 채택했습니다. 그 도구가 과거 제품 `9651062c9f36e124b76796278c996764678e1c77`의 새 폐기용 PostgreSQL/Anvil을 만들어 mixed 18그룹 PASS를 확인했습니다. 원래 mixed 17 PASS/1 FAIL은 보존하고 G07은 미해결입니다. 이번 PASS는 원인 규명/제품 수정이나 신규 지갑 통합 성공이 아닙니다.
+- 검사 코드 수정: 처음 C 연결 QA의 결과 scope/삭제 task 취소 단언 3건은 공통 계약에 맞춰 바로잡았습니다. 제품 코드는 변경하지 않았으며 최종 12개가 통과했습니다.
+- 검사 QA 소스: `55431546711fa25fd77d7bebf3c05b63e5a6326d`; G07 실행 QA는 `5c06d26da2cfc91a93963a390938af3145d16179`, dirty=false. 실행 중 소유 자원만 사용했고 모두 정리했습니다. 원본 생성기 재생성 후 diff 없음, Ruff/compileall/diff PASS입니다.
+- 미완료: C 자체 DG12·G07 B/C 원인/수정, 신규 같은 A/B/C 통합 후보의 실제 웹/Registry/지갑·clean clone/다른 장비, 실제 LLM/보류36개·사람 라벨/코드 리뷰. 원격 push/PR/병합은 하지 않았습니다.
+- Codex가 D 검사·실행·인계를 작성했습니다. A/B/C 제품 구현·과거 D helper의 기여 이력과 사용자 원본 파일을 보존하며 사람의 승인·기여 비율을 만들지 않았습니다.
+
+[독립 QA 결과와 명령](../qa/v5-d-independent-qa.md), [구조화 근거](../qa/v5-d-independent-results.json).
+
+## 2026-10-18 — D #75 리뷰 수정
+
+D 작업 브랜치 `codex/v5-w5-d-analysis` / [PR #75](https://github.com/OriginProof-3web/OriginProof/pull/75)에서 최신 integration `54705588d660aceea71ff1cb03eefb5aefe37aa4`를 자체 선행 브랜치의 merge로 반영했습니다. 실행 코드는 `77e4f44198a16c12502283dade4db8b4289fb159`이며 이후 문서 커밋과 구분합니다.
+
+D가 수정한 것은 평가 분모의 해석, 거부 보고서 집계, 안전한 예외 타입 메타데이터와 오류 회귀 검사입니다. 통과한 인용만의 비율을 모델 품질 1.0으로 소개하지 않도록 출력 안전성과 미측정 후보 품질을 분리했습니다. 실제 후보 원문 일치율·누락률·위치 정확도 평가는 여전히 필요하며 이번 변경으로 완료/면제하지 않았습니다. OpenAI SDK·공통 모델·C API/fixture는 기존 기여를 재사용했습니다.
+
+- `make test` **329 PASS / 1 SKIP**: #80의 indexer 경로 포함, 실제 체인 opt-in 미실행.
+- 관련 분석기 84 PASS: 환각 격리와 평가 분모, async SDK timeout, 총 기한 취소, 민감값 없는 예외 타입 로그 포함.
+- 개발24개 규칙/mock 재평가: 위험 예측/지표 동일, 유료 호출0, 보류36개 미실행. 모델 품질 목표 달성 아님.
+- `make generate` 후 생성물 diff 없음·전체 Ruff 통과. 최초 make 호출은 macOS Xcode license shim 때문에 실행되지 않아 설치된 Command Line Tools PATH로 재실행했습니다.
+- 최초 단계별 QA 결과와 과거 G07 FAIL/PASS는 역사 기록으로 보존했습니다. DG12/G07, 신규 A/B/C 실제 연결, 사람 라벨·코드 리뷰는 계속 남습니다.
+
+[분석 인계](../handoffs/v5_d_analysis.md), [수정된 실제 평가 결과](../qa/v5-d-development-evaluation.json), [고정 C 전용 CI·재현](../qa/v5-d-review-fixes.md). 사용자께서 D 작업·GitHub 리뷰 공유를 지시했고 Codex가 수정·검사를 수행했습니다. 작성자 외 최종 승인·단계 완료는 대기입니다.
+
+
+## 2026-10-18 — 사용자 모델 선택 반영
+
+사용자가 최종 분석 모델을 OpenAI GPT-6 Luna (`gpt-6-luna`)로 선택했습니다. D가 공식 API ID·기존 설정과 `.env.example`의 동일 값을 대조하고 [분석 인계](../handoffs/v5_d_analysis.md)·[후속 결정 목록 L05](../final_deliverables_pending_decisions.md)에 반영했습니다. 실행 코드·기존 평가 결과는 변경하지 않았습니다. 문서/설정 일관성 검사만 수행하며 유료 모델 평가·기능 검사를 새로 통과한 것으로 기록하지 않습니다. 입력·유료 범위/예산·A/C 라벨/분할 리뷰, DG12/G07은 후속입니다.
+
+
+## 2026-10-21 — D 전체 단계 점검과 CI 증거 보호
+
+D 사용자 지시로 Codex가 W1~W7·V5-F01~21·최신 PR/계약0.2를 대조하고 [현재 작업표와 실제 검사](../qa/v5-d-weekly-status-20261021.md)를 작성했습니다. 실행 코드 `e36e6ea2a0c93f1d4a199a73d993bcbfed2c2a5f`에서 전체684 PASS/10 opt-in SKIP, stage43 PASS, consumer31 PASS(DG12 포함), 분석기 경로+consumer352 PASS를 확인했습니다. 중복 수를 합산하지 않습니다.
+
+D가 새로 구현한 것은 stage/consumer의 필수 module·파일별 최소 검사 수·skip/실패/오류·중복/손상 JUnit 거부와 head SHA별 artifact입니다. 11개 경계 검사·Ruff·YAML/bash/diff·생성물/두 템플릿 Node hash 검사가 통과했습니다. C 대행의 같은 HEAD CI/manifest·철회 이력 추가와 과거 W3 기여 기록 보존을 재사용했으며 작성 이력을 바꾸지 않았습니다. 이 기록은 담당자 본인 확인/작성자 외 승인·실제 지갑/브라우저·모델 평가를 대신하지 않습니다. G07은 #86 phase 반영 뒤 D 반복 재검사 전까지 미해결입니다.
 ## 2026-10-21 — D 입력 의존성 보안 보완
 
 D 전체 단계 QA 중 공통 CI의 `make security`가 Pillow8/certifi1 총9건으로 중단되는 것을 확인했습니다. 사용자 지시로 Codex가 기존 두 패키지만 갱신하여 감사0건·phase 기반600 PASS/10 SKIP을 확인했습니다. 실행 코드 `781b96ea9654a2bf277fa3adf38f9f4269bf46e1`, 기존 이미지 parser/SDK·공통 모델은 재사용했습니다. 새 입력 활성화·실제 모델 평가는 하지 않았고 공유 lockfile/major 갱신의 C 리뷰는 대기입니다. [원인·검사·한계](../qa/v5-d-dependency-security-20261021.md).
+## 2026-10-21 AI 동일 HEAD 검사 전파
+
+Codex가 #72→#73→#74의 JUnit 정확 수·summary·skip 보호와 indexer/lockfile trigger·재현 안내를 #75로 전파했습니다. guard 16 / stage 31 / consumer 31, 별도 분석기+consumer 352 PASS(각 skip 0). [환경·겹치는 범위·미완료](../qa/v5-d-same-head-w5-20261021.md). C 대행 기여와 기존 기록을 보존했습니다. 사람 확인/외부 리뷰는 대기입니다.
+
+
+## 2026-10-21 AI 후속 독립 재현·사람 인계
+
+Codex가 #72~#76 JUnit 정확 수/summary와 trigger를 전파하고 C 대행 기록·기존 기여를 보존했습니다. #76 guard16/stage43/consumer31, #75 분석기+consumer352 PASS. #85 실제 PostgreSQL seed/설정 재생성·역할 충돌 무변경 거부를 확인했고 live200/ready503을 구분했습니다. [실제 DB 보고](../qa/v5-d-wallet-seed-live-20261021.md), [팀 요청·사람용 초안](../handoffs/v5_d_human_review_drafts_20261021.md). #86 미병합으로 G07 반복은 미실행이며 준비 절차만 기록했습니다. 사람 확인·외부 승인·실제 Registry·입력/유료 평가·단계 완료는 대기입니다.
+
+
+## 2026-10-21 D 평가·G07 실행 도구 개발 (AI 보조)
+
+사용자 지시로 Codex가 검증 전 후보 인용/위치/누락 지표(평가버전0.3)와 G07의 후보 SHA·phase/#86·lockfile/clean 사전 검사, fresh1+mixed3 반복 도구를 구현했습니다. 기존 provider/분석기·고정 helper·공유 모델/생성물·패키지/lockfile은 유지했습니다. 새 평가17+기존9=26, G07 단위27, 기본701 PASS/기존10 SKIP, stage43/consumer31 PASS입니다. 합성 미존재 후보24개 scorer 검사는 실제 모델 품질 평가가 아니며, G07 실환경은 #86 미반영/lock 차이로0회입니다. [구현·명령·한계](../qa/v5-d-development-tools-20261021.md). 사람 승인·G07 종료·신규 실제 연결/단계 완료는 대기입니다.
+
+
+## 2026-10-21 D 성능·독립 검증·병합 후보 재검사 (AI 보조)
+
+사용자 지시로 Codex가 최신 integration/phase를 D 스택에 정상 merge하고 검증 API 100회 측정 도구 및 C63 고정 독립 검증 소비 QA를 추가했습니다. 실행 `31ba879853c368c92801396b498504343f3a332a`에서 CI stage43/consumer31/성능16/독립71(C49 재사용+D22 추가)을 확인했습니다. 합성 ASGI 성능과 실제 RPC 성능을 구분하고, G07은 실제 fresh1/mixed3의 PASS_REQUIRES_B_C_REVIEW까지 기록하되 B/C 검토 전 OPEN을 유지합니다. [회차·수치·명령·남은 작업](../qa/v5-d-performance-independent-20261021.md). W6 준비이며 phase/W6 생성·단계 완료·사람 승인은 하지 않았습니다. 기존 C 구현·Golden/ABI/helper·D 기여를 보존하고 새 패키지/모델/생성물 변경은 없습니다.
+
+## 2026-10-21 가능한 D 후속 개발 완료 (AI 보조)
+
+사용자의 전체 진행 지시로 Codex가 기존 평가기/provider를 재사용한 opt-in 제한 평가 실행기·원자적0600 journal/중단재개/불명 요청 재호출 방지, 같은 QA HEAD의 V5-F01~21 supporting 증거 도구를 구현했습니다. B 계약/ABI·C63 고정 검증기·공통 Golden을 재사용해 실제 폐기 Anvil에서 두 템플릿의 CLI/원본/필드/변조/버전·철회·RPC 복구도 실행했습니다. 최초 하네스 재시작 port 실패를 보존하고 새 매핑 조회로 수정했습니다. 기본730 PASS/기존10 SKIP, 새 SDK mock18/수용10 PASS, 실제 독립 EVM1 PASS, G07 fresh1/mixed5 각18 PASS입니다. 기능d35e8d1·실제 QA수정5b50ac4·최신 기준/수용 실행a24426f80eae372a488b2c6c104dbd71aaee9290를 문서 HEAD와 구분합니다. [명령·재사용·실패 원인·한계](../qa/v5-d-development-completion-20261021.md). 유료 호출·입력 활성화·사람 승인·단계 완료·원격 병합은0이며 B/C 최신 인계/리뷰·선정 입력·실환경 성능·다른 장비/RC는 남습니다.
