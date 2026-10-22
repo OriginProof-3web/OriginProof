@@ -23,6 +23,15 @@ Codex가 B 코드·검사·기록을 작성하고 기존 RPC/ABI·W2~W4 구현·
 
 독립 구현·합성 검사 결과이며 W5 단계 전체 완료는 아닙니다. C 원본 port 변환·승인자 배포 provenance·UNKNOWN 검색/중계·최종성/Operation 연결·실제 RPC/DB/지갑·D 리뷰가 남습니다. **G07은 미해결**이며 SG01~16 공유 상태를 바꾸지 않습니다. 팀 Draft PR과 개인 비공개 포트폴리오에 실제 검증한 커밋을 보관합니다.
 
+
+## 2026-10-17 · W5 3차 실제 RPC·UNKNOWN 검색
+
+`codex/v5-w5-b-live-recovery`에서 자기2차 `6916224`를 이어 전송 없는 bounded 원본 거래 검색·known hash/nonce·checkpoint 재조회를 구현했습니다. 코드 `5a51e4b`, 최종 live 코드 `a064b63f9b44e5f9ccf5a6c9a4f237612d03e0e3`. 실제 새 Anvil에서 Registry 배포·공유 SHA256/EIP-712·공동승인·버전 대체/철회·정지/재활성화·응답 유실/원본 검색·pending/실패·SQLite restart·EVM reorg/rewind·RPC 단절을 검사했습니다. 기존 실행 중인 노드/사용자 배포 파일을 건드리지 않았습니다.
+
+일반 Python306 PASS/2 opt-in SKIP(신규 합성25 포함), 실제 wallet RPC 별도1 PASS. 공식 lint·구조·문법·Node hash·생성물 일관성 통과. 최초 합성1FAIL은 padding을 바꾼 검사 오류, 최초live1FAIL은 수락 즉시 채굴됐다고 가정한 검사 오류였습니다. signature 변경·채굴 대기 분리 뒤 재검증했고, 최종 canonical SHA256 fixture까지 live1 PASS입니다. 성공/실패·pending을 구분하는 제품 기준은 완화하지 않았습니다.
+
+Codex가 B 구현/검사/기록을 작성하고 기존 RPC·Reconciler·Indexer·Registry/ABI 및 C 공통 모델/서명/hash를 재사용했습니다. 사람 리뷰/작성/기여 비율은 미확인입니다. 실제 실행은 종료한 폐기 가능한 합성 체인이고 API/C port·Operation/DB·브라우저·PostgreSQL·G07·공개 체인·D 독립 QA는 미완료입니다. 빈 검색은 재전송 허가가 아닙니다. [3차 인계](../blockchain/v5_w5_live_recovery.md)와 [실행 증거](../blockchain/evidence/v5_w5_live_a064b63.json)에 코드 SHA·manifest/receipt·실패/한계를 기록합니다. 기존 사용자5개 변경을 보존하며 W5 전체/SG01~16을 완료 처리하지 않습니다.
+
 ## 이전 계획의 개발 기록 보존
 
 아래는 C의 재사용 기준에 포함된 이전 개발 기록입니다. 당시 검사·연결·리뷰 상태를 보존하며, 위 V5 작업의 완료 근거로 합산하지 않습니다.
@@ -69,3 +78,17 @@ CI·외부 리뷰·C 실제 API/DB 연결은 아직 확인하지 않았다. 유�
 
 - 본인 확인: `@hamin1228` / 2026-10-02 / 기록 확인 대기
 - 작성자 외 리뷰: 미확인
+
+## 2026-10-21 · W5 읽기 모델 Adapter
+
+사용자가 B 다음 개발1번을 선택했고 Codex가 B WalletRegistryReadAdapter·42개 검사와 기존 Anvil 검사 확장을 수행했습니다. 코드 `41dc6f5eb704383cb0fa27baed91da05acf579fc`, 시작e7d0bae. 원본 C DTO·factory와 B RPC/Reconciler/ABI/합성 fixture를 그대로 재사용했습니다. 실제 사람 작성·독립 리뷰·기여 비율을 추정하지 않습니다.
+
+전체 Python788 PASS/11 SKIP, 새 Adapter 합성42 PASS·별도 실제 Anvil1 PASS. 생성물·Golden 불변, 공식 Ruff·compileall·구조·Node 해시 PASS. 실제 Anvil에서 기관/키/제안/문서/거래의 C 모델 변환과 원본 C 서명 인자 일치를 확인했습니다. C factory 주입은 단위 검사이며 DB/lifespan/API 서버 workflow 검사가 아닙니다. 승인자 provenance·submit·find_transaction C 연결은 명시적으로 사용 불가, 생산 API/DB/공개 체인·D mixed QA는 미완료입니다. G07을 해결 처리하지 않습니다. [사용법·실패 이력·증거·한계](../blockchain/v5_wallet_read_adapter.md).
+
+## 2026-10-21 · B-C01 고정 승인자 배포 근거
+
+여하민님의 다음 개발 지시로 AI(Codex)가 WalletCreationProof와 canonical top-level CREATE 검증을 B Adapter에 연결했습니다. 코드 `429280140269510d062da9fc046d6519ae6cc2a3`, 시작a5707c3. C Address/오류 원본·기존 B RPC/ABI와 잠긴 Anvil/Foundry build를 재사용하며 새 공통 계약/ABI/getter·의존성·C 생산 코드는 만들지 않았습니다.
+
+새 합성43 PASS·기존 read42 PASS·전체 Python831 PASS/11 SKIP·별도 실제 Anvil1 PASS. 실제 생성 거래에서 세 승인자를 도출하고 기관/가스 relayer를 구분했으며 wrong build·RPC 단절을 거부했습니다. 생성 tx/receipt·canonical 위치·생성/runtime code·ABI constructor·0/중복·reorg/무캐시와 C503 경계를 검사했습니다. [인계·사용법·증거·한계](../blockchain/v5_wallet_approver_provenance.md).
+
+B 독립 구현/검사 결과이며 C 생산 config/lifespan·실제 API/DB·submit/UNKNOWN C 연결·공개 체인·D mixed QA·G07은 미완료입니다. 사람의 직접 작성·현재 head 리뷰·기여 비율을 추정하지 않고 기존 기여/사용자 원본 변경을 보존했습니다.

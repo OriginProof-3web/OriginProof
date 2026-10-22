@@ -1,5 +1,7 @@
 # V5-W5-B / 2차 — 미등록·승인 이력·거래 상태 대조
 
+이 문서는2차 당시 기록입니다. 이후 실제 로컬 RPC·UNKNOWN 검색 결과는 [3차 인계](v5_w5_live_recovery.md)를 따릅니다.
+
 - 날짜: 2026-10-17 / B 여하민 `@hamin1228`.
 - 작업 브랜치: `codex/v5-w5-b-reconciliation`.
 - 시작/선행: 자기 W5 1차 `7666bb9bf2d85804b9abe9be5a87ea122e1d914d`, [Draft #69](https://github.com/OriginProof-3web/OriginProof/pull/69).
