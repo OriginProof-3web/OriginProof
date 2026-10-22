@@ -153,3 +153,8 @@ Codex가 #72~#76 JUnit 정확 수/summary와 trigger를 전파하고 C 대행 �
 ## 2026-10-22 병합 후 D 검증·G07 범위 판정 (AI 보조)
 
 팀이 #72~#76을 병합한 뒤 사용자 계속 진행 지시로 Codex가 phase `f6e7fdb6727f6b7957d8acc7f3e0bf7e7674ea5f`에서 별도 D 브랜치를 만들어 기본953 PASS/opt-in11 SKIP, supporting43/31/16/22, guard/도구/고정C63 124 PASS와 생성물 불변·Ruff를 확인했습니다. Git shim PATH 오류27개를 실제 G07 실패와 구분하고 수정 명령으로 통과시켰습니다. B/C의 기존 실제 반복 검토에 근거해 G07을 로컬 legacy 범위 해결로 갱신했으며 과거 실패·실행 SHA를 보존했습니다. [리뷰 URL·범위·미실행](../qa/v5-d-postmerge-20261022.md). 새로운 live/유료 실행·사람 확인/Approve·원격 병합·단계 완료는 수행하지 않았습니다.
+
+
+## 2026-10-22 #84 D 계약 소비 검토 (AI 보조)
+
+첨부된 팀 요청과 D 사용자 지시로 Codex가 HEAD `fe5aed4d3421fee8f5599190c0f902e6e5f7da87`에서 공통0.2 근거 제한·오류/세션 경계와 기존 분석기를 대조했습니다. consumer31 및 분석기68/SDK mock7/C 분석 API27/D 연결12가 failure/error/skip0으로 통과했고 [D 결과](https://github.com/OriginProof-3web/OriginProof/issues/84#issuecomment-6335937751)를 이슈에 게시했습니다. 기존 C 모델·API/QA와 D 구현을 재사용했으며 기능·생성물·타인 구현은 수정하지 않았습니다. [명령·수치·순서별 잔여 인계](../qa/v5-d-postmerge-20261022.md). 유료 호출/운영 Registry·브라우저 실행·사람 코드 Approve·원격 병합은 하지 않았습니다.

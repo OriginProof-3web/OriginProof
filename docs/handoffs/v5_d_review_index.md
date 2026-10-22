@@ -1,5 +1,7 @@
 # D GitHub 리뷰 공유 현황
 
+> #84 D 기술 검토도 [이슈에 기록](https://github.com/OriginProof-3web/OriginProof/issues/84#issuecomment-6335937751)했습니다. 실행 HEAD fe5aed4: consumer31·분석기/SDK/API/연결114 PASS, failure/error/skip0. 합성·mock 결과이며 실제 모델·Registry·웹 연결은 후속입니다. [남은 작업 순서](../qa/v5-d-postmerge-20261022.md#다음-d-작업-순서와-필요한-인계).
+
 > 2026-10-22 최신: D #72~#76은 팀에서 병합했고, B/C 검토를 근거로 G07을 로컬 legacy 범위 해결로 갱신했습니다. 병합 후953 PASS/opt-in11 SKIP. [정확한 SHA·검토·범위](../qa/v5-d-postmerge-20261022.md). 아래 이전 OPEN/미병합/리뷰 대기 문구는 당시 기록입니다. 사람 본인 확인·실제 신규 연결·단계 완료와 구분합니다.
 
 > 최신 개발 완료 기록: 제한 모델 평가 실행기·수용 증거 도구·실제 로컬 독립 CLI 검증을 구현했습니다. G07은 fresh1/mixed5 각18 PASS, C 검토 전 OPEN입니다. [실행 SHA·검사·남은 인계](../qa/v5-d-development-completion-20261021.md). 아래 이전 미실행/미병합 표시는 당시 기록입니다.
