@@ -1,9 +1,11 @@
 # D 비동기 분석기·평가 초안 인계
 
+> 2026-10-23: 텍스트·이미지(문서)·음성 선택 완료. [A/C용 평가 검토본·현재 결정·후속 구현](v5_d_input_evaluation_20261023.md). 호출 범위 미정·예산은 이번 준비 제외, 유료 호출0. 아래 날짜별 입력 미정 표시는 당시 기록입니다.
+
 > 2026-10-21 후속: [평가0.3의 검증 전 후보 집계](../qa/v5-d-development-tools-20261021.md)를 구현하고 합성 scorer 검사를 완료했습니다. 실제 모델 품질·입력 선정·유료 평가는 여전히 미완료입니다.
 > 현재 GitHub 공유 상태: [D PR #70~#76 현재 리뷰 목록](v5_d_review_index.md). 아래 실행 기록의 push/PR 미수행 표시는 당시 상태로 보존합니다.
 
-- 작업: V5-W5-D, V5-W1-D의 평가 준비 후속. 사용자 입력은 **미정**입니다. 2026-10-16 최종 후속 지시로 **Jev 도입을 취소하고 OpenAI 모델만 사용**합니다. 최종 모델은 2026-10-18 사용자가 **OpenAI GPT-6 Luna (`gpt-6-luna`)**로 확정했습니다. 유료 평가/전송 범위·예산은 미정입니다.
+- 작업: V5-W5-D, V5-W1-D의 평가 준비 후속. 2026-10-23 사용자 입력은 **텍스트·이미지(문서)·음성**으로 선택됐습니다. 세부 형식/우선순위·변환 구현과 실제 연결은 후속입니다. 2026-10-16 최종 후속 지시로 **Jev 도입을 취소하고 OpenAI 모델만 사용**합니다. 최종 모델은 2026-10-18 사용자가 **OpenAI GPT-6 Luna (`gpt-6-luna`)**로 확정했습니다. 유료 평가/전송 범위·예산은 미정입니다.
 - 현재 소비 기준: 계획서 5.1·공유 계약 v5-shared-0.2. 2026-10-21에는 C가 포함된 같은 HEAD에서 재검사했습니다. [현재 근거·계약 검토](../qa/v5-d-weekly-status-20261021.md). 과거 고정0.1/0.2 후보 검사는 아래 날짜별 기록으로 보존합니다.
 - 브랜치: `codex/v5-w5-d-analysis`, 구현/검증 SHA `98d2c5400aa0e3e398dbb8df720b6d1445fae6db`.
 - 상태: 독립 구현·합성/mock/SDK 검사 완료. 실제 모델 평가·입력 활성화·A/B/C 실제 연결·리뷰는 후속입니다.
@@ -36,7 +38,7 @@ C가 발행 검증 세션을 별도로 집계합니다. D는 verification을 생
 
 [`phishing_sources_v1.json`](../../fixtures/synthetic/phishing_sources_v1.json)은 네 수준별 15개, 총 60개 합성 텍스트 원본 초안입니다. 제안 분할은 개발 24/보류 36(수준별 6/9)이며 같은 source_group의 변형이 분할을 넘지 않도록 검사합니다. 동일 원문이 양쪽에 들어가는 것도 거부합니다. 기존 30개 근거 replay와 카드 추출 10개 평가를 위험 분류 60개와 합산하지 않습니다.
 
-**DRAFT_REVIEW_REQUIRED / labels_human_reviewed=false / input_selection=UNDECIDED**입니다. 최종 지원 입력 결정과 A 또는 C의 라벨/분할 사전 리뷰 전에는 확정 평가셋으로 동결하지 않습니다. 현재 합성 텍스트 원형은 OCR/STT/PDF 지원을 뜻하지 않습니다.
+**DRAFT_REVIEW_REQUIRED / labels_human_reviewed=false**를 유지합니다. 원본 파일의 input_selection=UNDECIDED는 10월16일 역사 스냅샷이며, 현재 입력 선택은 텍스트·이미지(문서)·음성입니다. 사용자의 최신 지시로 D가 평가를 준비해 A와 C가 검토하도록 [60개 검토본과 입력 인계](v5_d_input_evaluation_20261023.md)를 공유합니다. 검토 전에는 확정 평가셋으로 동결하지 않습니다. 현재 합성 텍스트 원형은 OCR/STT/PDF 지원을 뜻하지 않습니다.
 
 ```sh
 PYTHONPATH=apps/api/src:packages/python:services/analyzer/src \
