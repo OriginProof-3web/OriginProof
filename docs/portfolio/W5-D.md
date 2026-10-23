@@ -149,3 +149,35 @@ Codex가 #72~#76 JUnit 정확 수/summary와 trigger를 전파하고 C 대행 �
 ## 2026-10-21 가능한 D 후속 개발 완료 (AI 보조)
 
 사용자의 전체 진행 지시로 Codex가 기존 평가기/provider를 재사용한 opt-in 제한 평가 실행기·원자적0600 journal/중단재개/불명 요청 재호출 방지, 같은 QA HEAD의 V5-F01~21 supporting 증거 도구를 구현했습니다. B 계약/ABI·C63 고정 검증기·공통 Golden을 재사용해 실제 폐기 Anvil에서 두 템플릿의 CLI/원본/필드/변조/버전·철회·RPC 복구도 실행했습니다. 최초 하네스 재시작 port 실패를 보존하고 새 매핑 조회로 수정했습니다. 기본730 PASS/기존10 SKIP, 새 SDK mock18/수용10 PASS, 실제 독립 EVM1 PASS, G07 fresh1/mixed5 각18 PASS입니다. 기능d35e8d1·실제 QA수정5b50ac4·최신 기준/수용 실행a24426f80eae372a488b2c6c104dbd71aaee9290를 문서 HEAD와 구분합니다. [명령·재사용·실패 원인·한계](../qa/v5-d-development-completion-20261021.md). 유료 호출·입력 활성화·사람 승인·단계 완료·원격 병합은0이며 B/C 최신 인계/리뷰·선정 입력·실환경 성능·다른 장비/RC는 남습니다.
+
+
+## 2026-10-23 선정 입력·A/C 평가 검토 준비 (AI 보조)
+
+사용자가 텍스트·이미지(문서)·음성을 선정하고 D 평가 준비→A/C 검토, 예산 제외·호출 미정을 지시했습니다. Codex는 기존 합성60개·D 자체 검토·load_corpus를 재사용해 원문/라벨/인용/분할·경계 flag와 별도 A/C 미검토 의견칸을 내보내는 생성기·검토본을 추가했습니다. 역사 원본·hash와 실제 유료 호출 가드를 보존했습니다. [현재 결정·재현·검토 대상·남은 구현](../handoffs/v5_d_input_evaluation_20261023.md). 사람 검토/동결·OCR/STT 구현/평가·유료 모델·공유 API/모델 변경·입력 활성화·단계 완료를 수행하지 않았습니다.
+
+
+## 2026-10-23 D 음성 입력 검사 후속 (AI 보조)
+
+사용자의 D 남은 작업 확인·계속 개발 지시로 Codex가 기존 ADR의20MiB·300초·2채널 기준, 기존 안전 오류와 Python stdlib wave를 재사용해 PCM WAV 내부 검사 함수를 구현했습니다. 원문 없이 숫자 메타데이터만 반환하고 선언/실제 길이·chunk/프레임·코덱·자원 초과를 거부합니다. 신규 실제 합성 PCM 검사34개, 분석기 전체+consumer428 PASS/경고1. [재현·C 연결 경계·남은 W1~W7](../handoffs/v5_d_media_validation_20261023.md). 원본60개/리뷰 상태·공통 API/Schema/생성물·lock·유료 가드를 보존했고 음성 전사/실제 모델·공개 배포·원격 병합·사람 승인은 실행하지 않았습니다.
+
+
+## 2026-10-23 D 변환 텍스트·근거 구간 후속 (AI 보조)
+
+사용자가 회의 전 가능한 개발을 지시해 Codex가 기존 SemanticInput·PhishingAnalyzer/grounding·공통 AnalysisReport/안전 오류를 재사용한 D 내부 변환 결과 검증·분석 연결을 구현했습니다. 원문 Unicode/공백·총10,000·불완전 변환·시간/페이지·근거 교집합과 남은 시간/취소/late 결과를 검사하며 별도 private 구간 매핑을 정확한 단어 시간/원본 인식 보증으로 표시하지 않습니다. 신규39개·전체 분석기+consumer467 PASS/경고1. [재현·오류 경계·C/A 인계·초기 검사 수정](../handoffs/v5_d_converted_inputs_20261023.md). 실제 OCR/STT·유료/holdout 모델 예측·공통 API/Schema/lock 변경·사람 승인·원격 병합은0입니다. 기존 자료·검토 상태·역사 실행/기여를 보존했습니다.
+
+
+## 2026-10-23 팀 의존성 없는 D 작업 묶음 (AI 보조)
+
+사용자가 타 담당자 요청을 제외한 독립 작업 전체 진행을 지시했습니다. Codex가 기존 검사·D 합성 자료/Pillow/stdlib wave·오류/변환 처리·원본 평가기를 재사용해 실제 이미지12/PCM12(비음성)와 입력별 제어 실패12, hash/경로/미평가 guard CLI 및 문자CER·±2초 최대 matching·raw pixel IoU 도구를 추가했습니다. 외부 취소를 삼킨 processor의 성공과 확장 WAV metadata 위조4종을 먼저5 FAIL로 재현해 수정했고 허용 최대 이미지 경계도 확인했습니다. [자료·도구·검사·실패 이력·깨끗한 소스 재현 기록](../qa/v5-d-independent-batch-20261023.md). 기존60개/24·36·A/C 미검토 상태·공통 API/Schema·lock/모델/유료 가드·과거 기여를 보존했고 유료/실제 OCR·STT/holdout 예측·팀원 메시지/승인·원격 병합은 수행하지 않았습니다.
+
+독립 묶음 실행 SHA `be66e6c95f5d62e723c68d1714ac4203959b7990`의 새 git archive 사본에서 application import 경로·전체1083 PASS/기존11 SKIP·미디어24/실패12 기대 일치·검토본/전체 Ruff를 확인했습니다. 같은 실제 장비와 설치 의존성을 사용한 소스 재현이며 타 노트북·실제 변환/모델/새 API 연결 검사가 아닙니다. [정확한 환경/manifest/JUnit hash](../qa/v5-d-independent-batch-20261023.json).
+
+
+## 2026-10-23 D 변환 SDK 준비 (AI 보조)
+
+사용자의 독립 작업 전체 진행 지시로 Codex가 공식 OpenAI 문서와 설치 SDK2.54의 실제 request 형태를 확인해 기본 차단 이미지 변환/명시적 STT 모델 PCM 전사 어댑터를 구현했습니다. 기존 모델gpt-6-luna·입력/변환/오류·SDK를 재사용하고 공식 origin·proxy/redirect/닫힌 client·단일 요청/retry0·timeout/취소·무효 입력·safe output을 SDK MockTransport34개로 확인했습니다. [구조·모델 미선정/실제0·재현](../handoffs/v5_d_media_sdk_20261023.md). 전사 모델을 임의 선택하지 않았고 실제 키/유료/원문 전송·공통 계약/환경 기본값/기존 실행 정책 변경·팀원 요청·원격 병합/승인은0입니다.
+
+
+### 2026-10-23 SDK 후속 clean 검증
+
+Codex가 소스 `8ab1240dbfeeb96bcf31b62034670a6fac81f788`를 새 git archive로 검증했습니다. 전체1117 PASS/11 opt-in SKIP, SDK MockTransport34 PASS 포함, 실제 파일24/실패 replay12 기대 일치·전체 Ruff/리뷰 자료 PASS. [hash·환경·범위](../qa/v5-d-media-sdk-20261023.json). 같은 노트북/설치 의존성 재사용이며 실제 OCR/STT 평가·다른 장비 재현·사람 리뷰·단계 완료를 뜻하지 않습니다. 실제 유료0·기존 원본/lock/타 담당 코드 보존·팀 메시지0입니다.
