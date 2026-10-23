@@ -50,6 +50,17 @@ def inspect_pcm_wav(data: bytes, media_type: str) -> PCMInfo:
                 if fmt is not None or pcm_size is not None or size < 16:
                     raise ValueError
                 fmt = struct.unpack_from("<HHIIHH", data, start)
+                if fmt[0] == 0xFFFE:
+                    if size < 40:
+                        raise ValueError
+                    extension, precision, mask = struct.unpack_from("<HHI", data, start + 16)
+                    if (
+                        extension < 22
+                        or 18 + extension > size
+                        or precision > fmt[5]
+                        or (mask and mask.bit_count() != fmt[1])
+                    ):
+                        raise ValueError
             elif kind == b"data":
                 if fmt is None or pcm_size is not None:
                     raise ValueError

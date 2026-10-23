@@ -164,3 +164,8 @@ Codex가 #72~#76 JUnit 정확 수/summary와 trigger를 전파하고 C 대행 �
 ## 2026-10-23 D 변환 텍스트·근거 구간 후속 (AI 보조)
 
 사용자가 회의 전 가능한 개발을 지시해 Codex가 기존 SemanticInput·PhishingAnalyzer/grounding·공통 AnalysisReport/안전 오류를 재사용한 D 내부 변환 결과 검증·분석 연결을 구현했습니다. 원문 Unicode/공백·총10,000·불완전 변환·시간/페이지·근거 교집합과 남은 시간/취소/late 결과를 검사하며 별도 private 구간 매핑을 정확한 단어 시간/원본 인식 보증으로 표시하지 않습니다. 신규39개·전체 분석기+consumer467 PASS/경고1. [재현·오류 경계·C/A 인계·초기 검사 수정](../handoffs/v5_d_converted_inputs_20261023.md). 실제 OCR/STT·유료/holdout 모델 예측·공통 API/Schema/lock 변경·사람 승인·원격 병합은0입니다. 기존 자료·검토 상태·역사 실행/기여를 보존했습니다.
+
+
+## 2026-10-23 팀 의존성 없는 D 작업 묶음 (AI 보조)
+
+사용자가 타 담당자 요청을 제외한 독립 작업 전체 진행을 지시했습니다. Codex가 기존 검사·D 합성 자료/Pillow/stdlib wave·오류/변환 처리·원본 평가기를 재사용해 실제 이미지12/PCM12(비음성)와 입력별 제어 실패12, hash/경로/미평가 guard CLI 및 문자CER·±2초 최대 matching·raw pixel IoU 도구를 추가했습니다. 외부 취소를 삼킨 processor의 성공과 확장 WAV metadata 위조4종을 먼저5 FAIL로 재현해 수정했고 허용 최대 이미지 경계도 확인했습니다. [자료·도구·검사·실패 이력·깨끗한 소스 재현 기록](../qa/v5-d-independent-batch-20261023.md). 기존60개/24·36·A/C 미검토 상태·공통 API/Schema·lock/모델/유료 가드·과거 기여를 보존했고 유료/실제 OCR·STT/holdout 예측·팀원 메시지/승인·원격 병합은 수행하지 않았습니다.

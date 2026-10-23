@@ -177,3 +177,18 @@ def test_extensible_wav_subtype_is_checked_by_the_actual_decoder(pcm_subtype):
         with pytest.raises(AnalyzerError) as exc:
             inspect_pcm_wav(output, "audio/wav")
         assert exc.value.code == AnalyzerErrorCode.MALFORMED_INPUT
+
+
+@pytest.mark.parametrize(
+    "extension,precision,mask", [(21, 16, 4), (23, 16, 4), (22, 17, 4), (22, 16, 3)]
+)
+def test_extensible_metadata_must_agree_with_its_container(extension, precision, mask):
+    data = pcm()
+    fmt = bytearray(data[20:36])
+    struct.pack_into("<H", fmt, 0, 0xFFFE)
+    subtype = struct.pack("<IHH", 1, 0, 0x10) + b"\x80\x00\x00\xaa\x00\x38\x9b\x71"
+    extended = fmt + struct.pack("<HHI", extension, precision, mask) + subtype
+    output = size_header(data[:12] + b"fmt " + struct.pack("<I", 40) + extended + data[36:])
+    with pytest.raises(AnalyzerError) as exc:
+        inspect_pcm_wav(output, "audio/wav")
+    assert exc.value.code == AnalyzerErrorCode.MALFORMED_INPUT

@@ -318,3 +318,38 @@ async def test_time_spent_grounding_output_is_included_in_remaining_deadline(mon
     with pytest.raises(AnalyzerError) as exc:
         await analyze_conversion(image("합성 자료"), processor, remaining_seconds=0.01)
     assert exc.value.code == AnalyzerErrorCode.TIMEOUT
+
+
+async def test_processor_swallowing_external_cancel_cannot_publish_success():
+    started = asyncio.Event()
+
+    async def processor(text):
+        started.set()
+        try:
+            await asyncio.Event().wait()
+        except asyncio.CancelledError:
+            return report(text)
+
+    task = asyncio.create_task(analyze_conversion(image("합성 자료"), processor))
+    await started.wait()
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+
+
+async def test_pending_external_cancel_does_not_start_a_processor():
+    calls = 0
+
+    async def processor(text):
+        nonlocal calls
+        calls += 1
+        return report(text)
+
+    async def pending():
+        asyncio.current_task().cancel()
+        await analyze_conversion(image("합성 자료"), processor)
+
+    task = asyncio.create_task(pending())
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    assert calls == 0

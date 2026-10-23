@@ -56,3 +56,6 @@ export PYTHONPATH=services/analyzer/src:apps/api/src:packages/python:services/in
 ```
 
 이 결과는 합성 변환 텍스트+규칙/mock 검사입니다. 실제 OCR/STT·음성/이미지 인식 점수·유료 모델·holdout 모델 예측·업로드/DB/브라우저/Registry·단계 수용은 미실행입니다. 회의 후 정할 PDF/세부 코덱·우선순위·호출 범위/상한과 A/C의 평가 검토를 대신하지 않습니다. 공통 보안 #93의 감사 차단은 별도 PR이며 중복 lock 변경/미병합 타인 branch 병합은 하지 않았습니다. G07 로컬 legacy 해결과 #84 기록의 범위도 유지합니다.
+
+
+2026-10-23 독립 묶음 후속: [외부 취소를 processor가 삼키는 실제 결함을 재현·수정하고 파일형 자료·변환 점수 도구를 추가](../qa/v5-d-independent-batch-20261023.md)했습니다. 위39/467은 당시 실행 범위이며 이번 후속의 새 코드/clean 재현 SHA와 혼합하지 않습니다.

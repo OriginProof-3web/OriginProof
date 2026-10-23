@@ -123,6 +123,9 @@ async def analyze_conversion(
         or not 0 < remaining_seconds <= 180
     ):
         raise AnalyzerError(AnalyzerErrorCode.MALFORMED_INPUT)
+    task = asyncio.current_task()
+    if task is not None and task.cancelling():
+        raise asyncio.CancelledError
     loop = asyncio.get_running_loop()
     deadline = loop.time() + remaining_seconds
     prepared = prepare_conversion(value)
@@ -138,6 +141,8 @@ async def analyze_conversion(
                 raise AnalyzerError(AnalyzerErrorCode.PROVIDER_UNAVAILABLE) from None
     except TimeoutError:
         raise AnalyzerError(AnalyzerErrorCode.TIMEOUT) from None
+    if task is not None and task.cancelling():
+        raise asyncio.CancelledError
     if loop.time() >= deadline:
         raise AnalyzerError(AnalyzerErrorCode.TIMEOUT)
     report = validate_analysis_report(raw, prepared.text)
@@ -173,4 +178,6 @@ async def analyze_conversion(
     )
     if loop.time() >= deadline:
         raise AnalyzerError(AnalyzerErrorCode.TIMEOUT)
+    if task is not None and task.cancelling():
+        raise asyncio.CancelledError
     return ConvertedAnalysis(report, tuple(locations))
