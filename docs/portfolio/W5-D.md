@@ -159,3 +159,8 @@ Codex가 #72~#76 JUnit 정확 수/summary와 trigger를 전파하고 C 대행 �
 ## 2026-10-23 D 음성 입력 검사 후속 (AI 보조)
 
 사용자의 D 남은 작업 확인·계속 개발 지시로 Codex가 기존 ADR의20MiB·300초·2채널 기준, 기존 안전 오류와 Python stdlib wave를 재사용해 PCM WAV 내부 검사 함수를 구현했습니다. 원문 없이 숫자 메타데이터만 반환하고 선언/실제 길이·chunk/프레임·코덱·자원 초과를 거부합니다. 신규 실제 합성 PCM 검사34개, 분석기 전체+consumer428 PASS/경고1. [재현·C 연결 경계·남은 W1~W7](../handoffs/v5_d_media_validation_20261023.md). 원본60개/리뷰 상태·공통 API/Schema/생성물·lock·유료 가드를 보존했고 음성 전사/실제 모델·공개 배포·원격 병합·사람 승인은 실행하지 않았습니다.
+
+
+## 2026-10-23 D 변환 텍스트·근거 구간 후속 (AI 보조)
+
+사용자가 회의 전 가능한 개발을 지시해 Codex가 기존 SemanticInput·PhishingAnalyzer/grounding·공통 AnalysisReport/안전 오류를 재사용한 D 내부 변환 결과 검증·분석 연결을 구현했습니다. 원문 Unicode/공백·총10,000·불완전 변환·시간/페이지·근거 교집합과 남은 시간/취소/late 결과를 검사하며 별도 private 구간 매핑을 정확한 단어 시간/원본 인식 보증으로 표시하지 않습니다. 신규39개·전체 분석기+consumer467 PASS/경고1. [재현·오류 경계·C/A 인계·초기 검사 수정](../handoffs/v5_d_converted_inputs_20261023.md). 실제 OCR/STT·유료/holdout 모델 예측·공통 API/Schema/lock 변경·사람 승인·원격 병합은0입니다. 기존 자료·검토 상태·역사 실행/기여를 보존했습니다.
