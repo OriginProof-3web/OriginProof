@@ -1,4 +1,4 @@
-"""B's ABI evidence boundary. C owns conversion to wallet_ports runtime models.
+"""B's ABI evidence boundary. wallet_adapter consumes C-owned runtime models.
 
 All observations use a hash-pinned canonical block. Projection is never read here.
 The supplied ABI is the compiled Registry ABI, not a second contract definition.
@@ -82,6 +82,7 @@ class WalletRpc:
             "0x" + keccak(text=signature(x)).hex(): x for x in abi if x["type"] == "event"
         }
         self.abi_errors = [x for x in abi if x["type"] == "error"]
+        self.constructor = next((x for x in abi if x["type"] == "constructor"), None)
         self.ids = count(1)
 
     async def rpc(self, method, params):
@@ -266,6 +267,9 @@ class WalletRpc:
                     or tx["blockNumber"] != block["number"]
                     or tx["transactionIndex"] != receipt["transactionIndex"]):
                 raise ValueError("orphan receipt")
+            index = quantity(receipt["transactionIndex"])
+            if index >= len(block["transactions"]) or block["transactions"][index] != tx_hash:
+                raise ValueError("transaction not included at canonical receipt position")
             raw = hex_bytes(tx["input"])
             entry = self.selectors[raw[:4]]
             if entry.get("stateMutability") != "nonpayable":

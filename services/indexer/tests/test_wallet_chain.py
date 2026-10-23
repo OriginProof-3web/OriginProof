@@ -22,7 +22,8 @@ CODE = b"runtime"
 
 
 def block(number, block_hash):
-    return {"number": hex(number), "hash": block_hash, "timestamp": "0x64"}
+    return {"number": hex(number), "hash": block_hash, "timestamp": "0x64",
+            "transactions": [TX] if number >= 2 else []}
 
 
 def make_log(name="ProposalApproved", number=2, block_hash=H2, index=0):

@@ -1,5 +1,7 @@
 # V5-W5-B / 1차 — ABI 조회·이벤트·직접 제출 증거
 
+이 문서는 1차 커밋 당시 기록입니다. 이후 미등록·승인/거래 대조 보강은 [2차 인계](v5_w5_reconciliation.md)를 따릅니다.
+
 - 날짜: 2026-10-16, 담당 B / 여하민 `@hamin1228`.
 - 브랜치: `codex/v5-w5-b-chain-evidence`, 시작 SHA `a4bfa22bf870f3bd5ae02e439636fbf8204444a7`.
 - 기준: 계획서 5.1, v5-shared-0.1, [ADR 0004](../adr/0004-v5-governance-wallet-versioning.md).

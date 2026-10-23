@@ -116,6 +116,47 @@ def test_local_seed_password_is_preserved_and_links_are_rejected(tmp_path):
         seed.synthetic_password(fifo)
 
 
+async def test_v5_wallet_seed_is_idempotent_and_prints_roster_mapping(monkeypatch):
+    import json
+
+    from originproof_api.database import AccountRow, Base
+    from sqlalchemy import create_engine, select
+    from test_w2_chain_management import AsyncSession
+
+    spec = spec_from_file_location(
+        "seed_accounts", Path(__file__).parents[3] / "scripts/fixtures/seed_accounts.py"
+    )
+    seed = module_from_spec(spec)
+    spec.loader.exec_module(seed)
+    engine = create_engine("sqlite://")
+    Base.metadata.create_all(engine)
+
+    class Database:
+        def __init__(self, _url):
+            self.session_factory = lambda: AsyncSession(engine)
+
+        async def dispose(self):
+            pass
+
+    monkeypatch.setattr(seed, "Database", Database)
+    first = await seed.seed_prepared(seed.V5_WALLET_ACCOUNTS, "synthetic-password-1")
+    assert await seed.seed_prepared(seed.V5_WALLET_ACCOUNTS, "other-password-12") == first
+    env = dict(line.split("=", 1) for line in seed.v5_wallet_env(first))
+    assert json.loads(env["API_WALLET_INTERNAL_APPROVERS"]) == {
+        "iss_origin_mock_bank": first["v5_bank_approver"],
+        "iss_origin_mock_office": first["v5_office_approver"],
+    }
+    assert set(json.loads(env["API_WALLET_OPERATOR_ADDRESSES"])) == {
+        first[f"v5_operator{n}"] for n in (1, 2, 3)
+    }
+    with Session(engine) as db:
+        row = db.scalar(select(AccountRow).where(AccountRow.username == "v5_operator1"))
+        row.role = "recipient"
+        db.commit()
+    with pytest.raises(ValueError, match="identity differs"):
+        await seed.seed_prepared(seed.V5_WALLET_ACCOUNTS, "synthetic-password-1")
+
+
 async def test_reconciliation_separates_db_confirmation_from_live_chain(finals):
     client, manager, selected, accounts, _, _ = finals
     proof = (await client.post("/v2/issuer/proofs", json=w3.body())).json()
