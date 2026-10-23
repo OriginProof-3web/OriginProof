@@ -71,3 +71,8 @@ export PYTHONPATH=services/analyzer/src:apps/api/src:packages/python:services/in
 - [구조화 결과·실행 환경·해시](v5-d-independent-batch-20261023.json)에 원시 provider/원문 대신 숫자·ID·고정 코드만 보존합니다.
 
 최종 보고 문서 후속 커밋은 위 실행 소스와 구분합니다. 실행 소스 이후 D 코드/테스트·자료가 바뀌면 해당 검증을 갱신합니다. 공통 CI의 의존성 감사 차단은 별도이며 전체 검사 통과가 실제 OCR/STT 품질·A/C 승인·단계 완료를 뜻하지 않습니다.
+
+
+## SDK 변환 어댑터 후속
+
+팀원 요청 없이 가능한 연결 준비도 계속해 [기본 차단된 이미지 Responses/명시적 모델 PCM 전사 어댑터](../handoffs/v5_d_media_sdk_20261023.md)를 구현했습니다. SDK MockTransport34개가 통과했고 실제 호출·모델/전사 선택·유료 활성화는0입니다. 앞선 be66e6c/1083은 당시 실행으로 보존하고 SDK 후속 소스의 전체 검사는 별도 source SHA로 기록합니다.
