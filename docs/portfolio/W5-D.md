@@ -169,3 +169,5 @@ Codex가 #72~#76 JUnit 정확 수/summary와 trigger를 전파하고 C 대행 �
 ## 2026-10-23 팀 의존성 없는 D 작업 묶음 (AI 보조)
 
 사용자가 타 담당자 요청을 제외한 독립 작업 전체 진행을 지시했습니다. Codex가 기존 검사·D 합성 자료/Pillow/stdlib wave·오류/변환 처리·원본 평가기를 재사용해 실제 이미지12/PCM12(비음성)와 입력별 제어 실패12, hash/경로/미평가 guard CLI 및 문자CER·±2초 최대 matching·raw pixel IoU 도구를 추가했습니다. 외부 취소를 삼킨 processor의 성공과 확장 WAV metadata 위조4종을 먼저5 FAIL로 재현해 수정했고 허용 최대 이미지 경계도 확인했습니다. [자료·도구·검사·실패 이력·깨끗한 소스 재현 기록](../qa/v5-d-independent-batch-20261023.md). 기존60개/24·36·A/C 미검토 상태·공통 API/Schema·lock/모델/유료 가드·과거 기여를 보존했고 유료/실제 OCR·STT/holdout 예측·팀원 메시지/승인·원격 병합은 수행하지 않았습니다.
+
+독립 묶음 실행 SHA `be66e6c95f5d62e723c68d1714ac4203959b7990`의 새 git archive 사본에서 application import 경로·전체1083 PASS/기존11 SKIP·미디어24/실패12 기대 일치·검토본/전체 Ruff를 확인했습니다. 같은 실제 장비와 설치 의존성을 사용한 소스 재현이며 타 노트북·실제 변환/모델/새 API 연결 검사가 아닙니다. [정확한 환경/manifest/JUnit hash](../qa/v5-d-independent-batch-20261023.json).

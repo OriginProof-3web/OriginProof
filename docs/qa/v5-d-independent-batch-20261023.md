@@ -59,3 +59,15 @@ export PYTHONPATH=services/analyzer/src:apps/api/src:packages/python:services/in
 ```
 
 실제 OCR/STT/모델 품질·private source 구간의 원본 정확도·사용자 업로드/API/지갑·공개 환경·다른 실제 노트북·동일RC 리허설은 이번 결과에 포함하지 않습니다. 회의/팀 변경 없이 가능한 도구/안전 검사·재현을 진행했으며 타 담당자에게 메시지/요청·Approve·원격 병합·유료 호출을 수행하지 않았습니다. 기존 보안#93 감사 차단·G07의 로컬 legacy 판정 범위·#84 기록도 변경하지 않습니다.
+
+
+## 실제 깨끗한 소스 재현 완료
+
+실행 SHA **`be66e6c95f5d62e723c68d1714ac4203959b7990`**를 git archive로 새 임시 폴더에 내보내고 .git 없이 실행했습니다. analyzer/core/API의 import 파일이 모두 그 사본 아래에 있는지 assertion으로 확인했습니다. 설치된 동일 .uv-venv를 재사용했으며 Python3.13.7·Pillow13.0.0·OpenAI2.54.0·같은 lock입니다. 다른 물리 장비나 새 의존성 설치 재현이 아닙니다.
+
+- 전체 기본 Python **1083 PASS / 기존 opt-in11 SKIP / 기존 Starlette 경고1**, 실패/오류0. API/core/indexer/기존 v1/v2·분석기와 신규 검사 포함입니다. skip을 실제 환경 통과로 계산하지 않습니다.
+- 실제 미디어 byte24개/제어 실패 replay12개 **기대 일치**, invalid processor 호출0·유료0·semantic evaluation NOT_RUN.
+- 검토본 --check와 전체 clean 소스 Ruff **PASS**. 새 source·manifest·원본60개/lock이 작업 branch와 같은 byte인지 hash로 확인했습니다.
+- [구조화 결과·실행 환경·해시](v5-d-independent-batch-20261023.json)에 원시 provider/원문 대신 숫자·ID·고정 코드만 보존합니다.
+
+최종 보고 문서 후속 커밋은 위 실행 소스와 구분합니다. 실행 소스 이후 D 코드/테스트·자료가 바뀌면 해당 검증을 갱신합니다. 공통 CI의 의존성 감사 차단은 별도이며 전체 검사 통과가 실제 OCR/STT 품질·A/C 승인·단계 완료를 뜻하지 않습니다.
