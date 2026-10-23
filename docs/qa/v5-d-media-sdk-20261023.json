@@ -1,0 +1,64 @@
+{
+  "report_version": "d-media-sdk-0.1",
+  "date_kst": "2026-10-23",
+  "source_revision": "8ab1240dbfeeb96bcf31b62034670a6fac81f788",
+  "phase_basis": "f6e7fdb6727f6b7957d8acc7f3e0bf7e7674ea5f",
+  "plan_version": "5.1",
+  "shared_contract_version": "v5-shared-0.2",
+  "source_export": "git archive, no .git, analyzer/core/API import origins verified",
+  "environment": {
+    "python": "3.13.7",
+    "openai": "2.54.0",
+    "httpx": "0.28.1",
+    "pydantic": "2.13.5",
+    "pillow": "13.0.0",
+    "pytest": "9.1.1",
+    "same_installed_dependencies": true,
+    "other_physical_machine": false
+  },
+  "default_suite": {
+    "passed": 1117,
+    "skipped": 11,
+    "failures": 0,
+    "errors": 0,
+    "junit_sha256": "b02513d72e7b987b1f2a184135cf45d6b64d62d39d6d232f615bf8b38ab4ed72"
+  },
+  "sdk_mock_transport": {
+    "passed": 34,
+    "socket_blocked": true,
+    "provider": "OpenAI SDK 2.54.0; injected MockTransport",
+    "actual_api_calls": 0
+  },
+  "offline_media_contract": {
+    "status": "OFFLINE_MEDIA_CONTRACT_PASS",
+    "media_files": 24,
+    "failure_replays": 12,
+    "all_expected_results_match": true,
+    "manifest_sha256": "a5215d5179e623387c5a8fae6f0c927fd94d73eb269729ac18041827c76573d5",
+    "report_sha256": "64c52dbaf53d4ec41b27707f517ece1612e33b1fdfa8b8985b8617f6444a282c"
+  },
+  "ruff": "PASS/full clean export",
+  "review_packet_consistency": "PASS/60 source, 24 development +36 holdout, A/C PENDING",
+  "hashes": {
+    "services/analyzer/src/originproof_analyzer/media_converters.py": "d0dc458525c06cdd36c364f6b6bd0d9052f120f3d6dd339eaba66ff435f9eaaf",
+    "services/analyzer/tests/test_media_converters.py": "cc422c217faf6e6bfa4aeb46f18272f0e8da32f6837763811efb2336ed01f015",
+    "uv.lock": "bd617d34973fcae555ddc543388aacf017a3ef71616e407c125f73de089e812f",
+    "fixtures/synthetic/phishing_sources_v1.json": "944e6e1ec87b24510c6d1cad2e1a6aac4f51e373230bc387e66f542b265595e9",
+    "fixtures/synthetic/phishing_sources_v1_review.json": "932d3f850d8c782a833144809f4f92a8927c445fc35ab2f2b4be30135f36e8b7",
+    "fixtures/synthetic/v5_d_live_evaluation_policy.example.json": "faab2b7ab5f8cb552d82ede6b9cb09075ddd7b11523bd8eb9244b64f7f7ed392"
+  },
+  "default_enabled": false,
+  "actual_paid_calls": 0,
+  "actual_ocr_stt_quality": "NOT_RUN",
+  "holdout_predictions": 0,
+  "transcription_model": "UNDECIDED",
+  "public_api_connected": false,
+  "shared_code_changed": false,
+  "lock_changed": false,
+  "other_physical_machine_test": "NOT_RUN",
+  "real_new_browser_api_registry_e2e": "NOT_RUN",
+  "remote_merge_performed": false,
+  "team_messages_sent": false,
+  "stage_complete": false,
+  "known_remote_ci_block": "c-recovery audit opentelemetry-api 1.45.0; existing PR #93 OPEN; actual recovery not reached"
+}

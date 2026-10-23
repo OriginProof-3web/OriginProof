@@ -102,3 +102,8 @@ Jev SDK·의존성·호출 코드가 추가되지 않았으므로 제거할 실�
 `AnalyzerSettings.openai_model`과 루트 `.env.example`의 `OPENAI_MODEL`이 이미 `gpt-6-luna`여서 실행 코드·기본값 변경은 없습니다. 기존 Responses/Structured Outputs 경로를 사용합니다. 현재 `OPENAI_REASONING_EFFORT=low`는 기존 설정이며 이번에 새로 평가·최적화한 값은 아닙니다.
 
 Q05의 모델 선택은 완료됐고 유료 평가/전송 범위·예산·최종 평가 설정은 남아 있습니다. Q01 입력 종류/우선순위와 A/C 라벨·분할 리뷰도 후속입니다. provider 기본 mock·입력 비활성·유료 opt-in 경계는 유지했습니다. 이번 문서 결정 반영에서 모델 호출·유료 평가·holdout 예측은 실행하지 않았고 실제 품질/지연/비용을 검증한 것으로 기록하지 않습니다. 기존 DG12/G07 상태도 바꾸지 않습니다.
+
+
+### 2026-10-23 SDK 최종 검증
+
+실행 소스 `8ab1240dbfeeb96bcf31b62034670a6fac81f788`: clean export 전체1117 PASS/11 SKIP, 실제 SDK MockTransport34 PASS, 미디어 파일24/실패 replay12 기대 일치, Ruff·리뷰 자료 검사 PASS. [실행 근거](../qa/v5-d-media-sdk-20261023.json). 실제 API/유료·holdout 예측0, STT 모델 미정·기본 비활성·팀원 요청0.

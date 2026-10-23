@@ -36,3 +36,10 @@ export PYTHONPATH=services/analyzer/src:apps/api/src:packages/python:services/in
 ```
 
 [앞선 실제 합성 파일·점수 계산기·실패 수정·clean1083 검사](../qa/v5-d-independent-batch-20261023.md)는 해당 be66e6c 실행 기록으로 보존합니다. 이번 SDK 후속의 최종 source SHA/새 clean 전체 검사 결과는 별도 JSON에 기록합니다. 기존60개·24/36·A/C 미검토 상태·모델/유료 정책·shared Schema/API·lock·이전 검증 이력을 덮어쓰지 않습니다. 실제 OCR/STT·유료 범위·서비스 연결·공개 배포/병합/사람 승인·단계 완료를 수행한 것이 아닙니다.
+
+
+## 최종 clean 소스 검증 · 2026-10-23
+
+실행 소스 `8ab1240dbfeeb96bcf31b62034670a6fac81f788`를 git archive로 새 디렉터리에 내보내 .git 없이 analyzer/core/API import 위치를 확인했습니다. 같은 노트북·설치된 lock 의존성을 사용한 검사이며 다른 PC/새 의존성 설치 재현은 아닙니다. 기본 전체 **1117 PASS /11 opt-in SKIP /0 FAIL·ERROR**, SDK MockTransport **34 PASS** 포함, 전체 Ruff·리뷰 자료 일관성 PASS입니다. 실제 합성 파일24개·실패 replay12개 모두 기대 오류와 일치했습니다. [버전·hash·JUnit·실행 경계 JSON](../qa/v5-d-media-sdk-20261023.json)에 기록했습니다. 실제 OCR/STT/유료 호출·holdout 모델 예측0, STT 모델 미정·기본 비활성·실제 신규 연결 미실행을 유지합니다.
+
+원격 phase/W5 `f6e7fdb6727f6b7957d8acc7f3e0bf7e7674ea5f` 기준을 재확인했습니다. #93은 OPEN이며 기존 opentelemetry-api1.45.0 감사 실패가 c-recovery의 실제 복구 검사 진입을 차단합니다. 소유자 lock 변경을 중복 적용하지 않았습니다. 앞선 be66e6c의1083 검사와 사람/과거 실패 이력은 보존합니다.

@@ -176,3 +176,8 @@ Codex가 #72~#76 JUnit 정확 수/summary와 trigger를 전파하고 C 대행 �
 ## 2026-10-23 D 변환 SDK 준비 (AI 보조)
 
 사용자의 독립 작업 전체 진행 지시로 Codex가 공식 OpenAI 문서와 설치 SDK2.54의 실제 request 형태를 확인해 기본 차단 이미지 변환/명시적 STT 모델 PCM 전사 어댑터를 구현했습니다. 기존 모델gpt-6-luna·입력/변환/오류·SDK를 재사용하고 공식 origin·proxy/redirect/닫힌 client·단일 요청/retry0·timeout/취소·무효 입력·safe output을 SDK MockTransport34개로 확인했습니다. [구조·모델 미선정/실제0·재현](../handoffs/v5_d_media_sdk_20261023.md). 전사 모델을 임의 선택하지 않았고 실제 키/유료/원문 전송·공통 계약/환경 기본값/기존 실행 정책 변경·팀원 요청·원격 병합/승인은0입니다.
+
+
+### 2026-10-23 SDK 후속 clean 검증
+
+Codex가 소스 `8ab1240dbfeeb96bcf31b62034670a6fac81f788`를 새 git archive로 검증했습니다. 전체1117 PASS/11 opt-in SKIP, SDK MockTransport34 PASS 포함, 실제 파일24/실패 replay12 기대 일치·전체 Ruff/리뷰 자료 PASS. [hash·환경·범위](../qa/v5-d-media-sdk-20261023.json). 같은 노트북/설치 의존성 재사용이며 실제 OCR/STT 평가·다른 장비 재현·사람 리뷰·단계 완료를 뜻하지 않습니다. 실제 유료0·기존 원본/lock/타 담당 코드 보존·팀 메시지0입니다.
