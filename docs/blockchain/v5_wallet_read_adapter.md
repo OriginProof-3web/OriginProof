@@ -60,3 +60,96 @@ proof 없는 is_approver와 나머지 두 메서드는 명시적인 DependencyUn
 B/C: 읽기 mapping/생산 수명주기 소비 리뷰, B-C01 승인자 근거, submit relayer·UNKNOWN 진행점 저장 계약. C: 실제 설정·API/DB/Operation 연결. D: 통합 실패 사례·동일SHA 독립 재현·G07 mixed QA. 기존 v1/v2 서명·권한·consume 회귀 유지, 입력 선정은 회의 후 확정·Decisions API 범위 밖.
 
 기존 PR 담당자 댓글·#83/#86 사람 승인은 각 당시 head의 기록입니다. 새 Adapter head의 작성자 외 리뷰나 승인으로 대신 집계하지 않습니다. 사용자 원본 미커밋5개는 별도 worktree 밖에서 보존했습니다.
+
+
+## 2026-10-25 — W6 실제 API 연결 검사와 초기화 진입점
+
+작업: V5-W6-B, 브랜치 `codex/v5-w6-b-api-injection`. 선행 #96 `5a3b414` 위의 준비 작업이다.
+실행 코드 SHA: `9dc7c7fab80155e96509a0a6b1bd1afddec66ede`.
+위 W5 절은 당시 이력으로 보존한다. 이번 연결 범위는 아래와 같으며 전체 생산 주입 완료가 아니다.
+
+### 먼저 연결해 확인한 결과
+
+기존 실제 Anvil 하네스에 추가 opt-in 검사를 붙였다. 신규 Registry/ABI·B Adapter·C ASGI 핸들러·
+실제 로그인/세션/CSRF·정식 Alembic migration을 적용한 일회용 PostgreSQL을 연결했다.
+인증 dependency override나 합성 Registry port를 사용하지 않았다.
+가상 기관의 이메일/내부 승인 행은 seed했으므로 신청 UI·실제 메일/내부 승인 성공으로 세지 않는다.
+
+| 사례 | 실제 결과 |
+| --- | --- |
+| wallet_chain 미주입 / 주입 후 미등록 문서 | 503 / 404 |
+| 비로그인 / 수신자의 발행 / CSRF 누락 | 401 / 403 / 403 |
+| 운영자 주소가 실제 생성 증거의 승인자인 경우 / 아닌 경우 | 권한 검사 통과 후 저장 제안 부재 404 / 403 |
+| API 발행 초안·기관 EIP-712 서명·서명 저장 | 201 → 202 PENDING_SUBMISSION |
+| 저장 발행 요청과 다른 실제 제안 tx 제출 | 422 DIRECT_TX_MISMATCH |
+| Anvil automine 중지 후 같은 발행 tx 제출 | 202 UNKNOWN, PostgreSQL 저장 |
+| API 앱·DB pool 재생성 후 같은 거래 해시 재조회 | 202 CONFIRMED, 재요청 결과 동일, DB tx hash·확정 상태 일치 |
+| 문서·서명 자료·보호 필드 검증 | 200 ACTIVE / 원래 서명 일치 / VERIFIED |
+| 해시 없는 Operation 검색 | 503, 안전한 미연결 상태 유지 |
+
+ASGI HTTP 경계는 실제 C 코드를 실행하지만 TCP API 서버 프로세스·브라우저·앱 lifespan은 실행하지 않았다.
+앱·pool 재생성은 프로세스 SIGKILL이나 서버 lifespan 재시작 검증을 대신하지 않는다.
+서명은 일회용 Anvil의 공개 테스트 계정으로 수행했다. 기관 개인키를 API에 전달하지 않았다.
+
+### 필요한 만큼 보완한 B 진입점
+
+`WalletRegistryReadAdapter.from_deployment`는 기존 WalletRpc 설정과 WalletCreationProof를 받아
+snapshot의 chain/배포 block/현재 runtime code, canonical top-level CREATE·신뢰 initcode와
+생성자 승인자 근거를 **주입 전에** 검사한다. 오류는 기존 DependencyUnavailableError로 닫힌다.
+초기화에 성공해도 각 조회·권한 검사에서 canonical 검증을 계속하며 승인 결과를 캐시하지 않는다.
+클라이언트는 닫거나 교체하지 않으며 호출자가 API 실행 기간 동안 유지하고 종료 시 정리한다.
+
+```python
+from infrastructure.blockchain.wallet_adapter import WalletRegistryReadAdapter
+from infrastructure.blockchain.wallet_creation import WalletCreationProof
+from infrastructure.blockchain.wallet_rpc import hex_bytes
+
+# C의 실제 composition/lifespan이 소유한 열린 httpx.AsyncClient를 사용한다.
+# ABI·주소·chain·배포 block/hash·runtime_code_hash는 신뢰한 배포 설정에서 읽는다.
+# artifact는 검증 대상 tx의 입력이 아니라 별도로 신뢰한 로컬 build다.
+proof = WalletCreationProof(
+    tx_hash=trusted_deployment_tx,
+    creation_bytecode=hex_bytes(trusted_artifact["bytecode"]["object"]),
+)
+adapter = await WalletRegistryReadAdapter.from_deployment(
+    rpc_client, rpc_url, creation_proof=proof, **trusted_deployment,
+)
+app = create_app(settings=settings, database=database, wallet_chain=adapter)
+```
+
+`trusted_deployment` 키는 기존 WalletRpc의 `chain_id`, `address`, `deployment_block`,
+`deployment_hash`, `runtime_code_hash`, `abi`다. 새 manifest schema를 정의하거나 자동 신뢰하지 않는다.
+특히 #89의 wallet manifest에는 runtime_code_hash가 없으므로 그대로 `**` 전달할 수 없다.
+runtime_code_hash를 아무 RPC 응답에서 읽어 신뢰 기준으로 자동 채택하지 않는다.
+기존 생성자는 호환 유지한다. C 기본 앱·설정·API·DB·생성 타입·ABI는 변경하지 않았다.
+
+### 재현과 증거
+
+```sh
+# 기존 의존성 + Foundry 1.4.4, Docker, postgres:16.4-alpine 필요
+ORIGINPROOF_WALLET_LIVE=1 ORIGINPROOF_WALLET_API_LIVE=1 \
+  python -m pytest services/indexer/tests/test_wallet_live.py -q
+```
+
+두 opt-in을 모두 켜야 한다. PostgreSQL 컨테이너는 무작위 이름·loopback port·tmpfs만 사용하고
+정리 시 자기 컨테이너만 제거한다. 기존 Compose/DB/manifest는 건드리지 않는다.
+선택 사항 `ORIGINPROOF_WALLET_LIVE_OUTPUT`은 존재하지 않는 새 로컬 보고서 경로를 받는다.
+기본 CI/pytest는 opt-in을 skip하므로 CI 초록만으로 이 실제 연결 검사를 실행했다고 간주하지 않는다.
+
+2026-10-25 macOS arm64·Python 3.13.14·Foundry 1.4.4·Solc 0.8.26·PostgreSQL 16.4:
+
+- 초기화/Adapter 합성 검사: 90 passed.
+- 기본 전체 Python: 962 passed / 11 skipped, 기존 anyio deprecation warning 1건.
+- 위 실제 API 연결 opt-in: 1 passed. 동일 코드 SHA의 별도 clean clone에서도 1 passed.
+- 변경 Python lint·diff: 통과.
+- 기존 Python 가상환경과 Solidity lib을 재사용했다. fresh lockfile sync/다른 장비 재현은 아니다.
+- 합성 실행 증거: [v5_wallet_api_9dc7c7f.json](evidence/v5_wallet_api_9dc7c7f.json).
+
+### 남은 인계
+
+C: 신뢰 배포 설정·client 수명주기를 실제 서버 composition에 연결하고 lifespan/readiness·
+TCP 서버·PostgreSQL 프로세스 장애를 같은 SHA로 확인한다.
+B/C: hashless 검색 진행점/보관·재시작 계약을 정한 뒤 find_transaction을 연결한다.
+submit/relayer는 여전히 미연결이며 직접 지갑 제출 검사를 중계 성공으로 확대하지 않는다.
+D: 동일 SHA 독립 실패 검사·다른 환경 재현. 공개 RPC·Sepolia·브라우저·W6 단계 완료는 미검증이다.
+phase/W6 미생성으로 이 PR도 준비 Draft이며 작성자 외 리뷰는 미확인이다.

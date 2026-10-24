@@ -1,0 +1,29 @@
+{
+  "date_kst": "2026-10-25",
+  "status": "disposable environments terminated; not an active deployment",
+  "source_sha": "9dc7c7fab80155e96509a0a6b1bd1afddec66ede",
+  "toolchain": {
+    "anvil": "anvil Version: 1.4.4-v1.4.4",
+    "forge": "forge Version: 1.4.4-v1.4.4",
+    "solc": "0.8.26+commit.8a97fa7a",
+    "dependency_lock_sha256": "d602f87fe5dbb7bc482a851adf729d02249bc2774bd58cbe613c0a61d7d4d154"
+  },
+  "api_probe": {
+    "scope": "Anvil + migrated disposable PostgreSQL + ASGI and real login/CSRF",
+    "publication_tx": "0x413f6595d9d05035bcb2d54e7ca935f4705b5e9ae8942f0483816a549598a86c",
+    "operation": "UNKNOWN to CONFIRMED after API/pool recreation",
+    "limitations": [
+      "seeded onboarding",
+      "no browser/network API process/lifespan",
+      "hashless search remains 503; relayer remains disabled"
+    ]
+  },
+  "results": {
+    "default_python": "962 passed, 11 skipped",
+    "adapter_and_initialization": "90 passed",
+    "live_postgres_asgi_anvil": "1 passed",
+    "clean_source_clone_live": "1 passed"
+  },
+  "environment": "macOS arm64, Python 3.13.14; existing dependency environment reused",
+  "review": "No independent human or D review claimed"
+}
