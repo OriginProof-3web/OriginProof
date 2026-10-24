@@ -204,7 +204,7 @@ async def test_proposal_status_uses_original_model_and_canonical_approvals(
 ):
     oracle, _, adapter = adapter_env
     oracle.blocks["0x2"]["timestamp"] = hex(timestamp)
-    oracle.logs = proposal_logs(count)
+    oracle.logs = proposal_logs(oracle, count)
     oracle.views["getProposal"] = (PROPOSAL, count, count == 2)
     oracle.views["governanceNonce"] = (nonce,)
     result = await adapter.proposal(PID)
