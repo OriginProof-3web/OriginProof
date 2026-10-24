@@ -427,6 +427,34 @@
         "title": "ApplicationView",
         "type": "object"
       },
+      "ApproverNodeView": {
+        "properties": {
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "notice": {
+            "title": "Notice",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "approver_1",
+              "approver_2",
+              "approver_3"
+            ],
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "label",
+          "notice"
+        ],
+        "title": "ApproverNodeView",
+        "type": "object"
+      },
       "AuditView": {
         "properties": {
           "action": {
@@ -615,6 +643,41 @@
           "confidence"
         ],
         "title": "CardPaymentNoticeCandidate",
+        "type": "object"
+      },
+      "ChainNetworkView": {
+        "properties": {
+          "approver_nodes": {
+            "items": {
+              "$ref": "#/components/schemas/ApproverNodeView"
+            },
+            "title": "Approver Nodes",
+            "type": "array"
+          },
+          "chain_id": {
+            "title": "Chain Id",
+            "type": "integer"
+          },
+          "chain_target": {
+            "enum": [
+              "anvil",
+              "sepolia"
+            ],
+            "title": "Chain Target",
+            "type": "string"
+          },
+          "rpc_fallback_configured": {
+            "title": "Rpc Fallback Configured",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "chain_target",
+          "chain_id",
+          "rpc_fallback_configured",
+          "approver_nodes"
+        ],
+        "title": "ChainNetworkView",
         "type": "object"
       },
       "CheckResult": {
@@ -3713,6 +3776,33 @@
         "summary": "Sync Status",
         "tags": [
           "operations"
+        ]
+      }
+    },
+    "/v1/chain/network": {
+      "get": {
+        "operationId": "chain_network_v1_chain_network_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChainNetworkView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "Chain Network",
+        "tags": [
+          "chain network"
         ]
       }
     },

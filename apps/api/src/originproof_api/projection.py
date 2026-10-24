@@ -8,6 +8,7 @@ import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
 from infrastructure.blockchain import JsonRpcBlockchainReader
 from infrastructure.blockchain.manifest import load_manifest, validate_hash
+from originproof_core import DependencyUnavailableError
 from originproof_indexer.projection import (
     PROOF_CONSUMED,
     PROOF_REGISTERED,
@@ -34,13 +35,32 @@ class SyncView(BaseModel):
     authority: str = "HISTORICAL_EVENTS_ONLY"
 
 
+async def verified_rpc_url(settings, manifest):
+    """First CHAIN_TARGET RPC (primary, then fallback) that passes B Reader identity checks."""
+    for url in settings.blockchain_rpc_urls:
+        reader = JsonRpcBlockchainReader(
+            url,
+            settings.blockchain_manifest_path,
+            issuer_ids=[settings.blockchain_issuer_id],
+            expected_chain_id=manifest.chain_id,
+        )
+        try:
+            # B Reader validates chain/genesis/deployment/code before scanning this environment.
+            await reader.get_issuer(settings.blockchain_issuer_id)
+        except DependencyUnavailableError:
+            continue
+        return url
+    raise DependencyUnavailableError("projection RPC unavailable")
+
+
 async def scan(settings):
     """Run in a worker thread: live synchronous callbacks + asyncpg greenlet DB bridge."""
     database = Database(settings.database_url)
     try:
         manifest = load_manifest(settings.blockchain_manifest_path, settings.blockchain_chain_id)
+        rpc_url = await verified_rpc_url(settings, manifest)
         reader = JsonRpcBlockchainReader(
-            settings.blockchain_rpc_url,
+            rpc_url,
             settings.blockchain_manifest_path,
             issuer_ids=[settings.blockchain_issuer_id],
             expected_chain_id=manifest.chain_id,
@@ -51,7 +71,7 @@ async def scan(settings):
 
             def rpc(method, params):
                 response = client.post(
-                    settings.blockchain_rpc_url,
+                    rpc_url,
                     json={
                         "jsonrpc": "2.0",
                         "id": 1,

@@ -107,6 +107,8 @@ class ChainManagement:
         self.manifest = load_manifest(
             settings.blockchain_manifest_path, settings.blockchain_chain_id
         )
+        # Writes stay on the primary RPC: resending through a fallback could duplicate an
+        # unconfirmed submission, which the Operation recovery contract must reconcile first.
         self.writer = JsonRpcBlockchainWriter(
             settings.blockchain_rpc_url,
             settings.blockchain_manifest_path,
@@ -115,7 +117,7 @@ class ChainManagement:
 
     def reader(self, issuer_id):
         return JsonRpcBlockchainReader(
-            self.settings.blockchain_rpc_url,
+            self.settings.blockchain_rpc_urls,
             self.settings.blockchain_manifest_path,
             issuer_ids=[issuer_id],
             expected_chain_id=self.manifest.chain_id,
