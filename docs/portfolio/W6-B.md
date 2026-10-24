@@ -65,3 +65,30 @@ C가 같은 Operation을 재조회할 수 있게 했다. 실제 canonical 실패
 
 - 본인: 사용자 지시·선택에 따른 작업. 코드 직접 리뷰·기여 사실 확인은 별도 미확인.
 - 작성자 외 리뷰: 미확인. 단계 완료 PR: 미생성.
+
+
+## 2026-10-25 — 실제 API 연결 확인 후 최소 초기화 보완
+
+- 작업 ID: V5-W6-B, 브랜치 `codex/v5-w6-b-api-injection`, 선행 #96 `5a3b414`.
+- 검증 코드 SHA: `9dc7c7fab80155e96509a0a6b1bd1afddec66ede`.
+- 상태: 실제 Anvil·ASGI·임시 PostgreSQL의 직접 거래 연결 검증 완료 / 생산 composition·
+  hashless 검색·서버 프로세스 장애·작성자 외 리뷰·W6 단계 완료는 미확인.
+
+사용자는 실제 연결을 먼저 확인한 뒤 필요한 만큼 B 코드를 보완하는 순서를 선택했다.
+Codex는 기존 live 하네스·C 실제 로그인/세션/CSRF·DB migration·Operation 확정 로직을 재사용했다.
+기관 확인 행은 seed했고 Registry/인증 dependency는 mock하지 않았다.
+다른 실제 거래는 422로 거부하고, pending 발행을 UNKNOWN으로 저장한 뒤 앱·pool을 재생성해
+같은 tx를 CONFIRMED로 대조·저장하는 경로가 통과했다. 해시 없는 검색의 503도 확인했다.
+
+공백에 맞춰 기존 Adapter에 from_deployment 초기화 메서드만 추가했다. 기존 배포/CREATE
+검증을 주입 전에 수행하고 열린 client의 소유권은 C에 둔다. 새 프레임워크·Schema·ABI·C 생산
+코드·자동 relayer를 추가하지 않았다. production 키를 API에 보관하지 않는다.
+
+합성 초기화/Adapter 90 passed, 전체 Python 962 passed / 11 skipped,
+실제 연결 opt-in 1 passed 및 동일 SHA clean clone 1 passed, 변경 Python lint·diff 통과.
+기존 설치 Python/Foundry lib 재사용이며 fresh dependency sync나 다른 PC 재현은 아니다.
+상세 범위·명령·한계는 [연결 인계](../blockchain/v5_wallet_read_adapter.md#2026-10-25--w6-실제-api-연결-검사와-초기화-진입점)에 기록했다.
+
+AI 활용: Codex가 구현·검사·문서·PR을 작성했다. 사용자 지시와 별도 사람의 코드 리뷰를 구분한다.
+본인 직접 코드 리뷰·작성자 외 검토·독립 D 재현은 미확인이다. phase/W6 생성 후 PR 대상 변경과
+실제 서버 composition 연결·수명주기·hashless 복구 계약은 후속이다.
