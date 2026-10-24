@@ -1,5 +1,7 @@
 # W6 / B / 여하민 — 개인 개발 기록
 
+> 초기 기록은 2026-10-02 당시 작업입니다. 최신 v5 보완은 아래 2026-10-24 절을 확인합니다.
+
 - GitHub 계정: `@hamin1228`
 - 실제 작업일: 2026-10-02 (W6는 달력 주차가 아님)
 - 작업 ID: `W6-B1`, `W6-B2`, `W6-B3`
@@ -37,3 +39,29 @@ C가 같은 Operation을 재조회할 수 있게 했다. 실제 canonical 실패
 
 - 본인 확인: `@hamin1228` / 2026-10-02 / 기록 확인 대기
 - 작성자 외 리뷰: 미확인
+
+
+## 2026-10-24 — V5-W6-B 이벤트 증거 경계 보완
+
+- 상태: 독립 구현·검사 완료 / 실제 C API 연결·독립 리뷰·W6 단계 완료는 미확인.
+- 브랜치: `codex/v5-w6-b-evidence-boundaries`.
+- 시작 integration `ec8e15c`, 필요한 W5 선행 코드 `5f3540a` 반영.
+- 검증 코드 SHA: `b50cbde1d7b9a25fa8229013d843cb8ca4de779e`.
+- phase/W6 미생성으로 준비 Draft이며, 임시 비교 대상 phase/W5에는 병합하지 않는다.
+
+사용자가 두 결함의 최소 수정을 선택했고 Codex가 구현·검사·기록을 수행했다.
+기존 B의 WalletRpc/WalletReconciler, 합성 Oracle/Chain, 실제 Anvil 복구 검사를 재사용했다.
+정지 receipt와 같은 거래의 canonical 이벤트가 다르면 보류하고, 블록에 없는 거래의 로그를 거부한다.
+정상 반복 정지·공동승인·reorg 복구는 유지한다. Contract·ABI·공유 Schema 변경은 없다.
+
+신규 검사는 수정 전 4 failed / 1 passed, 수정 후 관련 226 passed였다.
+전체 Python 957 passed / 11 skipped, Foundry 1.4.4 실제 Anvil 복구 1 passed,
+변경 Python lint·diff 검사가 통과했다. Python은 기존 설치 환경 재사용이며 fresh lockfile sync가 아니다.
+재현·명령·환경·제약은 [실행 기록](../blockchain/w6_fault_recovery_security.md#2026-10-24-v5-w6-b-이벤트-증거-경계-보완)에 있다.
+
+이번 성과는 불일치 RPC 응답을 성공 근거·journal로 수용하지 않는다는 범위다.
+실제 C API/DB 영속 복구·공개 체인·다른 장비·작성자 외 리뷰는 후속이다.
+사용자의 수정 방향 승인을 사람의 코드 리뷰로 대신하지 않는다.
+
+- 본인: 사용자 지시·선택에 따른 작업. 코드 직접 리뷰·기여 사실 확인은 별도 미확인.
+- 작성자 외 리뷰: 미확인. 단계 완료 PR: 미생성.

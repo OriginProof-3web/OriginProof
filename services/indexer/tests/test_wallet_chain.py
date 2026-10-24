@@ -321,13 +321,14 @@ async def test_explicit_reorg_rewind_and_replay(setup):
         engine.dispose()
 
 
-async def test_failed_fetch_cannot_advance_checkpoint(setup):
+@pytest.mark.parametrize("patch", [{"removed": True}, {"transactionHash": H3}])
+async def test_failed_fetch_cannot_advance_checkpoint(setup, patch):
     chain, rpc = setup
     engine = create_engine("sqlite://")
     try:
         store = WalletProjection(engine, rpc)
         store.initialize()
-        chain.logs[0]["removed"] = True
+        chain.logs[0].update(patch)
         with pytest.raises(BlockchainDependencyError):
             await store.sync()
         assert store.checkpoint() is None
@@ -481,3 +482,11 @@ def test_bigint_positions_preserve_values_above_int4(tmp_path):
         assert row["deployment"] == checkpoint["deployment"] == "preserved"
     finally:
         engine.dispose()
+
+
+async def test_log_transaction_must_belong_to_canonical_block(setup):
+    chain, rpc = setup
+    chain.logs[0]["transactionHash"] = H3
+    head = await rpc.snapshot()
+    with pytest.raises(BlockchainDependencyError):
+        await rpc.logs(1, head)
