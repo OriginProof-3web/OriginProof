@@ -1,10 +1,9 @@
-"""Run explicitly against an immutable C candidate export, never the legacy API.
+"""D consumer checks against the same PR head containing the C v5 API.
 
-PYTHONPATH=<candidate>/apps/api/src:<candidate>/packages/python \
-  <candidate>/.uv-venv/bin/python -m pytest -q -o addopts= \
-  fixtures/finals/v5_analysis_consumer_qa.py
-
-This file is outside normal pytest testpaths. It uses injected reports and no network.
+Run via .github/workflows/d-pinned-c-qa.yml or the commands in
+ docs/qa/v5-d-weekly-status-20261021.md. The historical immutable C export
+is preserved in earlier reports; current QA does not use that obsolete pin.
+Outside default pytest testpaths; injected reports and no network.
 """
 
 import json

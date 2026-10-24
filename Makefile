@@ -9,7 +9,7 @@ WORKSPACE_PYTHONPATH := apps/api/src:packages/python:services/analyzer/src:servi
 
 
 
-.PHONY: help bootstrap bootstrap-check env-check env-fingerprint mvp-up stop reset db-upgrade seed finals-up finals-seed deploy-local api-reload mvp-e2e db-smoke demo demo-reset demo-stop \
+.PHONY: help bootstrap bootstrap-check env-check env-fingerprint mvp-up stop reset db-upgrade seed finals-up finals-seed v5-wallet-seed deploy-local api-reload mvp-e2e db-smoke demo demo-reset demo-stop \
 	test test-api test-analyzer test-contracts test-integration mvp-test lint typecheck build smoke generate security
 
 help:
@@ -112,6 +112,24 @@ security:
 	$(UV) export --frozen --all-packages --all-groups --no-emit-workspace --no-header --no-annotate --output-file build/security/requirements.txt >/dev/null
 	uv tool run --from pip-audit==2.10.1 pip-audit --disable-pip --no-deps --requirement build/security/requirements.txt --format json --output build/security/python-audit.json
 
+# Retained local M3/M4 commands; deploy-local above remains the current MVP flow.
+FOUNDRY_BIN_DIR ?= $(HOME)/.foundry/bin
+.PHONY: bootstrap-contracts test-python chain deploy-local-legacy export-abi
+bootstrap-contracts:
+	./packages/contracts/script/bootstrap_dependencies.sh
+
+test-python:
+	PYTHONPATH=$(WORKSPACE_PYTHONPATH) $(UV) run pytest -q
+
+chain:
+	$(FOUNDRY_BIN_DIR)/anvil --chain-id 31337
+
+deploy-local-legacy:
+	./packages/contracts/script/deploy_local.sh
+
+export-abi:
+	./packages/contracts/script/export_abi.sh
+
 
 # Preserves existing DB, issuer signer files and account credentials.
 finals-seed: db-upgrade
@@ -119,6 +137,10 @@ finals-seed: db-upgrade
 
 finals-up: mvp-up deploy-local api-reload finals-seed
 	@curl --fail --silent --show-error --retry 20 --retry-all-errors --max-time 5 http://127.0.0.1:8000/health/ready
+
+# Synthetic v5 roster accounts; prints the wallet settings mapping (no secrets).
+v5-wallet-seed: db-upgrade
+	$(COMPOSE) exec -T api uv run --no-sync --package originproof-api python scripts/fixtures/seed_accounts.py --v5-wallet
 
 
 # Disposable resources only; opt-in is explicit and never targets the demo database.

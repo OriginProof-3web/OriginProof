@@ -5,21 +5,24 @@ import hashlib
 import json
 import re
 from collections.abc import Mapping
+from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta, timezone
 from importlib.resources import files
-from typing import Protocol
+from typing import Literal, Protocol
 
 from openai import (
     APIConnectionError,
     APIResponseValidationError,
     APIStatusError,
     APITimeoutError,
+    AsyncOpenAI,
     ContentFilterFinishReasonError,
     LengthFinishReasonError,
     OpenAI,
     RateLimitError,
 )
 from originproof_core import CardPaymentNoticeCandidate
+from originproof_core.wallet_contract import AnalysisReport
 from pydantic import ValidationError
 
 from .errors import AnalyzerError, AnalyzerErrorCode
@@ -28,6 +31,7 @@ from .settings import AnalyzerSettings
 from .validation import EXTRACTED_FIELDS, validate_candidate
 
 PROMPT_VERSION = "card_payment_notice_v4"
+ANALYSIS_PROMPT_VERSION = "phishing_analysis_v1"
 
 
 class LLMProvider(Protocol):
@@ -37,6 +41,8 @@ class LLMProvider(Protocol):
     def extract_card_payment_notice(
         self, artifact: SemanticInput
     ) -> CardPaymentNoticeCandidate: ...
+
+    async def analyze_phishing(self, text: str) -> AnalysisReport | dict: ...
 
 
 LABELS = {
@@ -115,7 +121,10 @@ def _parse_mock_text(text: str) -> CardPaymentNoticeCandidate:
             {
                 **values,
                 "confidence": round(
-                    0.98 * (len(EXTRACTED_FIELDS) - len(missing)) / len(EXTRACTED_FIELDS), 4
+                    0.98
+                    * (len(EXTRACTED_FIELDS) - len(missing))
+                    / len(EXTRACTED_FIELDS),
+                    4,
                 ),
                 "missing_fields": missing,
             },
@@ -139,15 +148,19 @@ class MockLLMProvider:
         *,
         image_replays: Mapping[str, str] | None = None,
         error: AnalyzerErrorCode | None = None,
+        analysis_replays: Mapping[str, AnalysisReport | dict] | None = None,
     ) -> None:
         self._image_replays = dict(image_replays or {})
         self._error = error
+        self._analysis_replays = dict(analysis_replays or {})
 
     @property
     def image_mode(self) -> str:
         return "fixture_replay_only" if self._image_replays else "unsupported"
 
-    def extract_card_payment_notice(self, artifact: SemanticInput) -> CardPaymentNoticeCandidate:
+    def extract_card_payment_notice(
+        self, artifact: SemanticInput
+    ) -> CardPaymentNoticeCandidate:
         if self._error is not None:
             raise AnalyzerError(self._error)
         text = artifact.text
@@ -160,6 +173,15 @@ class MockLLMProvider:
             return _parse_mock_text(text)
         except (ValueError, ValidationError):
             raise AnalyzerError(AnalyzerErrorCode.SCHEMA_MISMATCH) from None
+
+    async def analyze_phishing(self, text: str) -> AnalysisReport | dict:
+        if self._error is not None:
+            raise AnalyzerError(self._error)
+        digest = hashlib.sha256(text.encode("utf-8")).hexdigest()
+        if digest in self._analysis_replays:
+            return self._analysis_replays[digest]
+        # No invented LLM success: the service may still return independently matched rules.
+        raise AnalyzerError(AnalyzerErrorCode.PROVIDER_UNAVAILABLE)
 
 
 def _structured_text(envelope: object) -> str:
@@ -187,14 +209,48 @@ def _structured_text(envelope: object) -> str:
     return parts[0]
 
 
+@contextmanager
+def _provider_errors():
+    try:
+        yield
+    except APITimeoutError:
+        raise AnalyzerError(AnalyzerErrorCode.TIMEOUT) from None
+    except RateLimitError:
+        raise AnalyzerError(AnalyzerErrorCode.RATE_LIMIT) from None
+    except LengthFinishReasonError:
+        raise AnalyzerError(AnalyzerErrorCode.INCOMPLETE_OUTPUT) from None
+    except ContentFilterFinishReasonError:
+        raise AnalyzerError(AnalyzerErrorCode.REFUSAL) from None
+    except (APIResponseValidationError, ValueError, TypeError, ValidationError):
+        raise AnalyzerError(AnalyzerErrorCode.SCHEMA_MISMATCH) from None
+    except (APIConnectionError, APIStatusError):
+        raise AnalyzerError(AnalyzerErrorCode.PROVIDER_UNAVAILABLE) from None
+
+
+class _AnalysisOutput(AnalysisReport):
+    """Provider-only narrowing of the shared model; no issuance object can be generated."""
+
+    verification: None = None
+    verification_not_run_reason: Literal["ANALYZER_DOES_NOT_VERIFY"] = (
+        "ANALYZER_DOES_NOT_VERIFY"
+    )
+
+
 class OpenAILLMProvider:
     provider_name = "openai"
     image_mode = "vision"
 
-    def __init__(self, settings: AnalyzerSettings, *, client: OpenAI | None = None) -> None:
+    def __init__(
+        self,
+        settings: AnalyzerSettings,
+        *,
+        client: OpenAI | None = None,
+        async_client: AsyncOpenAI | None = None,
+    ) -> None:
         self.model = settings.openai_model
         self._settings = settings
         self._client = client
+        self._async_client = async_client
         self._prompt = (
             files("originproof_analyzer")
             .joinpath(
@@ -217,7 +273,9 @@ class OpenAILLMProvider:
         if self._client is not None:
             self._client.close()
 
-    def extract_card_payment_notice(self, artifact: SemanticInput) -> CardPaymentNoticeCandidate:
+    def extract_card_payment_notice(
+        self, artifact: SemanticInput
+    ) -> CardPaymentNoticeCandidate:
         if artifact.text is not None:
             content = [{"type": "input_text", "text": artifact.text}]
         else:
@@ -228,7 +286,7 @@ class OpenAILLMProvider:
                     "image_url": f"data:{artifact.image_media_type};base64,{artifact.image_base64}",
                 }
             ]
-        try:
+        with _provider_errors():
             # SDK is the only retry owner; at most 2 retries (3 attempts), each with a timeout.
             client = self._get_client().with_options(
                 timeout=self._settings.llm_timeout_seconds,
@@ -251,20 +309,52 @@ class OpenAILLMProvider:
                 CardPaymentNoticeCandidate.model_fields
             ):
                 raise ValueError("structured output must contain all contract fields")
-            candidate = CardPaymentNoticeCandidate.model_validate_json(text, strict=True)
+            candidate = CardPaymentNoticeCandidate.model_validate_json(
+                text, strict=True
+            )
             response = raw.parse()
             if response.output_parsed is None:
                 raise AnalyzerError(AnalyzerErrorCode.INCOMPLETE_OUTPUT)
             return validate_candidate(candidate)
-        except APITimeoutError:
-            raise AnalyzerError(AnalyzerErrorCode.TIMEOUT) from None
-        except RateLimitError:
-            raise AnalyzerError(AnalyzerErrorCode.RATE_LIMIT) from None
-        except LengthFinishReasonError:
-            raise AnalyzerError(AnalyzerErrorCode.INCOMPLETE_OUTPUT) from None
-        except ContentFilterFinishReasonError:
-            raise AnalyzerError(AnalyzerErrorCode.REFUSAL) from None
-        except (APIResponseValidationError, ValueError, TypeError, ValidationError):
-            raise AnalyzerError(AnalyzerErrorCode.SCHEMA_MISMATCH) from None
-        except (APIConnectionError, APIStatusError):
-            raise AnalyzerError(AnalyzerErrorCode.PROVIDER_UNAVAILABLE) from None
+
+    async def analyze_phishing(self, text: str) -> AnalysisReport:
+        with _provider_errors():
+            if self._async_client is not None:
+                return await self._parse_analysis(self._async_client, text)
+            key = self._settings.openai_api_key
+            if key is None or not key.get_secret_value().strip():
+                raise AnalyzerError(AnalyzerErrorCode.PROVIDER_UNAVAILABLE)
+            # Per-call ownership also closes the HTTP client when cancellation interrupts a job.
+            async with AsyncOpenAI(api_key=key.get_secret_value()) as client:
+                return await self._parse_analysis(client, text)
+
+    async def _parse_analysis(self, client: AsyncOpenAI, text: str) -> AnalysisReport:
+        prompt = (
+            files("originproof_analyzer")
+            .joinpath(
+                "prompts",
+                f"{ANALYSIS_PROMPT_VERSION}.md",
+            )
+            .read_text(encoding="utf-8")
+        )
+        raw = await client.with_options(
+            timeout=self._settings.llm_timeout_seconds,
+            max_retries=self._settings.llm_max_retries,
+        ).responses.with_raw_response.parse(
+            model=self.model,
+            instructions=prompt,
+            input=[{"role": "user", "content": [{"type": "input_text", "text": text}]}],
+            text_format=_AnalysisOutput,
+            reasoning={"effort": self._settings.openai_reasoning_effort},
+            max_output_tokens=4096,
+            store=False,
+        )
+        body = _structured_text(raw.http_response.json())
+        data = json.loads(body)
+        if not isinstance(data, dict) or set(data) != set(_AnalysisOutput.model_fields):
+            raise ValueError("expected all shared analysis fields")
+        value = _AnalysisOutput.model_validate_json(body, strict=True)
+        response = raw.parse()
+        if response.output_parsed is None:
+            raise AnalyzerError(AnalyzerErrorCode.INCOMPLETE_OUTPUT)
+        return AnalysisReport.model_validate(value.model_dump())

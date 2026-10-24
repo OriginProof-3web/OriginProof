@@ -4,6 +4,7 @@ V5-W1~W5-C의 독립 구현과 W6-C 복구 검사 인계입니다. 재사용 원
 
 ## 계약과 기동
 
+- 로컬 실행·합성 계정·설정: [v5 지갑 API 로컬 실행](../runbooks/v5_wallet_local.md).
 - 현재 HTTP 정의: [실제 앱 OpenAPI](../../packages/schemas/generated/openapi.json). `create_app().openapi()`에서 생성합니다.
 - 신규 타입: [wallet-contract.ts](../../packages/schemas/generated/types/wallet-contract.ts). 기존 api.ts의 v1/v2 `OperationView`와 이름이 같으므로 모듈을 구분합니다.
 - [예정 OpenAPI](../../packages/schemas/generated/openapi/wallet-contract.openapi.json)는 최초 22개 경로의 검토 기준을 보존합니다. 실제 추가 경로·응답은 앱 OpenAPI를 사용합니다.
@@ -33,6 +34,19 @@ readiness는 migration head·세 역할·설정된 두 기관 계정·Registry �
 이메일 비밀은 모든 API 인스턴스에서 동일하게 유지합니다. 변경하면 발급 중인 코드는 검증할 수
 없으므로 새로 발급해야 합니다. HMAC 이전 검증값은 소비하지 않고 무효화합니다. 만료/소비/
 5회 실패 시 검증값·데모 평문을 제거하고, 기동/300초 유지관리에서도 만료 자료를 정리합니다.
+
+## 의존성 상향 승인
+
+| 패키지 | integration `1d9b349` | `phase/W5` |
+| --- | --- | --- |
+| fastapi | 0.115.14 | 0.142.2 |
+| starlette (uv 제약) | 0.46.2 | 1.7.0 |
+| pytest | 8.4.2 | 9.1.1 |
+| pytest-asyncio | 0.25.3 | 1.4.0 |
+| annotated-doc (fastapi 전이 의존성, 신규) | 없음 | 0.0.5 |
+| opentelemetry-api (fastapi 전이 의존성, 신규) | 없음 | 1.45.1 (2026-10-23 CVE-2026-114603 수정판으로 상향, 이전 1.45.0) |
+
+출처는 미병합 종료된 #38 계열의 `28a3e00`(2026-10-03, "patch shared security dependencies")이며 C W1 재사용 기준(#57)으로 들어왔습니다. `uv.lock`에서 integration 대비 버전이 바뀌거나 새로 생긴 패키지는 위 6개뿐이며, httpx·pydantic·uvicorn은 바뀌지 않았습니다. 2026-10-19 C(사용자님 `@Jordi2801K`)가 lockfile 조율 담당(AGENTS 4절)으로서 위 버전을 승인했습니다. 근거는 `phase/W5` `15c5588`의 Quality Gate SUCCESS(CI 전체 Python 600 passed / 10 skipped, 로컬 같은 소스 601 PASS / 9 SKIP)입니다. 이 승인 기록은 작성자 외 리뷰를 대신하지 않으며, analyzer(D)와 B 코드에 미치는 영향은 하민님·인준님 확인을 받습니다. 실행 이미지·웹 등 다른 소비자 영향은 각 담당 리뷰에서 확인합니다. eth-abi의 API 실행 의존성 이동은 B #64 범위로 따로 다룹니다.
 
 ## A: 화면에서 사용할 순서
 
