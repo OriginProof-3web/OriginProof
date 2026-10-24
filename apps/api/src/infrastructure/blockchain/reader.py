@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import json
 import re
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from itertools import count
-from pathlib import Path
 
 import httpx
 from Crypto.Hash import keccak
@@ -18,17 +17,46 @@ from originproof_core.ports import (
     KeyTrustStatus,
 )
 
+from .manifest import load_manifest, validate_address, validate_hash
+
+
+@dataclass(frozen=True)
+class RegistryTrustSnapshot:
+    deployment_id: str
+    chain_id: int
+    block_number: int
+    block_hash: str
+    issuer: IssuerRecord | None
+    key: KeyRecord | None
+    key_valid_at: bool
+
+
+@dataclass(frozen=True)
+class ProofChainState:
+    deployment_id: str
+    chain_id: int
+    block_number: int
+    block_hash: str
+    proof_id: str
+    issuer_id_hash: str
+    key_id_hash: str
+    signing_digest: str
+    subject_binding_hash: str
+    issued_at: datetime
+    expires_at: datetime
+    single_use: bool
+    revoked_at: datetime | None
+    consumed_at: datetime | None
+    status: str
+    consumable_at: bool
+
 
 def digest(text: str) -> bytes:
     return keccak.new(digest_bits=256, data=text.encode("utf-8")).digest()
 
 
 def address(value):
-    if not isinstance(value, str) or not re.fullmatch(r"0x[0-9a-fA-F]{40}", value):
-        raise ValueError("invalid address")
-    if int(value, 16) == 0:
-        raise ValueError("zero address")
-    return value
+    return validate_address(value)
 
 
 def uint(word, bits):
@@ -50,16 +78,17 @@ class JsonRpcBlockchainReader:
         client=None,
     ):
         try:
-            manifest = json.loads(Path(manifest_path).read_text())
-            if type(manifest["chain_id"]) is not int or manifest["chain_id"] != expected_chain_id:
-                raise ValueError("wrong manifest chain")
-            self._deployment_block = manifest["deployment_block"]
-            if type(self._deployment_block) is not int or self._deployment_block < 0:
-                raise ValueError("invalid deployment block")
-            self._issuer = address(manifest["contracts"]["IssuerRegistry"]["address"])
-            self._key = address(manifest["contracts"]["IssuerKeyRegistry"]["address"])
-            if self._issuer.lower() == self._key.lower():
-                raise ValueError("duplicate contract address")
+            manifest = load_manifest(manifest_path, expected_chain_id)
+            self._deployment_block = manifest.deployment_block
+            self._deployment_block_hash = manifest.deployment_block_hash
+            self.deployment_id = manifest.deployment_id
+            self._issuer = manifest.contract("IssuerRegistry").address
+            self._key = manifest.contract("IssuerKeyRegistry").address
+            self._proof = (
+                manifest.contract("ProofStatusRegistry").address
+                if "ProofStatusRegistry" in manifest.contracts
+                else None
+            )
             self._issuers = {}
             for identifier in issuer_ids:
                 self._id(identifier, "iss_")
@@ -165,12 +194,117 @@ class JsonRpcBlockchainReader:
             block = await self._rpc(client, "eth_blockNumber", [])
             if not isinstance(block, str) or int(block, 16) < self._deployment_block:
                 raise ValueError("stale manifest")
-            for contract in (self._issuer, self._key):
+            # Deployment block hash commits to its ancestry; Anvil --state can regenerate genesis.
+            deployed = await self._rpc(
+                client, "eth_getBlockByNumber", [hex(self._deployment_block), False]
+            )
+            if (
+                not isinstance(deployed, dict)
+                or deployed.get("hash", "").lower() != self._deployment_block_hash
+            ):
+                raise ValueError("deployment identity mismatch")
+            for contract in (self._issuer, self._key, self._proof):
+                if contract is None:
+                    continue
                 code = await self._rpc(client, "eth_getCode", [contract, block])
                 if not isinstance(code, str) or not re.fullmatch(r"0x(?:[0-9a-fA-F]{2})+", code):
                     raise ValueError("registry code missing")
             if operation == "issuer":
                 return await self._read_issuer(client, identifier, block)
+            if operation == "proof":
+                if self._proof is None or not isinstance(at, datetime) or at.tzinfo is None:
+                    raise ValueError("proof registry or timezone unavailable")
+                current = await self._rpc(client, "eth_getBlockByNumber", [block, False])
+                block_hash = validate_hash(current.get("hash"))
+                proof_hash = digest(identifier)
+                (status_word,) = await self._call(
+                    client, self._proof, "proofStatus(bytes32)", identifier, block, 1
+                )
+                status = uint(status_word, 8)
+                if status not in (0, 1, 2, 3):
+                    raise ValueError("invalid proof status")
+                if status == 0:
+                    result = None
+                else:
+                    words = await self._call(
+                        client, self._proof, "getProof(bytes32)", identifier, block, 9
+                    )
+                    issued, expires = uint(words[4], 64), uint(words[5], 64)
+                    revoked, consumed = uint(words[7], 64), uint(words[8], 64)
+                    single_use = uint(words[6], 8)
+                    if (
+                        single_use not in (0, 1)
+                        or not 0 <= issued < expires
+                        or (status != (2 if revoked else 3 if consumed else 1))
+                    ):
+                        raise ValueError("invalid proof commitment")
+                    data = (
+                        digest("isConsumable(bytes32,uint64)")[:4]
+                        + proof_hash
+                        + int(at.timestamp()).to_bytes(32, "big")
+                    )
+                    response = await self._rpc(
+                        client, "eth_call", [{"to": self._proof, "data": "0x" + data.hex()}, block]
+                    )
+                    if not isinstance(response, str) or not re.fullmatch(
+                        r"0x[0-9a-fA-F]{64}", response
+                    ):
+                        raise ValueError("invalid consumable response")
+                    consumable = int(response, 16)
+                    if consumable not in (0, 1):
+                        raise ValueError("invalid consumable flag")
+                    result = ProofChainState(
+                        self.deployment_id,
+                        self._chain_id,
+                        int(block, 16),
+                        block_hash,
+                        identifier,
+                        *["0x" + word.hex() for word in words[:4]],
+                        datetime.fromtimestamp(issued, UTC),
+                        datetime.fromtimestamp(expires, UTC),
+                        bool(single_use),
+                        datetime.fromtimestamp(revoked, UTC) if revoked else None,
+                        datetime.fromtimestamp(consumed, UTC) if consumed else None,
+                        {1: "ACTIVE", 2: "REVOKED", 3: "CONSUMED"}[status],
+                        bool(consumable),
+                    )
+                canonical = await self._rpc(client, "eth_getBlockByNumber", [block, False])
+                if validate_hash(canonical.get("hash")) != block_hash:
+                    raise ValueError("proof snapshot block changed")
+                return result
+            if operation == "snapshot":
+                issuer_id, key_id = identifier
+                if not isinstance(at, datetime) or at.tzinfo is None or at.utcoffset() is None:
+                    raise ValueError("timezone required")
+                current = await self._rpc(client, "eth_getBlockByNumber", [block, False])
+                if not isinstance(current, dict):
+                    raise ValueError("current block unavailable")
+                block_hash = validate_hash(current.get("hash"))
+                issuer = await self._read_issuer(client, issuer_id, block)
+                key = await self._read_key(client, key_id, block)
+                canonical = await self._rpc(client, "eth_getBlockByNumber", [block, False])
+                if (
+                    not isinstance(canonical, dict)
+                    or validate_hash(canonical.get("hash")) != block_hash
+                ):
+                    raise ValueError("snapshot block changed")
+                key_valid = (
+                    issuer is not None
+                    and key is not None
+                    and key.issuer_id == issuer_id
+                    and issuer.status == IssuerTrustStatus.ACTIVE
+                    and key.status == KeyTrustStatus.ACTIVE
+                    and key.valid_from <= at < key.valid_until
+                )
+                return RegistryTrustSnapshot(
+                    deployment_id=self.deployment_id,
+                    chain_id=self._chain_id,
+                    block_number=int(block, 16),
+                    block_hash=block_hash,
+                    issuer=issuer,
+                    key=key,
+                    key_valid_at=key_valid,
+                )
             key = await self._read_key(client, identifier, block)
             if operation == "key":
                 return key
@@ -199,3 +333,14 @@ class JsonRpcBlockchainReader:
 
     async def is_key_valid(self, key_id: str, at: datetime) -> bool:
         return await self._run("valid", key_id, at)
+
+    async def get_issuer_key_snapshot(
+        self, issuer_id: str, key_id: str, at: datetime
+    ) -> RegistryTrustSnapshot:
+        self._id(issuer_id, "iss_")
+        self._id(key_id, "key_")
+        return await self._run("snapshot", (issuer_id, key_id), at)
+
+    async def get_proof_state(self, proof_id: str, at: datetime) -> ProofChainState | None:
+        self._id(proof_id, "prf_")
+        return await self._run("proof", proof_id, at)
