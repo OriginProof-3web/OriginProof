@@ -1,0 +1,1363 @@
+{
+  "source": "synthetic",
+  "fixture_version": "1.0.0",
+  "schema_version": "2.0.0",
+  "purpose": "W3-D1/D2 pure model/core cases; no live issuance or browser success",
+  "basis_sha": "1f8ed632ea9c74091abaf2fe2ec32882038f731f",
+  "profiles": {
+    "payment_request": {
+      "golden": "fixtures/golden/payment_request_signing_v2.json",
+      "sha256": "d8f74ed3e1ed80240ff341cc24d7eb06762d09bb9bca938b222a7dd4e77e192c",
+      "issuer_id": "iss_origin_mock_bank",
+      "proof_type": "PAYMENT_REQUEST",
+      "comparison_fields": [
+        "amount_minor",
+        "currency",
+        "target_hash"
+      ]
+    },
+    "official_document": {
+      "golden": "fixtures/golden/official_document_signing_v2.json",
+      "sha256": "5ec9c371ed716343839ebb7ec24312ba1900eadb0864b40eb4765b824c33e0e0",
+      "issuer_id": "iss_origin_mock_office",
+      "proof_type": "OFFICIAL_DOCUMENT",
+      "comparison_fields": [
+        "institution_code",
+        "document_type",
+        "document_number",
+        "version"
+      ]
+    }
+  },
+  "cases": [
+    {
+      "id": "w3_payment_request_normal",
+      "profile": "payment_request",
+      "layer": "core",
+      "changes": {},
+      "expected": {
+        "verification_status": "VERIFIED",
+        "scope": "FULL_COMPARISON",
+        "reason_codes": [],
+        "checks": {
+          "signature": "PASS",
+          "candidate_match": "PASS"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_payment_request_id_only",
+      "profile": "payment_request",
+      "layer": "core",
+      "changes": {
+        "candidate": null
+      },
+      "expected": {
+        "verification_status": "VERIFIED",
+        "scope": "PROOF_ONLY",
+        "reason_codes": [],
+        "checks": {
+          "signature": "PASS",
+          "candidate_match": "NOT_RUN"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_payment_request_single_field_changed",
+      "profile": "payment_request",
+      "layer": "core",
+      "changes": {
+        "candidate_patch": {
+          "amount_minor": 154001
+        }
+      },
+      "expected": {
+        "verification_status": "TAMPERED",
+        "scope": "FULL_COMPARISON",
+        "reason_codes": [
+          "AMOUNT_MISMATCH"
+        ],
+        "checks": {
+          "signature": "PASS",
+          "candidate_match": "FAIL"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_payment_request_missing_amount_minor",
+      "profile": "payment_request",
+      "layer": "core",
+      "changes": {
+        "omit_candidate": [
+          "amount_minor"
+        ]
+      },
+      "expected": {
+        "verification_status": "INCONCLUSIVE",
+        "scope": "PARTIAL_COMPARISON",
+        "reason_codes": [
+          "INPUT_INCOMPLETE"
+        ],
+        "checks": {
+          "signature": "PASS",
+          "candidate_match": "NOT_RUN"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_payment_request_null_amount_minor",
+      "profile": "payment_request",
+      "layer": "core",
+      "changes": {
+        "candidate_patch": {
+          "amount_minor": null
+        }
+      },
+      "expected": {
+        "verification_status": "INCONCLUSIVE",
+        "scope": "PARTIAL_COMPARISON",
+        "reason_codes": [
+          "INPUT_INCOMPLETE"
+        ],
+        "checks": {
+          "signature": "PASS",
+          "candidate_match": "NOT_RUN"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_payment_request_missing_currency",
+      "profile": "payment_request",
+      "layer": "core",
+      "changes": {
+        "omit_candidate": [
+          "currency"
+        ]
+      },
+      "expected": {
+        "verification_status": "INCONCLUSIVE",
+        "scope": "PARTIAL_COMPARISON",
+        "reason_codes": [
+          "INPUT_INCOMPLETE"
+        ],
+        "checks": {
+          "signature": "PASS",
+          "candidate_match": "NOT_RUN"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_payment_request_null_currency",
+      "profile": "payment_request",
+      "layer": "core",
+      "changes": {
+        "candidate_patch": {
+          "currency": null
+        }
+      },
+      "expected": {
+        "verification_status": "INCONCLUSIVE",
+        "scope": "PARTIAL_COMPARISON",
+        "reason_codes": [
+          "INPUT_INCOMPLETE"
+        ],
+        "checks": {
+          "signature": "PASS",
+          "candidate_match": "NOT_RUN"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_payment_request_missing_target_hash",
+      "profile": "payment_request",
+      "layer": "core",
+      "changes": {
+        "omit_candidate": [
+          "target_hash"
+        ]
+      },
+      "expected": {
+        "verification_status": "INCONCLUSIVE",
+        "scope": "PARTIAL_COMPARISON",
+        "reason_codes": [
+          "INPUT_INCOMPLETE"
+        ],
+        "checks": {
+          "signature": "PASS",
+          "candidate_match": "NOT_RUN"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_payment_request_null_target_hash",
+      "profile": "payment_request",
+      "layer": "core",
+      "changes": {
+        "candidate_patch": {
+          "target_hash": null
+        }
+      },
+      "expected": {
+        "verification_status": "INCONCLUSIVE",
+        "scope": "PARTIAL_COMPARISON",
+        "reason_codes": [
+          "INPUT_INCOMPLETE"
+        ],
+        "checks": {
+          "signature": "PASS",
+          "candidate_match": "NOT_RUN"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_payment_request_all_null",
+      "profile": "payment_request",
+      "layer": "core",
+      "changes": {
+        "candidate_patch": {
+          "amount_minor": null,
+          "currency": null,
+          "target_hash": null
+        }
+      },
+      "expected": {
+        "verification_status": "INCONCLUSIVE",
+        "scope": "PARTIAL_COMPARISON",
+        "reason_codes": [
+          "INPUT_INCOMPLETE"
+        ],
+        "checks": {}
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_payment_request_mismatch_over_missing",
+      "profile": "payment_request",
+      "layer": "core",
+      "changes": {
+        "candidate_patch": {
+          "amount_minor": 154001
+        },
+        "omit_candidate": [
+          "target_hash"
+        ]
+      },
+      "expected": {
+        "verification_status": "TAMPERED",
+        "scope": "PARTIAL_COMPARISON",
+        "reason_codes": [
+          "AMOUNT_MISMATCH"
+        ],
+        "checks": {
+          "signature": "PASS",
+          "candidate_match": "FAIL"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_payment_request_wrong_network",
+      "profile": "payment_request",
+      "layer": "core",
+      "changes": {
+        "chain_id": 31338
+      },
+      "expected": {
+        "verification_status": "INCONCLUSIVE",
+        "scope": "PROOF_ONLY",
+        "reason_codes": [
+          "NETWORK_MISMATCH"
+        ],
+        "checks": {
+          "contract": "FAIL",
+          "signature": "NOT_RUN"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_payment_request_wrong_domain",
+      "profile": "payment_request",
+      "layer": "input_model",
+      "changes": {
+        "envelope_patch": {
+          "app_domain": "originproof.mvp"
+        }
+      },
+      "expected": {
+        "decision": "SCHEMA_REJECTED"
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_payment_request_wrong_version",
+      "profile": "payment_request",
+      "layer": "input_model",
+      "changes": {
+        "envelope_patch": {
+          "schema_version": "1.0.0"
+        }
+      },
+      "expected": {
+        "decision": "SCHEMA_REJECTED"
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_payment_request_invalid_period",
+      "profile": "payment_request",
+      "layer": "input_model",
+      "changes": {
+        "envelope_patch": {
+          "expires_at": "2026-10-01T00:00:00Z"
+        }
+      },
+      "expected": {
+        "decision": "SCHEMA_REJECTED"
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_payment_request_wrong_single_use",
+      "profile": "payment_request",
+      "layer": "input_model",
+      "changes": {
+        "envelope_patch": {
+          "single_use": false
+        }
+      },
+      "expected": {
+        "decision": "SCHEMA_REJECTED"
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_payment_request_wrong_type",
+      "profile": "payment_request",
+      "layer": "input_model",
+      "changes": {
+        "envelope_patch": {
+          "proof_type": "OFFICIAL_DOCUMENT"
+        }
+      },
+      "expected": {
+        "decision": "SCHEMA_REJECTED"
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_payment_request_untrusted_role",
+      "profile": "payment_request",
+      "layer": "input_model",
+      "changes": {
+        "envelope_patch": {
+          "role": "operator"
+        }
+      },
+      "expected": {
+        "decision": "SCHEMA_REJECTED"
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_payment_request_expiry_before",
+      "profile": "payment_request",
+      "layer": "core",
+      "changes": {
+        "now": "2026-10-01T23:59:59+00:00"
+      },
+      "expected": {
+        "verification_status": "VERIFIED",
+        "scope": "FULL_COMPARISON",
+        "reason_codes": [],
+        "checks": {
+          "signature": "PASS",
+          "candidate_match": "PASS"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_payment_request_expiry_at",
+      "profile": "payment_request",
+      "layer": "core",
+      "changes": {
+        "now": "2026-10-02T00:00:00+00:00"
+      },
+      "expected": {
+        "verification_status": "VERIFIED",
+        "scope": "FULL_COMPARISON",
+        "reason_codes": [
+          "PROOF_EXPIRED"
+        ],
+        "checks": {
+          "signature": "PASS",
+          "candidate_match": "PASS"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_payment_request_expiry_after",
+      "profile": "payment_request",
+      "layer": "core",
+      "changes": {
+        "now": "2026-10-02T00:00:01+00:00"
+      },
+      "expected": {
+        "verification_status": "VERIFIED",
+        "scope": "FULL_COMPARISON",
+        "reason_codes": [
+          "PROOF_EXPIRED"
+        ],
+        "checks": {
+          "signature": "PASS",
+          "candidate_match": "PASS"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_payment_request_missing_issuer",
+      "profile": "payment_request",
+      "layer": "core",
+      "changes": {
+        "issuer": null
+      },
+      "expected": {
+        "verification_status": "NOT_REGISTERED",
+        "scope": "PROOF_ONLY",
+        "reason_codes": [
+          "ISSUER_NOT_FOUND"
+        ],
+        "checks": {
+          "issuer": "FAIL",
+          "signature": "NOT_RUN"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_payment_request_missing_key",
+      "profile": "payment_request",
+      "layer": "core",
+      "changes": {
+        "key": null
+      },
+      "expected": {
+        "verification_status": "INCONCLUSIVE",
+        "scope": "PROOF_ONLY",
+        "reason_codes": [
+          "KEY_NOT_FOUND"
+        ],
+        "checks": {
+          "issuer_key": "FAIL",
+          "signature": "NOT_RUN"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_payment_request_other_issuer_key",
+      "profile": "payment_request",
+      "layer": "core",
+      "changes": {
+        "key_patch": {
+          "issuer_id": "iss_other_synthetic"
+        }
+      },
+      "expected": {
+        "verification_status": "INCONCLUSIVE",
+        "scope": "PROOF_ONLY",
+        "reason_codes": [
+          "KEY_NOT_FOUND"
+        ],
+        "checks": {
+          "issuer_key": "FAIL",
+          "signature": "NOT_RUN"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_payment_request_key_ends_at_issuance",
+      "profile": "payment_request",
+      "layer": "core",
+      "changes": {
+        "key_patch": {
+          "valid_until": "2026-10-01T00:00:00Z"
+        }
+      },
+      "expected": {
+        "verification_status": "INCONCLUSIVE",
+        "scope": "PROOF_ONLY",
+        "reason_codes": [
+          "KEY_TIME_INVALID"
+        ],
+        "checks": {
+          "issuer_key": "FAIL",
+          "signature": "NOT_RUN"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_payment_request_key_starts_after_issuance",
+      "profile": "payment_request",
+      "layer": "core",
+      "changes": {
+        "key_patch": {
+          "valid_from": "2026-10-01T00:00:01+00:00"
+        }
+      },
+      "expected": {
+        "verification_status": "INCONCLUSIVE",
+        "scope": "PROOF_ONLY",
+        "reason_codes": [
+          "KEY_TIME_INVALID"
+        ],
+        "checks": {
+          "issuer_key": "FAIL",
+          "signature": "NOT_RUN"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_payment_request_key_expires_after_issuance",
+      "profile": "payment_request",
+      "layer": "core",
+      "changes": {
+        "key_patch": {
+          "valid_until": "2026-10-01T00:00:01+00:00"
+        }
+      },
+      "expected": {
+        "verification_status": "VERIFIED",
+        "scope": "FULL_COMPARISON",
+        "reason_codes": [],
+        "checks": {
+          "signature": "PASS",
+          "candidate_match": "PASS"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_payment_request_wrong_signer",
+      "profile": "payment_request",
+      "layer": "core",
+      "changes": {
+        "key_patch": {
+          "signer": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      },
+      "expected": {
+        "verification_status": "TAMPERED",
+        "scope": "PROOF_ONLY",
+        "reason_codes": [
+          "INVALID_SIGNATURE"
+        ],
+        "checks": {
+          "signature": "FAIL"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_payment_request_invalid_signature",
+      "profile": "payment_request",
+      "layer": "core",
+      "changes": {
+        "envelope_patch": {
+          "signature": "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+        }
+      },
+      "expected": {
+        "verification_status": "TAMPERED",
+        "scope": "PROOF_ONLY",
+        "reason_codes": [
+          "INVALID_SIGNATURE"
+        ],
+        "checks": {
+          "signature": "FAIL",
+          "candidate_match": "NOT_RUN"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_payment_request_payload_changed",
+      "profile": "payment_request",
+      "layer": "core",
+      "changes": {
+        "payload_patch": {
+          "amount_minor": 154001
+        }
+      },
+      "expected": {
+        "verification_status": "TAMPERED",
+        "scope": "PROOF_ONLY",
+        "reason_codes": [
+          "PAYLOAD_HASH_MISMATCH"
+        ],
+        "checks": {
+          "payload_hash": "FAIL",
+          "signature": "NOT_RUN"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_payment_request_payload_and_hash_changed",
+      "profile": "payment_request",
+      "layer": "core",
+      "changes": {
+        "payload_patch": {
+          "amount_minor": 154001
+        },
+        "rehash_payload": true
+      },
+      "expected": {
+        "verification_status": "TAMPERED",
+        "scope": "PROOF_ONLY",
+        "reason_codes": [
+          "INVALID_SIGNATURE"
+        ],
+        "checks": {
+          "payload_hash": "PASS",
+          "signature": "FAIL"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_official_document_normal",
+      "profile": "official_document",
+      "layer": "core",
+      "changes": {},
+      "expected": {
+        "verification_status": "VERIFIED",
+        "scope": "FULL_COMPARISON",
+        "reason_codes": [],
+        "checks": {
+          "signature": "PASS",
+          "candidate_match": "PASS"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_official_document_id_only",
+      "profile": "official_document",
+      "layer": "core",
+      "changes": {
+        "candidate": null
+      },
+      "expected": {
+        "verification_status": "VERIFIED",
+        "scope": "PROOF_ONLY",
+        "reason_codes": [],
+        "checks": {
+          "signature": "PASS",
+          "candidate_match": "NOT_RUN"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_official_document_single_field_changed",
+      "profile": "official_document",
+      "layer": "core",
+      "changes": {
+        "candidate_patch": {
+          "document_number": "SYNTHETIC-CHANGED"
+        }
+      },
+      "expected": {
+        "verification_status": "TAMPERED",
+        "scope": "FULL_COMPARISON",
+        "reason_codes": [
+          "FIELD_MISMATCH"
+        ],
+        "checks": {
+          "signature": "PASS",
+          "candidate_match": "FAIL"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_official_document_missing_institution_code",
+      "profile": "official_document",
+      "layer": "core",
+      "changes": {
+        "omit_candidate": [
+          "institution_code"
+        ]
+      },
+      "expected": {
+        "verification_status": "INCONCLUSIVE",
+        "scope": "PARTIAL_COMPARISON",
+        "reason_codes": [
+          "INPUT_INCOMPLETE"
+        ],
+        "checks": {
+          "signature": "PASS",
+          "candidate_match": "NOT_RUN"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_official_document_null_institution_code",
+      "profile": "official_document",
+      "layer": "core",
+      "changes": {
+        "candidate_patch": {
+          "institution_code": null
+        }
+      },
+      "expected": {
+        "verification_status": "INCONCLUSIVE",
+        "scope": "PARTIAL_COMPARISON",
+        "reason_codes": [
+          "INPUT_INCOMPLETE"
+        ],
+        "checks": {
+          "signature": "PASS",
+          "candidate_match": "NOT_RUN"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_official_document_missing_document_type",
+      "profile": "official_document",
+      "layer": "core",
+      "changes": {
+        "omit_candidate": [
+          "document_type"
+        ]
+      },
+      "expected": {
+        "verification_status": "INCONCLUSIVE",
+        "scope": "PARTIAL_COMPARISON",
+        "reason_codes": [
+          "INPUT_INCOMPLETE"
+        ],
+        "checks": {
+          "signature": "PASS",
+          "candidate_match": "NOT_RUN"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_official_document_null_document_type",
+      "profile": "official_document",
+      "layer": "core",
+      "changes": {
+        "candidate_patch": {
+          "document_type": null
+        }
+      },
+      "expected": {
+        "verification_status": "INCONCLUSIVE",
+        "scope": "PARTIAL_COMPARISON",
+        "reason_codes": [
+          "INPUT_INCOMPLETE"
+        ],
+        "checks": {
+          "signature": "PASS",
+          "candidate_match": "NOT_RUN"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_official_document_missing_document_number",
+      "profile": "official_document",
+      "layer": "core",
+      "changes": {
+        "omit_candidate": [
+          "document_number"
+        ]
+      },
+      "expected": {
+        "verification_status": "INCONCLUSIVE",
+        "scope": "PARTIAL_COMPARISON",
+        "reason_codes": [
+          "INPUT_INCOMPLETE"
+        ],
+        "checks": {
+          "signature": "PASS",
+          "candidate_match": "NOT_RUN"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_official_document_null_document_number",
+      "profile": "official_document",
+      "layer": "core",
+      "changes": {
+        "candidate_patch": {
+          "document_number": null
+        }
+      },
+      "expected": {
+        "verification_status": "INCONCLUSIVE",
+        "scope": "PARTIAL_COMPARISON",
+        "reason_codes": [
+          "INPUT_INCOMPLETE"
+        ],
+        "checks": {
+          "signature": "PASS",
+          "candidate_match": "NOT_RUN"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_official_document_missing_version",
+      "profile": "official_document",
+      "layer": "core",
+      "changes": {
+        "omit_candidate": [
+          "version"
+        ]
+      },
+      "expected": {
+        "verification_status": "INCONCLUSIVE",
+        "scope": "PARTIAL_COMPARISON",
+        "reason_codes": [
+          "INPUT_INCOMPLETE"
+        ],
+        "checks": {
+          "signature": "PASS",
+          "candidate_match": "NOT_RUN"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_official_document_null_version",
+      "profile": "official_document",
+      "layer": "core",
+      "changes": {
+        "candidate_patch": {
+          "version": null
+        }
+      },
+      "expected": {
+        "verification_status": "INCONCLUSIVE",
+        "scope": "PARTIAL_COMPARISON",
+        "reason_codes": [
+          "INPUT_INCOMPLETE"
+        ],
+        "checks": {
+          "signature": "PASS",
+          "candidate_match": "NOT_RUN"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_official_document_all_null",
+      "profile": "official_document",
+      "layer": "core",
+      "changes": {
+        "candidate_patch": {
+          "institution_code": null,
+          "document_type": null,
+          "document_number": null,
+          "version": null
+        }
+      },
+      "expected": {
+        "verification_status": "INCONCLUSIVE",
+        "scope": "PARTIAL_COMPARISON",
+        "reason_codes": [
+          "INPUT_INCOMPLETE"
+        ],
+        "checks": {}
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_official_document_mismatch_over_missing",
+      "profile": "official_document",
+      "layer": "core",
+      "changes": {
+        "candidate_patch": {
+          "document_number": "SYNTHETIC-CHANGED"
+        },
+        "omit_candidate": [
+          "version"
+        ]
+      },
+      "expected": {
+        "verification_status": "TAMPERED",
+        "scope": "PARTIAL_COMPARISON",
+        "reason_codes": [
+          "FIELD_MISMATCH"
+        ],
+        "checks": {
+          "signature": "PASS",
+          "candidate_match": "FAIL"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_official_document_wrong_network",
+      "profile": "official_document",
+      "layer": "core",
+      "changes": {
+        "chain_id": 31338
+      },
+      "expected": {
+        "verification_status": "INCONCLUSIVE",
+        "scope": "PROOF_ONLY",
+        "reason_codes": [
+          "NETWORK_MISMATCH"
+        ],
+        "checks": {
+          "contract": "FAIL",
+          "signature": "NOT_RUN"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_official_document_wrong_domain",
+      "profile": "official_document",
+      "layer": "input_model",
+      "changes": {
+        "envelope_patch": {
+          "app_domain": "originproof.mvp"
+        }
+      },
+      "expected": {
+        "decision": "SCHEMA_REJECTED"
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_official_document_wrong_version",
+      "profile": "official_document",
+      "layer": "input_model",
+      "changes": {
+        "envelope_patch": {
+          "schema_version": "1.0.0"
+        }
+      },
+      "expected": {
+        "decision": "SCHEMA_REJECTED"
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_official_document_invalid_period",
+      "profile": "official_document",
+      "layer": "input_model",
+      "changes": {
+        "envelope_patch": {
+          "expires_at": "2026-10-01T00:00:00Z"
+        }
+      },
+      "expected": {
+        "decision": "SCHEMA_REJECTED"
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_official_document_wrong_single_use",
+      "profile": "official_document",
+      "layer": "input_model",
+      "changes": {
+        "envelope_patch": {
+          "single_use": true
+        }
+      },
+      "expected": {
+        "decision": "SCHEMA_REJECTED"
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_official_document_wrong_type",
+      "profile": "official_document",
+      "layer": "input_model",
+      "changes": {
+        "envelope_patch": {
+          "proof_type": "PAYMENT_REQUEST"
+        }
+      },
+      "expected": {
+        "decision": "SCHEMA_REJECTED"
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_official_document_untrusted_role",
+      "profile": "official_document",
+      "layer": "input_model",
+      "changes": {
+        "envelope_patch": {
+          "role": "operator"
+        }
+      },
+      "expected": {
+        "decision": "SCHEMA_REJECTED"
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_official_document_expiry_before",
+      "profile": "official_document",
+      "layer": "core",
+      "changes": {
+        "now": "2026-10-01T23:59:59+00:00"
+      },
+      "expected": {
+        "verification_status": "VERIFIED",
+        "scope": "FULL_COMPARISON",
+        "reason_codes": [],
+        "checks": {
+          "signature": "PASS",
+          "candidate_match": "PASS"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_official_document_expiry_at",
+      "profile": "official_document",
+      "layer": "core",
+      "changes": {
+        "now": "2026-10-02T00:00:00+00:00"
+      },
+      "expected": {
+        "verification_status": "VERIFIED",
+        "scope": "FULL_COMPARISON",
+        "reason_codes": [
+          "PROOF_EXPIRED"
+        ],
+        "checks": {
+          "signature": "PASS",
+          "candidate_match": "PASS"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_official_document_expiry_after",
+      "profile": "official_document",
+      "layer": "core",
+      "changes": {
+        "now": "2026-10-02T00:00:01+00:00"
+      },
+      "expected": {
+        "verification_status": "VERIFIED",
+        "scope": "FULL_COMPARISON",
+        "reason_codes": [
+          "PROOF_EXPIRED"
+        ],
+        "checks": {
+          "signature": "PASS",
+          "candidate_match": "PASS"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_official_document_missing_issuer",
+      "profile": "official_document",
+      "layer": "core",
+      "changes": {
+        "issuer": null
+      },
+      "expected": {
+        "verification_status": "NOT_REGISTERED",
+        "scope": "PROOF_ONLY",
+        "reason_codes": [
+          "ISSUER_NOT_FOUND"
+        ],
+        "checks": {
+          "issuer": "FAIL",
+          "signature": "NOT_RUN"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_official_document_missing_key",
+      "profile": "official_document",
+      "layer": "core",
+      "changes": {
+        "key": null
+      },
+      "expected": {
+        "verification_status": "INCONCLUSIVE",
+        "scope": "PROOF_ONLY",
+        "reason_codes": [
+          "KEY_NOT_FOUND"
+        ],
+        "checks": {
+          "issuer_key": "FAIL",
+          "signature": "NOT_RUN"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_official_document_other_issuer_key",
+      "profile": "official_document",
+      "layer": "core",
+      "changes": {
+        "key_patch": {
+          "issuer_id": "iss_other_synthetic"
+        }
+      },
+      "expected": {
+        "verification_status": "INCONCLUSIVE",
+        "scope": "PROOF_ONLY",
+        "reason_codes": [
+          "KEY_NOT_FOUND"
+        ],
+        "checks": {
+          "issuer_key": "FAIL",
+          "signature": "NOT_RUN"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_official_document_key_ends_at_issuance",
+      "profile": "official_document",
+      "layer": "core",
+      "changes": {
+        "key_patch": {
+          "valid_until": "2026-10-01T00:00:00Z"
+        }
+      },
+      "expected": {
+        "verification_status": "INCONCLUSIVE",
+        "scope": "PROOF_ONLY",
+        "reason_codes": [
+          "KEY_TIME_INVALID"
+        ],
+        "checks": {
+          "issuer_key": "FAIL",
+          "signature": "NOT_RUN"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_official_document_key_starts_after_issuance",
+      "profile": "official_document",
+      "layer": "core",
+      "changes": {
+        "key_patch": {
+          "valid_from": "2026-10-01T00:00:01+00:00"
+        }
+      },
+      "expected": {
+        "verification_status": "INCONCLUSIVE",
+        "scope": "PROOF_ONLY",
+        "reason_codes": [
+          "KEY_TIME_INVALID"
+        ],
+        "checks": {
+          "issuer_key": "FAIL",
+          "signature": "NOT_RUN"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_official_document_key_expires_after_issuance",
+      "profile": "official_document",
+      "layer": "core",
+      "changes": {
+        "key_patch": {
+          "valid_until": "2026-10-01T00:00:01+00:00"
+        }
+      },
+      "expected": {
+        "verification_status": "VERIFIED",
+        "scope": "FULL_COMPARISON",
+        "reason_codes": [],
+        "checks": {
+          "signature": "PASS",
+          "candidate_match": "PASS"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_official_document_wrong_signer",
+      "profile": "official_document",
+      "layer": "core",
+      "changes": {
+        "key_patch": {
+          "signer": "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      },
+      "expected": {
+        "verification_status": "TAMPERED",
+        "scope": "PROOF_ONLY",
+        "reason_codes": [
+          "INVALID_SIGNATURE"
+        ],
+        "checks": {
+          "signature": "FAIL"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_official_document_invalid_signature",
+      "profile": "official_document",
+      "layer": "core",
+      "changes": {
+        "envelope_patch": {
+          "signature": "0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+        }
+      },
+      "expected": {
+        "verification_status": "TAMPERED",
+        "scope": "PROOF_ONLY",
+        "reason_codes": [
+          "INVALID_SIGNATURE"
+        ],
+        "checks": {
+          "signature": "FAIL",
+          "candidate_match": "NOT_RUN"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_official_document_payload_changed",
+      "profile": "official_document",
+      "layer": "core",
+      "changes": {
+        "payload_patch": {
+          "document_number": "SYNTHETIC-CHANGED"
+        }
+      },
+      "expected": {
+        "verification_status": "TAMPERED",
+        "scope": "PROOF_ONLY",
+        "reason_codes": [
+          "PAYLOAD_HASH_MISMATCH"
+        ],
+        "checks": {
+          "payload_hash": "FAIL",
+          "signature": "NOT_RUN"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    },
+    {
+      "id": "w3_official_document_payload_and_hash_changed",
+      "profile": "official_document",
+      "layer": "core",
+      "changes": {
+        "payload_patch": {
+          "document_number": "SYNTHETIC-CHANGED"
+        },
+        "rehash_payload": true
+      },
+      "expected": {
+        "verification_status": "TAMPERED",
+        "scope": "PROOF_ONLY",
+        "reason_codes": [
+          "INVALID_SIGNATURE"
+        ],
+        "checks": {
+          "payload_hash": "PASS",
+          "signature": "FAIL"
+        }
+      },
+      "basis": "development_plan §15.4 W3-D1/D2; ADR 0001 §1/4/6",
+      "live_execution_status": "NOT_RUN"
+    }
+  ]
+}

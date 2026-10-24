@@ -1,0 +1,742 @@
+{
+  "review_version": "phishing-sources-self-review-0.1",
+  "source": "synthetic",
+  "date_kst": "2026-10-16",
+  "source_fixture": "fixtures/synthetic/phishing_sources_v1.json",
+  "source_fixture_sha256": "944e6e1ec87b24510c6d1cad2e1a6aac4f51e373230bc387e66f542b265595e9",
+  "scope": "D agent self-review and corpus integrity only; no model predictions, human sign-off or freeze",
+  "labels_human_reviewed": false,
+  "review_status": "A_OR_C_REVIEW_REQUIRED",
+  "provider_direction": "OPENAI_ONLY",
+  "final_model_selection": "UNDECIDED",
+  "holdout_model_evaluation": "NOT_RUN",
+  "original_fixture_changed": false,
+  "checks": {
+    "cases": 60,
+    "label_counts": {
+      "HIGH": 15,
+      "CAUTION": 15,
+      "NO_CLEAR_INDICATORS": 15,
+      "UNDETERMINED": 15
+    },
+    "split_counts": {
+      "development": 24,
+      "holdout": 36
+    },
+    "exact_duplicate_texts": 0,
+    "nfc_whitespace_duplicate_texts": 0,
+    "annotated_quotes": 30,
+    "exact_code_point_spans": "PASS",
+    "source_group_cross_split": "NONE_DECLARED",
+    "source_group_provenance_review": "PENDING: unique declared IDs do not prove independent authorship",
+    "url_hosts": [
+      "refund.example.invalid"
+    ]
+  },
+  "split_review_groups": [
+    {
+      "ids": [
+        "DP-H01",
+        "DP-H11",
+        "DP-N15"
+      ],
+      "reason": "같은 인증번호 공유 문구의 요청/자칭 예방/거절 대비가 양쪽 분할에 있습니다. 실제 원본의 변형인지 A/C가 확인한 후 source_group/분할을 고정해야 합니다."
+    },
+    {
+      "ids": [
+        "DP-H03",
+        "DP-N08",
+        "DP-N11"
+      ],
+      "reason": "원격제어 설치 요청과 예방/부정 문맥의 대비가 양쪽 분할에 있습니다. 의도된 대조 사례와 파생 원본 관계를 검토해야 합니다."
+    },
+    {
+      "ids": [
+        "DP-H04",
+        "DP-N03",
+        "DP-H12",
+        "DP-H14"
+      ],
+      "reason": "긴급 송금·피해 위협의 유사 틀이 있습니다. 같은 사례의 변형인지 확정하지 않고 분할 독립성 리뷰 대상으로 남깁니다."
+    }
+  ],
+  "cases": [
+    {
+      "id": "DP-H01",
+      "split": "development",
+      "proposed_label": "HIGH",
+      "source_text_sha256": "f6c4874b7700fadf6cd415bf42fe28b98efc5931fcce34430d0b2e2fd74e1866",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "보안팀을 자칭하며 인증번호를 타인에게 알려 달라고 직접 요청합니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-H02",
+      "split": "development",
+      "proposed_label": "HIGH",
+      "source_text_sha256": "b828979a473ad61af51d66f16b25ba674a28dd143c81a0940fcff91de8bd127b",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "도용을 구실로 OTP 전달을 요구하고 상담원이 대신 처리한다고 설명합니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-H03",
+      "split": "development",
+      "proposed_label": "HIGH",
+      "source_text_sha256": "771eab2e59c5337e7cb44662bd6e7b929bd8cfc7b4a9435138ff5995e63a8920",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "기관 점검을 명분으로 원격제어 앱 설치를 직접 요구합니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-H04",
+      "split": "development",
+      "proposed_label": "HIGH",
+      "source_text_sha256": "431db42b36cbe101a294bdd68af732b1de9e476a927ff31c0e7ff3d1f4598591",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "수사 협조를 명분으로 즉시 송금을 요구합니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-H05",
+      "split": "development",
+      "proposed_label": "HIGH",
+      "source_text_sha256": "9a18df3998669492b072d2c4db1152e905b03a6317049f5801b31cb8794292ef",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "은행의 독립 확인을 막고 비밀 유지를 요구합니다. 금전·비밀정보 요청이 없어 HIGH/CAUTION 경계를 리뷰해야 합니다.",
+      "flags": [
+        "LABEL_BOUNDARY_REVIEW"
+      ],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-H06",
+      "split": "development",
+      "proposed_label": "HIGH",
+      "source_text_sha256": "bf91326d65005e6aa2038742e06ac0e9335e280fccc5e6950ab319d421f08e5e",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "계좌 변경과 즉시 입금 요청이 결합돼 있습니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-H07",
+      "split": "holdout",
+      "proposed_label": "HIGH",
+      "source_text_sha256": "146c7ab922681dbfdcd529a11066fff914892d7266f47de194acf9a713398a0e",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "가족 연락을 막고 지시에 따르도록 통제합니다. 구체적 피해 행동이 없어 HIGH/CAUTION 경계를 리뷰해야 합니다.",
+      "flags": [
+        "LABEL_BOUNDARY_REVIEW"
+      ],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-H08",
+      "split": "holdout",
+      "proposed_label": "HIGH",
+      "source_text_sha256": "92e683d77d74eef806718a68279b29c320dc9e20c4dab86f608bb7ff6ad1315f",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "보안 화면에 인증번호 입력과 기존 창구 회피를 함께 요구합니다. 인증번호 입력만으로 악성이라 단정할 수 없어 문맥을 함께 검토해야 합니다.",
+      "flags": [
+        "LABEL_BOUNDARY_REVIEW",
+        "EVIDENCE_CONTEXT_REVIEW"
+      ],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-H09",
+      "split": "holdout",
+      "proposed_label": "HIGH",
+      "source_text_sha256": "df240e7d39c6f0b95ae81c4d6b8f7cfa79f2c2d769c0e00bd87ff2f7a5038a37",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "환급을 명분으로 보안카드 번호 전달을 직접 요구합니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-H10",
+      "split": "holdout",
+      "proposed_label": "HIGH",
+      "source_text_sha256": "9581e999562f779725dcf663b765135237a661a9b11759ea4baf9c5342aed8ad",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "계정 점검을 명분으로 비밀번호 공유를 직접 요구합니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-H11",
+      "split": "holdout",
+      "proposed_label": "HIGH",
+      "source_text_sha256": "628a51516aeac8fede343ede766b3fc56c3a81c262517cdf9bc2794527bbf72f",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "피싱 예방팀을 자칭하지만 실제 요청은 인증번호 공유입니다. 예방이라는 단어만으로 예외 처리하지 않습니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-H12",
+      "split": "holdout",
+      "proposed_label": "HIGH",
+      "source_text_sha256": "79031c9e39cf36150cc45d3c49df3466aec9b7cb98e14bd5a4f24f479fdaefc4",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "중복 결제 방지를 구실로 3분 이내 임시 계좌 이체를 요구합니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-H13",
+      "split": "holdout",
+      "proposed_label": "HIGH",
+      "source_text_sha256": "dbf481c6cea718ef0c1c246c2b6f5cab48213e1a713199c705ea120155dac21a",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "OTP를 대화로 전송하도록 요구하며 정상 로그인 경로를 피하게 합니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-H14",
+      "split": "holdout",
+      "proposed_label": "HIGH",
+      "source_text_sha256": "df82141e880a43b60137ed30d10427e6d981c24094c92f661fd00e91fd762419",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "압류를 명분으로 당장 안전 계좌에 입금하라고 요구합니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-H15",
+      "split": "holdout",
+      "proposed_label": "HIGH",
+      "source_text_sha256": "67e1529522eeeea9ee142184074ef31ec94ef3dc78284bb2917a0856fb8b9a27",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "원격 지원 프로그램 실행과 상담원에게 계정 비밀값 전달을 요구합니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-C01",
+      "split": "development",
+      "proposed_label": "CAUTION",
+      "source_text_sha256": "5e6433539302ca088b9e92536bf1b57cbaabfb3d6bd2dbe4d25773dbf5b7dac1",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "담당자·사유 없는 변경 계좌 입금 요청입니다. 긴급성이나 비밀값 요청은 명시되지 않았습니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-C02",
+      "split": "development",
+      "proposed_label": "CAUTION",
+      "source_text_sha256": "56d9394068084901c0b619060189dd571c2d78614b400c18f9986e174075e204",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "신청 기억이 없는 환급과 링크 접수가 결합됩니다. URL 모양만으로 악성 여부를 확정하지 않습니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-C03",
+      "split": "development",
+      "proposed_label": "CAUTION",
+      "source_text_sha256": "c26412192d0b6e64742fdaaf887fe3f9b7d601b2780eb12d3904a6b3627d2b3c",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "알 수 없는 발신자가 이름·생년월일을 링크에 입력하도록 요청합니다. 불완전한 신원정보 수집 문맥입니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-C04",
+      "split": "development",
+      "proposed_label": "CAUTION",
+      "source_text_sha256": "77457eb654d74ccac5c0661eaddd710514a1370cafc4d6cbe717d2bb46ec77aa",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "처음 보는 관리자가 별도 앱 설치 파일을 보냅니다. 원격제어나 실행 요구는 확정되지 않았습니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-C05",
+      "split": "development",
+      "proposed_label": "CAUTION",
+      "source_text_sha256": "726a8b961fa6f65baf498e2b290123c577a09f1ca47498b6b42967cb67495f72",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "기존과 다른 계좌 및 변경 승인 미확인이 구체적 우려입니다. 실제 계좌 검증 결과는 주어지지 않았습니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-C06",
+      "split": "development",
+      "proposed_label": "CAUTION",
+      "source_text_sha256": "050b1eb61eb78b63405d187d9d80b30acb83490c944fcc475ecc11147376ac62",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "기관 관련 불명확한 계정이 개인 대화에서 수수료 납부를 요구합니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-C07",
+      "split": "holdout",
+      "proposed_label": "CAUTION",
+      "source_text_sha256": "6e399250b24e466f9a9f275ed05856a8baa7834510ff95bd82cb4b7090b7210b",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "요청하지 않은 배송과 주소 변경 링크가 있으나 실제 주문/변경 요청은 불명확합니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-C08",
+      "split": "holdout",
+      "proposed_label": "CAUTION",
+      "source_text_sha256": "ccd6386088d545ba9372085603396310a51d263009eee9539900bdfbd639e225",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "수신자·청구 근거가 없는 신규 추가 납부 요청입니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-C09",
+      "split": "holdout",
+      "proposed_label": "CAUTION",
+      "source_text_sha256": "3be27b37937133dfc3ecf010a47efa739fd43fecc2d634db738863f8b2c9f574",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "거래처와 비슷한 이름의 계정 및 새 계좌 송금 요청이 결합됩니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-C10",
+      "split": "holdout",
+      "proposed_label": "CAUTION",
+      "source_text_sha256": "d123dd8d4747f68c5fb17b68c9123eefa5cc696736385cfe77ed9228563c64f8",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "낯선 외부 사이트에서 신분정보 제출을 요청합니다. 제출할 정보와 목적이 불완전합니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-C11",
+      "split": "holdout",
+      "proposed_label": "CAUTION",
+      "source_text_sha256": "a2773811754f9914de66002e3a47359c75949c386039b6f88113ed17cdfbe824",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "미확인 QR의 별도 로그인 화면 연결 설명입니다. QR/로그인 자체는 악성이 아니므로 CAUTION/UNDETERMINED 경계 리뷰가 필요합니다.",
+      "flags": [
+        "LABEL_BOUNDARY_REVIEW"
+      ],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-C12",
+      "split": "holdout",
+      "proposed_label": "CAUTION",
+      "source_text_sha256": "be8f79f961f90648390fba96c8121835118930a352e70fe4be461bdab1f6e3f0",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "기관 직원을 자칭하며 개인 명의 계좌에 보증금을 보내 달라고 요구합니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-C13",
+      "split": "holdout",
+      "proposed_label": "CAUTION",
+      "source_text_sha256": "5c9701ff42f0c7afa58d31b01802607c575cffdedbbcdf9555d2585893a95f6e",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "불명확한 채용에서 업무 전 장비 비용 선납을 요구합니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-C14",
+      "split": "holdout",
+      "proposed_label": "CAUTION",
+      "source_text_sha256": "196e67e18d017189d8a2f144bfc8e2b2ee31173d001a4161faa3a12d0b45527c",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "발신 경로가 확인되지 않은 암호화 첨부입니다. 암호화만으로 의심을 높이지 않도록 CAUTION/NO_CLEAR_INDICATORS 경계를 리뷰해야 합니다.",
+      "flags": [
+        "LABEL_BOUNDARY_REVIEW"
+      ],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-C15",
+      "split": "holdout",
+      "proposed_label": "CAUTION",
+      "source_text_sha256": "f4609cda4d580f04ecc8faf9060c4ae81dcf7c17bcb17504ded563d198e4cc2c",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "미사용 서비스의 미납 주장에 금액·계약 정보가 없고 개인 문의 채널을 안내합니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-N01",
+      "split": "development",
+      "proposed_label": "NO_CLEAR_INDICATORS",
+      "source_text_sha256": "4aec7ade32ab0a04ecb862a736a914d299dbface71966b08d30832fccec3e783",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "기관을 자칭하지만 인증번호를 요청하지 않는다는 부정문과 공식 앱 확인 안내입니다. 발행 진위는 판단하지 않습니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-N02",
+      "split": "development",
+      "proposed_label": "NO_CLEAR_INDICATORS",
+      "source_text_sha256": "cf5145d9165b9522e80b11ad8dc989a855617af6562392676b57adf2d0612e7c",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "시설 점검 일정과 조회 지연의 단순 안내로 위험 행동 요청이 없습니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-N03",
+      "split": "development",
+      "proposed_label": "NO_CLEAR_INDICATORS",
+      "source_text_sha256": "f7e8e9de969d5dffd750c5aa9340d15ca8ac92cbded56dd48fb79cffb603b3d1",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "송금 요구가 인용된 예방 예시이고 응하지 말라는 거절 문맥이 명시됩니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-N04",
+      "split": "development",
+      "proposed_label": "NO_CLEAR_INDICATORS",
+      "source_text_sha256": "d1c012f39c7ea06bd8abac1c4b0c9869cdc6ccde5e64977cd9619ff01363d03b",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "방문 수령과 현장 신분 확인 안내입니다. 메시지로 비밀정보를 수집하는 요구는 없습니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-N05",
+      "split": "development",
+      "proposed_label": "NO_CLEAR_INDICATORS",
+      "source_text_sha256": "f12aa0d3c5c7831527fd60f2a0c727e6aebdd6e2fa295ab086e555c7acd3a6da",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "추가 납부가 없음을 명시한 진행 상태 안내입니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-N06",
+      "split": "development",
+      "proposed_label": "NO_CLEAR_INDICATORS",
+      "source_text_sha256": "bbe969d78137765fa8ca9c194022ee3f864824c606a59fca7b1d6935a1ba21eb",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "인증번호·비밀번호 공유 금지와 기존 공식 연락처 확인을 권고합니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-N07",
+      "split": "holdout",
+      "proposed_label": "NO_CLEAR_INDICATORS",
+      "source_text_sha256": "2cf1a003c6bf4c5b162e04d423c0ac572bf26fe94809ef5959b14006c21ad69d",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "휴관일과 영업일 안내로 금전·비밀정보 요구가 없습니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-N08",
+      "split": "holdout",
+      "proposed_label": "NO_CLEAR_INDICATORS",
+      "source_text_sha256": "484629ec667afa02aeb7ea669134b8d426479125753f6b2233045d18fdcbb34c",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "원격제어 설치 요구는 교육 사례로 인용되고 실제로는 거절하도록 안내합니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-N09",
+      "split": "holdout",
+      "proposed_label": "NO_CLEAR_INDICATORS",
+      "source_text_sha256": "78c3571694326156100a81daadb888f38584846e5779a7a0bdba0ecd2ec061a8",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "제목 오탈자와 문서 변경 이력 확인 안내입니다. 기록의 실제 진위를 입증하는 자료는 아닙니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-N10",
+      "split": "holdout",
+      "proposed_label": "NO_CLEAR_INDICATORS",
+      "source_text_sha256": "3814675de7057e852acc3a2c38d3c5a72bc0923b812c96db4085d94d38f361fd",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "예약 일정 변경이며 비용·로그인 정보 제출을 요청하지 않는다고 명시합니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-N11",
+      "split": "holdout",
+      "proposed_label": "NO_CLEAR_INDICATORS",
+      "source_text_sha256": "28f5d0f773bc8d8c0d5cd8092a63ad2a64bba865148e06c180bf10ef4b1c5369",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "직원의 설치 요구에 따르지 말라는 부정문과 개인정보 제공 금지 문맥입니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-N12",
+      "split": "holdout",
+      "proposed_label": "NO_CLEAR_INDICATORS",
+      "source_text_sha256": "8bbd73c695bfc0ad3cce0dea88d1bc9d4b85cfcfca9cf1618949ca951f2c7172",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "사기 수법을 설명하는 교육 내용이며 실제 송금 요청이 없다고 명시합니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-N13",
+      "split": "holdout",
+      "proposed_label": "NO_CLEAR_INDICATORS",
+      "source_text_sha256": "629f9d86be519d3e2bcbea11d7c397b52eb1b1138117ab8570b529e610e6cbe3",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "기존 공식 앱의 고객센터 메뉴 이용 안내이며 메시지의 외부 링크는 없습니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-N14",
+      "split": "holdout",
+      "proposed_label": "NO_CLEAR_INDICATORS",
+      "source_text_sha256": "af024dfb23d920c21d02f855a71f01480df533ee604bd4836db5eafd52a56e98",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "동아리의 책 반납 요청이며 금전·비밀정보·원격제어 요청이 없습니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-N15",
+      "split": "holdout",
+      "proposed_label": "NO_CLEAR_INDICATORS",
+      "source_text_sha256": "86dc232671dac37eb376b896abacece4b3c930a99ace0a7fa59723ddf228f04a",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "인증번호 공유 요구를 인용하고 무시하라는 경고입니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-U01",
+      "split": "development",
+      "proposed_label": "UNDETERMINED",
+      "source_text_sha256": "f0af0b5c65839a3b1d55e47555d948f93d28bc28ab2f8359371c928a4e7bbcdf",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "입금이라는 일부 단어와 누락 표시만 있어 요청/위험을 결정할 문맥이 부족합니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-U02",
+      "split": "development",
+      "proposed_label": "UNDETERMINED",
+      "source_text_sha256": "d30f7c7a37f0b18f719cd3ea23930b02fed64ee04c11b05e13739188c355b920",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "숫자열만 있으며 값의 종류나 요청 행동이 없습니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-U03",
+      "split": "development",
+      "proposed_label": "UNDETERMINED",
+      "source_text_sha256": "0ef83dc698efad591b71e9c205844d1e75e1e6b4dbdb82b3ace46105cc6f5629",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "문장 내용이 없는 기호 조각입니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-U04",
+      "split": "development",
+      "proposed_label": "UNDETERMINED",
+      "source_text_sha256": "3425a45cfbac05d8728087972120b5b1f969cbc6f8ff6151d72828b0671ffdf5",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "번호와 전송 대상이 무엇인지 문맥이 없습니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-U05",
+      "split": "development",
+      "proposed_label": "UNDETERMINED",
+      "source_text_sha256": "75dfd980992bfea9240f7c8809bd4187ac617a41e6228ea61ef85ed59ac852c4",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "판독 불가를 설명하는 합성 표식이며 실제 OCR 실패 입력은 아닙니다.",
+      "flags": [
+        "PLACEHOLDER_NOT_MODALITY_TEST"
+      ],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-U06",
+      "split": "development",
+      "proposed_label": "UNDETERMINED",
+      "source_text_sha256": "5c54e718fd6860efb92ff5016f4cab6b40cbfef4497759bd1b44b1ac688801b9",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "이전 절차를 참조하지만 그 절차의 내용이 없습니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-U07",
+      "split": "holdout",
+      "proposed_label": "UNDETERMINED",
+      "source_text_sha256": "6f987c70d4260d047594e0fb886955a7408e355b579f2ad6f4cc5dceb4c17e23",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "가려진 계좌를 설명할 뿐 송금 요구와 실제 문맥은 없습니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-U08",
+      "split": "holdout",
+      "proposed_label": "UNDETERMINED",
+      "source_text_sha256": "c344be36d07790c30bdb73500eb928e074ce05e89e1dd13096be729b92d75598",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "발신자와 요청이 누락됐다는 설명으로 실제 요구를 판단할 수 없습니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-U09",
+      "split": "holdout",
+      "proposed_label": "UNDETERMINED",
+      "source_text_sha256": "1968c10352e33a88555f82a2500ee25c3872fe015cda7ecda9124f3d5c4f4865",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "대상이 생략된 처리 요청입니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-U10",
+      "split": "holdout",
+      "proposed_label": "UNDETERMINED",
+      "source_text_sha256": "e0b4cf3d7a89ed8e72e3d94a40fe674c515e2e5fb2745270c37b9fdaf9cfa463",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "서로 상충한다는 설명만 있고 비교할 두 원문이 없습니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-U11",
+      "split": "holdout",
+      "proposed_label": "UNDETERMINED",
+      "source_text_sha256": "6988dbf334082830de89635f35dcbc5095ec1cfc9bbe2305285f9433ca0553f7",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "무엇을 확인했는지 생략된 질문입니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-U12",
+      "split": "holdout",
+      "proposed_label": "UNDETERMINED",
+      "source_text_sha256": "f177d92934ac2a2a23ce4e5a4064cc0f646401b8bd8e219bcad090682c3b2220",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "링크와 요청 문맥이 삭제됐다는 설명만 있습니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-U13",
+      "split": "holdout",
+      "proposed_label": "UNDETERMINED",
+      "source_text_sha256": "fdfb2173ed74b3079fc4b7a356ddb8bb78cc5f67354f980c18b1972c702440b4",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "전사 미확보를 설명하는 합성 표식이며 실제 STT 실패 입력은 아닙니다.",
+      "flags": [
+        "PLACEHOLDER_NOT_MODALITY_TEST"
+      ],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-U14",
+      "split": "holdout",
+      "proposed_label": "UNDETERMINED",
+      "source_text_sha256": "8968ce0e9ed751b97002d6abd1fc9dfdf9a0ce559255fd3a9fe83c41aee385ea",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "수수료와 거래 문맥이 생략됐고 납부 요청도 명확하지 않습니다.",
+      "flags": [],
+      "a_or_c_review": "PENDING"
+    },
+    {
+      "id": "DP-U15",
+      "split": "holdout",
+      "proposed_label": "UNDETERMINED",
+      "source_text_sha256": "7f2bb2c0b62fbf165e5d7484206300f9ac52a77b85625baec27abacc6d346481",
+      "d_review_status": "AGENT_SELF_REVIEW_ONLY",
+      "label_changed": false,
+      "basis": "사진 글자가 읽히지 않는다는 설명만 있어 실제 이미지 판독 실패 검사가 아닙니다.",
+      "flags": [
+        "PLACEHOLDER_NOT_MODALITY_TEST"
+      ],
+      "a_or_c_review": "PENDING"
+    }
+  ]
+}
