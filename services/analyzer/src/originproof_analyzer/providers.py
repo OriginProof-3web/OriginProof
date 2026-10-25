@@ -22,8 +22,8 @@ from openai import (
     RateLimitError,
 )
 from originproof_core import CardPaymentNoticeCandidate
-from originproof_core.wallet_contract import AnalysisReport
-from pydantic import ValidationError
+from originproof_core.wallet_contract import AnalysisEvidence, AnalysisReport
+from pydantic import Field, ValidationError
 
 from .errors import AnalyzerError, AnalyzerErrorCode
 from .inputs import SemanticInput
@@ -31,7 +31,7 @@ from .settings import AnalyzerSettings
 from .validation import EXTRACTED_FIELDS, validate_candidate
 
 PROMPT_VERSION = "card_payment_notice_v4"
-ANALYSIS_PROMPT_VERSION = "phishing_analysis_v1"
+ANALYSIS_PROMPT_VERSION = "phishing_analysis_v2"
 
 
 class LLMProvider(Protocol):
@@ -227,9 +227,21 @@ def _provider_errors():
         raise AnalyzerError(AnalyzerErrorCode.PROVIDER_UNAVAILABLE) from None
 
 
+class _QuoteOnlyEvidence(AnalysisEvidence):
+    """Text provider supplies quotes; the existing validator resolves unique spans."""
+
+    source: Literal["LLM"] = "LLM"
+    start_offset: None = None
+    end_offset: None = None
+    page: None = None
+    start_ms: None = None
+    end_ms: None = None
+
+
 class _AnalysisOutput(AnalysisReport):
     """Provider-only narrowing of the shared model; no issuance object can be generated."""
 
+    evidence: list[_QuoteOnlyEvidence] = Field(default_factory=list, max_length=50)
     verification: None = None
     verification_not_run_reason: Literal["ANALYZER_DOES_NOT_VERIFY"] = (
         "ANALYZER_DOES_NOT_VERIFY"
@@ -239,6 +251,7 @@ class _AnalysisOutput(AnalysisReport):
 class OpenAILLMProvider:
     provider_name = "openai"
     image_mode = "vision"
+    evidence_offset_mode = "QUOTE_ONLY_DETERMINISTIC_UNIQUE_MATCH"
 
     def __init__(
         self,

@@ -112,6 +112,7 @@ async def evaluate_phishing(
     rows, durations = [], []
     quote_total = expected_quotes = located_quotes = model_failures = 0
     grounding_rejected_reports = 0
+    validated_llm_quotes = validated_llm_covered = validated_llm_exact = 0
     for case in selected:
         started = perf_counter()
         row = {
@@ -128,6 +129,20 @@ async def evaluate_phishing(
             report = validate_analysis_report(await analyzer(case["text"]), case["text"])
             row["predicted"] = report.risk_level
             quote_total += len(report.evidence)
+            llm_evidence = [item for item in report.evidence if item.source == "LLM"]
+            validated_llm_quotes += len(llm_evidence)
+            for expected in case["expected_evidence"]:
+                validated_llm_covered += any(
+                    item.start_offset <= expected["start_offset"]
+                    and item.end_offset >= expected["end_offset"]
+                    for item in llm_evidence
+                )
+                validated_llm_exact += any(
+                    item.start_offset == expected["start_offset"]
+                    and item.end_offset == expected["end_offset"]
+                    and item.quote == expected["quote"]
+                    for item in llm_evidence
+                )
             located_quotes += sum(
                 any(
                     item.start_offset <= expected["start_offset"]
@@ -164,7 +179,7 @@ async def evaluate_phishing(
     ordered = sorted(durations)
     return {
         "source": "synthetic",
-        "evaluation_version": "v5-d-evaluation-0.3",
+        "evaluation_version": "v5-d-evaluation-0.4",
         "corpus_version": manifest["fixture_version"],
         "corpus_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
         "review_status": manifest["review_status"],
@@ -174,6 +189,9 @@ async def evaluate_phishing(
         "live_model_evaluated": live,
         "model": getattr(provider, "model", None) if live else None,
         "prompt_version": ANALYSIS_PROMPT_VERSION,
+        "provider_offset_mode": getattr(
+            provider, "evidence_offset_mode", "PROVIDER_SUPPLIED_OR_UNSPECIFIED"
+        ),
         "rule_version": RULE_VERSION,
         "acceptance_status": (
             "LABELS_CONFIRMED_EXECUTION_REVIEW_REQUIRED"
@@ -187,6 +205,16 @@ async def evaluate_phishing(
         "model_unavailable_or_rejected": model_failures,
         "evidence": {
             "validated_quote_count": quote_total,
+            "validated_llm_locations": {
+                "scope": "POST_VALIDATION_LLM_ONLY; MAY_BE_DETERMINISTICALLY_RESOLVED",
+                "quote_count": validated_llm_quotes,
+                "covered_expected_spans": validated_llm_covered,
+                "exact_expected_spans": validated_llm_exact,
+                "expected_span_count": expected_quotes,
+                "location_recall": validated_llm_exact / expected_quotes
+                if expected_quotes
+                else None,
+            },
             "output_safety_scope": "VALIDATED_OUTPUT_ONLY_NOT_CANDIDATE_ACCURACY",
             "grounding_rejected_reports": grounding_rejected_reports,
             "candidate_grounding": observer.metrics(

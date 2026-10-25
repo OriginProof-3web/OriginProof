@@ -347,3 +347,37 @@ async def test_http_diagnostics_never_persist_provider_message_or_unknown_code(
     assert row["http_status"] == status and row["provider_error_code"] == expected
     assert "PRIVATE_SECRET" not in stored
     assert result["http_attempts"] == 1 and result["live_model_evaluated"] is False
+
+
+async def test_active_prompt_hash_is_bound_and_old_prompt_cannot_resume(
+    prepared,
+    response_body,
+    monkeypatch,
+):
+    path, policy, journal = prepared
+    await live.execute(
+        path,
+        policy,
+        journal,
+        api_key="synthetic-placeholder",
+        stop_after=1,
+        transport=httpx.MockTransport(lambda r: httpx.Response(200, json=response(response_body))),
+    )
+    before = journal.read_bytes()
+    state = json.loads(before)
+    identity = state["identity"]
+    assert identity["analysis_prompt_version"] == "phishing_analysis_v2"
+    assert "phishing_analysis_v2.md" in identity["source_sha256"]
+    assert "phishing_analysis_v1.md" not in identity["source_sha256"]
+    assert state["summary"]["candidate_location_note"].startswith("RAW_OFFSETS_NOT_REQUESTED")
+    monkeypatch.setattr(live, "ANALYSIS_PROMPT_VERSION", "phishing_analysis_v1")
+    with pytest.raises(ValueError, match="incompatible"):
+        await live.execute(
+            path,
+            policy,
+            journal,
+            api_key="synthetic-placeholder",
+            resume=True,
+            transport=httpx.MockTransport(lambda r: pytest.fail("no cross-prompt replay")),
+        )
+    assert journal.read_bytes() == before

@@ -17,7 +17,7 @@ from originproof_core import wallet_contract
 
 from .evidence_evaluation import CandidateEvidenceObserver
 from .phishing_evaluation import classification_metrics, evaluate_phishing, load_corpus
-from .providers import OpenAILLMProvider
+from .providers import ANALYSIS_PROMPT_VERSION, OpenAILLMProvider
 from .settings import AnalyzerSettings
 
 POLICY_KEYS = {
@@ -227,11 +227,28 @@ def summarize(state, cases):
         counts[key] = sum((r.get("usage") or {}).get(key, 0) for r in state["rows"])
     return {
         "status": "COMPLETE" if len(rows) == len(cases) else "INCOMPLETE",
+        "evaluation_version": "v5-d-live-evaluation-0.2",
         "scope": state["identity"]["transport_scope"],
         "live_model_evaluated": state["identity"]["transport_scope"] == "OPENAI_HTTPS"
         and any(r.get("http_status") == 200 for r in state["rows"]),
         "requested_cases": len(cases),
         "processed_cases": len(rows),
+        "prompt_version": state["identity"].get("analysis_prompt_version"),
+        "provider_offset_mode": state["identity"].get("provider_offset_mode"),
+        "candidate_location_note": (
+            "RAW_OFFSETS_NOT_REQUESTED; use separately validated LLM locations"
+            if state["identity"].get("provider_offset_mode")
+            == "QUOTE_ONLY_DETERMINISTIC_UNIQUE_MATCH"
+            else "PROVIDER_SUPPLIED_OR_UNSPECIFIED"
+        ),
+        "validated_llm_locations": {
+            "scope": "POST_VALIDATION_LLM_ONLY; NOT_RAW_MODEL_OFFSETS_OR_RULE_FALLBACK",
+            **{
+                key: sum(r["evidence"]["validated_llm_locations"][key] for r in completed)
+                for key in ("quote_count", "covered_expected_spans", "exact_expected_spans")
+            },
+            "expected_span_count": sum(len(expected[r["id"]]["expected_evidence"]) for r in rows),
+        },
         "unknown_outcomes": sum(r["status"] != "DONE" for r in state["rows"]),
         "http_attempts": sum(r["http_attempts"] for r in state["rows"]),
         "reserved_calls": len(rows),
@@ -277,7 +294,7 @@ async def execute(path, policy, journal, *, api_key, resume=False, stop_after=No
             Path(__file__).with_name("inputs.py"),
             Path(wallet_contract.__file__),
             Path(wallet_contract.__file__).with_name("models.py"),
-            Path(__file__).parent / "prompts/phishing_analysis_v1.md",
+            Path(__file__).parent / "prompts" / f"{ANALYSIS_PROMPT_VERSION}.md",
         )
     }
     identity = {
@@ -285,6 +302,8 @@ async def execute(path, policy, journal, *, api_key, resume=False, stop_after=No
         "source_sha256": code,
         "transport_scope": "SDK_MOCK_TRANSPORT_TEST" if transport else "OPENAI_HTTPS",
         "output_cap": policy["max_output_tokens"],
+        "analysis_prompt_version": ANALYSIS_PROMPT_VERSION,
+        "provider_offset_mode": OpenAILLMProvider.evidence_offset_mode,
         "dependencies": {
             name: importlib.metadata.version(name)
             for name in ("openai", "httpx", "pydantic", "pydantic-settings")
