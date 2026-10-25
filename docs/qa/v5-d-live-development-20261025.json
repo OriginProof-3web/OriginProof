@@ -1019,5 +1019,7 @@
     "junit_sha256": "d1c4e08bc431de8118acd762c776dd2b55f6185a39eeb9aecbda66bfea5085f7",
     "ruff": "PASS",
     "review_packet_consistency": "PASS"
-  }
+  },
+  "post_run_paid_policy_active": false,
+  "post_run_policy_note": "The single approved 24-call batch is consumed; current policy disabled again. policy/source identity above is the actual historical execution configuration."
 }
