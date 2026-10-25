@@ -101,8 +101,25 @@ def build_packet(corpus_path: Path, self_review_path: Path) -> dict:
                 elif variant["kind"] == "AUDIO":
                     variant["asset_status"] = row["recording"]["status"]
                     variant["script_reference"] = "selected_input_development_v1/recording_plan.md"
+    speech = None
+    speech_root = corpus_path.parent / "local_tts_development_preview_v1"
+    if (speech_root / "manifest.json").exists():
+        from .input_asset_pack import check_speech_previews
+
+        speech = check_speech_previews(corpus_path, speech_root)
+        manifest = json.loads((speech_root / "manifest.json").read_text())
+        previews = {row["source_id"]: row for row in manifest["cases"]}
+        for case in cases:
+            if case["id"] in previews:
+                for variant in case["planned_variants"]:
+                    if variant["kind"] == "AUDIO":
+                        variant["asset_status"] = "LOCAL_TTS_DRAFT_NOT_REVIEWED_OR_TRANSCRIBED"
+                        variant["tts_preview_path"] = (
+                            "local_tts_development_preview_v1/" + previews[case["id"]]["audio_path"]
+                        )
     return {
         "version": "v5-d-input-review-0.3",
+        "unreviewed_local_speech_previews": speech,
         "execution_flags_scope": "EXPORT_ASSET_PREPARATION_ONLY; TEXT_RUNS_SEPARATE",
         "generated_development_assets": assets,
         "date_kst": "2026-10-25" if reviewed else "2026-10-23",
@@ -179,9 +196,17 @@ def render_markdown(packet: dict) -> str:
         lines.extend(
             [
                 f"개발 이미지 {assets['image_assets']}개, "
-                f"대본 {assets['recording_script_drafts']}개. 음성/변환 평가0.",
+                f"대본 {assets['recording_script_drafts']}개. 정식 녹음/변환 평가0.",
                 "[이미지/녹음 계획 manifest]"
                 "(../../fixtures/synthetic/selected_input_development_v1/manifest.json)",
+                "",
+            ]
+        )
+    if packet.get("unreviewed_local_speech_previews"):
+        speech = packet["unreviewed_local_speech_previews"]
+        lines.extend(
+            [
+                f"별도 로컬 TTS 초안 {speech['local_tts_drafts']}개. 사람 검토/실제 STT 평가0.",
                 "",
             ]
         )

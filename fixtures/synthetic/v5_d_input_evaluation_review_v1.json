@@ -1,5 +1,13 @@
 {
   "version": "v5-d-input-review-0.3",
+  "unreviewed_local_speech_previews": {
+    "status": "OFFLINE_LOCAL_TTS_CONSISTENCY_PASS",
+    "local_tts_drafts": 13,
+    "human_verified_transcripts": 0,
+    "actual_stt_evaluations": 0,
+    "paid_api_calls": 0,
+    "holdout_assets": 0
+  },
   "execution_flags_scope": "EXPORT_ASSET_PREPARATION_ONLY; TEXT_RUNS_SEPARATE",
   "generated_development_assets": {
     "status": "OFFLINE_ASSET_CONSISTENCY_PASS",
@@ -299,10 +307,11 @@
           "kind": "AUDIO",
           "source_group": "DP-H04",
           "split": "development",
-          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
+          "asset_status": "LOCAL_TTS_DRAFT_NOT_REVIEWED_OR_TRANSCRIBED",
           "conversion_evaluated": false,
           "model_evaluated": false,
-          "script_reference": "selected_input_development_v1/recording_plan.md"
+          "script_reference": "selected_input_development_v1/recording_plan.md",
+          "tts_preview_path": "local_tts_development_preview_v1/DP-H04.wav"
         }
       ]
     },
@@ -358,10 +367,11 @@
           "kind": "AUDIO",
           "source_group": "DP-H05",
           "split": "development",
-          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
+          "asset_status": "LOCAL_TTS_DRAFT_NOT_REVIEWED_OR_TRANSCRIBED",
           "conversion_evaluated": false,
           "model_evaluated": false,
-          "script_reference": "selected_input_development_v1/recording_plan.md"
+          "script_reference": "selected_input_development_v1/recording_plan.md",
+          "tts_preview_path": "local_tts_development_preview_v1/DP-H05.wav"
         }
       ]
     },
@@ -415,10 +425,11 @@
           "kind": "AUDIO",
           "source_group": "DP-H06",
           "split": "development",
-          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
+          "asset_status": "LOCAL_TTS_DRAFT_NOT_REVIEWED_OR_TRANSCRIBED",
           "conversion_evaluated": false,
           "model_evaluated": false,
-          "script_reference": "selected_input_development_v1/recording_plan.md"
+          "script_reference": "selected_input_development_v1/recording_plan.md",
+          "tts_preview_path": "local_tts_development_preview_v1/DP-H06.wav"
         }
       ]
     },
@@ -972,10 +983,11 @@
           "kind": "AUDIO",
           "source_group": "DP-C01",
           "split": "development",
-          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
+          "asset_status": "LOCAL_TTS_DRAFT_NOT_REVIEWED_OR_TRANSCRIBED",
           "conversion_evaluated": false,
           "model_evaluated": false,
-          "script_reference": "selected_input_development_v1/recording_plan.md"
+          "script_reference": "selected_input_development_v1/recording_plan.md",
+          "tts_preview_path": "local_tts_development_preview_v1/DP-C01.wav"
         }
       ]
     },
@@ -1086,10 +1098,11 @@
           "kind": "AUDIO",
           "source_group": "DP-C03",
           "split": "development",
-          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
+          "asset_status": "LOCAL_TTS_DRAFT_NOT_REVIEWED_OR_TRANSCRIBED",
           "conversion_evaluated": false,
           "model_evaluated": false,
-          "script_reference": "selected_input_development_v1/recording_plan.md"
+          "script_reference": "selected_input_development_v1/recording_plan.md",
+          "tts_preview_path": "local_tts_development_preview_v1/DP-C03.wav"
         }
       ]
     },
@@ -1143,10 +1156,11 @@
           "kind": "AUDIO",
           "source_group": "DP-C04",
           "split": "development",
-          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
+          "asset_status": "LOCAL_TTS_DRAFT_NOT_REVIEWED_OR_TRANSCRIBED",
           "conversion_evaluated": false,
           "model_evaluated": false,
-          "script_reference": "selected_input_development_v1/recording_plan.md"
+          "script_reference": "selected_input_development_v1/recording_plan.md",
+          "tts_preview_path": "local_tts_development_preview_v1/DP-C04.wav"
         }
       ]
     },
@@ -1200,10 +1214,11 @@
           "kind": "AUDIO",
           "source_group": "DP-C05",
           "split": "development",
-          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
+          "asset_status": "LOCAL_TTS_DRAFT_NOT_REVIEWED_OR_TRANSCRIBED",
           "conversion_evaluated": false,
           "model_evaluated": false,
-          "script_reference": "selected_input_development_v1/recording_plan.md"
+          "script_reference": "selected_input_development_v1/recording_plan.md",
+          "tts_preview_path": "local_tts_development_preview_v1/DP-C05.wav"
         }
       ]
     },
@@ -1858,10 +1873,11 @@
           "kind": "AUDIO",
           "source_group": "DP-N02",
           "split": "development",
-          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
+          "asset_status": "LOCAL_TTS_DRAFT_NOT_REVIEWED_OR_TRANSCRIBED",
           "conversion_evaluated": false,
           "model_evaluated": false,
-          "script_reference": "selected_input_development_v1/recording_plan.md"
+          "script_reference": "selected_input_development_v1/recording_plan.md",
+          "tts_preview_path": "local_tts_development_preview_v1/DP-N02.wav"
         }
       ]
     },
@@ -1909,10 +1925,11 @@
           "kind": "AUDIO",
           "source_group": "DP-N03",
           "split": "development",
-          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
+          "asset_status": "LOCAL_TTS_DRAFT_NOT_REVIEWED_OR_TRANSCRIBED",
           "conversion_evaluated": false,
           "model_evaluated": false,
-          "script_reference": "selected_input_development_v1/recording_plan.md"
+          "script_reference": "selected_input_development_v1/recording_plan.md",
+          "tts_preview_path": "local_tts_development_preview_v1/DP-N03.wav"
         }
       ]
     },
@@ -2011,10 +2028,11 @@
           "kind": "AUDIO",
           "source_group": "DP-N05",
           "split": "development",
-          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
+          "asset_status": "LOCAL_TTS_DRAFT_NOT_REVIEWED_OR_TRANSCRIBED",
           "conversion_evaluated": false,
           "model_evaluated": false,
-          "script_reference": "selected_input_development_v1/recording_plan.md"
+          "script_reference": "selected_input_development_v1/recording_plan.md",
+          "tts_preview_path": "local_tts_development_preview_v1/DP-N05.wav"
         }
       ]
     },
@@ -2062,10 +2080,11 @@
           "kind": "AUDIO",
           "source_group": "DP-N06",
           "split": "development",
-          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
+          "asset_status": "LOCAL_TTS_DRAFT_NOT_REVIEWED_OR_TRANSCRIBED",
           "conversion_evaluated": false,
           "model_evaluated": false,
-          "script_reference": "selected_input_development_v1/recording_plan.md"
+          "script_reference": "selected_input_development_v1/recording_plan.md",
+          "tts_preview_path": "local_tts_development_preview_v1/DP-N06.wav"
         }
       ]
     },
@@ -2707,10 +2726,11 @@
           "kind": "AUDIO",
           "source_group": "DP-U04",
           "split": "development",
-          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
+          "asset_status": "LOCAL_TTS_DRAFT_NOT_REVIEWED_OR_TRANSCRIBED",
           "conversion_evaluated": false,
           "model_evaluated": false,
-          "script_reference": "selected_input_development_v1/recording_plan.md"
+          "script_reference": "selected_input_development_v1/recording_plan.md",
+          "tts_preview_path": "local_tts_development_preview_v1/DP-U04.wav"
         }
       ]
     },
@@ -2811,10 +2831,11 @@
           "kind": "AUDIO",
           "source_group": "DP-U06",
           "split": "development",
-          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
+          "asset_status": "LOCAL_TTS_DRAFT_NOT_REVIEWED_OR_TRANSCRIBED",
           "conversion_evaluated": false,
           "model_evaluated": false,
-          "script_reference": "selected_input_development_v1/recording_plan.md"
+          "script_reference": "selected_input_development_v1/recording_plan.md",
+          "tts_preview_path": "local_tts_development_preview_v1/DP-U06.wav"
         }
       ]
     },

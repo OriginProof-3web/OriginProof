@@ -8,7 +8,7 @@ D 여인준 @yijun0330 / Codex 보조 / V5-W5-D·V5-W6-D 준비. 사용자가 D 
 
 - DP-U05는 A/C 합의의 TEXT_ONLY이므로 이미지/녹음 제작에서 제외했습니다. DP-U13/U15는 보류 분할이며 만들지 않았습니다. 판독 불가라는 문구를 선명하게 그려 실제 OCR 실패로 세지 않습니다.
 - DP-U03의 ????는 이미지 글자 정답은 있지만 읽을 발화가 없어 음성 대본에서 제외했습니다. U01의 대괄호 지시문·U02 숫자·C02 URL/영문 발음·전사 표기법은 미정 flag로 남겼습니다.
-- [녹음 준비표](../../fixtures/synthetic/selected_input_development_v1/recording_plan.md)는 후보 대본이며 실제 음성 파일0입니다. 최종 전사·word/evidence time은 모두null입니다. 텍스트 위치를 음성 시간으로 복사하거나 잡음 fixture를 발화로 대체하지 않습니다.
+- [녹음 준비표](../../fixtures/synthetic/selected_input_development_v1/recording_plan.md)는 후보 대본이며 사람이 녹음·검토한 음성 파일0입니다. 별도 로컬 TTS 초안은 아래에 구분합니다. 최종 전사·word/evidence time은 모두null입니다. 텍스트 위치를 음성 시간으로 복사하거나 잡음 fixture를 발화로 대체하지 않습니다.
 - 기존 내부 검사 범위인 정수 PCM WAV·20MiB/300초/2채널을 안내하되 STT 모델·MP3/M4A 지원·유료 TTS/STT를 임의 선택하지 않았습니다. 최종 낭독/전사 정답은 녹음과 검토 뒤 작성해야 합니다.
 
 ## 렌더링·재현·검증 한계
@@ -35,3 +35,22 @@ v2 실제 개발 결과 확인 후 모델 alias/프롬프트·코드/runtime has
 [최종36개 비활성 정책](../../fixtures/synthetic/v5_d_live_evaluation_policy.holdout.pending.json)은 false·회당1024·총예약36864·원문200자입니다. 현재 preflight는 PAID_SCOPE_NOT_APPROVED이며 실제호출0입니다. 별도로 승인해 실행하면 이전48회와 누적84회가 될 수 있습니다. 추가 충전·모델/포맷·최종 평가 실행을 임의 수행하지 않았습니다.
 
 남은 직접 입력은 음성 낭독 자료와 STT 모델/코덱 선택입니다. C/A 업로드·보관/삭제·서버/브라우저 및 B 실제 배포/Adapter·다른 장비·최종 RC는 통합 인계 뒤 검증합니다. 팀원 메시지·재리뷰 요청·원격 병합·공개 배포는 하지 않았습니다. G07 로컬 legacy 해결·Decisions API 제외·v1/v2 서명/권한/consume 회귀를 유지합니다.
+
+
+## 로컬 합성 음성13개 추가 (STT·사람 녹음 아님)
+
+[별도 manifest](../../fixtures/synthetic/local_tts_development_preview_v1/manifest.json)에 실제 PCM WAV13개(총2,348,240bytes)를 추가했습니다. URL·숫자·영문·지시문 등 발음/전사 미정 flag가 없는 후보만 사용해 source text/group/split을 유지했습니다. 위험 수준별 표본 수는 균등하지 않아 최종 평가셋이 아닙니다.
+
+설치된 macOS say/Yuna 음성·180wpm·16kHz/mono/16bit를 로컬 fixture 제작에만 사용했습니다. 제품 분석 provider는 OpenAI/gpt-6-luna 그대로이며 Apple 음성을 제품 STT 모델로 선택한 것이 아닙니다. 다운로드·TTS/STT/LLM API·스피커 재생0입니다. 원본 PCM frames는 보존하고 stdlib wave로 header만 canonicalize했습니다. 사람 청취/전사·정답 시간은 검토 전으로 null/false이며 실제 전사 정확도0점/100점 어느 쪽으로도 세지 않습니다.
+
+첫 격리 실행은 say 종료0이었으나4096bytes/0프레임 파일을 만들어 기존 PCM 검사기가 거부했습니다. 일반 로컬 실행은 정상 PCM을 만들었고 모든13개가 실제 비영 프레임/크기·시간·형식 검사를 통과했습니다. 이 환경 차이를 음성 성공으로 덮거나 검사 기준을 완화하지 않았습니다. 실패 probe는 임시 경로의 진단으로 보존하고 Git의 음성13개에는 포함하지 않았습니다.
+
+```sh
+# Linux CI도 파일·출처·PCM·미검토 상태만 검사할 수 있습니다.
+.uv-venv/bin/python -m originproof_analyzer.input_asset_pack --speech
+# 같은 macOS/설치 음성 환경의 새 빈 경로에서만 생성합니다.
+.uv-venv/bin/python -m originproof_analyzer.input_asset_pack --speech --generate \
+  --voice Yuna --root /private/tmp/new-d-speech-preview
+```
+
+음성13개는 미검토 초안입니다. 플랫폼/voice version에 따라 재합성 bytes가 달라질 수 있으며 다른 장비에 같은 음성이 있다고 가정하지 않습니다. native 도구가 없으면 다운로드/다른 유료 서비스로 대체하지 않고 종료합니다. 현재22개 녹음 후보 중 발음 합의가 필요한 나머지와 실제 microphone/잡음 조건은 준비되지 않았습니다. source script를 최종전사 정답으로 복사하지 않고 청취 검토가 필요합니다.

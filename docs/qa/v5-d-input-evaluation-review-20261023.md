@@ -15,8 +15,10 @@ paid/model flag는 export 준비 범위입니다. 실제 텍스트 평가 이력
 - H08 추가 인용 권고는 미적용했습니다. 기존 라벨·원문·인용·분할을 보존합니다.
 - U05/U13/U15는 텍스트 사례이며 실제 OCR/STT 실패 수로 합산하지 않습니다.
 
-개발 이미지 23개, 대본 22개. 음성/변환 평가0.
+개발 이미지 23개, 대본 22개. 정식 녹음/변환 평가0.
 [이미지/녹음 계획 manifest](../../fixtures/synthetic/selected_input_development_v1/manifest.json)
+
+별도 로컬 TTS 초안 13개. 사람 검토/실제 STT 평가0.
 
 ## 분할 관계 기록
 

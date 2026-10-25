@@ -121,3 +121,88 @@ def test_generator_never_overwrites_assets_or_human_recording_notes(tmp_path):
     with pytest.raises(ValueError, match="overwrite"):
         generate_pack(DEFAULT_CORPUS, pack, Path("missing-font-do-not-load.ttf"))
     assert notes.read_text() == "preserve my review"
+
+
+def test_local_speech_is_real_pcm_but_never_an_approved_transcription():
+    from originproof_analyzer.input_asset_pack import DEFAULT_SPEECH, check_speech_previews
+
+    result = check_speech_previews()
+    assert result["local_tts_drafts"] == 13
+    assert result["human_verified_transcripts"] == result["actual_stt_evaluations"] == 0
+    rows = json.loads((DEFAULT_SPEECH / "manifest.json").read_text())["cases"]
+    assert {r["label_from_text"] for r in rows} == {
+        "HIGH",
+        "CAUTION",
+        "NO_CLEAR_INDICATORS",
+        "UNDETERMINED",
+    }
+    assert all(r["pcm_info"]["duration_ms"] > 0 for r in rows)
+    assert all(r["pcm_info"]["sample_rate"] == 16000 for r in rows)
+    assert all(r["reference_transcript"] is None for r in rows)
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        "transcript",
+        "timestamps",
+        "human",
+        "stt",
+        "empty_frames",
+        "path",
+        "script",
+        "symlink",
+        "product_model",
+        "extra",
+    ],
+)
+def test_speech_drafts_reject_fabricated_review_or_tampered_pcm(tmp_path, change):
+    import hashlib
+
+    from originproof_analyzer.errors import AnalyzerError
+    from originproof_analyzer.input_asset_pack import DEFAULT_SPEECH, check_speech_previews
+
+    pack = tmp_path / "speech"
+    shutil.copytree(DEFAULT_SPEECH, pack)
+    manifest = pack / "manifest.json"
+    value = json.loads(manifest.read_text())
+    row = value["cases"][0]
+    path = pack / row["audio_path"]
+    if change == "transcript":
+        row["reference_transcript"] = "invented truth"
+    elif change == "timestamps":
+        row["word_or_evidence_timestamps"] = [[0, 100]]
+    elif change == "human":
+        row["human_reviewed"] = True
+    elif change == "stt":
+        row["stt_evaluated"] = True
+    elif change == "path":
+        row["audio_path"] = "../outside.wav"
+    elif change == "script":
+        row["candidate_script"] = "modified words"
+    elif change == "product_model":
+        value["generator"]["product_stt_model_selected"] = True
+    elif change == "extra":
+        (pack / "unexpected.wav").write_bytes(b"fake")
+    elif change == "symlink":
+        path.unlink()
+        path.symlink_to(DEFAULT_SPEECH / row["audio_path"])
+    else:
+        path.write_bytes(b"RIFF" + b"\0" * 40)
+        row["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    manifest.write_text(json.dumps(value))
+    with pytest.raises((ValueError, OSError, AnalyzerError)):
+        check_speech_previews(DEFAULT_CORPUS, pack)
+
+
+def test_local_speech_generator_has_no_download_or_non_native_fallback(tmp_path, monkeypatch):
+    import originproof_analyzer.input_asset_pack as module
+
+    monkeypatch.setattr(module.sys, "platform", "linux")
+    monkeypatch.setattr(module.subprocess, "run", lambda *a, **kw: pytest.fail("no native call"))
+    with pytest.raises(ValueError, match="requires macOS"):
+        module.generate_speech_previews(DEFAULT_CORPUS, tmp_path / "no-speech", "Yuna")
+    pack = tmp_path / "preserve"
+    pack.mkdir()
+    with pytest.raises(ValueError, match="overwrite"):
+        module.generate_speech_previews(DEFAULT_CORPUS, pack, "Yuna")

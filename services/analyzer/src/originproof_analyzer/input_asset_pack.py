@@ -6,19 +6,27 @@ import argparse
 import base64
 import hashlib
 import json
+import platform
 import re
+import subprocess
+import sys
+import tempfile
+import wave
+from dataclasses import asdict
 from io import BytesIO
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 from PIL import __version__ as pillow_version
 
+from .audio_inputs import inspect_pcm_wav
 from .inputs import SemanticInput
 from .phishing_evaluation import load_corpus
 
 ROOT = Path(__file__).resolve().parents[4]
 DEFAULT_CORPUS = ROOT / "fixtures/synthetic/phishing_sources_v1.json"
 DEFAULT_PACK = DEFAULT_CORPUS.parent / "selected_input_development_v1"
+DEFAULT_SPEECH = DEFAULT_CORPUS.parent / "local_tts_development_preview_v1"
 # A/C PR94 and issue92: these placeholders are text controls, not actual media failures.
 TEXT_ONLY_IDS = frozenset({"DP-U05", "DP-U13", "DP-U15"})
 
@@ -270,18 +278,208 @@ def check_pack(corpus_path: Path = DEFAULT_CORPUS, root: Path = DEFAULT_PACK):
     }
 
 
+def _speech_rows(corpus_path):
+    return [
+        case
+        for case in _development(corpus_path)
+        if _row(case)["recording"]["candidate_script"] is not None
+        and not _row(case)["recording"]["review_flags"]
+    ]
+
+
+def generate_speech_previews(corpus_path: Path, output: Path, voice: str):
+    """Explicit macOS local fixture generation only; no model API or audio playback."""
+    if output.exists() or output.is_symlink():
+        raise ValueError("refusing to overwrite speech assets")
+    if sys.platform != "darwin" or not Path("/usr/bin/say").is_file():
+        raise ValueError("native local TTS requires macOS; no download or paid fallback")
+    if not isinstance(voice, str) or not voice.strip():
+        raise ValueError("explicit installed local voice required")
+    prepared = []
+    with tempfile.TemporaryDirectory(prefix="originproof-tts-") as temporary:
+        work = Path(temporary)
+        for case in _speech_rows(corpus_path):
+            text, native = work / "script.txt", work / "native.wav"
+            text.write_text(case["text"])
+            subprocess.run(
+                [
+                    "/usr/bin/say",
+                    "-v",
+                    voice,
+                    "-r",
+                    "180",
+                    "-o",
+                    str(native),
+                    "--file-format=WAVE",
+                    "--data-format=LEI16@16000",
+                    "--channels=1",
+                    "-f",
+                    str(text),
+                ],
+                check=True,
+                capture_output=True,
+                timeout=45,
+            )
+            with wave.open(str(native), "rb") as source:
+                params = source.getparams()
+                frames = source.readframes(source.getnframes())
+            if (
+                params.comptype != "NONE"
+                or params.nframes < 1
+                or len(frames) != (params.nframes * params.nchannels * params.sampwidth)
+            ):
+                raise ValueError("native TTS returned no complete PCM frames")
+            stream = BytesIO()
+            with wave.open(stream, "wb") as target:
+                target.setparams(params)
+                target.writeframes(frames)
+            data = stream.getvalue()
+            info = inspect_pcm_wav(data, "audio/wav")
+            with wave.open(BytesIO(data), "rb") as check:
+                if check.readframes(check.getnframes()) != frames:
+                    raise ValueError("PCM changed during header canonicalization")
+            prepared.append((case, data, asdict(info)))
+    output.mkdir(parents=True)
+    rows = []
+    for case, data, info in prepared:
+        name = case["id"] + ".wav"
+        (output / name).write_bytes(data)
+        rows.append(
+            {
+                "source_id": case["id"],
+                "source_group": case["source_group"],
+                "split": "development",
+                "label_from_text": case["label"],
+                "candidate_script": case["text"],
+                "audio_path": name,
+                "sha256": _sha(data),
+                "pcm_info": info,
+                "reference_transcript": None,
+                "word_or_evidence_timestamps": None,
+                "human_reviewed": False,
+                "stt_evaluated": False,
+            }
+        )
+    manifest = {
+        "version": "local-tts-development-preview-0.1",
+        "source": "synthetic",
+        "purpose": "Local unreviewed TTS drafts; not an STT model, "
+        "human recording or final evaluation set",
+        "source_fixture_sha256": _sha(corpus_path.read_bytes()),
+        "generator": {
+            "engine": "macOS /usr/bin/say",
+            "voice": voice,
+            "rate_words_per_minute": 180,
+            "platform_version": platform.mac_ver()[0],
+            "say_binary_sha256": _sha(Path("/usr/bin/say").read_bytes()),
+            "canonicalization": "stdlib wave header only; PCM frames preserved",
+            "network_api_calls": 0,
+            "product_stt_model_selected": False,
+        },
+        "speech_assets": len(rows),
+        "human_verified_transcripts": 0,
+        "speech_evaluations": 0,
+        "paid_api_calls": 0,
+        "holdout_assets": 0,
+        "cases": rows,
+    }
+    (output / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
+
+
+def check_speech_previews(corpus_path: Path = DEFAULT_CORPUS, root: Path = DEFAULT_SPEECH):
+    if root.is_symlink() or any(p.is_symlink() for p in root.rglob("*")):
+        raise ValueError("speech pack symlink")
+    manifest = json.loads((root / "manifest.json").read_text())
+    if (
+        manifest.get("version") != "local-tts-development-preview-0.1"
+        or manifest.get("source") != "synthetic"
+        or manifest.get("source_fixture_sha256") != _sha(corpus_path.read_bytes())
+        or any(
+            type(manifest.get(k)) is not int or manifest[k] != 0
+            for k in (
+                "human_verified_transcripts",
+                "speech_evaluations",
+                "paid_api_calls",
+                "holdout_assets",
+            )
+        )
+    ):
+        raise ValueError("speech identity or unreviewed scope")
+    generator = manifest.get("generator", {})
+    if (
+        generator.get("engine") != "macOS /usr/bin/say"
+        or not isinstance(generator.get("voice"), str)
+        or not generator["voice"]
+        or generator.get("rate_words_per_minute") != 180
+        or generator.get("network_api_calls") != 0
+        or generator.get("product_stt_model_selected") is not False
+    ):
+        raise ValueError("local speech generator scope")
+    source, rows = _speech_rows(corpus_path), manifest["cases"]
+    if [r["source_id"] for r in rows] != [c["id"] for c in source]:
+        raise ValueError("speech source identity")
+    if manifest["speech_assets"] != len(rows):
+        raise ValueError("speech count")
+    expected_files = {"manifest.json"}
+    for case, row in zip(source, rows, strict=True):
+        name = case["id"] + ".wav"
+        if (
+            row["audio_path"] != name
+            or row["candidate_script"] != case["text"]
+            or row["source_group"] != case["source_group"]
+            or row["split"] != "development"
+            or row["label_from_text"] != case["label"]
+            or row["human_reviewed"] is not False
+            or row["stt_evaluated"] is not False
+            or row["reference_transcript"] is not None
+            or row["word_or_evidence_timestamps"] is not None
+        ):
+            raise ValueError("speech reference or human-review claim")
+        data = (root / name).read_bytes()
+        if (
+            _sha(data) != row["sha256"]
+            or asdict(inspect_pcm_wav(data, "audio/wav")) != row["pcm_info"]
+        ):
+            raise ValueError("speech PCM integrity")
+        expected_files.add(name)
+    if {str(p.relative_to(root)) for p in root.rglob("*") if p.is_file()} != expected_files:
+        raise ValueError("unlisted or missing speech files")
+    return {
+        "status": "OFFLINE_LOCAL_TTS_CONSISTENCY_PASS",
+        "local_tts_drafts": len(rows),
+        "human_verified_transcripts": 0,
+        "actual_stt_evaluations": 0,
+        "paid_api_calls": 0,
+        "holdout_assets": 0,
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--corpus", type=Path, default=DEFAULT_CORPUS)
-    parser.add_argument("--root", type=Path, default=DEFAULT_PACK)
+    parser.add_argument("--root", type=Path)
     parser.add_argument("--generate", action="store_true")
     parser.add_argument("--font", type=Path)
+    parser.add_argument("--speech", action="store_true")
+    parser.add_argument("--voice")
     args = parser.parse_args()
+    root = args.root or (DEFAULT_SPEECH if args.speech else DEFAULT_PACK)
     if args.generate:
-        if args.font is None:
-            parser.error("--generate requires an explicit local font")
-        generate_pack(args.corpus, args.root, args.font)
-    print(json.dumps(check_pack(args.corpus, args.root)))
+        if args.speech:
+            if not args.voice:
+                parser.error("--generate --speech requires an explicit installed --voice")
+            generate_speech_previews(args.corpus, root, args.voice)
+        else:
+            if args.font is None:
+                parser.error("--generate requires an explicit local font")
+            generate_pack(args.corpus, root, args.font)
+    print(
+        json.dumps(
+            check_speech_previews(args.corpus, root)
+            if args.speech
+            else check_pack(args.corpus, root)
+        )
+    )
 
 
 if __name__ == "__main__":
