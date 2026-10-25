@@ -314,3 +314,36 @@ def test_recorded_development_plan_retains_paid_approval_gate():
     assert result["paid_calls"] == 0
     example = json.loads((fixtures / "v5_d_live_evaluation_policy.example.json").read_text())
     assert example["approved_for_paid_calls"] is False and example["max_calls"] == 0
+
+
+@pytest.mark.parametrize(
+    "status,code,expected",
+    [
+        (404, "model_not_found", "model_not_found"),
+        (401, "invalid_api_key", "invalid_api_key"),
+        (429, "insufficient_quota", "insufficient_quota"),
+        (400, "PRIVATE_SECRET_CODE", "UNCLASSIFIED"),
+        (503, {"private": "PRIVATE_SECRET"}, "UNCLASSIFIED"),
+    ],
+)
+async def test_http_diagnostics_never_persist_provider_message_or_unknown_code(
+    prepared, status, code, expected
+):
+    path, policy, journal = prepared
+    result = await live.execute(
+        path,
+        policy,
+        journal,
+        api_key="placeholder",
+        stop_after=1,
+        transport=httpx.MockTransport(
+            lambda r: httpx.Response(
+                status, json={"error": {"code": code, "message": "PRIVATE_SECRET_MESSAGE"}}
+            )
+        ),
+    )
+    stored = journal.read_text()
+    row = json.loads(stored)["rows"][0]
+    assert row["http_status"] == status and row["provider_error_code"] == expected
+    assert "PRIVATE_SECRET" not in stored
+    assert result["http_attempts"] == 1 and result["live_model_evaluated"] is False

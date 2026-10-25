@@ -152,8 +152,27 @@ class CappedTransport(httpx.AsyncBaseTransport):
         )
         response = await self.inner.handle_async_request(bounded)
         await response.aread()
+        self.row["http_status"] = response.status_code
         try:
-            usage = response.json()["usage"]
+            envelope = response.json()
+        except ValueError:
+            envelope = {}
+        if response.is_error:
+            error = envelope.get("error") if isinstance(envelope, dict) else None
+            code = error.get("code") if isinstance(error, dict) else None
+            allowed = {
+                "model_not_found",
+                "invalid_api_key",
+                "insufficient_quota",
+                "rate_limit_exceeded",
+                "context_length_exceeded",
+                "unsupported_value",
+            }
+            self.row["provider_error_code"] = (
+                code if isinstance(code, str) and code in allowed else "UNCLASSIFIED"
+            )
+        try:
+            usage = envelope["usage"]
             numeric = {k: usage[k] for k in ("input_tokens", "output_tokens", "total_tokens")}
             if not all(type(v) is int and v >= 0 for v in numeric.values()):
                 raise ValueError("usage")
@@ -210,7 +229,7 @@ def summarize(state, cases):
         "status": "COMPLETE" if len(rows) == len(cases) else "INCOMPLETE",
         "scope": state["identity"]["transport_scope"],
         "live_model_evaluated": state["identity"]["transport_scope"] == "OPENAI_HTTPS"
-        and any(r["http_attempts"] for r in state["rows"]),
+        and any(r.get("http_status") == 200 for r in state["rows"]),
         "requested_cases": len(cases),
         "processed_cases": len(rows),
         "unknown_outcomes": sum(r["status"] != "DONE" for r in state["rows"]),
