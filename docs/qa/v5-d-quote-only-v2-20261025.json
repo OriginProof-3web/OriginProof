@@ -1,0 +1,75 @@
+{
+  "report_version": "d-quote-only-v2-offline-0.1",
+  "date_kst": "2026-10-25",
+  "source_revision": "f9b910094c4203ec49432e15ec45d08c602b2a6c",
+  "phase_basis": "d0111d82490a0c30d9b36275776487ebd4ba69e8",
+  "plan_version": "5.1",
+  "shared_contract_version": "v5-shared-0.2",
+  "analysis_prompt_version": "phishing_analysis_v2",
+  "provider_offset_mode": "QUOTE_ONLY_DETERMINISTIC_UNIQUE_MATCH",
+  "quality_evaluation_version": "v5-d-evaluation-0.4",
+  "live_summary_version": "v5-d-live-evaluation-0.2",
+  "source_export": "git archive; no .git/.env/key; analyzer/core/API import origins checked",
+  "runtime": {
+    "python": "3.13.7",
+    "openai": "2.54.0",
+    "httpx": "0.28.1",
+    "pydantic": "2.13.5",
+    "pytest": "9.1.1",
+    "same_installed_dependencies": true,
+    "other_physical_machine": false
+  },
+  "default_suite": {
+    "passed": 1153,
+    "skipped": 11,
+    "failures": 0,
+    "errors": 0,
+    "warning": "existing Starlette httpx deprecation",
+    "junit_sha256": "ecd6d4052a4b27b552d3713092554778b500a8e69bbf030de125f8064a13745e"
+  },
+  "focused_suite": {
+    "passed": 150,
+    "new_test_cases": 25,
+    "included_in_default_suite": true,
+    "transport": "SDK MockTransport; sockets blocked"
+  },
+  "consistency": {
+    "ruff": "PASS",
+    "review_packet": "PASS",
+    "all_5_make_generate_scripts": "PASS",
+    "tracked_diff": []
+  },
+  "preservation": {
+    "shared_code_and_validator_changed": false,
+    "corpus_labels_evidence_splits_changed": false,
+    "v1_prompt_changed": false,
+    "prior_actual24_journal_changed": false,
+    "prior_actual24_journal_sha256": "587d04e1e4dde8c7f18fcff527da3df381fdc272ac2e599950502a8d34d59d03",
+    "original_v1_source": "832c218f1404bd6acb8b2bedcda1a9bdd2cf9189",
+    "all_operational_paid_policies_active": false
+  },
+  "actual_v2_calls": 0,
+  "prior_actual_v1_calls": 24,
+  "holdout_predictions": 0,
+  "image_audio_calls": 0,
+  "actual_grounding_improvement": "NOT_EVALUATED; controlled wire/validator tests only",
+  "actual_context_classification_improvement": "NOT_EVALUATED; deliberately wrong NO_CLEAR replies still structurally pass",
+  "raw_vs_resolved_location_metrics": "Separate: raw pre-grounding offsets not requested by v2, post-validation LLM spans may be computed; RULE fallback excluded",
+  "prompt_frozen": false,
+  "new_paid_scope_approved": false,
+  "stage_complete": false,
+  "team_messages_sent": false,
+  "remote_merge_performed": false,
+  "hashes": {
+    "services/analyzer/src/originproof_analyzer/providers.py": "812976a421ad59571b11070c335eb538622efa405d01f8bd4b89a7e97c61a38c",
+    "services/analyzer/src/originproof_analyzer/prompts/phishing_analysis_v1.md": "31c544d5789bd5e747e8013952f66da350259c36e83329728fb29013a73901b3",
+    "services/analyzer/src/originproof_analyzer/prompts/phishing_analysis_v2.md": "73af1364a3476dfaeb1e6c1968268e9ae6520dfac1d4e2aaefb7d308e4e3aa43",
+    "services/analyzer/src/originproof_analyzer/evidence_evaluation.py": "a1750c4e2d6eab976f56e5288f3f9ae648f1d99dd228d1abdfd911f909738eac",
+    "services/analyzer/src/originproof_analyzer/phishing_evaluation.py": "fed9e3af38a5850e4403610ce7081ec172407233a1fd9c0d34d8f9c94a19aba1",
+    "services/analyzer/src/originproof_analyzer/live_evaluation.py": "45e03ec1d1cb4b24d8b5b79526aac5b07acc548670e8e31c8bfe997196ec25c4"
+  },
+  "official_references": [
+    "https://developers.openai.com/api/docs/guides/structured-outputs",
+    "https://developers.openai.com/api/docs/models/gpt-6-luna"
+  ]
+}
