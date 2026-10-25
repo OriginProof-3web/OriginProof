@@ -1,5 +1,7 @@
 # D 비동기 분석기·평가 초안 인계
 
+> **2026-10-25 현재:** W6 기준 반영 및 A/C 라벨·분할 확인을 기록했습니다. [현재 인계·정책/실제 호출 경계](v5_d_w6_baseline_evaluation_20261025.md). 아래 10월23일 이전 미정/검토 대기/보안 차단 표시는 날짜별 역사 기록입니다. 유료 정책은 false·호출0이며 로컬 키/충전 및 명시적 정책 활성화 승인을 기다립니다.
+
 > 2026-10-23 SDK 후속: [기본 차단 이미지 변환·명시적 모델 PCM 전사와 실제 SDK mock34개](v5_d_media_sdk_20261023.md). 실제 호출/전사 모델 선택·공개 API 연결과 구분합니다.
 
 > 2026-10-23 독립 작업 묶음: [실제 합성 미디어24개·실패12개·CER/시간/영역 지표·취소/WAV 위조 수정·깨끗한 소스 재현](../qa/v5-d-independent-batch-20261023.md). 실제 인식/유료 평가·팀 API 연결과 구분합니다.
@@ -46,7 +48,7 @@ C가 발행 검증 세션을 별도로 집계합니다. D는 verification을 생
 
 [`phishing_sources_v1.json`](../../fixtures/synthetic/phishing_sources_v1.json)은 네 수준별 15개, 총 60개 합성 텍스트 원본 초안입니다. 제안 분할은 개발 24/보류 36(수준별 6/9)이며 같은 source_group의 변형이 분할을 넘지 않도록 검사합니다. 동일 원문이 양쪽에 들어가는 것도 거부합니다. 기존 30개 근거 replay와 카드 추출 10개 평가를 위험 분류 60개와 합산하지 않습니다.
 
-**DRAFT_REVIEW_REQUIRED / labels_human_reviewed=false**를 유지합니다. 원본 파일의 input_selection=UNDECIDED는 10월16일 역사 스냅샷이며, 현재 입력 선택은 텍스트·이미지(문서)·음성입니다. 사용자의 최신 지시로 D가 평가를 준비해 A와 C가 검토하도록 [60개 검토본과 입력 인계](v5_d_input_evaluation_20261023.md)를 공유합니다. 검토 전에는 확정 평가셋으로 동결하지 않습니다. 현재 합성 텍스트 원형은 OCR/STT/PDF 지원을 뜻하지 않습니다.
+2026-10-25 현재 **A_AND_C_CONFIRMED_UNCHANGED / labels_human_reviewed=true / input_selection=TEXT**입니다. A/C의 실제 확인 링크와 원문·라벨·근거·분할 불변을 기록했고, 이후 문장은 10월23일 준비 당시 상태입니다. 당시에는 **DRAFT_REVIEW_REQUIRED / labels_human_reviewed=false**를 유지했습니다. 원본 파일의 input_selection=UNDECIDED는 10월16일 역사 스냅샷이며, 현재 입력 선택은 텍스트·이미지(문서)·음성입니다. 사용자의 최신 지시로 D가 평가를 준비해 A와 C가 검토하도록 [60개 검토본과 입력 인계](v5_d_input_evaluation_20261023.md)를 공유합니다. 검토 전에는 확정 평가셋으로 동결하지 않습니다. 현재 합성 텍스트 원형은 OCR/STT/PDF 지원을 뜻하지 않습니다.
 
 ```sh
 PYTHONPATH=apps/api/src:packages/python:services/analyzer/src \

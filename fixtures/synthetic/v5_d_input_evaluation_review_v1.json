@@ -1,8 +1,8 @@
 {
-  "version": "v5-d-input-review-0.1",
-  "date_kst": "2026-10-23",
+  "version": "v5-d-input-review-0.2",
+  "date_kst": "2026-10-25",
   "source": "synthetic",
-  "purpose": "D preparation for A and C review; no human approval or evaluation execution",
+  "purpose": "Recorded A/C confirmations; export never approves or executes calls",
   "decision": {
     "authority": "D user instruction in this chat, 2026-10-23",
     "selected_inputs": [
@@ -10,18 +10,25 @@
       "DOCUMENT_IMAGE",
       "AUDIO"
     ],
-    "priority": "UNDECIDED",
-    "document_formats_pdf_inclusion": "UNDECIDED",
+    "priority": "TEXT_EVALUATION_FIRST; REMAINING_ORDER_PROPOSED",
+    "document_formats_pdf_inclusion": "DOCUMENT_IMAGES_ONLY; PDF_NOT_SELECTED",
     "audio_codecs": "UNDECIDED",
     "model": "gpt-6-luna",
-    "budget": "EXCLUDED_FROM_CURRENT_PREPARATION",
-    "call_scope": "UNDECIDED",
+    "budget": "ISSUE_92_TEXT_SCOPE; LOCAL_FUNDING_UNVERIFIED",
+    "call_scope": "TEXT_DEVELOPMENT_24_PREPARED_DISABLED",
     "approved_for_paid_calls": false
   },
-  "source_fixture_sha256": "944e6e1ec87b24510c6d1cad2e1a6aac4f51e373230bc387e66f542b265595e9",
-  "self_review_sha256": "932d3f850d8c782a833144809f4f92a8927c445fc35ab2f2b4be30135f36e8b7",
-  "labels_human_reviewed": false,
-  "review_status": "A_AND_C_REVIEW_PENDING",
+  "source_fixture_sha256": "3c3b0c66fd3c4f851dce01255855f6a5db5f28397f9ade20469ec27918522199",
+  "self_review_sha256": "cb87213aae04e28162b72d0fc9ba9e21879a2cf0b758f539f273c65aef5f852e",
+  "labels_human_reviewed": true,
+  "review_status": "A_AND_C_CONFIRMED_UNCHANGED",
+  "similarity_caveat": {
+    "ids": [
+      "DP-H01",
+      "DP-H11"
+    ],
+    "note": "Both HIGH cases share a request phrase; preserve split per A/C. Report H11 outcome separately only after holdout evaluation."
+  },
   "source_cases": 60,
   "proposed_split": {
     "development": 24,
@@ -75,14 +82,14 @@
       "d_proposed_basis": "보안팀을 자칭하며 인증번호를 타인에게 알려 달라고 직접 요청합니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -130,14 +137,14 @@
       "d_proposed_basis": "도용을 구실로 OTP 전달을 요구하고 상담원이 대신 처리한다고 설명합니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -185,14 +192,14 @@
       "d_proposed_basis": "기관 점검을 명분으로 원격제어 앱 설치를 직접 요구합니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -240,14 +247,14 @@
       "d_proposed_basis": "수사 협조를 명분으로 즉시 송금을 요구합니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -297,14 +304,14 @@
         "LABEL_BOUNDARY_REVIEW"
       ],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -352,14 +359,14 @@
       "d_proposed_basis": "계좌 변경과 즉시 입금 요청이 결합돼 있습니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -409,14 +416,14 @@
         "LABEL_BOUNDARY_REVIEW"
       ],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -467,14 +474,14 @@
         "EVIDENCE_CONTEXT_REVIEW"
       ],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -522,14 +529,14 @@
       "d_proposed_basis": "환급을 명분으로 보안카드 번호 전달을 직접 요구합니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -577,14 +584,14 @@
       "d_proposed_basis": "계정 점검을 명분으로 비밀번호 공유를 직접 요구합니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -632,14 +639,14 @@
       "d_proposed_basis": "피싱 예방팀을 자칭하지만 실제 요청은 인증번호 공유입니다. 예방이라는 단어만으로 예외 처리하지 않습니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -687,14 +694,14 @@
       "d_proposed_basis": "중복 결제 방지를 구실로 3분 이내 임시 계좌 이체를 요구합니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -742,14 +749,14 @@
       "d_proposed_basis": "OTP를 대화로 전송하도록 요구하며 정상 로그인 경로를 피하게 합니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -797,14 +804,14 @@
       "d_proposed_basis": "압류를 명분으로 당장 안전 계좌에 입금하라고 요구합니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -852,14 +859,14 @@
       "d_proposed_basis": "원격 지원 프로그램 실행과 상담원에게 계정 비밀값 전달을 요구합니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -907,14 +914,14 @@
       "d_proposed_basis": "담당자·사유 없는 변경 계좌 입금 요청입니다. 긴급성이나 비밀값 요청은 명시되지 않았습니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -962,14 +969,14 @@
       "d_proposed_basis": "신청 기억이 없는 환급과 링크 접수가 결합됩니다. URL 모양만으로 악성 여부를 확정하지 않습니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -1017,14 +1024,14 @@
       "d_proposed_basis": "알 수 없는 발신자가 이름·생년월일을 링크에 입력하도록 요청합니다. 불완전한 신원정보 수집 문맥입니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -1072,14 +1079,14 @@
       "d_proposed_basis": "처음 보는 관리자가 별도 앱 설치 파일을 보냅니다. 원격제어나 실행 요구는 확정되지 않았습니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -1127,14 +1134,14 @@
       "d_proposed_basis": "기존과 다른 계좌 및 변경 승인 미확인이 구체적 우려입니다. 실제 계좌 검증 결과는 주어지지 않았습니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -1182,14 +1189,14 @@
       "d_proposed_basis": "기관 관련 불명확한 계정이 개인 대화에서 수수료 납부를 요구합니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -1237,14 +1244,14 @@
       "d_proposed_basis": "요청하지 않은 배송과 주소 변경 링크가 있으나 실제 주문/변경 요청은 불명확합니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -1292,14 +1299,14 @@
       "d_proposed_basis": "수신자·청구 근거가 없는 신규 추가 납부 요청입니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -1347,14 +1354,14 @@
       "d_proposed_basis": "거래처와 비슷한 이름의 계정 및 새 계좌 송금 요청이 결합됩니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -1402,14 +1409,14 @@
       "d_proposed_basis": "낯선 외부 사이트에서 신분정보 제출을 요청합니다. 제출할 정보와 목적이 불완전합니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -1459,14 +1466,14 @@
         "LABEL_BOUNDARY_REVIEW"
       ],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -1514,14 +1521,14 @@
       "d_proposed_basis": "기관 직원을 자칭하며 개인 명의 계좌에 보증금을 보내 달라고 요구합니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -1569,14 +1576,14 @@
       "d_proposed_basis": "불명확한 채용에서 업무 전 장비 비용 선납을 요구합니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -1626,14 +1633,14 @@
         "LABEL_BOUNDARY_REVIEW"
       ],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -1681,14 +1688,14 @@
       "d_proposed_basis": "미사용 서비스의 미납 주장에 금액·계약 정보가 없고 개인 문의 채널을 안내합니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -1730,14 +1737,14 @@
       "d_proposed_basis": "기관을 자칭하지만 인증번호를 요청하지 않는다는 부정문과 공식 앱 확인 안내입니다. 발행 진위는 판단하지 않습니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -1779,14 +1786,14 @@
       "d_proposed_basis": "시설 점검 일정과 조회 지연의 단순 안내로 위험 행동 요청이 없습니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -1828,14 +1835,14 @@
       "d_proposed_basis": "송금 요구가 인용된 예방 예시이고 응하지 말라는 거절 문맥이 명시됩니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -1877,14 +1884,14 @@
       "d_proposed_basis": "방문 수령과 현장 신분 확인 안내입니다. 메시지로 비밀정보를 수집하는 요구는 없습니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -1926,14 +1933,14 @@
       "d_proposed_basis": "추가 납부가 없음을 명시한 진행 상태 안내입니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -1975,14 +1982,14 @@
       "d_proposed_basis": "인증번호·비밀번호 공유 금지와 기존 공식 연락처 확인을 권고합니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -2024,14 +2031,14 @@
       "d_proposed_basis": "휴관일과 영업일 안내로 금전·비밀정보 요구가 없습니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -2073,14 +2080,14 @@
       "d_proposed_basis": "원격제어 설치 요구는 교육 사례로 인용되고 실제로는 거절하도록 안내합니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -2122,14 +2129,14 @@
       "d_proposed_basis": "제목 오탈자와 문서 변경 이력 확인 안내입니다. 기록의 실제 진위를 입증하는 자료는 아닙니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -2171,14 +2178,14 @@
       "d_proposed_basis": "예약 일정 변경이며 비용·로그인 정보 제출을 요청하지 않는다고 명시합니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -2220,14 +2227,14 @@
       "d_proposed_basis": "직원의 설치 요구에 따르지 말라는 부정문과 개인정보 제공 금지 문맥입니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -2269,14 +2276,14 @@
       "d_proposed_basis": "사기 수법을 설명하는 교육 내용이며 실제 송금 요청이 없다고 명시합니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -2318,14 +2325,14 @@
       "d_proposed_basis": "기존 공식 앱의 고객센터 메뉴 이용 안내이며 메시지의 외부 링크는 없습니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -2367,14 +2374,14 @@
       "d_proposed_basis": "동아리의 책 반납 요청이며 금전·비밀정보·원격제어 요청이 없습니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -2416,14 +2423,14 @@
       "d_proposed_basis": "인증번호 공유 요구를 인용하고 무시하라는 경고입니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -2465,14 +2472,14 @@
       "d_proposed_basis": "입금이라는 일부 단어와 누락 표시만 있어 요청/위험을 결정할 문맥이 부족합니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -2514,14 +2521,14 @@
       "d_proposed_basis": "숫자열만 있으며 값의 종류나 요청 행동이 없습니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -2563,14 +2570,14 @@
       "d_proposed_basis": "문장 내용이 없는 기호 조각입니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -2612,14 +2619,14 @@
       "d_proposed_basis": "번호와 전송 대상이 무엇인지 문맥이 없습니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -2663,14 +2670,14 @@
         "PLACEHOLDER_NOT_MODALITY_TEST"
       ],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -2712,14 +2719,14 @@
       "d_proposed_basis": "이전 절차를 참조하지만 그 절차의 내용이 없습니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -2761,14 +2768,14 @@
       "d_proposed_basis": "가려진 계좌를 설명할 뿐 송금 요구와 실제 문맥은 없습니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -2810,14 +2817,14 @@
       "d_proposed_basis": "발신자와 요청이 누락됐다는 설명으로 실제 요구를 판단할 수 없습니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -2859,14 +2866,14 @@
       "d_proposed_basis": "대상이 생략된 처리 요청입니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -2908,14 +2915,14 @@
       "d_proposed_basis": "서로 상충한다는 설명만 있고 비교할 두 원문이 없습니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -2957,14 +2964,14 @@
       "d_proposed_basis": "무엇을 확인했는지 생략된 질문입니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -3006,14 +3013,14 @@
       "d_proposed_basis": "링크와 요청 문맥이 삭제됐다는 설명만 있습니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -3057,14 +3064,14 @@
         "PLACEHOLDER_NOT_MODALITY_TEST"
       ],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -3106,14 +3113,14 @@
       "d_proposed_basis": "수수료와 거래 문맥이 생략됐고 납부 요청도 명확하지 않습니다.",
       "flags": [],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {
@@ -3157,14 +3164,14 @@
         "PLACEHOLDER_NOT_MODALITY_TEST"
       ],
       "a_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6381593781",
+        "notes": "H01/H11 shared request phrase: preserve split and report final H11 outcome separately. H08 second evidence quote is optional and not applied."
       },
       "c_review": {
-        "status": "PENDING",
-        "reference": null,
-        "notes": null
+        "status": "CONFIRMED_UNCHANGED",
+        "reference": "https://github.com/OriginProof-3web/OriginProof/pull/94#issuecomment-6380482888",
+        "notes": "Labels, quoted evidence and 24/36 split retained. U05/U13/U15 are text cases only, never actual OCR/STT failures."
       },
       "planned_variants": [
         {

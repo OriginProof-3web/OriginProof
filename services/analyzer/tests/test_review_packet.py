@@ -13,7 +13,7 @@ CORPUS = ROOT / "fixtures/synthetic/phishing_sources_v1.json"
 SELF_REVIEW = ROOT / "fixtures/synthetic/phishing_sources_v1_review.json"
 
 
-def test_offline_packet_preserves_sources_splits_and_pending_human_reviews(monkeypatch):
+def test_offline_packet_preserves_sources_splits_and_recorded_reviews(monkeypatch):
     def blocked(*args, **kwargs):
         raise AssertionError("review export must not call a provider")
 
@@ -24,8 +24,8 @@ def test_offline_packet_preserves_sources_splits_and_pending_human_reviews(monke
     assert packet["source_fixture_sha256"] == hashlib.sha256(before[0]).hexdigest()
     assert packet["decision"]["selected_inputs"] == list(MODALITIES)
     assert packet["decision"]["approved_for_paid_calls"] is False
-    assert packet["decision"]["call_scope"] == "UNDECIDED"
-    assert not packet["labels_human_reviewed"]
+    assert packet["decision"]["call_scope"] == "TEXT_DEVELOPMENT_24_PREPARED_DISABLED"
+    assert packet["labels_human_reviewed"] is True
     assert packet["paid_calls"] == packet["holdout_predictions"] == 0
     assert len(packet["cases"]) == 60
     assert sum(c["proposed_split"] == "development" for c in packet["cases"]) == 24
@@ -36,7 +36,7 @@ def test_offline_packet_preserves_sources_splits_and_pending_human_reviews(monke
         assert case["text"] == original["text"]
         assert case["proposed_label"] == original["label"]
         assert case["expected_evidence"] == original["expected_evidence"]
-        assert case["a_review"]["status"] == case["c_review"]["status"] == "PENDING"
+        assert case["a_review"]["status"] == case["c_review"]["status"] == "CONFIRMED_UNCHANGED"
         assert {v["source_group"] for v in case["planned_variants"]} == {original["source_group"]}
         assert {v["split"] for v in case["planned_variants"]} == {original["split"]}
         assert all(
@@ -72,3 +72,26 @@ def test_checked_in_export_matches_generator_and_cannot_overwrite_notes(monkeypa
     monkeypatch.setattr("sys.argv", ["review_packet"])
     with pytest.raises(SystemExit, match="refusing to overwrite"):
         main()
+
+
+@pytest.mark.parametrize("change", ["missing", "role", "status", "reference", "type"])
+def test_review_flag_without_valid_recorded_confirmations_is_rejected(tmp_path, change):
+    corpus = json.loads(CORPUS.read_text())
+    if change == "missing":
+        corpus.pop("review_confirmations")
+    elif change == "role":
+        corpus["review_confirmations"].pop("A")
+    elif change == "status":
+        corpus["review_confirmations"]["A"]["status"] = "PENDING"
+    elif change == "reference":
+        corpus["review_confirmations"]["C"]["reference"] = ""
+    else:
+        corpus["review_confirmations"] = None
+    path = tmp_path / "corpus.json"
+    path.write_text(json.dumps(corpus))
+    review = json.loads(SELF_REVIEW.read_text())
+    review["source_fixture_sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    review_path = tmp_path / "review.json"
+    review_path.write_text(json.dumps(review))
+    with pytest.raises(ValueError, match="review confirmations"):
+        build_packet(path, review_path)

@@ -3,7 +3,7 @@
   "source": "synthetic",
   "date_kst": "2026-10-16",
   "source_fixture": "fixtures/synthetic/phishing_sources_v1.json",
-  "source_fixture_sha256": "944e6e1ec87b24510c6d1cad2e1a6aac4f51e373230bc387e66f542b265595e9",
+  "source_fixture_sha256": "3c3b0c66fd3c4f851dce01255855f6a5db5f28397f9ade20469ec27918522199",
   "scope": "D agent self-review and corpus integrity only; no model predictions, human sign-off or freeze",
   "labels_human_reviewed": false,
   "review_status": "A_OR_C_REVIEW_REQUIRED",
@@ -738,5 +738,11 @@
       ],
       "a_or_c_review": "PENDING"
     }
-  ]
+  ],
+  "metadata_only_rebinding": {
+    "date_kst": "2026-10-25",
+    "historical_source_fixture_sha256": "944e6e1ec87b24510c6d1cad2e1a6aac4f51e373230bc387e66f542b265595e9",
+    "historical_snapshot": "https://github.com/OriginProof-3web/OriginProof/blob/3c43f5df732c03abebe71c0531ffa9efefdcafa6/fixtures/synthetic/phishing_sources_v1.json",
+    "scope": "Original D self-review and pending flags remain a historical record. Only source metadata and label_status changed. Current A/C confirmations are in the corpus."
+  }
 }

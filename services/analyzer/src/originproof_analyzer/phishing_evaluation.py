@@ -1,4 +1,4 @@
-"""Draft corpus evaluation. The CLI explicitly uses mock/rules and never a paid model."""
+"""Synthetic text evaluation. The CLI uses mock/rules; callers can inject a provider."""
 
 from __future__ import annotations
 
@@ -170,12 +170,16 @@ async def evaluate_phishing(
         "review_status": manifest["review_status"],
         "split": split,
         "total": len(rows),
-        "scope": "Draft risk labels; synthetic rules/mock baseline, not real-world accuracy.",
+        "scope": "Synthetic text; combined rule/provider pipeline, not real-world accuracy.",
         "live_model_evaluated": live,
         "model": getattr(provider, "model", None) if live else None,
         "prompt_version": ANALYSIS_PROMPT_VERSION,
         "rule_version": RULE_VERSION,
-        "acceptance_status": "DRAFT_REVIEW_REQUIRED",
+        "acceptance_status": (
+            "LABELS_CONFIRMED_EXECUTION_REVIEW_REQUIRED"
+            if manifest.get("labels_human_reviewed") is True
+            else "DRAFT_REVIEW_REQUIRED"
+        ),
         "paid_cost": None,
         "classification": classification_metrics(rows),
         "abstentions": sum(row["predicted"] == "UNDETERMINED" for row in rows),
@@ -203,7 +207,7 @@ async def evaluate_phishing(
         "protected_field_match": None,
         "protected_field_scope": "NOT_EVALUATED_BY_RISK_ONLY_CORPUS",
         "latency_seconds": {
-            "scope": "local synthetic processor only",
+            "scope": "selected processor end-to-end; not service/API latency",
             "p50": median(durations),
             "p95": ordered[max(0, (95 * len(ordered) + 99) // 100 - 1)],
         },

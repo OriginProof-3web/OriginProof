@@ -22,6 +22,21 @@ def build_packet(corpus_path: Path, self_review_path: Path) -> dict:
     by_id = {row["id"]: row for row in rows}
     if len(by_id) != 60 or len(rows) != 60 or set(by_id) != {c["id"] for c in corpus["cases"]}:
         raise ValueError("self-review must cover each source exactly once")
+    reviewed = corpus.get("labels_human_reviewed") is True
+    confirmations = corpus.get("review_confirmations", {})
+    if reviewed and (
+        not isinstance(confirmations, dict)
+        or corpus.get("review_status") != "A_AND_C_CONFIRMED_UNCHANGED"
+        or set(confirmations) != {"A", "C"}
+        or any(
+            not isinstance(item, dict)
+            or item.get("status") != "CONFIRMED_UNCHANGED"
+            or not isinstance(item.get("reference"), str)
+            or not item["reference"].startswith("https://github.com/OriginProof-3web/OriginProof/")
+            for item in confirmations.values()
+        )
+    ):
+        raise ValueError("review confirmations missing or invalid")
     cases = []
     for case in corpus["cases"]:
         row = by_id[case["id"]]
@@ -41,8 +56,12 @@ def build_packet(corpus_path: Path, self_review_path: Path) -> dict:
                 "expected_evidence": case["expected_evidence"],
                 "d_proposed_basis": row["basis"],
                 "flags": row["flags"],
-                "a_review": {"status": "PENDING", "reference": None, "notes": None},
-                "c_review": {"status": "PENDING", "reference": None, "notes": None},
+                "a_review": confirmations["A"].copy()
+                if reviewed
+                else {"status": "PENDING", "reference": None, "notes": None},
+                "c_review": confirmations["C"].copy()
+                if reviewed
+                else {"status": "PENDING", "reference": None, "notes": None},
                 "planned_variants": [
                     {
                         "id": case["id"] + "-" + kind,
@@ -60,25 +79,34 @@ def build_packet(corpus_path: Path, self_review_path: Path) -> dict:
             }
         )
     return {
-        "version": "v5-d-input-review-0.1",
-        "date_kst": "2026-10-23",
+        "version": "v5-d-input-review-0.2",
+        "date_kst": "2026-10-25" if reviewed else "2026-10-23",
         "source": "synthetic",
-        "purpose": "D preparation for A and C review; no human approval or evaluation execution",
+        "purpose": "Recorded A/C confirmations; export never approves or executes calls"
+        if reviewed
+        else "D preparation for A and C review; no human approval or evaluation execution",
         "decision": {
             "authority": "D user instruction in this chat, 2026-10-23",
             "selected_inputs": list(MODALITIES),
-            "priority": "UNDECIDED",
-            "document_formats_pdf_inclusion": "UNDECIDED",
+            "priority": "TEXT_EVALUATION_FIRST; REMAINING_ORDER_PROPOSED"
+            if reviewed
+            else "UNDECIDED",
+            "document_formats_pdf_inclusion": "DOCUMENT_IMAGES_ONLY; PDF_NOT_SELECTED"
+            if reviewed
+            else "UNDECIDED",
             "audio_codecs": "UNDECIDED",
             "model": "gpt-6-luna",
-            "budget": "EXCLUDED_FROM_CURRENT_PREPARATION",
-            "call_scope": "UNDECIDED",
+            "budget": "ISSUE_92_TEXT_SCOPE; LOCAL_FUNDING_UNVERIFIED"
+            if reviewed
+            else "EXCLUDED_FROM_CURRENT_PREPARATION",
+            "call_scope": "TEXT_DEVELOPMENT_24_PREPARED_DISABLED" if reviewed else "UNDECIDED",
             "approved_for_paid_calls": False,
         },
         "source_fixture_sha256": corpus_hash,
         "self_review_sha256": hashlib.sha256(self_review_path.read_bytes()).hexdigest(),
-        "labels_human_reviewed": False,
-        "review_status": "A_AND_C_REVIEW_PENDING",
+        "labels_human_reviewed": reviewed,
+        "review_status": corpus["review_status"] if reviewed else "A_AND_C_REVIEW_PENDING",
+        "similarity_caveat": corpus.get("similarity_caveat"),
         "source_cases": 60,
         "proposed_split": {"development": 24, "holdout": 36},
         "planned_variants": 180,
@@ -91,34 +119,39 @@ def build_packet(corpus_path: Path, self_review_path: Path) -> dict:
 
 
 def render_markdown(packet: dict) -> str:
+    reviewed = packet["labels_human_reviewed"]
     lines = [
-        "# D 입력·평가 A/C 검토본 — 2026-10-23",
+        "# D 입력·평가 A/C 검토본 — " + packet["date_kst"],
         "",
-        "텍스트·이미지(문서)·음성 선택 완료. 모델 "
-        "gpt-6-luna. 우선순위·PDF 포함·음성 코덱은 미정입니다.",
-        "예산은 이번 준비에서 제외하고 호출 범위도 미정으로 유지합니다. 유료 호출 승인이 아닙니다.",
-        "",
-        "기존 합성 원본60개·개발24/보류36 제안을 재사용합니다. 아래 "
-        "라벨·근거는 D 초안이며 A와 C의 검토는 PENDING입니다.",
-        "180개는 원본별 세 형식의 제작 계획 수입니다. 독립 "
-        "원본180개나 실제 이미지/음성 제작·변환·평가 완료 수가 아닙니다.",
-        "텍스트 위치는 Unicode 코드 포인트 "
-        "[start,end)이며 이미지 영역·음성 시간의 정답으로 자동 복사하지 않습니다.",
-        "",
-        "A: 표현·문맥·입력 UX/인식 부족 안내를 검토합니다. "
-        "C: 계약·근거 위치·오류/보관 및 분할 누출을 검토합니다.",
-        "각자 JSON의 a_review/c_review에 실제 검토 "
-        "reference와 의견을 남기거나 PR에 사례 ID로 답해 주세요.",
-        "승인과 수정 요청을 구분하고 라벨 변경은 제안으로 남겨 D가 원본 변경·재검사 후 반영합니다.",
-        "이 생성기는 제안본을 재생성합니다. 사람 의견은 원본 "
-        "JSON에 덮어쓰지 말고 별도 검토 사본/PR 댓글로 보존하세요.",
-        "",
-        "## 먼저 검토할 분할 관계",
+        "텍스트·이미지(문서)·음성 선택, gpt-6-luna 유지. 음성 코덱/전사 모델은 미정입니다.",
+        "텍스트 평가 우선, PDF 파일은 미선정입니다."
+        if reviewed
+        else "세부 형식·우선순위 미정입니다.",
+        "개발24/최종36 제안은 A/C가 수정 없이 확인했습니다."
+        if reviewed
+        else "라벨·근거는 D 초안이며 A/C 검토 PENDING입니다.",
+        "유료 정책은 별도이며 기본 비승인입니다. 이 생성기는 실제 호출·승인을 하지 않습니다.",
+        "180은 세 형식 매핑 수이며 독립 원본/제작/변환/실제 평가 완료 수가 아닙니다.",
+        "텍스트 위치는 Unicode 코드 포인트 [start,end)이며 "
+        "이미지 영역·음성 시간으로 복사하지 않습니다.",
+        "아래 D 판단 근거·flags·분할 관계는 검토 전 제안 이력으로 보존합니다.",
         "",
     ]
+    if reviewed:
+        lines.extend(
+            [
+                "- A 확인: " + packet["cases"][0]["a_review"]["reference"],
+                "- C 확인: " + packet["cases"][0]["c_review"]["reference"],
+                "- H01/H11 문구 공유: 분할 유지. 최종 H11 결과 별도 표시(현재 예측 없음).",
+                "- H08 추가 인용 권고는 미적용했습니다. 기존 라벨·원문·인용·분할을 보존합니다.",
+                "- U05/U13/U15는 텍스트 사례이며 실제 OCR/STT 실패 수로 합산하지 않습니다.",
+                "",
+            ]
+        )
+    lines.extend(["## 분할 관계 기록", ""])
     for group in packet["split_review_groups"]:
         lines.append("- " + ", ".join(group["ids"]) + ": " + group["reason"])
-    lines.extend(["", "## 사례별 제안", ""])
+    lines.extend(["", "## 사례별 검토", ""])
     for case in packet["cases"]:
         lines.extend(
             [
@@ -132,16 +165,16 @@ def render_markdown(packet: dict) -> str:
                 "> " + case["text"].replace("\n", "\n> "),
                 "",
                 "- D 판단 근거: " + case["d_proposed_basis"],
-                "- 추가 검토: " + (", ".join(case["flags"]) or "별도 flag 없음; 사람 검토 필요"),
+                "- 원래 flag: " + (", ".join(case["flags"]) or "없음"),
             ]
         )
         for quote in case["expected_evidence"]:
             lines.append(
-                f"- 제안 인용 [{quote['start_offset']},{quote['end_offset']}): {quote['quote']}"
+                f"- 인용 [{quote['start_offset']},{quote['end_offset']}): {quote['quote']}"
             )
         if not case["expected_evidence"]:
-            lines.append("- 제안 인용 없음: 근거 부재와 NO_CLEAR_INDICATORS/UNDETERMINED 구분 검토")
-        lines.extend(["- A: PENDING / C: PENDING", ""])
+            lines.append("- 기대 인용 없음")
+        lines.extend([f"- A: {case['a_review']['status']} / C: {case['c_review']['status']}", ""])
     return "\n".join(lines)
 
 
@@ -172,7 +205,7 @@ def main() -> int:
         else:
             path.write_text(content, encoding="utf-8")
     print(
-        "A/C proposal consistent: 60 sources, 24/36 split, "
+        "A/C review export consistent: 60 sources, 24/36 split, "
         "180 planned variants; calls/predictions 0"
     )
     return 0

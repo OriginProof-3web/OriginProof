@@ -16,7 +16,7 @@ CORPUS = Path(__file__).resolve().parents[3] / "fixtures/synthetic/phishing_sour
 @pytest.fixture
 def prepared(tmp_path):
     data = json.loads(CORPUS.read_text())
-    # Simulated approval metadata only in a disposable test copy; original remains unreviewed.
+    # Disposable simulated approval, never authorization for actual paid calls.
     data.update(labels_human_reviewed=True, review_status="TEST_ONLY", input_selection="TEXT")
     path = tmp_path / "test-corpus.json"
     path.write_text(json.dumps(data))
@@ -50,11 +50,15 @@ def response(response_body):
 
 
 def test_draft_plan_never_constructs_client_or_creates_checkpoint(tmp_path, monkeypatch, capsys):
+    draft = json.loads(CORPUS.read_text())
+    draft.update(labels_human_reviewed=False, review_status="DRAFT_REVIEW_REQUIRED")
+    draft_path = tmp_path / "unreviewed.json"
+    draft_path.write_text(json.dumps(draft))
     _, policy, journal = (tmp_path / "x", {}, tmp_path / "never.json")
     policy = {
         "schema_version": "v5-d-live-policy-0.1",
         "approved_for_paid_calls": False,
-        "corpus_sha256": hashlib.sha256(CORPUS.read_bytes()).hexdigest(),
+        "corpus_sha256": hashlib.sha256(draft_path.read_bytes()).hexdigest(),
         "model": "gpt-6-luna",
         "split": "development",
         "review_reference": "",
@@ -74,7 +78,7 @@ def test_draft_plan_never_constructs_client_or_creates_checkpoint(tmp_path, monk
         [
             "eval",
             "--manifest",
-            str(CORPUS),
+            str(draft_path),
             "--policy",
             str(file),
             "--journal",
@@ -291,3 +295,22 @@ async def test_provider_usage_above_cap_stops_further_requests(prepared, respons
 async def test_selected_case_ids_cannot_cross_split_or_disappear():
     with pytest.raises(ValueError):
         await live.evaluate_phishing(CORPUS, case_ids=["NONEXISTENT"])
+
+
+def test_recorded_development_plan_retains_paid_approval_gate():
+    fixtures = CORPUS.parent
+    policy = json.loads(
+        (fixtures / "v5_d_live_evaluation_policy.development.pending.json").read_text()
+    )
+    assert policy["approved_for_paid_calls"] is False
+    assert (
+        policy["max_calls"],
+        policy["max_output_tokens"],
+        policy["output_token_budget"],
+        policy["max_input_characters"],
+    ) == (24, 1024, 24576, 200)
+    result = live.plan(CORPUS, policy)
+    assert result["blocks"] == ["PAID_SCOPE_NOT_APPROVED"]
+    assert result["paid_calls"] == 0
+    example = json.loads((fixtures / "v5_d_live_evaluation_policy.example.json").read_text())
+    assert example["approved_for_paid_calls"] is False and example["max_calls"] == 0
