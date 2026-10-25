@@ -44,5 +44,14 @@
   "rule_and_model_score_scope": "combined pipeline; no raw model-only score",
   "code_review_status": "PENDING_PR94",
   "final_model_accepted": false,
-  "holdout_predictions": 0
+  "holdout_predictions": 0,
+  "freeze_comparison_fields": [
+    "source_sha256",
+    "dependencies",
+    "python",
+    "analysis_prompt_version",
+    "provider_offset_mode",
+    "output_cap"
+  ],
+  "development_policy_digest_is_historical_not_holdout_policy": true
 }

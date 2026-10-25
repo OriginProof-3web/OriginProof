@@ -381,3 +381,32 @@ async def test_active_prompt_hash_is_bound_and_old_prompt_cannot_resume(
             transport=httpx.MockTransport(lambda r: pytest.fail("no cross-prompt replay")),
         )
     assert journal.read_bytes() == before
+
+
+def test_holdout_is_prepared_disabled_and_candidate_preserves_model_source_hashes(monkeypatch):
+    fixtures = CORPUS.parent
+    policy = json.loads((fixtures / "v5_d_live_evaluation_policy.holdout.pending.json").read_text())
+    assert policy["approved_for_paid_calls"] is False
+    assert (policy["split"], policy["max_calls"], policy["output_token_budget"]) == (
+        "holdout",
+        36,
+        36864,
+    )
+    monkeypatch.setattr(live, "AsyncOpenAI", lambda **kw: pytest.fail("no final-model call"))
+    assert live.plan(CORPUS, policy)["blocks"] == ["PAID_SCOPE_NOT_APPROVED"]
+    candidate = json.loads(
+        (CORPUS.parents[2] / "docs/qa/v5-d-holdout-candidate-20261025.json").read_text()
+    )
+    assert candidate["prompt_candidate_frozen"] and not candidate["paid_execution_approved"]
+    assert candidate["already_used_text_calls"] == 48 and candidate["holdout_predictions"] == 0
+    assert candidate["corpus_sha256"] == hashlib.sha256(CORPUS.read_bytes()).hexdigest()
+    code_root = Path(live.__file__).parent
+    files = {p.name: p for p in code_root.glob("*.py")}
+    files["phishing_analysis_v2.md"] = code_root / "prompts/phishing_analysis_v2.md"
+    core = Path(live.wallet_contract.__file__).parent
+    files["wallet_contract.py"], files["models.py"] = (
+        core / "wallet_contract.py",
+        core / "models.py",
+    )
+    for name, digest in candidate["source_and_runtime_identity"]["source_sha256"].items():
+        assert hashlib.sha256(files[name].read_bytes()).hexdigest() == digest

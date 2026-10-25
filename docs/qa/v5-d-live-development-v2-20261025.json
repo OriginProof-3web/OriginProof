@@ -723,5 +723,8 @@
   "model_only_f1": "NOT_MEASURED",
   "paid_amount": "NOT_MEASURED; token usage reported",
   "final_model_acceptance": false,
-  "stage_complete": false
+  "stage_complete": false,
+  "holdout_prompt_candidate_frozen": true,
+  "candidate_reference": "docs/qa/v5-d-holdout-candidate-20261025.json",
+  "holdout_paid_execution_approved": false
 }
