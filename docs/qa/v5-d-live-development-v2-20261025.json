@@ -1,0 +1,727 @@
+{
+  "report_version": "v5-d-live-development-v2-0.1",
+  "date_kst": "2026-10-25",
+  "authorization": {
+    "source": "Direct D user reply to additional24 question in this chat",
+    "statement": "v2 추가 24회 유료평가도 승인",
+    "additional_calls_approved": 24,
+    "prior_actual_calls": 24,
+    "total_actual_calls": 48
+  },
+  "source_revision": "b52487e8c95e71625e2822c2fac5f5e6caf8bc62",
+  "prompt_version": "phishing_analysis_v2",
+  "source_and_runtime_identity": {
+    "policy_sha256": "5824ec2a00dfc327d6731dbcd5cbb11255820352ebff1a08894cac484ae1cc71",
+    "source_sha256": {
+      "live_evaluation.py": "45e03ec1d1cb4b24d8b5b79526aac5b07acc548670e8e31c8bfe997196ec25c4",
+      "phishing_evaluation.py": "fed9e3af38a5850e4403610ce7081ec172407233a1fd9c0d34d8f9c94a19aba1",
+      "providers.py": "812976a421ad59571b11070c335eb538622efa405d01f8bd4b89a7e97c61a38c",
+      "phishing.py": "52f9e1103799310e03216894bad12f558432975dbcb1cab6d5d9f2db8844580f",
+      "evidence_evaluation.py": "a1750c4e2d6eab976f56e5288f3f9ae648f1d99dd228d1abdfd911f909738eac",
+      "settings.py": "2bc5c4b6362e38873e5eaa2885f40f59e7f7402b02c5bd8958702223e681649b",
+      "errors.py": "a07e6acdbc4bd3eaee309c5836c66d6f2711d12c2cf53b13a099c4dec489a4bd",
+      "inputs.py": "8d93c17f4987c9c412ed3c83f39e60d66b2307a979b08fc7207d8f3872a78ae2",
+      "wallet_contract.py": "0c7b93a781e6e8a645f2f4d6f59f6f0d55aea72bbd8af18d7f9692488b5c9613",
+      "models.py": "f85b6c766b562470855a13b8d6903a7a6fe57cc09b03ba43fc89801034dbe284",
+      "phishing_analysis_v2.md": "73af1364a3476dfaeb1e6c1968268e9ae6520dfac1d4e2aaefb7d308e4e3aa43"
+    },
+    "transport_scope": "OPENAI_HTTPS",
+    "output_cap": 1024,
+    "analysis_prompt_version": "phishing_analysis_v2",
+    "provider_offset_mode": "QUOTE_ONLY_DETERMINISTIC_UNIQUE_MATCH",
+    "dependencies": {
+      "openai": "2.54.0",
+      "httpx": "0.28.1",
+      "pydantic": "2.13.5",
+      "pydantic-settings": "2.15.0"
+    },
+    "python": "3.13.7"
+  },
+  "actual_execution_policy": {
+    "schema_version": "v5-d-live-policy-0.1",
+    "approved_for_paid_calls": true,
+    "corpus_sha256": "3c3b0c66fd3c4f851dce01255855f6a5db5f28397f9ade20469ec27918522199",
+    "model": "gpt-6-luna",
+    "split": "development",
+    "review_reference": "https://github.com/OriginProof-3web/OriginProof/issues/92#issuecomment-6336600505",
+    "budget_reference": "https://github.com/OriginProof-3web/OriginProof/issues/92",
+    "input_selection": "TEXT",
+    "max_calls": 24,
+    "max_output_tokens": 1024,
+    "output_token_budget": 24576,
+    "max_input_characters": 200
+  },
+  "execution": {
+    "status": "COMPLETE",
+    "evaluation_version": "v5-d-live-evaluation-0.2",
+    "scope": "OPENAI_HTTPS",
+    "live_model_evaluated": true,
+    "requested_cases": 24,
+    "processed_cases": 24,
+    "prompt_version": "phishing_analysis_v2",
+    "provider_offset_mode": "QUOTE_ONLY_DETERMINISTIC_UNIQUE_MATCH",
+    "candidate_location_note": "RAW_OFFSETS_NOT_REQUESTED; use separately validated LLM locations",
+    "validated_llm_locations": {
+      "scope": "POST_VALIDATION_LLM_ONLY; NOT_RAW_MODEL_OFFSETS_OR_RULE_FALLBACK",
+      "quote_count": 12,
+      "covered_expected_spans": 12,
+      "exact_expected_spans": 0,
+      "expected_span_count": 12
+    },
+    "unknown_outcomes": 0,
+    "http_attempts": 24,
+    "reserved_calls": 24,
+    "reserved_output_tokens": 24576,
+    "known_usage_only": {
+      "input_tokens": 21939,
+      "output_tokens": 3518,
+      "total_tokens": 25457
+    },
+    "usage_missing_cases": 0,
+    "output_cap_violation": false,
+    "combined_pipeline_classification": {
+      "confusion_matrix": {
+        "HIGH": {
+          "HIGH": 6,
+          "CAUTION": 0,
+          "NO_CLEAR_INDICATORS": 0,
+          "UNDETERMINED": 0,
+          "ERROR": 0
+        },
+        "CAUTION": {
+          "HIGH": 0,
+          "CAUTION": 6,
+          "NO_CLEAR_INDICATORS": 0,
+          "UNDETERMINED": 0,
+          "ERROR": 0
+        },
+        "NO_CLEAR_INDICATORS": {
+          "HIGH": 0,
+          "CAUTION": 0,
+          "NO_CLEAR_INDICATORS": 6,
+          "UNDETERMINED": 0,
+          "ERROR": 0
+        },
+        "UNDETERMINED": {
+          "HIGH": 0,
+          "CAUTION": 0,
+          "NO_CLEAR_INDICATORS": 0,
+          "UNDETERMINED": 6,
+          "ERROR": 0
+        }
+      },
+      "per_class": {
+        "HIGH": {
+          "support": 6,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "CAUTION": {
+          "support": 6,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "NO_CLEAR_INDICATORS": {
+          "support": 6,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        },
+        "UNDETERMINED": {
+          "support": 6,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        }
+      },
+      "macro_f1": 1.0,
+      "high_recall": 1.0
+    },
+    "model_unavailable_or_rejected": 0,
+    "candidate_grounding": {
+      "status": "COMPLETE",
+      "scope": "PRE_GROUNDING_PROVIDER_EVIDENCE_NOT_RAW_WIRE_OR_MODEL_ACCURACY",
+      "candidate_quote_count": 12,
+      "matched_candidate_quote_count": 12,
+      "located_candidate_count": 0,
+      "invalid_candidate_count": 0,
+      "duplicate_candidate_count": 0,
+      "covered_span_count": 0,
+      "exact_span_match_count": 0,
+      "observed_cases": 24,
+      "unreadable_reports": 0,
+      "total_cases": 24,
+      "grounding_ratio": 1.0,
+      "location_accuracy": 0.0,
+      "expected_span_count": 12,
+      "missing_span_count": 12,
+      "missing_rate": 1.0,
+      "annotation_location_recall": 0.0
+    },
+    "pipeline_latency_seconds_completed_only": {
+      "timed_cases": 24,
+      "p50": 2.4267019785183948,
+      "p95": 4.226284542004578
+    },
+    "acceptance_status": "REQUIRES_HUMAN_REVIEW_NOT_INPUT_OR_MODEL_ACCEPTANCE",
+    "paid_cost": null
+  },
+  "cases": [
+    {
+      "id": "DP-H01",
+      "expected": "HIGH",
+      "predicted": "HIGH",
+      "error_code": null,
+      "http_status": 200,
+      "model_unavailable_or_rejected": 0,
+      "grounding_rejected": 0,
+      "validated_llm_locations": {
+        "scope": "POST_VALIDATION_LLM_ONLY; MAY_BE_DETERMINISTICALLY_RESOLVED",
+        "quote_count": 1,
+        "covered_expected_spans": 1,
+        "exact_expected_spans": 0,
+        "expected_span_count": 1,
+        "location_recall": 0.0
+      },
+      "usage": {
+        "input_tokens": 913,
+        "output_tokens": 176,
+        "total_tokens": 1089
+      }
+    },
+    {
+      "id": "DP-H02",
+      "expected": "HIGH",
+      "predicted": "HIGH",
+      "error_code": null,
+      "http_status": 200,
+      "model_unavailable_or_rejected": 0,
+      "grounding_rejected": 0,
+      "validated_llm_locations": {
+        "scope": "POST_VALIDATION_LLM_ONLY; MAY_BE_DETERMINISTICALLY_RESOLVED",
+        "quote_count": 1,
+        "covered_expected_spans": 1,
+        "exact_expected_spans": 0,
+        "expected_span_count": 1,
+        "location_recall": 0.0
+      },
+      "usage": {
+        "input_tokens": 912,
+        "output_tokens": 134,
+        "total_tokens": 1046
+      }
+    },
+    {
+      "id": "DP-H03",
+      "expected": "HIGH",
+      "predicted": "HIGH",
+      "error_code": null,
+      "http_status": 200,
+      "model_unavailable_or_rejected": 0,
+      "grounding_rejected": 0,
+      "validated_llm_locations": {
+        "scope": "POST_VALIDATION_LLM_ONLY; MAY_BE_DETERMINISTICALLY_RESOLVED",
+        "quote_count": 1,
+        "covered_expected_spans": 1,
+        "exact_expected_spans": 0,
+        "expected_span_count": 1,
+        "location_recall": 0.0
+      },
+      "usage": {
+        "input_tokens": 911,
+        "output_tokens": 150,
+        "total_tokens": 1061
+      }
+    },
+    {
+      "id": "DP-H04",
+      "expected": "HIGH",
+      "predicted": "HIGH",
+      "error_code": null,
+      "http_status": 200,
+      "model_unavailable_or_rejected": 0,
+      "grounding_rejected": 0,
+      "validated_llm_locations": {
+        "scope": "POST_VALIDATION_LLM_ONLY; MAY_BE_DETERMINISTICALLY_RESOLVED",
+        "quote_count": 1,
+        "covered_expected_spans": 1,
+        "exact_expected_spans": 0,
+        "expected_span_count": 1,
+        "location_recall": 0.0
+      },
+      "usage": {
+        "input_tokens": 910,
+        "output_tokens": 144,
+        "total_tokens": 1054
+      }
+    },
+    {
+      "id": "DP-H05",
+      "expected": "HIGH",
+      "predicted": "HIGH",
+      "error_code": null,
+      "http_status": 200,
+      "model_unavailable_or_rejected": 0,
+      "grounding_rejected": 0,
+      "validated_llm_locations": {
+        "scope": "POST_VALIDATION_LLM_ONLY; MAY_BE_DETERMINISTICALLY_RESOLVED",
+        "quote_count": 1,
+        "covered_expected_spans": 1,
+        "exact_expected_spans": 0,
+        "expected_span_count": 1,
+        "location_recall": 0.0
+      },
+      "usage": {
+        "input_tokens": 916,
+        "output_tokens": 171,
+        "total_tokens": 1087
+      }
+    },
+    {
+      "id": "DP-H06",
+      "expected": "HIGH",
+      "predicted": "HIGH",
+      "error_code": null,
+      "http_status": 200,
+      "model_unavailable_or_rejected": 0,
+      "grounding_rejected": 0,
+      "validated_llm_locations": {
+        "scope": "POST_VALIDATION_LLM_ONLY; MAY_BE_DETERMINISTICALLY_RESOLVED",
+        "quote_count": 1,
+        "covered_expected_spans": 1,
+        "exact_expected_spans": 0,
+        "expected_span_count": 1,
+        "location_recall": 0.0
+      },
+      "usage": {
+        "input_tokens": 916,
+        "output_tokens": 173,
+        "total_tokens": 1089
+      }
+    },
+    {
+      "id": "DP-C01",
+      "expected": "CAUTION",
+      "predicted": "CAUTION",
+      "error_code": null,
+      "http_status": 200,
+      "model_unavailable_or_rejected": 0,
+      "grounding_rejected": 0,
+      "validated_llm_locations": {
+        "scope": "POST_VALIDATION_LLM_ONLY; MAY_BE_DETERMINISTICALLY_RESOLVED",
+        "quote_count": 1,
+        "covered_expected_spans": 1,
+        "exact_expected_spans": 0,
+        "expected_span_count": 1,
+        "location_recall": 0.0
+      },
+      "usage": {
+        "input_tokens": 920,
+        "output_tokens": 216,
+        "total_tokens": 1136
+      }
+    },
+    {
+      "id": "DP-C02",
+      "expected": "CAUTION",
+      "predicted": "CAUTION",
+      "error_code": null,
+      "http_status": 200,
+      "model_unavailable_or_rejected": 0,
+      "grounding_rejected": 0,
+      "validated_llm_locations": {
+        "scope": "POST_VALIDATION_LLM_ONLY; MAY_BE_DETERMINISTICALLY_RESOLVED",
+        "quote_count": 1,
+        "covered_expected_spans": 1,
+        "exact_expected_spans": 0,
+        "expected_span_count": 1,
+        "location_recall": 0.0
+      },
+      "usage": {
+        "input_tokens": 921,
+        "output_tokens": 191,
+        "total_tokens": 1112
+      }
+    },
+    {
+      "id": "DP-C03",
+      "expected": "CAUTION",
+      "predicted": "CAUTION",
+      "error_code": null,
+      "http_status": 200,
+      "model_unavailable_or_rejected": 0,
+      "grounding_rejected": 0,
+      "validated_llm_locations": {
+        "scope": "POST_VALIDATION_LLM_ONLY; MAY_BE_DETERMINISTICALLY_RESOLVED",
+        "quote_count": 1,
+        "covered_expected_spans": 1,
+        "exact_expected_spans": 0,
+        "expected_span_count": 1,
+        "location_recall": 0.0
+      },
+      "usage": {
+        "input_tokens": 920,
+        "output_tokens": 166,
+        "total_tokens": 1086
+      }
+    },
+    {
+      "id": "DP-C04",
+      "expected": "CAUTION",
+      "predicted": "CAUTION",
+      "error_code": null,
+      "http_status": 200,
+      "model_unavailable_or_rejected": 0,
+      "grounding_rejected": 0,
+      "validated_llm_locations": {
+        "scope": "POST_VALIDATION_LLM_ONLY; MAY_BE_DETERMINISTICALLY_RESOLVED",
+        "quote_count": 1,
+        "covered_expected_spans": 1,
+        "exact_expected_spans": 0,
+        "expected_span_count": 1,
+        "location_recall": 0.0
+      },
+      "usage": {
+        "input_tokens": 913,
+        "output_tokens": 382,
+        "total_tokens": 1295
+      }
+    },
+    {
+      "id": "DP-C05",
+      "expected": "CAUTION",
+      "predicted": "CAUTION",
+      "error_code": null,
+      "http_status": 200,
+      "model_unavailable_or_rejected": 0,
+      "grounding_rejected": 0,
+      "validated_llm_locations": {
+        "scope": "POST_VALIDATION_LLM_ONLY; MAY_BE_DETERMINISTICALLY_RESOLVED",
+        "quote_count": 1,
+        "covered_expected_spans": 1,
+        "exact_expected_spans": 0,
+        "expected_span_count": 1,
+        "location_recall": 0.0
+      },
+      "usage": {
+        "input_tokens": 920,
+        "output_tokens": 241,
+        "total_tokens": 1161
+      }
+    },
+    {
+      "id": "DP-C06",
+      "expected": "CAUTION",
+      "predicted": "CAUTION",
+      "error_code": null,
+      "http_status": 200,
+      "model_unavailable_or_rejected": 0,
+      "grounding_rejected": 0,
+      "validated_llm_locations": {
+        "scope": "POST_VALIDATION_LLM_ONLY; MAY_BE_DETERMINISTICALLY_RESOLVED",
+        "quote_count": 1,
+        "covered_expected_spans": 1,
+        "exact_expected_spans": 0,
+        "expected_span_count": 1,
+        "location_recall": 0.0
+      },
+      "usage": {
+        "input_tokens": 922,
+        "output_tokens": 238,
+        "total_tokens": 1160
+      }
+    },
+    {
+      "id": "DP-N01",
+      "expected": "NO_CLEAR_INDICATORS",
+      "predicted": "NO_CLEAR_INDICATORS",
+      "error_code": null,
+      "http_status": 200,
+      "model_unavailable_or_rejected": 0,
+      "grounding_rejected": 0,
+      "validated_llm_locations": {
+        "scope": "POST_VALIDATION_LLM_ONLY; MAY_BE_DETERMINISTICALLY_RESOLVED",
+        "quote_count": 0,
+        "covered_expected_spans": 0,
+        "exact_expected_spans": 0,
+        "expected_span_count": 0,
+        "location_recall": null
+      },
+      "usage": {
+        "input_tokens": 917,
+        "output_tokens": 101,
+        "total_tokens": 1018
+      }
+    },
+    {
+      "id": "DP-N02",
+      "expected": "NO_CLEAR_INDICATORS",
+      "predicted": "NO_CLEAR_INDICATORS",
+      "error_code": null,
+      "http_status": 200,
+      "model_unavailable_or_rejected": 0,
+      "grounding_rejected": 0,
+      "validated_llm_locations": {
+        "scope": "POST_VALIDATION_LLM_ONLY; MAY_BE_DETERMINISTICALLY_RESOLVED",
+        "quote_count": 0,
+        "covered_expected_spans": 0,
+        "exact_expected_spans": 0,
+        "expected_span_count": 0,
+        "location_recall": null
+      },
+      "usage": {
+        "input_tokens": 921,
+        "output_tokens": 78,
+        "total_tokens": 999
+      }
+    },
+    {
+      "id": "DP-N03",
+      "expected": "NO_CLEAR_INDICATORS",
+      "predicted": "NO_CLEAR_INDICATORS",
+      "error_code": null,
+      "http_status": 200,
+      "model_unavailable_or_rejected": 0,
+      "grounding_rejected": 0,
+      "validated_llm_locations": {
+        "scope": "POST_VALIDATION_LLM_ONLY; MAY_BE_DETERMINISTICALLY_RESOLVED",
+        "quote_count": 0,
+        "covered_expected_spans": 0,
+        "exact_expected_spans": 0,
+        "expected_span_count": 0,
+        "location_recall": null
+      },
+      "usage": {
+        "input_tokens": 928,
+        "output_tokens": 77,
+        "total_tokens": 1005
+      }
+    },
+    {
+      "id": "DP-N04",
+      "expected": "NO_CLEAR_INDICATORS",
+      "predicted": "NO_CLEAR_INDICATORS",
+      "error_code": null,
+      "http_status": 200,
+      "model_unavailable_or_rejected": 0,
+      "grounding_rejected": 0,
+      "validated_llm_locations": {
+        "scope": "POST_VALIDATION_LLM_ONLY; MAY_BE_DETERMINISTICALLY_RESOLVED",
+        "quote_count": 0,
+        "covered_expected_spans": 0,
+        "exact_expected_spans": 0,
+        "expected_span_count": 0,
+        "location_recall": null
+      },
+      "usage": {
+        "input_tokens": 920,
+        "output_tokens": 100,
+        "total_tokens": 1020
+      }
+    },
+    {
+      "id": "DP-N05",
+      "expected": "NO_CLEAR_INDICATORS",
+      "predicted": "NO_CLEAR_INDICATORS",
+      "error_code": null,
+      "http_status": 200,
+      "model_unavailable_or_rejected": 0,
+      "grounding_rejected": 0,
+      "validated_llm_locations": {
+        "scope": "POST_VALIDATION_LLM_ONLY; MAY_BE_DETERMINISTICALLY_RESOLVED",
+        "quote_count": 0,
+        "covered_expected_spans": 0,
+        "exact_expected_spans": 0,
+        "expected_span_count": 0,
+        "location_recall": null
+      },
+      "usage": {
+        "input_tokens": 919,
+        "output_tokens": 95,
+        "total_tokens": 1014
+      }
+    },
+    {
+      "id": "DP-N06",
+      "expected": "NO_CLEAR_INDICATORS",
+      "predicted": "NO_CLEAR_INDICATORS",
+      "error_code": null,
+      "http_status": 200,
+      "model_unavailable_or_rejected": 0,
+      "grounding_rejected": 0,
+      "validated_llm_locations": {
+        "scope": "POST_VALIDATION_LLM_ONLY; MAY_BE_DETERMINISTICALLY_RESOLVED",
+        "quote_count": 0,
+        "covered_expected_spans": 0,
+        "exact_expected_spans": 0,
+        "expected_span_count": 0,
+        "location_recall": null
+      },
+      "usage": {
+        "input_tokens": 924,
+        "output_tokens": 88,
+        "total_tokens": 1012
+      }
+    },
+    {
+      "id": "DP-U01",
+      "expected": "UNDETERMINED",
+      "predicted": "UNDETERMINED",
+      "error_code": null,
+      "http_status": 200,
+      "model_unavailable_or_rejected": 0,
+      "grounding_rejected": 0,
+      "validated_llm_locations": {
+        "scope": "POST_VALIDATION_LLM_ONLY; MAY_BE_DETERMINISTICALLY_RESOLVED",
+        "quote_count": 0,
+        "covered_expected_spans": 0,
+        "exact_expected_spans": 0,
+        "expected_span_count": 0,
+        "location_recall": null
+      },
+      "usage": {
+        "input_tokens": 904,
+        "output_tokens": 100,
+        "total_tokens": 1004
+      }
+    },
+    {
+      "id": "DP-U02",
+      "expected": "UNDETERMINED",
+      "predicted": "UNDETERMINED",
+      "error_code": null,
+      "http_status": 200,
+      "model_unavailable_or_rejected": 0,
+      "grounding_rejected": 0,
+      "validated_llm_locations": {
+        "scope": "POST_VALIDATION_LLM_ONLY; MAY_BE_DETERMINISTICALLY_RESOLVED",
+        "quote_count": 0,
+        "covered_expected_spans": 0,
+        "exact_expected_spans": 0,
+        "expected_span_count": 0,
+        "location_recall": null
+      },
+      "usage": {
+        "input_tokens": 901,
+        "output_tokens": 91,
+        "total_tokens": 992
+      }
+    },
+    {
+      "id": "DP-U03",
+      "expected": "UNDETERMINED",
+      "predicted": "UNDETERMINED",
+      "error_code": null,
+      "http_status": 200,
+      "model_unavailable_or_rejected": 0,
+      "grounding_rejected": 0,
+      "validated_llm_locations": {
+        "scope": "POST_VALIDATION_LLM_ONLY; MAY_BE_DETERMINISTICALLY_RESOLVED",
+        "quote_count": 0,
+        "covered_expected_spans": 0,
+        "exact_expected_spans": 0,
+        "expected_span_count": 0,
+        "location_recall": null
+      },
+      "usage": {
+        "input_tokens": 896,
+        "output_tokens": 92,
+        "total_tokens": 988
+      }
+    },
+    {
+      "id": "DP-U04",
+      "expected": "UNDETERMINED",
+      "predicted": "UNDETERMINED",
+      "error_code": null,
+      "http_status": 200,
+      "model_unavailable_or_rejected": 0,
+      "grounding_rejected": 0,
+      "validated_llm_locations": {
+        "scope": "POST_VALIDATION_LLM_ONLY; MAY_BE_DETERMINISTICALLY_RESOLVED",
+        "quote_count": 0,
+        "covered_expected_spans": 0,
+        "exact_expected_spans": 0,
+        "expected_span_count": 0,
+        "location_recall": null
+      },
+      "usage": {
+        "input_tokens": 903,
+        "output_tokens": 128,
+        "total_tokens": 1031
+      }
+    },
+    {
+      "id": "DP-U05",
+      "expected": "UNDETERMINED",
+      "predicted": "UNDETERMINED",
+      "error_code": null,
+      "http_status": 200,
+      "model_unavailable_or_rejected": 0,
+      "grounding_rejected": 0,
+      "validated_llm_locations": {
+        "scope": "POST_VALIDATION_LLM_ONLY; MAY_BE_DETERMINISTICALLY_RESOLVED",
+        "quote_count": 0,
+        "covered_expected_spans": 0,
+        "exact_expected_spans": 0,
+        "expected_span_count": 0,
+        "location_recall": null
+      },
+      "usage": {
+        "input_tokens": 906,
+        "output_tokens": 99,
+        "total_tokens": 1005
+      }
+    },
+    {
+      "id": "DP-U06",
+      "expected": "UNDETERMINED",
+      "predicted": "UNDETERMINED",
+      "error_code": null,
+      "http_status": 200,
+      "model_unavailable_or_rejected": 0,
+      "grounding_rejected": 0,
+      "validated_llm_locations": {
+        "scope": "POST_VALIDATION_LLM_ONLY; MAY_BE_DETERMINISTICALLY_RESOLVED",
+        "quote_count": 0,
+        "covered_expected_spans": 0,
+        "exact_expected_spans": 0,
+        "expected_span_count": 0,
+        "location_recall": null
+      },
+      "usage": {
+        "input_tokens": 906,
+        "output_tokens": 87,
+        "total_tokens": 993
+      }
+    }
+  ],
+  "correct_cases": 24,
+  "misclassified_ids": [],
+  "grounding_rejected_ids": [],
+  "comparison_to_v1": {
+    "same_development_sources": 24,
+    "v1_macro_f1": 0.8733766233766234,
+    "v2_macro_f1": 1.0,
+    "v1_grounding_rejected": 4,
+    "v2_grounding_rejected": 0,
+    "v1_correct": 21,
+    "v2_correct": 24,
+    "interpretation": "Single rerun on the development data used for prompt changes; not an independent final test or a causal/statistical guarantee. Combined rules+model, not model-only score."
+  },
+  "v2_location_interpretation": "Raw model offsets were not requested. Post-validation LLM quotes have expected-span coverage12/12 but exact annotation boundaries0/12. Do not compare raw offset rate to v1 or call this full location precision.",
+  "private_journal_sha256": "c32e04fa69ca3123bcd74aaa706ca96f44bfd82ed622b83f78ea1dd1af352214",
+  "private_journal_permissions": "0o600",
+  "post_run_paid_policy_active": false,
+  "total_actual_text_calls": 48,
+  "holdout_calls": 0,
+  "image_audio_calls": 0,
+  "raw_provider_payload_persisted": false,
+  "api_key_logged_or_committed": false,
+  "model_only_f1": "NOT_MEASURED",
+  "paid_amount": "NOT_MEASURED; token usage reported",
+  "final_model_acceptance": false,
+  "stage_complete": false
+}

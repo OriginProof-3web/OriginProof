@@ -78,8 +78,33 @@ def build_packet(corpus_path: Path, self_review_path: Path) -> dict:
                 ],
             }
         )
+    assets = None
+    pack_root = corpus_path.parent / "selected_input_development_v1"
+    if (pack_root / "manifest.json").exists():
+        from .input_asset_pack import check_pack
+
+        assets = check_pack(corpus_path, pack_root)
+        manifest = json.loads((pack_root / "manifest.json").read_text())
+        source_assets = {row["source_id"]: row for row in manifest["cases"]}
+        for case in cases:
+            if case["id"] not in source_assets:
+                continue
+            row = source_assets[case["id"]]
+            for variant in case["planned_variants"]:
+                if variant["kind"] == "DOCUMENT_IMAGE":
+                    variant["asset_status"] = row["image_status"]
+                    variant["asset_path"] = (
+                        "selected_input_development_v1/" + row["image_asset"]["path"]
+                        if row["image_asset"]
+                        else None
+                    )
+                elif variant["kind"] == "AUDIO":
+                    variant["asset_status"] = row["recording"]["status"]
+                    variant["script_reference"] = "selected_input_development_v1/recording_plan.md"
     return {
-        "version": "v5-d-input-review-0.2",
+        "version": "v5-d-input-review-0.3",
+        "execution_flags_scope": "EXPORT_ASSET_PREPARATION_ONLY; TEXT_RUNS_SEPARATE",
+        "generated_development_assets": assets,
         "date_kst": "2026-10-25" if reviewed else "2026-10-23",
         "source": "synthetic",
         "purpose": "Recorded A/C confirmations; export never approves or executes calls"
@@ -132,6 +157,7 @@ def render_markdown(packet: dict) -> str:
         else "라벨·근거는 D 초안이며 A/C 검토 PENDING입니다.",
         "유료 정책은 별도이며 기본 비승인입니다. 이 생성기는 실제 호출·승인을 하지 않습니다.",
         "180은 세 형식 매핑 수이며 독립 원본/제작/변환/실제 평가 완료 수가 아닙니다.",
+        "paid/model flag는 export 준비 범위입니다. 실제 텍스트 평가 이력은 별도 보고서입니다.",
         "텍스트 위치는 Unicode 코드 포인트 [start,end)이며 "
         "이미지 영역·음성 시간으로 복사하지 않습니다.",
         "아래 D 판단 근거·flags·분할 관계는 검토 전 제안 이력으로 보존합니다.",
@@ -145,6 +171,17 @@ def render_markdown(packet: dict) -> str:
                 "- H01/H11 문구 공유: 분할 유지. 최종 H11 결과 별도 표시(현재 예측 없음).",
                 "- H08 추가 인용 권고는 미적용했습니다. 기존 라벨·원문·인용·분할을 보존합니다.",
                 "- U05/U13/U15는 텍스트 사례이며 실제 OCR/STT 실패 수로 합산하지 않습니다.",
+                "",
+            ]
+        )
+    if packet.get("generated_development_assets"):
+        assets = packet["generated_development_assets"]
+        lines.extend(
+            [
+                f"개발 이미지 {assets['image_assets']}개, "
+                f"대본 {assets['recording_script_drafts']}개. 음성/변환 평가0.",
+                "[이미지/녹음 계획 manifest]"
+                "(../../fixtures/synthetic/selected_input_development_v1/manifest.json)",
                 "",
             ]
         )

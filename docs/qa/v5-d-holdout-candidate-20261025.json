@@ -1,0 +1,48 @@
+{
+  "version": "v5-d-holdout-candidate-0.1",
+  "date_kst": "2026-10-25",
+  "freeze_scope": "D text-analysis candidate only, not RC/owner approval or a paid execution authorization",
+  "tested_source_revision": "b52487e8c95e71625e2822c2fac5f5e6caf8bc62",
+  "prompt_candidate_frozen": true,
+  "model_alias": "gpt-6-luna",
+  "provider_weight_snapshot_captured": false,
+  "reasoning_effort": "low",
+  "corpus_sha256": "3c3b0c66fd3c4f851dce01255855f6a5db5f28397f9ade20469ec27918522199",
+  "source_and_runtime_identity": {
+    "policy_sha256": "5824ec2a00dfc327d6731dbcd5cbb11255820352ebff1a08894cac484ae1cc71",
+    "source_sha256": {
+      "live_evaluation.py": "45e03ec1d1cb4b24d8b5b79526aac5b07acc548670e8e31c8bfe997196ec25c4",
+      "phishing_evaluation.py": "fed9e3af38a5850e4403610ce7081ec172407233a1fd9c0d34d8f9c94a19aba1",
+      "providers.py": "812976a421ad59571b11070c335eb538622efa405d01f8bd4b89a7e97c61a38c",
+      "phishing.py": "52f9e1103799310e03216894bad12f558432975dbcb1cab6d5d9f2db8844580f",
+      "evidence_evaluation.py": "a1750c4e2d6eab976f56e5288f3f9ae648f1d99dd228d1abdfd911f909738eac",
+      "settings.py": "2bc5c4b6362e38873e5eaa2885f40f59e7f7402b02c5bd8958702223e681649b",
+      "errors.py": "a07e6acdbc4bd3eaee309c5836c66d6f2711d12c2cf53b13a099c4dec489a4bd",
+      "inputs.py": "8d93c17f4987c9c412ed3c83f39e60d66b2307a979b08fc7207d8f3872a78ae2",
+      "wallet_contract.py": "0c7b93a781e6e8a645f2f4d6f59f6f0d55aea72bbd8af18d7f9692488b5c9613",
+      "models.py": "f85b6c766b562470855a13b8d6903a7a6fe57cc09b03ba43fc89801034dbe284",
+      "phishing_analysis_v2.md": "73af1364a3476dfaeb1e6c1968268e9ae6520dfac1d4e2aaefb7d308e4e3aa43"
+    },
+    "transport_scope": "OPENAI_HTTPS",
+    "output_cap": 1024,
+    "analysis_prompt_version": "phishing_analysis_v2",
+    "provider_offset_mode": "QUOTE_ONLY_DETERMINISTIC_UNIQUE_MATCH",
+    "dependencies": {
+      "openai": "2.54.0",
+      "httpx": "0.28.1",
+      "pydantic": "2.13.5",
+      "pydantic-settings": "2.15.0"
+    },
+    "python": "3.13.7"
+  },
+  "source_hashes_must_match_before_execution": true,
+  "paid_execution_approved": false,
+  "already_used_text_calls": 48,
+  "proposed_holdout_calls": 36,
+  "proposed_total_calls_if_separately_approved": 84,
+  "policy_reference": "fixtures/synthetic/v5_d_live_evaluation_policy.holdout.pending.json",
+  "rule_and_model_score_scope": "combined pipeline; no raw model-only score",
+  "code_review_status": "PENDING_PR94",
+  "final_model_accepted": false,
+  "holdout_predictions": 0
+}

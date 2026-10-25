@@ -1,5 +1,17 @@
 {
-  "version": "v5-d-input-review-0.2",
+  "version": "v5-d-input-review-0.3",
+  "execution_flags_scope": "EXPORT_ASSET_PREPARATION_ONLY; TEXT_RUNS_SEPARATE",
+  "generated_development_assets": {
+    "status": "OFFLINE_ASSET_CONSISTENCY_PASS",
+    "source_rows": 24,
+    "image_assets": 23,
+    "recording_script_drafts": 22,
+    "audio_recordings": 0,
+    "actual_conversion_evaluations": 0,
+    "paid_calls": 0,
+    "holdout_assets_created": 0,
+    "pixel_or_audio_time_annotations": "NOT_CREATED"
+  },
   "date_kst": "2026-10-25",
   "source": "synthetic",
   "purpose": "Recorded A/C confirmations; export never approves or executes calls",
@@ -106,18 +118,20 @@
           "kind": "DOCUMENT_IMAGE",
           "source_group": "DP-H01",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "CREATED_NOT_EVALUATED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "asset_path": "selected_input_development_v1/images/DP-H01.png"
         },
         {
           "id": "DP-H01-AUDIO",
           "kind": "AUDIO",
           "source_group": "DP-H01",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "script_reference": "selected_input_development_v1/recording_plan.md"
         }
       ]
     },
@@ -161,18 +175,20 @@
           "kind": "DOCUMENT_IMAGE",
           "source_group": "DP-H02",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "CREATED_NOT_EVALUATED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "asset_path": "selected_input_development_v1/images/DP-H02.png"
         },
         {
           "id": "DP-H02-AUDIO",
           "kind": "AUDIO",
           "source_group": "DP-H02",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "script_reference": "selected_input_development_v1/recording_plan.md"
         }
       ]
     },
@@ -216,18 +232,20 @@
           "kind": "DOCUMENT_IMAGE",
           "source_group": "DP-H03",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "CREATED_NOT_EVALUATED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "asset_path": "selected_input_development_v1/images/DP-H03.png"
         },
         {
           "id": "DP-H03-AUDIO",
           "kind": "AUDIO",
           "source_group": "DP-H03",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "script_reference": "selected_input_development_v1/recording_plan.md"
         }
       ]
     },
@@ -271,18 +289,20 @@
           "kind": "DOCUMENT_IMAGE",
           "source_group": "DP-H04",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "CREATED_NOT_EVALUATED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "asset_path": "selected_input_development_v1/images/DP-H04.png"
         },
         {
           "id": "DP-H04-AUDIO",
           "kind": "AUDIO",
           "source_group": "DP-H04",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "script_reference": "selected_input_development_v1/recording_plan.md"
         }
       ]
     },
@@ -328,18 +348,20 @@
           "kind": "DOCUMENT_IMAGE",
           "source_group": "DP-H05",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "CREATED_NOT_EVALUATED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "asset_path": "selected_input_development_v1/images/DP-H05.png"
         },
         {
           "id": "DP-H05-AUDIO",
           "kind": "AUDIO",
           "source_group": "DP-H05",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "script_reference": "selected_input_development_v1/recording_plan.md"
         }
       ]
     },
@@ -383,18 +405,20 @@
           "kind": "DOCUMENT_IMAGE",
           "source_group": "DP-H06",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "CREATED_NOT_EVALUATED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "asset_path": "selected_input_development_v1/images/DP-H06.png"
         },
         {
           "id": "DP-H06-AUDIO",
           "kind": "AUDIO",
           "source_group": "DP-H06",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "script_reference": "selected_input_development_v1/recording_plan.md"
         }
       ]
     },
@@ -938,18 +962,20 @@
           "kind": "DOCUMENT_IMAGE",
           "source_group": "DP-C01",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "CREATED_NOT_EVALUATED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "asset_path": "selected_input_development_v1/images/DP-C01.png"
         },
         {
           "id": "DP-C01-AUDIO",
           "kind": "AUDIO",
           "source_group": "DP-C01",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "script_reference": "selected_input_development_v1/recording_plan.md"
         }
       ]
     },
@@ -993,18 +1019,20 @@
           "kind": "DOCUMENT_IMAGE",
           "source_group": "DP-C02",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "CREATED_NOT_EVALUATED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "asset_path": "selected_input_development_v1/images/DP-C02.png"
         },
         {
           "id": "DP-C02-AUDIO",
           "kind": "AUDIO",
           "source_group": "DP-C02",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "script_reference": "selected_input_development_v1/recording_plan.md"
         }
       ]
     },
@@ -1048,18 +1076,20 @@
           "kind": "DOCUMENT_IMAGE",
           "source_group": "DP-C03",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "CREATED_NOT_EVALUATED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "asset_path": "selected_input_development_v1/images/DP-C03.png"
         },
         {
           "id": "DP-C03-AUDIO",
           "kind": "AUDIO",
           "source_group": "DP-C03",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "script_reference": "selected_input_development_v1/recording_plan.md"
         }
       ]
     },
@@ -1103,18 +1133,20 @@
           "kind": "DOCUMENT_IMAGE",
           "source_group": "DP-C04",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "CREATED_NOT_EVALUATED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "asset_path": "selected_input_development_v1/images/DP-C04.png"
         },
         {
           "id": "DP-C04-AUDIO",
           "kind": "AUDIO",
           "source_group": "DP-C04",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "script_reference": "selected_input_development_v1/recording_plan.md"
         }
       ]
     },
@@ -1158,18 +1190,20 @@
           "kind": "DOCUMENT_IMAGE",
           "source_group": "DP-C05",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "CREATED_NOT_EVALUATED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "asset_path": "selected_input_development_v1/images/DP-C05.png"
         },
         {
           "id": "DP-C05-AUDIO",
           "kind": "AUDIO",
           "source_group": "DP-C05",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "script_reference": "selected_input_development_v1/recording_plan.md"
         }
       ]
     },
@@ -1213,18 +1247,20 @@
           "kind": "DOCUMENT_IMAGE",
           "source_group": "DP-C06",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "CREATED_NOT_EVALUATED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "asset_path": "selected_input_development_v1/images/DP-C06.png"
         },
         {
           "id": "DP-C06-AUDIO",
           "kind": "AUDIO",
           "source_group": "DP-C06",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "script_reference": "selected_input_development_v1/recording_plan.md"
         }
       ]
     },
@@ -1761,18 +1797,20 @@
           "kind": "DOCUMENT_IMAGE",
           "source_group": "DP-N01",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "CREATED_NOT_EVALUATED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "asset_path": "selected_input_development_v1/images/DP-N01.png"
         },
         {
           "id": "DP-N01-AUDIO",
           "kind": "AUDIO",
           "source_group": "DP-N01",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "script_reference": "selected_input_development_v1/recording_plan.md"
         }
       ]
     },
@@ -1810,18 +1848,20 @@
           "kind": "DOCUMENT_IMAGE",
           "source_group": "DP-N02",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "CREATED_NOT_EVALUATED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "asset_path": "selected_input_development_v1/images/DP-N02.png"
         },
         {
           "id": "DP-N02-AUDIO",
           "kind": "AUDIO",
           "source_group": "DP-N02",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "script_reference": "selected_input_development_v1/recording_plan.md"
         }
       ]
     },
@@ -1859,18 +1899,20 @@
           "kind": "DOCUMENT_IMAGE",
           "source_group": "DP-N03",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "CREATED_NOT_EVALUATED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "asset_path": "selected_input_development_v1/images/DP-N03.png"
         },
         {
           "id": "DP-N03-AUDIO",
           "kind": "AUDIO",
           "source_group": "DP-N03",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "script_reference": "selected_input_development_v1/recording_plan.md"
         }
       ]
     },
@@ -1908,18 +1950,20 @@
           "kind": "DOCUMENT_IMAGE",
           "source_group": "DP-N04",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "CREATED_NOT_EVALUATED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "asset_path": "selected_input_development_v1/images/DP-N04.png"
         },
         {
           "id": "DP-N04-AUDIO",
           "kind": "AUDIO",
           "source_group": "DP-N04",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "script_reference": "selected_input_development_v1/recording_plan.md"
         }
       ]
     },
@@ -1957,18 +2001,20 @@
           "kind": "DOCUMENT_IMAGE",
           "source_group": "DP-N05",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "CREATED_NOT_EVALUATED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "asset_path": "selected_input_development_v1/images/DP-N05.png"
         },
         {
           "id": "DP-N05-AUDIO",
           "kind": "AUDIO",
           "source_group": "DP-N05",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "script_reference": "selected_input_development_v1/recording_plan.md"
         }
       ]
     },
@@ -2006,18 +2052,20 @@
           "kind": "DOCUMENT_IMAGE",
           "source_group": "DP-N06",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "CREATED_NOT_EVALUATED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "asset_path": "selected_input_development_v1/images/DP-N06.png"
         },
         {
           "id": "DP-N06-AUDIO",
           "kind": "AUDIO",
           "source_group": "DP-N06",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "script_reference": "selected_input_development_v1/recording_plan.md"
         }
       ]
     },
@@ -2496,18 +2544,20 @@
           "kind": "DOCUMENT_IMAGE",
           "source_group": "DP-U01",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "CREATED_NOT_EVALUATED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "asset_path": "selected_input_development_v1/images/DP-U01.png"
         },
         {
           "id": "DP-U01-AUDIO",
           "kind": "AUDIO",
           "source_group": "DP-U01",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "script_reference": "selected_input_development_v1/recording_plan.md"
         }
       ]
     },
@@ -2545,18 +2595,20 @@
           "kind": "DOCUMENT_IMAGE",
           "source_group": "DP-U02",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "CREATED_NOT_EVALUATED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "asset_path": "selected_input_development_v1/images/DP-U02.png"
         },
         {
           "id": "DP-U02-AUDIO",
           "kind": "AUDIO",
           "source_group": "DP-U02",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "script_reference": "selected_input_development_v1/recording_plan.md"
         }
       ]
     },
@@ -2594,18 +2646,20 @@
           "kind": "DOCUMENT_IMAGE",
           "source_group": "DP-U03",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "CREATED_NOT_EVALUATED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "asset_path": "selected_input_development_v1/images/DP-U03.png"
         },
         {
           "id": "DP-U03-AUDIO",
           "kind": "AUDIO",
           "source_group": "DP-U03",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "NO_SPOKEN_WORDS_SCRIPT_NOT_READY",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "script_reference": "selected_input_development_v1/recording_plan.md"
         }
       ]
     },
@@ -2643,18 +2697,20 @@
           "kind": "DOCUMENT_IMAGE",
           "source_group": "DP-U04",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "CREATED_NOT_EVALUATED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "asset_path": "selected_input_development_v1/images/DP-U04.png"
         },
         {
           "id": "DP-U04-AUDIO",
           "kind": "AUDIO",
           "source_group": "DP-U04",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "script_reference": "selected_input_development_v1/recording_plan.md"
         }
       ]
     },
@@ -2694,18 +2750,20 @@
           "kind": "DOCUMENT_IMAGE",
           "source_group": "DP-U05",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "EXCLUDED_AGREED_TEXT_ONLY",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "asset_path": null
         },
         {
           "id": "DP-U05-AUDIO",
           "kind": "AUDIO",
           "source_group": "DP-U05",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "EXCLUDED_AGREED_TEXT_ONLY",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "script_reference": "selected_input_development_v1/recording_plan.md"
         }
       ]
     },
@@ -2743,18 +2801,20 @@
           "kind": "DOCUMENT_IMAGE",
           "source_group": "DP-U06",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "CREATED_NOT_EVALUATED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "asset_path": "selected_input_development_v1/images/DP-U06.png"
         },
         {
           "id": "DP-U06-AUDIO",
           "kind": "AUDIO",
           "source_group": "DP-U06",
           "split": "development",
-          "asset_status": "NOT_CREATED",
+          "asset_status": "DRAFT_AUDIO_NOT_RECORDED",
           "conversion_evaluated": false,
-          "model_evaluated": false
+          "model_evaluated": false,
+          "script_reference": "selected_input_development_v1/recording_plan.md"
         }
       ]
     },
