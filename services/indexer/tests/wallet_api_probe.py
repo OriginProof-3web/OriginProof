@@ -53,7 +53,7 @@ async def disposable_database():
                 "-e",
                 "POSTGRES_PASSWORD=originproof",
                 "-e",
-                "POSTGRES_DB=originproof",
+                f"POSTGRES_DB={name}",
                 "postgres:16.4-alpine",
             ],
             check=True,
@@ -69,7 +69,7 @@ async def disposable_database():
             await asyncio.sleep(0.1)
         else:
             raise AssertionError("disposable PostgreSQL did not start")
-        url = f"postgresql+asyncpg://originproof:originproof@127.0.0.1:{port}/originproof"
+        url = f"postgresql+asyncpg://originproof:originproof@127.0.0.1:{port}/{name}"
         env = os.environ | {
             "API_DATABASE_URL": url,
             "PYTHONPATH": ":".join(
@@ -190,6 +190,7 @@ async def probe_wallet_api(reader, creation_proof, approvers, institution, abi):
                 ("other", "issuer", "iss_origin_mock_office"),
                 ("recipient", "recipient", None),
                 ("operator", "operator", None),
+                ("operator_bad", "operator", None),
             ):
                 db.add(
                     AccountRow(
@@ -226,7 +227,10 @@ async def probe_wallet_api(reader, creation_proof, approvers, institution, abi):
             _env_file=None,
             wallet_registry_address=reader.address,
             blockchain_chain_id=reader.chain_id,
-            wallet_operator_addresses={"acct_api_operator": approvers[0]},
+            wallet_operator_addresses={
+                "acct_api_operator": approvers[0],
+                "acct_api_operator_bad": institution,
+            },
         )
         unconfigured_app = create_app(database=database, settings=settings)
         async with httpx.AsyncClient(
@@ -237,157 +241,216 @@ async def probe_wallet_api(reader, creation_proof, approvers, institution, abi):
                 "/v3/documents/" + identifier_hash("unregistered-api-probe"),
             )
             assert unavailable.status_code == 503, unavailable.text
-        app = create_app(database=database, settings=settings, wallet_chain=adapter)
+        from wallet_api_process import api_process
 
-        async def login(api, username):
-            result = await api.post(
-                "/v1/auth/login",
-                json={
-                    "username": username,
-                    "password": "synthetic-api-probe-password",
-                },
-            )
-            assert result.status_code == 200, result.text
-            api.headers["X-CSRF-Token"] = result.json()["csrf_token"]
+        async with api_process(database, settings, reader, creation_proof, abi) as process:
+            app = create_app(database=database, settings=settings, wallet_chain=adapter)
 
-        async with httpx.AsyncClient(
-            transport=httpx.ASGITransport(app=app),
-            base_url="http://test",
-        ) as api:
-            absent = await api.get("/v3/documents/" + identifier_hash("unregistered-api-probe"))
-            assert absent.status_code == 404, absent.text
-            body = {
-                "request_id": "req_api_draft",
-                "doc_key": identifier_hash("api-probe-doc"),
-                "expected_version": 1,
-                "expires_at": int(time.time()) + 86400,
-                "content": {
-                    "notice_type": "OFFICIAL_DOCUMENT",
-                    "institution_code": "ORIGIN_MOCK_BANK",
-                    "document_type": "NOTICE",
-                    "document_number": "API-001",
-                    "title": "Synthetic",
-                    "summary": "Disposable PostgreSQL and Anvil",
-                    "official_url": None,
-                },
-            }
-            assert (await api.post("/v3/document-drafts", json=body)).status_code == 401
-            await login(api, "recipient")
-            assert (await api.post("/v3/document-drafts", json=body)).status_code == 403
-            await login(api, "operator")
-            assert (await api.get(f"/v3/proposals/{pid}")).status_code == 404
-            settings.wallet_operator_addresses["acct_api_operator"] = institution
-            assert (await api.get(f"/v3/proposals/{pid}")).status_code == 403
-            settings.wallet_operator_addresses["acct_api_operator"] = approvers[0]
-            await login(api, "issuer")
-            csrf = api.headers.pop("X-CSRF-Token")
-            assert (await api.post("/v3/document-drafts", json=body)).status_code == 403
-            api.headers["X-CSRF-Token"] = csrf
-            draft = await api.post("/v3/document-drafts", json=body)
-            assert draft.status_code == 201, draft.text
-            signing = SigningRequest.model_validate(draft.json())
-            signed = await signature(signing.message)
-            submission = {
-                "request_id": "req_api_publish",
-                "signing_request_id": signing.signing_request_id,
-                "signature": signed,
-            }
-            pending = await api.post("/v3/publications", json=submission)
-            assert pending.status_code == 202, pending.text
-            assert pending.json()["status"] == "PENDING_SUBMISSION"
-            operation_id = pending.json()["operation_id"]
-            reconcile = f"/v3/operations/{operation_id}/reconcile"
-            unconfigured = await api.post(reconcile)
-            assert unconfigured.status_code == 503, unconfigured.text
-            await login(api, "other")
-            assert (await api.get(f"/v3/operations/{operation_id}")).status_code == 404
-            await login(api, "issuer")
-            mismatch = await api.post(
-                f"/v3/signing-requests/{signing.signing_request_id}/transactions",
-                json={
-                    "request_id": "req_api_wrong_tx",
-                    "signing_request_id": signing.signing_request_id,
-                    "tx_hash": registration_tx,
-                },
-            )
-            assert mismatch.status_code == 422, mismatch.text
-            assert mismatch.json()["detail"] == "DIRECT_TX_MISMATCH"
-            await reader.rpc("evm_setAutomine", [False])
-            try:
-                tx_hash = await send(
-                    "publish",
-                    {
-                        "message": signing.message.model_dump(by_alias=True)
-                        | {"nonce": int(signing.message.nonce)},
-                        "signature": signed,
+            async def login(api, username):
+                result = await api.post(
+                    "/v1/auth/login",
+                    json={
+                        "username": username,
+                        "password": "synthetic-api-probe-password",
                     },
-                    institution,
                 )
-                response = await api.post(
+                assert result.status_code == 200, result.text
+                api.headers["X-CSRF-Token"] = result.json()["csrf_token"]
+
+            async with (
+                process.client()
+                if process
+                else httpx.AsyncClient(
+                    transport=httpx.ASGITransport(app=app),
+                    base_url="http://test",
+                )
+            ) as api:
+                if process:
+                    code = await reader.rpc("eth_getCode", [reader.address, "latest"])
+                    try:
+                        await reader.rpc("anvil_setCode", [reader.address, "0x"])
+                        assert (await api.get("/health/live")).status_code == 200
+                        assert (await api.get("/health/ready")).status_code == 503
+                    finally:
+                        await reader.rpc("anvil_setCode", [reader.address, code])
+                    assert (await api.get("/health/ready")).status_code == 200
+                    process.lifecycle["readiness_deployment_mismatch"] = (
+                        "503 then 200 after restore"
+                    )
+                absent = await api.get("/v3/documents/" + identifier_hash("unregistered-api-probe"))
+                assert absent.status_code == 404, absent.text
+                body = {
+                    "request_id": "req_api_draft",
+                    "doc_key": identifier_hash("api-probe-doc"),
+                    "expected_version": 1,
+                    "expires_at": int(time.time()) + 86400,
+                    "content": {
+                        "notice_type": "OFFICIAL_DOCUMENT",
+                        "institution_code": "ORIGIN_MOCK_BANK",
+                        "document_type": "NOTICE",
+                        "document_number": "API-001",
+                        "title": "Synthetic",
+                        "summary": "Disposable PostgreSQL and Anvil",
+                        "official_url": None,
+                    },
+                }
+                assert (await api.post("/v3/document-drafts", json=body)).status_code == 401
+                await login(api, "recipient")
+                assert (await api.post("/v3/document-drafts", json=body)).status_code == 403
+                await login(api, "operator")
+                assert (await api.get(f"/v3/proposals/{pid}")).status_code == 404
+                await login(api, "operator_bad")
+                assert (await api.get(f"/v3/proposals/{pid}")).status_code == 403
+                await login(api, "issuer")
+                csrf = api.headers.pop("X-CSRF-Token")
+                assert (await api.post("/v3/document-drafts", json=body)).status_code == 403
+                api.headers["X-CSRF-Token"] = csrf
+                draft = await api.post("/v3/document-drafts", json=body)
+                assert draft.status_code == 201, draft.text
+                signing = SigningRequest.model_validate(draft.json())
+                signed = await signature(signing.message)
+                submission = {
+                    "request_id": "req_api_publish",
+                    "signing_request_id": signing.signing_request_id,
+                    "signature": signed,
+                }
+                pending = await api.post("/v3/publications", json=submission)
+                assert pending.status_code == 202, pending.text
+                assert pending.json()["status"] == "PENDING_SUBMISSION"
+                operation_id = pending.json()["operation_id"]
+                reconcile = f"/v3/operations/{operation_id}/reconcile"
+                unconfigured = await api.post(reconcile)
+                assert unconfigured.status_code == 503, unconfigured.text
+                await login(api, "other")
+                assert (await api.get(f"/v3/operations/{operation_id}")).status_code == 404
+                await login(api, "issuer")
+                mismatch = await api.post(
                     f"/v3/signing-requests/{signing.signing_request_id}/transactions",
                     json={
-                        "request_id": "req_api_direct",
+                        "request_id": "req_api_wrong_tx",
                         "signing_request_id": signing.signing_request_id,
-                        "tx_hash": tx_hash,
+                        "tx_hash": registration_tx,
                     },
                 )
-                assert response.status_code == 202, response.text
-                assert response.json()["status"] == "UNKNOWN"
-            finally:
-                await reader.rpc("evm_mine", [])
-                await reader.rpc("evm_setAutomine", [True])
-            await mined(tx_hash)
+                assert mismatch.status_code == 422, mismatch.text
+                assert mismatch.json()["detail"] == "DIRECT_TX_MISMATCH"
+                before_nonce = int(
+                    await reader.rpc(
+                        "eth_getTransactionCount",
+                        [institution, "latest"],
+                    ),
+                    16,
+                )
+                await reader.rpc("evm_setAutomine", [False])
+                try:
+                    tx_hash = await send(
+                        "publish",
+                        {
+                            "message": signing.message.model_dump(by_alias=True)
+                            | {"nonce": int(signing.message.nonce)},
+                            "signature": signed,
+                        },
+                        institution,
+                    )
+                    response = await api.post(
+                        f"/v3/signing-requests/{signing.signing_request_id}/transactions",
+                        json={
+                            "request_id": "req_api_direct",
+                            "signing_request_id": signing.signing_request_id,
+                            "tx_hash": tx_hash,
+                        },
+                    )
+                    assert response.status_code == 202, response.text
+                    assert response.json()["status"] == "UNKNOWN"
+                    async with database.session_factory() as db:
+                        saved = await db.get(OperationRow, operation_id)
+                        assert saved.status == "UNKNOWN"
+                        assert saved.recovery_reference["lookup_tx_hash"] == tx_hash
+                    if process:
+                        crashed_pid = process.process.pid
+                        await process.stop(kill=True)
+                        assert process.process.returncode == -9
+                        assert not process.state_path.exists()
+                        process.lifecycle["killed_pid"] = crashed_pid
+                finally:
+                    await reader.rpc("evm_mine", [])
+                    await reader.rpc("evm_setAutomine", [True])
+                await mined(tx_hash)
 
-        # Recreate API and its DB pool; no overrides, synthetic chain port or resent transaction.
-        await database.dispose()
-        restarted_database = Database(
-            str(database.engine.url.render_as_string(hide_password=False))
-        )
-        restarted = create_app(database=restarted_database, settings=settings, wallet_chain=adapter)
-        try:
-            async with httpx.AsyncClient(
-                transport=httpx.ASGITransport(app=restarted),
-                base_url="http://test",
-            ) as api:
-                await login(api, "issuer")
-                restored = await api.get(f"/v3/operations/{operation_id}")
-                assert restored.json()["status"] == "UNKNOWN"
-                result = await api.post(reconcile)
-                assert result.status_code == 202, result.text
-                assert result.json()["status"] == "CONFIRMED"
-                assert result.json()["tx_hash"] == tx_hash
-                again = await api.post(reconcile)
-                assert again.json() == result.json()
-                did = signing.message.document_id
-                document = await api.get(f"/v3/documents/{did}")
-                assert document.status_code == 200 and document.json()["state"] == "ACTIVE"
-                material = await api.get(f"/v3/documents/{did}/verification-material")
-                assert material.status_code == 200, material.text
-                assert material.json()["signature"] == signed
-                verified = await api.post(
-                    "/v3/verifications",
-                    json={
-                        "request_id": "req_api_verify",
-                        "document_id": did,
-                        "scope": "PROTECTED_FIELDS",
-                        "candidate": body["content"],
-                    },
-                )
-                assert verified.status_code == 200, verified.text
-                assert verified.json()["verification_status"] == "VERIFIED", verified.text
-                async with restarted_database.session_factory() as db:
-                    saved = await db.get(OperationRow, operation_id)
-                    assert saved.tx_hash == tx_hash and saved.status == "CONFIRMED"
-                    assert saved.recovery_reference["lookup_tx_hash"] == tx_hash
-        finally:
-            await restarted_database.dispose()
+            # Reuse DB/chain; TCP mode restarts after SIGKILL, ASGI recreates app/pool.
+            if process:
+                await process.start()
+                assert process.process.pid != process.lifecycle["killed_pid"]
+                process.lifecycle["restarted_pid"] = process.process.pid
+            await database.dispose()
+            restarted_database = Database(
+                str(database.engine.url.render_as_string(hide_password=False))
+            )
+            restarted = create_app(
+                database=restarted_database, settings=settings, wallet_chain=adapter
+            )
+            try:
+                async with (
+                    process.client()
+                    if process
+                    else httpx.AsyncClient(
+                        transport=httpx.ASGITransport(app=restarted),
+                        base_url="http://test",
+                    )
+                ) as api:
+                    await login(api, "issuer")
+                    restored = await api.get(f"/v3/operations/{operation_id}")
+                    assert restored.json()["status"] == "UNKNOWN"
+                    result = await api.post(reconcile)
+                    assert result.status_code == 202, result.text
+                    assert result.json()["status"] == "CONFIRMED"
+                    assert result.json()["tx_hash"] == tx_hash
+                    again = await api.post(reconcile)
+                    assert again.json() == result.json()
+                    assert (
+                        int(
+                            await reader.rpc(
+                                "eth_getTransactionCount",
+                                [institution, "latest"],
+                            ),
+                            16,
+                        )
+                        == before_nonce + 1
+                    )
+                    did = signing.message.document_id
+                    document = await api.get(f"/v3/documents/{did}")
+                    assert document.status_code == 200 and document.json()["state"] == "ACTIVE"
+                    material = await api.get(f"/v3/documents/{did}/verification-material")
+                    assert material.status_code == 200, material.text
+                    assert material.json()["signature"] == signed
+                    verified = await api.post(
+                        "/v3/verifications",
+                        json={
+                            "request_id": "req_api_verify",
+                            "document_id": did,
+                            "scope": "PROTECTED_FIELDS",
+                            "candidate": body["content"],
+                        },
+                    )
+                    assert verified.status_code == 200, verified.text
+                    assert verified.json()["verification_status"] == "VERIFIED", verified.text
+                    async with restarted_database.session_factory() as db:
+                        saved = await db.get(OperationRow, operation_id)
+                        assert saved.tx_hash == tx_hash and saved.status == "CONFIRMED"
+                        assert saved.recovery_reference["lookup_tx_hash"] == tx_hash
+            finally:
+                await restarted_database.dispose()
     return {
-        "scope": "Anvil + migrated disposable PostgreSQL + ASGI and real login/CSRF",
+        "scope": "Anvil + migrated PostgreSQL + real login/CSRF + "
+        + ("TCP/lifespan/SIGKILL recovery" if process else "ASGI handlers"),
+        "process_lifecycle": process.lifecycle if process else None,
         "publication_tx": tx_hash,
-        "operation": "UNKNOWN to CONFIRMED after API/pool recreation",
+        "operation": "UNKNOWN to CONFIRMED after "
+        + ("SIGKILL/TCP restart" if process else "API/pool recreation"),
         "limitations": [
             "seeded onboarding",
-            "no browser/network API process/lifespan",
+            "no browser or public chain",
+            "TCP/SIGKILL checked" if process else "no TCP/lifespan/process termination",
             "hashless search remains 503; relayer remains disabled",
         ],
     }

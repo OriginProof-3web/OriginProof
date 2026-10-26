@@ -568,7 +568,7 @@ async def test_disposable_wallet_registry_recovery_and_reorg(tmp_path):
             if os.environ.get("ORIGINPROOF_WALLET_API_LIVE") == "1":
                 from wallet_api_probe import probe_wallet_api
 
-                report["scope"] = "disposable Anvil + PostgreSQL + ASGI; no browser/lifespan"
+                report["scope"] = "disposable Anvil + PostgreSQL + API; see api_probe scope"
                 report["api_probe"] = await probe_wallet_api(
                     reader, creation_proof, approvers, institution, abi,
                 )
