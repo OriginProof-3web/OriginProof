@@ -153,3 +153,76 @@ B/C: hashless 검색 진행점/보관·재시작 계약을 정한 뒤 find_trans
 submit/relayer는 여전히 미연결이며 직접 지갑 제출 검사를 중계 성공으로 확대하지 않는다.
 D: 동일 SHA 독립 실패 검사·다른 환경 재현. 공개 RPC·Sepolia·브라우저·W6 단계 완료는 미검증이다.
 phase/W6 미생성으로 이 PR도 준비 Draft이며 작성자 외 리뷰는 미확인이다.
+
+
+## 2026-10-26 — 실제 TCP 서버·lifespan·SIGKILL 복구 검증
+
+사용자가 기존 하네스 확장 방식을 선택해 #97에 TCP opt-in 모드를 추가했다.
+검증 코드 SHA: `9f37a01e249ae49a2dc7c837c50a0c1dafb28a4e`.
+기존 ASGI 검사를 보존하고 `ORIGINPROOF_WALLET_API_PROCESS=1`일 때만 별도 Uvicorn 프로세스를 쓴다.
+C 앱·설정·DB·migration 생산 코드와 B Adapter/Contract·ABI는 이번 보완에서 변경하지 않았다.
+
+### 테스트 전용 조립과 격리
+
+`services/indexer/tests/wallet_api_process.py`는 세 opt-in이 모두 1이어야 실행되는 **테스트 전용**
+factory다. 운영 factory로 사용하지 않는다. loopback PostgreSQL의 `originproof_wallet_api_` DB와
+loopback chain 31337만 허용한다. 실제 C 앱의 lifespan을 보존한 채 바깥 수명주기에서
+AsyncClient를 열고 `from_deployment`로 검증해 주입하며, 종료 시 DB·RPC client를 정리한다.
+원격 DB/RPC·일반 DB명·다른 chain은 접속 전에 거부한다. 합성 설정 파일은 전용 임시 폴더의
+0600 파일로 전달하고 종료 후 삭제한다. 기관 개인키를 파일/환경/API에 넣지 않는다.
+
+### 실제 확인한 순서
+
+1. 정식 Alembic migration과 합성 계정/기관 확인 seed, 실제 Anvil 기관 등록/공동승인 후
+   Uvicorn을 loopback 무작위 port에서 기동했다. `/health/live`·`/health/ready` 모두 200이었다.
+2. 전용 Anvil의 Registry code를 일시적으로 비웠을 때 live 200/ready 503이었다.
+   원래 code를 복원한 뒤 ready 200으로 돌아왔다. 이 주입은 배포 code 불일치이며 실제 RPC 중단은 아니다.
+3. 실제 TCP 로그인·CSRF·권한·다른 tx 거부를 거쳐 API의 원본/서명/Operation을 저장했다.
+   automine 중지 후 직접 발행 tx의 조회를 제출해 UNKNOWN과 lookup hash가 PostgreSQL에 남는지 확인했다.
+4. **UNKNOWN 저장 응답 뒤** API 프로세스를 SIGKILL했다. 종료 code -9와 graceful 종료 표식 부재를 확인했다.
+   강제 종료 시 finally가 실행되거나 client가 정상 닫혔다고 주장하지 않는다.
+5. 같은 PostgreSQL·Anvil을 유지한 채 거래를 채굴하고 API를 새 PID로 기동했다.
+   readiness 200·DB의 UNKNOWN을 다시 확인하고, 같은 hash 재조회로 CONFIRMED·원본 서명·VERIFIED를 확인했다.
+   기관의 transaction count는 발행 전보다 정확히 1 증가했고 재요청 결과도 같았다.
+6. 두 번째 프로세스는 SIGTERM으로 종료했다. C 원래 lifespan이 끝났고 RPC client가 실제 닫혔다는
+   프로세스 종료 기록을 확인했다. 이번 전용 PostgreSQL 컨테이너와 API/Anvil 프로세스는 정리했다.
+
+### 재현 명령
+
+기존 Python/Foundry 고정 의존성, 실행 중인 Docker와 `postgres:16.4-alpine`이 필요하다.
+새 출력 파일 경로를 사용한다. 기존 DB/Compose를 reset하지 않는다.
+
+```sh
+ORIGINPROOF_WALLET_LIVE=1 ORIGINPROOF_WALLET_API_LIVE=1 \
+ORIGINPROOF_WALLET_API_PROCESS=1 \
+ORIGINPROOF_WALLET_LIVE_OUTPUT=build/wallet-tcp-review.json \
+  python -m pytest services/indexer/tests/test_wallet_live.py -q
+```
+
+`ORIGINPROOF_WALLET_API_PROCESS`를 빼면 기존 ASGI 모드다. 기본 pytest/CI는 실제 TCP opt-in을
+skip하므로 기본 CI 성공을 이 실험의 실행 증거로 대신하지 않는다.
+
+### 실행 결과와 남은 범위
+
+2026-10-26 KST, macOS arm64·Python 3.13.14·Foundry 1.4.4·Solc 0.8.26,
+PostgreSQL `16.4-alpine` 이미지. 기존 설치 의존성을 재사용했다.
+
+| 검사 | 실제 결과 |
+| --- | --- |
+| process factory opt-in 3종·격리 대상 거부 4종 | 7 passed |
+| 전체 기본 Python | 969 passed / 11 skipped, 기존 anyio 경고 1건 |
+| 기존 실제 ASGI/DB/EVM opt-in | 1 passed |
+| 실제 TCP/DB/EVM·readiness·SIGKILL·정상 종료 opt-in | 1 passed |
+| 같은 SHA의 clean source clone에서 TCP 재현 | 1 passed |
+| 변경 Python Ruff·diff·임시 DB 정리 | 통과, 검사 컨테이너 잔여 0 |
+
+증거: [v5_wallet_tcp_9f37a01.json](evidence/v5_wallet_tcp_9f37a01.json).
+clean source clone도 기존 설치 Python/lib을 재사용했으며 다른 장비·fresh dependency sync는 아니다.
+
+앞 절의 “TCP/lifespan/SIGKILL 미검증”은 당시 ASGI 실행의 한계이며 이번 테스트 전용 모드에서 위 범위만
+보완됐다. 운영 composition/신뢰 배포 설정의 C 반영은 아직 별도다. 전송과 DB commit **사이**의
+강제 종료·receipt 확정 뒤 DB 저장 실패·hashless 검색·relayer·공개 체인·브라우저·다른 장비·
+팀 통합 RC는 이번 완료 범위가 아니다. C #63과 B #96/#97을 합친 동일 팀 후보는 C와 별도 지정해야 한다.
+
+현재 phase/W6는 생성됐고 #96의 base가 W6다. #97은 #96 위의 스택을 유지한다.
+초기 문서의 W6 미생성 표현은 과거 상태다. 작성자 외 C/D 리뷰·동일 후보 독립 검증은 아직 미확인이다.

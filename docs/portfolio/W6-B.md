@@ -92,3 +92,24 @@ Codex는 기존 live 하네스·C 실제 로그인/세션/CSRF·DB migration·Op
 AI 활용: Codex가 구현·검사·문서·PR을 작성했다. 사용자 지시와 별도 사람의 코드 리뷰를 구분한다.
 본인 직접 코드 리뷰·작성자 외 검토·독립 D 재현은 미확인이다. phase/W6 생성 후 PR 대상 변경과
 실제 서버 composition 연결·수명주기·hashless 복구 계약은 후속이다.
+
+
+## 2026-10-26 — 기존 하네스의 실제 서버 복구 모드 보완
+
+사용자 선택에 따라 #97 하네스에 TCP opt-in을 추가했다. Codex가 B 테스트 경로와 실행 기록만
+수정했으며 C 생산 코드·Contract·Schema·ABI·의존성은 유지했다.
+검증 코드 SHA: `9f37a01e249ae49a2dc7c837c50a0c1dafb28a4e`.
+
+실제 Uvicorn lifespan에서 B Adapter를 검증·주입했다. live/ready 200, 전용 Anvil code 불일치 시
+live 200/ready 503·복원 후 200, UNKNOWN 저장 뒤 SIGKILL, 같은 DB/체인의 새 PID에서 같은
+거래 CONFIRMED, 추가 기관 거래 없음, SIGTERM 정상 종료의 lifespan 완료·RPC client 닫힘을 확인했다.
+강제 종료 시 정상 정리를 보장했다거나 모든 전송/DB 실패 구간을 검사했다고 확대하지 않는다.
+
+기본 Python 969 passed / 11 skipped, 새 격리 guard 7 passed(기본 전체에 포함),
+기존 ASGI opt-in 1 passed, TCP opt-in 1 passed, 같은 SHA clean source clone TCP 1 passed,
+변경 Python Ruff·diff 통과, 전용 컨테이너 잔여 0이다. Python/Foundry lib은 기존 설치 환경 재사용이다.
+상세 순서·명령·제약은 [최신 인계](../blockchain/v5_wallet_read_adapter.md#2026-10-26--실제-tcp-서버lifespansigkill-복구-검증)에 있다.
+
+다음: C 운영 composition·신뢰 배포 자료 연결과 #63 포함 후보 지정, B/C hashless 검색 저장 계약,
+D의 동일 SHA 독립 재현·다른 장비 검증, 리뷰·W6 반영. TCP 테스트 성공은 이 후속이나 단계 완료를
+대신하지 않는다. 사용자 선택과 AI 구현·검사·기록을 사람의 코드 Approve와 구분한다.

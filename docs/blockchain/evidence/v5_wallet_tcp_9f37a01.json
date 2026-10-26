@@ -1,0 +1,52 @@
+{
+  "date_kst": "2026-10-26",
+  "status": "disposable environments terminated",
+  "source_sha": "9f37a01e249ae49a2dc7c837c50a0c1dafb28a4e",
+  "toolchain": {
+    "anvil": "anvil Version: 1.4.4-v1.4.4",
+    "forge": "forge Version: 1.4.4-v1.4.4",
+    "solc": "0.8.26+commit.8a97fa7a",
+    "dependency_lock_sha256": "d602f87fe5dbb7bc482a851adf729d02249bc2774bd58cbe613c0a61d7d4d154"
+  },
+  "python_lock_sha256": "27a5db65cb7f317ddbb48bd8bb44b7024363dc3631db12ed3e915e2b2debfdd7",
+  "api_probe": {
+    "scope": "Anvil + migrated PostgreSQL + real login/CSRF + TCP/lifespan/SIGKILL recovery",
+    "process_lifecycle": {
+      "readiness_deployment_mismatch": "503 then 200 after restore",
+      "killed_pid": 83459,
+      "restarted_pid": 83461,
+      "graceful_shutdown": {
+        "pid": 83461,
+        "lifespan_exited": true,
+        "rpc_client_closed": true
+      }
+    },
+    "publication_tx": "0x2088747c205edc6a6c251e54f92c6bd06a6e112efaf68e925d6c0490aaa9c7a1",
+    "operation": "UNKNOWN to CONFIRMED after SIGKILL/TCP restart",
+    "limitations": [
+      "seeded onboarding",
+      "no browser or public chain",
+      "TCP/SIGKILL checked",
+      "hashless search remains 503; relayer remains disabled"
+    ]
+  },
+  "results": {
+    "factory_guards": "7 passed",
+    "default_python": "969 passed, 11 skipped",
+    "existing_asgi_live": "1 passed",
+    "tcp_live": "1 passed",
+    "clean_source_clone_tcp": "1 passed"
+  },
+  "environment": "macOS arm64, Python 3.13.14; existing Python environment/Solidity libs reused",
+  "assertions": {
+    "institution_transaction_count_delta": 1,
+    "pending_unknown_persisted_before_sigkill": true
+  },
+  "limits": [
+    "seeded onboarding",
+    "not a production factory",
+    "crash is after UNKNOWN persistence",
+    "no hashless search/relayer/browser/public chain/other machine/team RC"
+  ],
+  "review": "No independent C/D or human approval claimed"
+}
