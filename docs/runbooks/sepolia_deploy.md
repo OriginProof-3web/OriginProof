@@ -32,7 +32,7 @@
 | 단계 | 결과 |
 | --- | --- |
 | 기관 신청·데모 메일·내부 승인·키 증명 | 완료(기관 지갑 `0x2c972C6c390C7742BFd070bC57DDAb539235d161` 서명) |
-| 2-of-3 공동승인 | 제안 `0xe796b23d…5cda82` **EXECUTED**, 승인 #1 KISA 모델·#2 금융보안원 모델 → 기관 **ACTIVE**. 제안 tx `0x97a46147…4fa7`, 승인 #1 tx `0xbb451d4a…02e3` |
+| 2-of-3 공동승인 | 제안 `0xe796b23d…5cda82` **EXECUTED**, 승인 #1 KISA 모델·#2 금융보안원 모델 → 기관 **ACTIVE**. 제안 tx `0x97a46147…4fa7`, 승인 #1 tx `0xbb451d4a…02e3`, 승인 #2 금융보안원 모델·실행 tx `0x36e27b033c36492863dac98a4a4ba56101c25f4cbaf1d12501e6f16bc4dc3641` · 블록 12001986 |
 | 안내문 v1(154,000원) | 발행 확정 tx `0x394f0cce482c61269c8d3bf1d3e95202b3d717b7bfa3f03e18197d20b61a1f88` |
 | 안내문 v2(120,000원, 정정) | 발행 확정 tx `0xf7d6b418e9b0f766ee8f985069324ade216e9e87914c060f907e4c67bcb3542d` · document `0x2bc2f605c8b185bc9b1d5d9ed2560a62ccd4e2a6338574c3925752b63c07e8a9` |
 | 검증 | 정본 v2 **VERIFIED** · 금액 1원 변조 **TAMPERED**(PROTECTED_FIELDS_MISMATCH) · 정정 전 v1 **SUPERSEDED** |
@@ -74,7 +74,7 @@
    2. `cast code <address> --rpc-url sepolia` → `0x`가 아닌 코드가 나와야 합니다.
    3. 승인자 인식(거래를 보내지 않는 읽기 호출): `cast call <address> "approve(bytes32)" 0x0000000000000000000000000000000000000000000000000000000000000001 --from <승인자 주소> --rpc-url sepolia`. 승인자는 `UnknownProposal`, 다른 주소는 `Unauthorized`로 되돌아오면 정상입니다.
    4. 브라우저에서 `https://sepolia.etherscan.io/tx/<deployment_tx>`(Status Success, From이 배포 지갑, Contract Creation이 `address`)와 `https://sepolia.etherscan.io/address/<address>`(코드 존재, 블록 번호가 `deployment_block`)를 봅니다.
-   5. API `.env`에 `API_WALLET_REGISTRY_ADDRESS=<address>`를 설정합니다(API는 이 주소와 `CHAIN_TARGET`의 wallet manifest가 일치할 때만 기동 시 자동 연결합니다. 아래 "API 자동 연결"). `11155111.wallet.json`은 `.gitignore`의 `*.local.json` 규칙에 걸리지 않으므로, 검증된 비로컬 manifest의 커밋 여부는 B 리뷰로 정합니다(현재 `phase/W5`에는 `packages/contracts/deployments/` 디렉터리와 그 안내 문서가 없습니다).
+   5. API `.env`에 `API_WALLET_REGISTRY_ADDRESS=<address>`를 설정합니다(API는 이 주소와 `CHAIN_TARGET`의 wallet manifest가 일치할 때만 기동 시 자동 연결합니다. 아래 "API 자동 연결"). `11155111.wallet.json`은 `.gitignore`의 `*.local.json` 규칙에 걸리지 않으므로, 검증된 비로컬 manifest의 커밋 여부는 B 리뷰로 정합니다(현재 `phase/W6`에는 `packages/contracts/deployments/README.md`와 검증된 `11155111.wallet.json`이 커밋되어 있습니다).
 6. **실패 시 Anvil 전환.** Anvil 명령은 **새 터미널**에서 실행합니다. 래퍼는 `CHAIN_RPC_URL`을 target과 관계없이 먼저 읽으므로, Sepolia RPC 값이 남은 4~5단계 터미널에서 실행하지 않습니다. 새 터미널에서 값을 출력하지 않고 비어 있는지만 확인합니다: `[ -z "${SEPOLIA_RPC_URL-}${CHAIN_RPC_URL-}" ] && echo clean` → `clean`이어야 합니다. 현장 RPC가 느리거나 끊기면 `.env`에서 `CHAIN_TARGET=anvil`, `API_BLOCKCHAIN_RPC_URL=http://anvil:8545`(호스트 실행이면 `http://127.0.0.1:8545`), `API_BLOCKCHAIN_RPC_FALLBACK_URL=` 비움(또는 다른 로컬 노드), `API_BLOCKCHAIN_MANIFEST_PATH`를 31337 manifest로, `API_WALLET_REGISTRY_ADDRESS`를 Anvil 배포 주소로 바꾸고 API를 재시작합니다. 거꾸로 Anvil→Sepolia도 같은 값들을 되돌리면 됩니다.
    - Anvil은 시작 화면에 개발용 개인키를 출력하므로 **처음부터 출력을 버리는 명령으로만** 띄웁니다: `anvil --chain-id 31337 >/dev/null 2>&1 &`
    - `packages/contracts`에서 `cast chain-id --rpc-url anvil` → `31337`을 확인하고, `cast rpc eth_accounts --rpc-url anvil`로 공개 주소만 보고, 1·2·3번 주소를 `WALLET_APPROVER_1~3_ADDRESS`로, 0번 주소를 `--sender`로 씁니다.
@@ -90,9 +90,9 @@
    - 니모닉은 종이·하드웨어 지갑 백업에만 두고 저장소·메신저·AI 대화에 붙여 넣지 않습니다.
 8. **마지막 정리(RPC 호출 없음).** 위 4~6단계의 모든 RPC 호출(4·5단계의 `cast` 연결·배포 확인, 래퍼 실행, 6단계 Anvil 확인·배포)이 끝난 뒤에만, Sepolia RPC 값을 넣은 4~5단계 터미널에서 지웁니다: `unset SEPOLIA_RPC_URL CHAIN_RPC_URL`. 이 뒤에는 RPC 호출을 하지 않습니다. 다시 확인이 필요하면 4단계 2번(`read -rs`)부터 다시 시작합니다. Anvil을 띄운 6단계 터미널에서도 같은 `unset`을 실행해 둡니다(그 터미널에는 Sepolia 값이 없어야 정상).
 
-## 연결 범위와 B 연결 대기
+## 연결 범위와 W5 당시 B 연결 대기 기록
 
-`CHAIN_TARGET` 전환은 **아래 "연결됨" 범위까지만** 실제 코드에 연결되었습니다. 신규 Wallet Registry(공동승인·문서 버전) 경로의 실제 체인 읽기·쓰기·projection은 B 코드가 `phase/W5`에 없어 연결되지 않았습니다. "Sepolia 전환 완료"가 아니라 "기존 Reader·projection과 설정 계층 연결 + B 연결 대기"입니다.
+**W5 당시 기록입니다. 현재 W6 연결 상태는 아래 "API 자동 연결" 표를 따릅니다.** 당시 `CHAIN_TARGET` 전환은 **아래 "연결됨" 범위까지만** 실제 코드에 연결되었습니다. 신규 Wallet Registry(공동승인·문서 버전) 경로의 실제 체인 읽기·쓰기·projection은 B 코드가 `phase/W5`에 없어 연결되지 않았습니다. "Sepolia 전환 완료"가 아니라 "기존 Reader·projection과 설정 계층 연결 + B 연결 대기"입니다.
 
 연결됨(이 브랜치 코드, mock RPC 테스트로 양방향 확인):
 
@@ -121,6 +121,10 @@
 
 ## 현재 한계
 
-- Sepolia 실제 배포는 위 "실제 배포 결과"대로 완료했습니다(keystore 서명). 브라우저 지갑 서명 배포와, 배포 뒤 기관 등록·발행 같은 쓰기 흐름은 아직 실행하지 않았습니다.
-- 신규 Wallet Registry 경로의 주/보조 RPC 전환은 읽기만 실행 중에 합니다. 실제 확인은 같은 Anvil 앞의 로컬 프록시 두 개이며, 서로 다른 provider(Sepolia) 사이 전환은 아직 실행하지 않았습니다. 복구·대사 작업의 생산 연결은 위 표의 대기 항목입니다.
+- Sepolia 실제 배포는 위 "실제 배포 결과"대로 완료했습니다(keystore 서명). 배포 뒤 기관 등록·2-of-3 승인·v1/v2 발행은 2026-10-27 시연에서 실행했습니다(위 "Sepolia 시연 데이터"). 브라우저 지갑 서명 배포는 미실행입니다.
+- 신규 Wallet Registry 경로의 주/보조 RPC 전환은 읽기만 실행 중에 합니다. 자동 전환 시험은 같은 Anvil 앞의 로컬 프록시 두 개 기준이며, 2026-10-27 Sepolia 시연 중 publicnode→tenderly 전환도 관찰했습니다(위 "Sepolia 시연 데이터"의 관찰 기록). 복구·대사 작업의 생산 연결은 위 표의 대기 항목입니다.
 - `httpx`·`httpcore` 로거를 WARNING으로 고정한 것은 프로세스 전체에 적용됩니다. 운영 로깅 설정이 이 두 로거의 레벨을 다시 INFO/DEBUG로 내리면 URL이 남으므로 그렇게 설정하지 않습니다.
+
+- 배포된 `0xE540Bf29622AFFf40174B76992b016112f372A2e`의 `_validateProposal`(`OriginProofWalletGovernance.sol:183-189`)은 승인자 주소를 기관 signer로 넣는 직접 온체인 제안을 막지 못합니다. 다음 재배포 때 승인자 제외 검사와 Foundry 거부 시험(예: `test_RevertWhen_SignerIsApprover`)을 추가해야 합니다. API의 승인자 signer 거부(409)는 C 파트 담당 후속이며, 이 변경에서 구현·검증하지 않았습니다. API 거부만으로 직접 온체인 경로의 잔여 위험이 제거되지는 않습니다.
+- 배포는 로컬 forge 1.8.1, CI·Docker는 v1.4.4이며 버전은 유지합니다. `foundry.toml`의 `evm_version = "cancun"` 고정으로 컴파일 대상을 맞춥니다. 1.4.4 산출물 대조는 미실행입니다. 1.8.1에서 solc 0.8.26을 지정한 유효 기본값은 `forge config --json`의 `cancun`입니다([해당 forge 커밋의 solc별 기본값 정규화](https://github.com/foundry-rs/foundry/blob/982849d3140c01fd3b72905759581a132df7aa98/crates/config/src/lib.rs#L2516-L2534)). forge 자체의 원시 기본값 Osaka와 구분합니다.
+- W6 검토 수정 시 로컬 forge 1.8.1·solc 0.8.26·Cancun 빌드의 Registry 생성 바이트코드가 manifest의 `creation_bytecode`와 완전히 일치했습니다. manifest source `72440c0` 대비 현재 기준 `5f7135b`의 `packages/contracts/src/` 차이는 없습니다. Tenderly 읽기 전용 `eth_getCode`의 Keccak은 manifest `runtime_code_hash`와 일치했고, artifact의 immutable 위치를 해당 배포 값으로 채운 런타임도 동일했습니다(CBOR 메타데이터 포함). immutable이 0인 원시 artifact 런타임 해시는 배포 런타임 해시와 직접 같지 않습니다. 이 확인은 Sepolia 쓰기·projection 실연결 재시험을 뜻하지 않습니다.

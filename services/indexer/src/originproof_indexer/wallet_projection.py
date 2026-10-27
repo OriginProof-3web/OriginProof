@@ -1,8 +1,11 @@
 """Deployment-isolated wallet event journal; never authoritative for current validity."""
 
 import json
+from functools import partial
 
 from sqlalchemy import BigInteger, Column, MetaData, String, Table, delete, insert, select, update
+
+LOG_CHUNK_SIZE = 200
 
 metadata = MetaData()
 journal = Table(
@@ -59,11 +62,17 @@ class WalletProjection:
             if old["hash"] != previous[1]:
                 raise ValueError("wallet reorg: explicit rewind required")
         start = self.rpc.deployment_block if previous is None else previous[0] + 1
-        if start > int(head["number"], 16):
-            return 0
-        logs = await self.rpc.logs(start, head)
-        await self.run(lambda: self._store(previous, head, logs))
-        return len(logs)
+        confirmed = int(head["number"], 16)
+        count = 0
+        while start <= confirmed:
+            end = min(start + LOG_CHUNK_SIZE - 1, confirmed)
+            chunk_head = await self.rpc.block(hex(end))
+            logs = await self.rpc.logs(start, chunk_head)
+            await self.run(partial(self._store, previous, chunk_head, logs))
+            previous = (int(chunk_head["number"], 16), chunk_head["hash"])
+            count += len(logs)
+            start = end + 1
+        return count
 
     def _store(self, previous, head, logs):
         # Compare-and-swap makes a competing worker roll back its entire page.
