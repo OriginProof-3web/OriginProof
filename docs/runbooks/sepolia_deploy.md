@@ -81,15 +81,18 @@
 | 연결할 곳 | 상태 |
 | --- | --- |
 | `create_app` lifespan → `WalletRuntime.chain` | **연결됨.** `API_WALLET_REGISTRY_ADDRESS`와 RPC가 설정되면 `infrastructure/blockchain/wallet_deployment.py`의 `WalletRegistryConnector`가 wallet manifest를 읽고 `WalletRegistryReadAdapter.from_deployment`로 체인 위 CREATE·생성 코드·런타임 코드 해시·고정 승인자 3명을 다시 검증한 뒤에만 주입합니다. 실패하면 주입하지 않고 503을 유지하며, 이후 호출 때 15초 간격으로 다시 시도합니다. |
-| 주/보조 RPC | **연결 시점 전환.** 주 RPC로 검증이 실패하면 보조 RPC로 연결합니다. 연결 뒤 실행 중 자동 전환은 하지 않습니다(다음 재시작·재연결 때 다시 선택). |
+| 주/보조 RPC | **실행 중 전환(읽기만).** `infrastructure/blockchain/wallet_failover.py`의 `FailoverWalletRpc`가 `WalletRpc`를 주·보조 하나씩 감쌉니다. 주 읽기가 연결 오류·시간 초과·잘못된 chain/배포/코드로 실패하면, 보조가 chain ID·배포 블록 hash·런타임 코드 해시 검사(`snapshot`)를 먼저 통과한 경우에만 같은 호출을 보조로 다시 합니다. 보조 성공 뒤 60초 동안 보조를 쓰고 그 뒤 주부터 다시 시도합니다. 제출(쓰기)은 주로만 보내고 다른 노드로 재전송하지 않습니다. 둘 다 실패하면 `DependencyUnavailableError` → 503이며 로그·오류에는 `primary`/`fallback`만 남깁니다. 요청 URL을 남기는 `httpx`(INFO)·`httpcore`(DEBUG) 로거는 이 모듈이 WARNING으로 고정하므로 루트 로거가 DEBUG여도 URL·호스트·경로의 키가 로그에 나오지 않습니다(루트 DEBUG 전체 캡처 시험, 실제 TCP 전송 포함). 요청당 10초 안에 주 시간 초과 뒤 보조 재시도까지 끝나도록 지갑 RPC 요청 시간 제한은 4초입니다. |
 | wallet manifest | **소비됨.** 래퍼가 `runtime_code_hash`·`creation_bytecode`를 함께 기록하고, API는 chain ID·주소·커밋된 ABI(`abi_sha256`)가 맞을 때만 사용합니다. 이 필드가 없는 예전 manifest는 `--deployment-tx`로 다시 기록합니다. |
 | 도커 이미지 | `infra/docker/api.Dockerfile`이 `packages/contracts/abi`·`deployments`를 복사합니다(`*.local.json` 제외). |
-| 신규 이벤트 projection | 대기. `projection.scan`은 기존 ProofStatusRegistry만 읽습니다. `WalletProjection(engine, rpc)`의 생산 연결은 남았습니다. |
+| 신규 이벤트 projection | **연결됨(기존 projection과 함께).** `API_PROJECTION_ENABLED=true`이면 lifespan이 두 작업을 따로 돌립니다. ① 기존 ProofStatusRegistry projection(`scan`)은 그대로 돌며(지갑 주소만 있고 `API_BLOCKCHAIN_MANIFEST_PATH`가 비어 있는 Sepolia 구성만 제외) 상태는 `app.state.projection`. ② `API_WALLET_REGISTRY_ADDRESS`가 설정되면 `WalletScan`이 지갑 Registry가 연결된 뒤에만 `WalletProjection`을 그 adapter의 전환 RPC 인스턴스로 실행하고(미연결이면 `RECOVERING`), 위에 한 블록이 더 쌓인 확정 블록까지만 `wallet_events`·`wallet_checkpoints`에 반영합니다(기존과 같은 2-확인 규칙). 상태는 `app.state.wallet_projection`. readiness는 도는 projection 모두가 `SYNCED`/`WAITING_CONFIRMATIONS`이고 `projection_poll_seconds`×3 안에 갱신되었을 때만 준비 완료이며(한쪽 장애·지연이면 503), `/v1/chain-sync`는 기존 projection이 돌면 그 상태를, 지갑 전용이면 지갑 상태를 같은 `SyncView`로 냅니다. 지갑 표는 아직 alembic이 아닌 `WalletProjection.initialize()`(create_all)로 만듭니다. |
 | 복구·대사 | 대기. `WalletRecovery`·`WalletReconciler`는 코드·시험이 있으나 API 유지 작업에는 아직 연결하지 않았습니다. |
 
-검증: `ORIGINPROOF_WALLET_LIVE=1 uv run pytest apps/api/tests/test_wallet_deploy_live.py`가 실제 Anvil에 B 컨트랙트를 배포하고, 주 RPC 장애 시 보조 RPC 연결, `create_app` lifespan 자동 연결·실제 `getIssuer` 읽기·종료 시 연결 정리, 위조 manifest 거부를 확인합니다.
+검증(실행 중 전환·projection): `ORIGINPROOF_WALLET_LIVE=1 uv run pytest apps/api/tests/test_wallet_failover_live.py`가 일회용 Anvil 하나 앞에 로컬 TCP 프록시 두 개(주·보조)를 두고 일회용 PostgreSQL(`postgres:16.4-alpine`, tmpfs)로 `create_app` lifespan을 띄웁니다. 같은 Anvil에 기존 Issuer/Key/ProofStatus Registry도 배포(manifest는 임시 폴더)해 두 projection을 함께 돌립니다. 기존 `ProofRegistered` 이벤트가 `proof_chain_events`에, 지갑 이벤트가 `wallet_events`에 각각 반영되고, 실행 중 주 프록시를 끊은 뒤 새 승인 거래의 결과(기관 ACTIVE)를 보조로 읽고, 그 뒤의 새 지갑·기존 이벤트가 각각 PostgreSQL에 반영되며, 보조 사용 시간이 지나면 주로 돌아오고, 배포가 없는 다른 Anvil은 보조 검증에서 거부되는 것을 확인합니다(1 passed).
+
+검증(연결 시점): `ORIGINPROOF_WALLET_LIVE=1 uv run pytest apps/api/tests/test_wallet_deploy_live.py`가 실제 Anvil에 B 컨트랙트를 배포하고, 주 RPC 장애 시 보조 RPC 연결, `create_app` lifespan 자동 연결·실제 `getIssuer` 읽기·종료 시 연결 정리, 위조 manifest 거부를 확인합니다.
 
 ## 현재 한계
 
 - 로컬 검증은 B 실제 컨트랙트의 Anvil 배포까지입니다. Sepolia 실제 배포와 브라우저 지갑 서명은 아직 실행하지 않았습니다.
-- 신규 Wallet Registry 경로의 주/보조 RPC 전환은 연결 시점에만 합니다. 신규 이벤트 projection·복구 작업의 생산 연결은 위 표의 대기 항목입니다.
+- 신규 Wallet Registry 경로의 주/보조 RPC 전환은 읽기만 실행 중에 합니다. 실제 확인은 같은 Anvil 앞의 로컬 프록시 두 개이며, 서로 다른 provider(Sepolia) 사이 전환은 아직 실행하지 않았습니다. 복구·대사 작업의 생산 연결은 위 표의 대기 항목입니다.
+- `httpx`·`httpcore` 로거를 WARNING으로 고정한 것은 프로세스 전체에 적용됩니다. 운영 로깅 설정이 이 두 로거의 레벨을 다시 INFO/DEBUG로 내리면 URL이 남으므로 그렇게 설정하지 않습니다.

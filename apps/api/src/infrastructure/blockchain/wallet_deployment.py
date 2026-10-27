@@ -8,7 +8,8 @@ this module turns that manifest into a verified `WalletRegistryReadAdapter`:
 - `from_deployment` re-checks the canonical CREATE, creation bytecode, runtime code hash and
   the fixed 2-of-3 approver set on chain before anything is injected.
 
-RPC URLs are tried primary → fallback at connect time only. Nothing here logs a URL.
+Reads go through `FailoverWalletRpc` (primary → verified fallback at run time, writes primary
+only). Nothing here logs a URL.
 """
 
 from __future__ import annotations
@@ -24,12 +25,12 @@ import httpx
 from .errors import BlockchainConfigurationError
 from .manifest import validate_address, validate_hash
 from .wallet_adapter import WalletRegistryReadAdapter
-from .wallet_creation import WalletCreationProof
+from .wallet_creation import WalletCreationProof, verified_approvers
+from .wallet_failover import ROLE, FailoverWalletRpc
 
 NAME = "OriginProofWalletRegistry"
 ABI_PATH = Path(__file__).resolve().parents[5] / f"packages/contracts/abi/{NAME}.json"
 RETRY_SECONDS = 15
-ROLE = ("primary", "fallback")
 logger = logging.getLogger(__name__)
 
 
@@ -103,15 +104,15 @@ class WalletRegistryConnector:
         except BlockchainConfigurationError as exc:
             logger.error("wallet registry not connected: %s", exc)
             return None
-        for index, url in enumerate(settings.blockchain_rpc_urls):
-            try:
-                adapter = await WalletRegistryReadAdapter.from_deployment(
-                    self.client, url, creation_proof=proof, **deployment
-                )
-            except Exception:  # noqa: BLE001 - any failure leaves the API fail-closed (503)
-                logger.warning("wallet registry RPC %s unavailable", ROLE[min(index, 1)])
-                continue
-            self.rpc_index = index
-            logger.info("wallet registry connected via %s RPC", ROLE[min(index, 1)])
-            return adapter
-        return None
+        try:
+            rpc = FailoverWalletRpc(
+                self.client, settings.blockchain_rpc_urls, clock=self.clock, **deployment
+            )
+            # Same check as from_deployment, through the failover RPC the API keeps using.
+            await verified_approvers(rpc, proof)
+        except Exception:  # noqa: BLE001 - any failure leaves the API fail-closed (503)
+            logger.warning("wallet registry RPC unavailable or unverified")
+            return None
+        self.rpc_index = 1 if rpc.on_fallback else 0
+        logger.info("wallet registry connected via %s RPC", ROLE[self.rpc_index])
+        return WalletRegistryReadAdapter(rpc, creation_proof=proof)
