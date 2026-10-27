@@ -1,6 +1,6 @@
 # 5.1 C 독립 DB/API 인계
 
-V5-W1~W5-C의 독립 구현입니다. 재사용 원본·브랜치는 [구현 기록](../handoffs/v5_c_implementation.md), 모델은 [공유 계약](../shared_contract_v5.md)을 따릅니다. B의 새 Registry/Adapter, A 지갑 화면, D 실제 분석기는 연결 전입니다. 이 문서의 합성 검사 통과가 해당 팀원의 구현·리뷰·단계 완료를 뜻하지 않습니다.
+V5-W1~W5-C의 독립 구현과 W6-C 복구 검사 인계입니다. 재사용 원본·브랜치는 [구현 기록](../handoffs/v5_c_implementation.md), 모델은 [공유 계약](../shared_contract_v5.md)을 따릅니다. B의 새 Registry/Adapter, A 지갑 화면, D 실제 분석기는 연결 전입니다. 이 문서의 합성 검사 통과가 해당 팀원의 구현·리뷰·단계 완료를 뜻하지 않습니다.
 
 ## 계약과 기동
 
@@ -25,10 +25,15 @@ PYTHONPATH=apps/api/src:packages/python:services/indexer/src uv run --all-packag
 | `API_WALLET_OPERATOR_ADDRESSES` | `{}`. 서버 계정→승인 지갑 주소 JSON. operator 역할과 실제 `is_approver`를 모두 검사합니다. |
 | `API_WALLET_INTERNAL_APPROVERS` | `{}`. 내부 issuer ID→같은 기관의 별도 승인 계정 ID JSON. 자기 승인은 거부합니다. |
 | `API_WALLET_DEMO_EMAIL_ENABLED` | false. 두 합성 명부의 `.example.invalid` 데모 전달만 허용합니다. |
+| `API_WALLET_EMAIL_SECRET` | 없음. 데모 메일 활성화 시 최소 32 UTF-8 바이트의 비공개 서버 비밀이 필요합니다. 기관 업무키와 별개이며 응답/Settings 출력에서 제외합니다. |
 | `API_WALLET_TEXT_INPUT_ENABLED` | false. V5-Q01 선정 전 합성 텍스트 검사만 opt-in하며 이미지/PDF/STT는 활성화하지 않습니다. |
 | `API_WALLET_RELAY_ENABLED` | false. 직접 기관 거래가 기본입니다. true이면 같은 port의 submit을 호출하며 불명확한 제출은 재전송하지 않습니다. |
 
-readiness는 migration head·세 역할·설정된 두 기관 계정·Registry 조회·활성 projection/worker 상태를 검사합니다. 신규 지갑 모드에서 서버 기관키 디렉터리를 요구하지 않습니다. 기존 projection은 구 Registry용이므로 실제 새 projection 연결을 별도로 확인합니다. 기존 DB·기존 기동 명령은 그대로 유지합니다. 새 모드의 두 계정 기관 ID는 명부의 iss_origin_mock_bank/iss_origin_mock_office와 맞춰 준비하며, 개인 .env의 기존 finals 기관 ID/projection 설정을 검토합니다.
+readiness는 migration head·세 역할·설정된 두 기관 계정·Registry 조회·활성 projection/worker 상태와 활성 데모 이메일의 서버 비밀을 검사합니다. 신규 지갑 모드에서 서버 기관키 디렉터리를 요구하지 않습니다. 기존 projection은 구 Registry용이므로 실제 새 projection 연결을 별도로 확인합니다. 기존 DB·기존 기동 명령은 그대로 유지합니다. 새 모드의 두 계정 기관 ID는 명부의 iss_origin_mock_bank/iss_origin_mock_office와 맞춰 준비하며, 개인 .env의 기존 finals 기관 ID/projection 설정을 검토합니다.
+
+이메일 비밀은 모든 API 인스턴스에서 동일하게 유지합니다. 변경하면 발급 중인 코드는 검증할 수
+없으므로 새로 발급해야 합니다. HMAC 이전 검증값은 소비하지 않고 무효화합니다. 만료/소비/
+5회 실패 시 검증값·데모 평문을 제거하고, 기동/300초 유지관리에서도 만료 자료를 정리합니다.
 
 ## 의존성 상향 승인
 
@@ -56,11 +61,33 @@ readiness는 migration head·세 역할·설정된 두 기관 계정·Registry �
 
 같은 request ID의 본문 변경은 409입니다. 잘못된 직접 txHash는 올바른 서명 요청을 영구 무효화하지 않습니다. nonce는 가스 nonce와 별개이며 같은 배포(chainId·Registry 주소)에서 같은 기관의 미확정 업무 nonce가 있으면 409입니다. 이전 배포의 미해결 작업은 삭제하지 않고 보존하되 현재 배포의 예약으로 보지 않습니다. 구 `/v1/operations/{id}/recover`로 신규 작업을 복구하지 않고 v3 reconcile을 사용합니다.
 
+KeyProof의 request ID는 같은 계정의 다른 challenge 사이에서도 중복 본문을 검사합니다.
+다른 challenge/서명으로 재사용하면 `409 REQUEST_ID_CONFLICT`이며 해당 새 proof를 소비하지 않습니다.
+제안 준비는 0인 keyId를 `422 INVALID_KEY_ID`, 현재 signer 주소를 그대로 쓰는 키 교체를
+`409 SIGNER_ALREADY_USED`로 거부한 뒤 KeyProof 소비 여부를 결정합니다.
+
+이미 제출한 서명을 새 request ID로 재시도해도 해당 ID와 입력 fingerprint를 보존합니다.
+같은 ID·같은 입력은 기존 Operation을 반환하고 다른 입력은 `409 REQUEST_ID_CONFLICT`입니다.
+Operation 보관 만료 뒤 서명 재제출과 직접 tx 접수는 `410 RESULT_EXPIRED`이며,
+정리 시 해당 Operation에 연결된 재시도 ID 기록도 함께 삭제합니다.
+
+직접 거래 조회의 RPC 전후에는 서명 요청 → Operation 순서로 잠그고 최신 상태와 해시 binding을
+다시 확인합니다. 먼저 확정된 결과를 늦은 응답이 덮어쓰지 않습니다. reconcile은 검증된 정식 txHash가
+있으면 그 해시만, 없으면 중단 전에 저장한 lookup 후보를 먼저 조회합니다. 동시 접수에서 거부된 다른
+후보가 남아도 정식 해시를 우선하며, 잘못된 미검증 후보는 intent 검색으로 복구합니다.
+기존 `/v1/operations`의 신규 wallet 작업도 `RECONCILE`/`RESIGN`을 안내합니다.
+
 정상·거부 요청의 실행 가능한 예시는 [HTTP 검사](../../apps/api/tests/test_wallet_runtime.py)와 [분석 검사](../../apps/api/tests/test_wallet_analyses.py)에 있습니다. 기존 v1/v2 binding·consume은 그대로 보존하며 새 공개 문서에 consume을 추가하지 않습니다.
+요청 ID 충돌·제안 선행조건·저장 해시 복구·접근 만료 경계는
+[추가 회귀 검사](../../apps/api/tests/test_wallet_recovery_guards.py)에 있습니다.
 
 ## B: 실제 Adapter 경계
 
 [WalletRegistry](../../packages/python/originproof_core/wallet_ports.py)를 구현합니다. `issuer/key/document/proposal`은 같은 canonical block의 chain/contract·blockNumber/hash와 키 등록/정상 교체/사고 이력을 제공합니다. API는 domain과 모델 제약을 다시 검사합니다. 검증 결과의 서로 다른 조회 block은 INCONCLUSIVE입니다.
+
+현재 주소와 같은 signer의 교체는 API에서 사전 거부합니다. 과거에 종료된 signer까지
+사전 거부할 이력 조회는 현재 port에 없으며 B의 실제 조회 경계 연결이 필요합니다.
+Registry의 사용된 signer 재사용 금지 검사를 API의 현재 주소 확인으로 대체하지 않습니다.
 
 `transaction/find_transaction`의 arguments는 실제 calldata를 ABI로 해독한 값입니다. 요청 intent를 그대로 돌려주는 구현은 허용되지 않습니다. 실제 배포, canonical receipt, 필요한 이벤트·현재 상태·발신자를 검증해야 CONFIRMED입니다. publish/revoke는 message+signature, propose는 proposal+proof+signature, approve는 proposalId를 정확히 대조합니다. REACTIVATE의 실제 proof는 전 필드 0, signature는 `0x`이며 API의 선택 key_proof=null을 calldata null로 해석하지 않습니다. 철회 확정에는 REVOKED 상태가 필요합니다.
 
@@ -84,6 +111,10 @@ async processor는 텍스트를 받아 공통 `AnalysisReport` 또는 해당 dic
 | 검증 세션 | 24시간 |
 | 신규 Operation/감사 | 해결 후 30일, 미해결 작업·해결 시각 없는 기존 작업은 보수적으로 보존 |
 
+Operation 만료는 조회·서명 재요청·직접 접수·reconcile에서 즉시 410으로 차단합니다.
+v1 단건과 목록에도 동일한 경계를 적용하고, 목록의 만료 Operation·감사는 pagination 전에
+제외합니다. 물리 정리와 접근 필터는 같은 만료 조건을 사용하며 미해결 작업의 감사는 보존합니다.
+
 접근은 만료 시각부터 거부하고 물리 정리는 기동/접수/5분 주기 maintenance에서 수행합니다. 두 보관 옵션의 네 조합을 검사했습니다. worker는 현 P0의 단일 API 프로세스 내부 task입니다. 여러 API worker에서의 재시작 판정·분산 작업 실행은 기존 queue로 옮기고 검증해야 합니다. 현재는 단일 worker로 실행합니다. processor의 안전한 code(REFUSAL/TIMEOUT/RATE_LIMIT/INCOMPLETE_OUTPUT 등)는 구분하고 예외 메시지·원시 응답은 복제하지 않습니다. 실제 D 모델 연결·유료 평가·처리 성능은 미검증입니다.
 
 ## 재현한 검사
@@ -95,3 +126,9 @@ node scripts/ci/check_wallet_browser_hashes.mjs
 ```
 
 PostgreSQL 동시성은 `V5_C_TEST_DATABASE_URL`이 있는 경우에만 [별도 검사](../../apps/api/tests/test_wallet_postgres.py)를 실행합니다. 주소는 127.0.0.1, DB명은 `originproof_v5_c_test_` 접두사이고 새 migration head·빈 계정 테이블이 필요합니다. 합성 DB를 스스로 삭제하지 않습니다. 결과/환경은 구현 기록을 확인합니다. Registry 증거와 분석기는 합성이며 실제 EVM/브라우저 E2E·작성자 외 리뷰를 대신하지 않습니다.
+
+이 별도 검사 fixture는 합성 이메일 secret을 직접 지정하므로 개인 환경 변수에 의존하지 않습니다.
+실제 API의 `API_WALLET_EMAIL_SECRET` 필수 조건은 유지합니다. 빈 임시 DB에 migration을 적용한
+검사에서 발행·분석 동시성 및 준비 상태 확인까지 통과했습니다.
+
+신규 지갑의 `make test-v5-c-live`는 자체 전용 PostgreSQL과 실제 API 프로세스로 백업/복원·SIGKILL·UNKNOWN·저장 실패·분석 재시작/늦은 결과·경쟁 버전을 검사합니다. 실행 절차와 100회 일반 검증 지연 기록, 서비스 API를 호출하지 않는 [독립 RPC 검증 도구](../../scripts/verify_wallet_document.py)는 [신규 복구·검증 runbook](v5_c_recovery_runbook.md)을 확인합니다. 새 Registry의 실제 배포 검증은 B 구현 이후입니다.
