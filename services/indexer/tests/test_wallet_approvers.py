@@ -248,3 +248,46 @@ async def test_creation_proof_cannot_be_a_plain_address_list(creation_env):
     _, rpc, _ = creation_env
     with pytest.raises(BlockchainConfigurationError):
         WalletRegistryReadAdapter(rpc, creation_proof=list(APPROVERS))
+
+
+@pytest.mark.parametrize("fault", [None, "chain", "code", "creation", "missing_proof"])
+async def test_adapter_initialization_verifies_deployment_before_injection(creation_env, fault):
+    chain, rpc, original = creation_env
+    deployment = dict(
+        chain_id=rpc.chain_id,
+        address=rpc.address,
+        deployment_block=rpc.deployment_block,
+        deployment_hash=rpc.deployment_hash,
+        runtime_code_hash=rpc.runtime_code_hash,
+        abi=ABI,
+    )
+    proof = original.creation_proof
+    if fault == "chain":
+        deployment["chain_id"] = 1
+    elif fault == "code":
+        deployment["runtime_code_hash"] = H3
+    elif fault == "creation":
+        proof = WalletCreationProof(TX, b"wrong trusted build")
+    elif fault == "missing_proof":
+        proof = None
+    if fault is not None:
+        with pytest.raises(DependencyUnavailableError):
+            await WalletRegistryReadAdapter.from_deployment(
+                rpc.client,
+                rpc.url,
+                creation_proof=proof,
+                **deployment,
+            )
+    else:
+        initialized = await WalletRegistryReadAdapter.from_deployment(
+            rpc.client,
+            rpc.url,
+            creation_proof=proof,
+            **deployment,
+        )
+        assert initialized.rpc.client is rpc.client
+        assert not rpc.client.is_closed
+        assert await initialized.is_approver(SENDER)
+    assert not any(method.startswith("eth_send") for method, _ in chain.calls)
+    if fault == "missing_proof":
+        assert not chain.calls
