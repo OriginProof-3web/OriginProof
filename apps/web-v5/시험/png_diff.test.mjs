@@ -5,12 +5,10 @@ import assert from 'node:assert/strict';
 import zlib from 'node:zlib';
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { decodePng, comparePng, main } from '../개발/png-diff.mjs';
 
-const CAP = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../캡처');
-const DARK = path.join(CAP, '5안-어두운모드-pc1440.png');
-const LIGHT = path.join(CAP, '5안-밝은모드-pc1440.png');
 
 function crc32(buf) { let c, crc = 0xffffffff; for (const b of buf) { c = (crc ^ b) & 0xff; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; crc = (crc >>> 8) ^ c; } return (crc ^ 0xffffffff) >>> 0; }
 function chunk(type, data) { const len = Buffer.alloc(4); len.writeUInt32BE(data.length); const td = Buffer.concat([Buffer.from(type, 'latin1'), data]); const crc = Buffer.alloc(4); crc.writeUInt32BE(crc32(td)); return Buffer.concat([len, td, crc]); }
@@ -34,6 +32,15 @@ function encodeRgba(w, h, px) {
 }
 function pattern(w, h, seed = 1) { const b = Buffer.alloc(w * h * 4); for (let i = 0; i < b.length; i++) b[i] = (i * 37 + seed * 101 + (i >> 3) * 13) & 0xff; return b; }
 const quiet = () => {};
+// Portable CLI file-I/O fixtures; these are synthetic PNGs, not website screenshots.
+const CAP = fs.mkdtempSync(path.join(os.tmpdir(), 'originproof-png-cli-'));
+const DARK = path.join(CAP, 'synthetic-a.png'), LIGHT = path.join(CAP, 'synthetic-b.png');
+const SMALL = path.join(CAP, 'synthetic-small.png');
+fs.writeFileSync(DARK, encodeRgba(7, 10, pattern(7, 10, 1)));
+fs.writeFileSync(LIGHT, encodeRgba(7, 10, pattern(7, 10, 2)));
+fs.writeFileSync(SMALL, encodeRgba(3, 4, pattern(3, 4, 1)));
+test.after(() => fs.rmSync(CAP, { recursive: true, force: true }));
+
 
 test('디코드: 필터 0~4 를 모두 쓴 PNG 를 원래 픽셀로 되돌림', () => {
   const px = pattern(7, 10);
@@ -49,7 +56,7 @@ test('비교: 같은 그림 0, 한 픽셀 바꾸면 1, 크기 다르면 sameSize
   assert.equal(comparePng(decodePng(encodeRgba(6, 5, px)), decodePng(encodeRgba(5, 6, pattern(5, 6)))).sameSize, false);
 });
 
-test('자기시험(실제 캡처): 같은 파일 = 다른 픽셀 0(종료 0), 다른 파일 > 0(종료 1)', () => {
+test('CLI 파일 I/O(합성 PNG): 같은 파일 = 다른 픽셀 0(종료 0), 다른 파일 > 0(종료 1)', () => {
   const lines = [];
   assert.equal(main([DARK, DARK], (s) => lines.push(s)), 0);
   assert.ok(lines.some((s) => /다른 픽셀: 0 \//.test(s)));
@@ -66,9 +73,9 @@ test('PNG 가 아니거나 인수 개수가 틀리면 종료 3', () => {
 });
 
 test('크기가 다르면 실패 종료(2)', () => {
-  // 기존 캡처 중 크기가 다른 1300×650 파일(읽기만)
+  // Same decoder/CLI, intentionally different synthetic dimensions.
   const lines = [];
-  assert.equal(main([DARK, path.join(CAP, '5안-오른쪽패널-pc1300x650.png')], (s) => lines.push(s)), 2);
+  assert.equal(main([DARK, SMALL], (s) => lines.push(s)), 2);
   assert.ok(lines.some((s) => /실패/.test(s)));
   const tiny = decodePng(encodeRgba(1, 1, Buffer.from([0, 0, 0, 255])));
   assert.equal(comparePng(decodePng(fs.readFileSync(DARK)), tiny).sameSize, false);

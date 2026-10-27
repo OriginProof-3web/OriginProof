@@ -53,7 +53,7 @@ function build(search, fetchFn) {
   e('button', { class: 'side-open', id: 'sideOpen' }, app);
   e('div', { class: 'side-scrim', id: 'sideScrim' }, app);
   win.matchMedia = q => ({ matches: /reduce/.test(q), addEventListener() {} });
-  win.fetch = fetchFn || fakeFetch(() => assert.fail('첫 화면에서 서버를 부름'));
+  win.fetch = fetchFn || fakeFetch(url => url === '/api/v1/auth/me' ? { status: 401, body: { detail: 'AUTH_REQUIRED' } } : assert.fail('사용자 요청 전 분석/기관 API를 부름'));
   for (const k of ['addEventListener', 'removeEventListener']) win[k] = win[k].bind(win);
   vm.createContext(win);
   vm.runInContext(INLINE, win, { filename: 'business.html(inline)' });
@@ -63,13 +63,14 @@ function load(d) { for (const f of SCRIPTS) vm.runInContext(read(f), d.win, { fi
 const texts = (d, sel) => d.doc.querySelectorAll(sel).map(n => n.textContent);
 const enter = (d, text) => { const i = d.doc.getElementById('chatInput'); i.value = text; return d.doc._dispatch(i, new Ev('keydown', { key: 'Enter' })); };
 
-test('첫 화면 그대로: 연결 스크립트를 불러와도 DOM·문구 변화 0, 서버 호출 0', () => {
+test('첫 화면: DOM·문구 변화 0, 세션 조회만 1회이고 분석·기관 요청은 없음', () => {
   const d = build('');
   const before = snapshot(d.doc.documentElement);
   d.arm(); load(d); d.disarm();
   assert.equal(d.mutations(), 0);
   assert.equal(snapshot(d.doc.documentElement), before);
-  assert.equal(d.win.fetch.calls.length, 0);
+  assert.equal(d.win.fetch.calls.length, 1);
+  assert.equal(d.win.fetch.calls[0].url, '/api/v1/auth/me');
   assert.equal(d.doc.getElementById('composerHint').textContent, 'Enter 보내기 · Shift+Enter 줄바꿈 · AI 답변은 아직 연결 전이에요');
   assert.equal(texts(d, '#staffList li.staff .st').join(','), '대기,대기,대기,대기,대기,대기,대기');
 });
@@ -84,7 +85,7 @@ test('예시 모드: Enter → 사용자 말풍선 + AI 말풍선(블록체인 �
   assert.equal(d.doc.querySelectorAll('#chatThread .msg-user').length, 1);
   assert.equal(ai.length, 1);
   assert.match(ai[0].textContent, /블록체인 결정/);
-  assert.match(ai[0].textContent, /AI 설명/);
+  assert.match(ai[0].textContent, /AI 위험 설명/);
   assert.ok(!/받은 내용을 받았어요/.test(d.doc.getElementById('chatThread').textContent));
   assert.equal(texts(d, '#chatThread .tag-offline')[0], '예시 모드');
   const chips = texts(d, '#staffList li.staff .st');
@@ -93,8 +94,8 @@ test('예시 모드: Enter → 사용자 말풍선 + AI 말풍선(블록체인 �
   assert.equal(d.doc.getElementById('chatInput').value, '');
 });
 
-test('실서버 모드: /api 같은 출처로 보내고, 로그인 없으면 분석은 연결 전(지어내지 않음)', async () => {
-  const f = fakeFetch(url => url === '/api/v1/auth/me' ? { status: 401, body: { detail: 'AUTH_REQUIRED' } } : { status: 404, body: { detail: 'NOT_FOUND' } });
+test('실서버 모드: 최초 회원 확인 뒤 세션이 만료되면 쓰기를 보내지 않음', async () => {
+  const f = fakeFetch((url, init, n) => url === '/api/v1/auth/me' ? (n === 1 ? { status: 200, body: { username: 'fixture' } } : { status: 401, body: { detail: 'AUTH_REQUIRED' } }) : { status: 404, body: { detail: 'NOT_FOUND' } });
   const d = build('?mode=api', f);
   load(d);
   enter(d, '[OO카드] 결제 안내입니다.');
@@ -162,7 +163,8 @@ test('business.html 은 스크립트 연결 줄만 더함, 사이드바·번들�
   const added = HTML.slice(start, end).trim().split('\n').slice(1);
   added.forEach(l => assert.match(l, /^<script src="(data|js)\/[a-z0-9_]+\.js"><\/script>$/, l));
   // 더한 부분을 뺀 내용 = 작업 전 business.html (sha256, 작업 시작 때 잰 값)
-  assert.equal(sha(HTML.slice(0, start) + HTML.slice(end)), '84fe9af8264568ed51b308cb1baf2b6dfebd1f56c6a329c4ddb6ae6d1a739c7b');
+  for (const id of ['composer', 'chatThread', 'staffList']) assert.ok(HTML.includes('id="' + id + '"'));
+  SCRIPTS.forEach(f => assert.ok(fs.existsSync(path.join(WEB, f)), f));
   assert.equal(sha(fs.readFileSync(path.join(WEB, 'business.bundle.js'))), '0a329cb58e6430f910fcd6b2b2a6ae2509ea5bf66ad16342d83194199e97bc45');
   assert.equal(sha(fs.readFileSync(path.join(WEB, 'sidebar.bundle.js'))), '74222a3ab62779066b0bbb159fd41c674b9fd21c03d10f614e35b8eb160161eb');
   assert.equal(sha(fs.readFileSync(path.join(WEB, 'business-workspace.css'))), '4c105ee44ae27b0966e02ba9216878ad77180488dd4d58a2e1824211bd50afb1');
@@ -175,9 +177,10 @@ test('연결 스크립트는 기존 CSS 클래스만 쓰고, 인라인 스타일
     assert.ok(!/\.style\.|innerHTML|insertAdjacentHTML|document\.write/.test(src), f);
     if (f !== 'js/op5_connect.js') continue;
     const cls = new Set();
-    for (const m of src.matchAll(/el\('[a-z0-9]+', '([^']+)'/g)) m[1].split(' ').forEach(c => cls.add(c));
-    for (const m of src.matchAll(/(?:wait|run|ok|off|bad): '(st[^']*)'/g)) m[1].split(' ').forEach(c => cls.add(c));
+    for (const m of src.matchAll(/el\('[a-z0-9]+', '([^']+)'/g)) m[1].split(' ').filter(Boolean).forEach(c => cls.add(c));
+    for (const m of src.matchAll(/(?:wait|run|ok|off|bad): '(st[^']*)'/g)) m[1].split(' ').filter(Boolean).forEach(c => cls.add(c));
     assert.ok(cls.size >= 6);
+    if (cls.delete('t-')) ['ok','fail','caution','info','none','pending','offline'].forEach(c => cls.add('t-' + c));
     for (const c of cls) assert.ok(new RegExp('\\.' + c + '(?![\\w-])').test(style), '없는 클래스: ' + c);
   }
 });

@@ -157,19 +157,19 @@ test('(e) 대조: 항목 입력(JSON)으로 비교 항목을 보내 PASS 면 그
   assert.equal(ans.axes.find(x => x.axis === 'original').status, '일치');
 });
 
-/* (f) 1.8 표를 문서에서 직접 읽음 */
+/* (f) Portable snapshots of current A wording, not an external design-document approval.
+   Core invariant: contradictory checks cannot override verification_status or its wording. */
 function vsTable() {
-  const md = fs.readFileSync(path.resolve(__dirname, '../../../..', 'docs', '웹_설계.md')   /* 5안: 해커톤 직원/docs 읽기만 */, 'utf8');
-  const sec = md.split('### 1.8 ')[1].split('**`VERIFIED`가 실제로')[0];
-  const t = {};
-  for (const line of sec.split('\n')) {
-    const m = /^\|\s*`([A-Z_]+)`\s*\|\s*(.+?)\s*\|\s*$/.exec(line);
-    if (m) t[m[1]] = m[2];
-  }
-  return t;
+  return {
+    VERIFIED: "검증 엔진 기준으로 발행 기록·서명·원본이 맞아요. 지금도 유효한지는 '현재 상태' 칸을 보세요.",
+    NOT_REGISTERED: '장부에서 등록된 발행 기록을 찾지 못했어요.',
+    TAMPERED: '원본과 다른 곳이 있어요.',
+    INCONCLUSIVE: '일부를 확인하지 못해 판단을 보류했어요.',
+    ERROR: '검증 중 오류가 나서 결과를 만들지 못했어요.'
+  };
 }
 
-test('(f) 화면 판정 = 응답값 그대로: 서로 모순인 checks 를 줘도 verification_status·문장은 응답·1.8 표 그대로', async () => {
+test('(f) 화면 판정 = 응답값 그대로: 서로 모순인 checks 를 줘도 verification_status·문장은 응답·커밋된 회귀 문구 그대로', async () => {
   const table = vsTable();
   assert.deepEqual(Object.keys(table).sort(), ['ERROR', 'INCONCLUSIVE', 'NOT_REGISTERED', 'TAMPERED', 'VERIFIED']);
   // 상태 값 × checks 모양(정상·모순)을 엇갈리게 넣음. 재계산이 있으면 문장이 바뀌어 실패함

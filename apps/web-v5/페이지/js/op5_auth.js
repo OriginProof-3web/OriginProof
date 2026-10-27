@@ -7,7 +7,8 @@
   var Hk = (root.Hk = root.Hk || {});
   var state = { member: false, me: null, checked: false };
   var LOGIN = 'login.html?next=business.html', SIGNUP = 'join.html';
-  var served = /^https?:$/.test(location.protocol);
+  var demo = !!(Hk.op5scenes && Hk.op5scenes.valid(new URLSearchParams(location.search).get('demo')));
+  var served = /^https?:$/.test(location.protocol) && !demo;
 
   function me() {
     if (!served) return Promise.resolve(null);  // 파일로 연 화면은 서버가 없으니 비회원
@@ -22,7 +23,7 @@
 
   // 정확한 확인(실서버 모드)은 회원만: 연결 모드 바꾸기를 가로채 비회원이면 막고 안내한다
   var origCreate = Hk.createConnection;
-  if (typeof origCreate === 'function') {
+  if (!demo && typeof origCreate === 'function') {
     Hk.createConnection = function (opts) {
       var c = origCreate(opts), set = c.setMode;
       if (typeof set === 'function') c.setMode = function (m) {
