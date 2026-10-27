@@ -13,6 +13,9 @@ on:
       - "fixtures/synthetic/v5_d_live_evaluation_policy.example.json"
       - "fixtures/finals/v5_d_g07_runner.py"
       - "fixtures/finals/v5_d_connected_smoke.py"
+      - "fixtures/finals/v5_d_run_connected_smoke.py"
+      - "fixtures/finals/v5_d_browser_connected.cjs"
+      - "fixtures/synthetic/v5_d_connected_smoke_policy.json"
       - "fixtures/finals/test_v5_d_connected_smoke_budget.py"
       - "fixtures/finals/test_v5_d_g07_runner.py"
       - "fixtures/finals/w5_p0_api_qa.py"
@@ -106,6 +109,8 @@ jobs:
       - name: Check bounded provider smoke without any live call
         if: matrix.suite == 'stage'
         run: |
+          .venv/bin/ruff check fixtures/finals/v5_d_connected_smoke.py fixtures/finals/v5_d_run_connected_smoke.py fixtures/finals/test_v5_d_connected_smoke_budget.py
+          node --check fixtures/finals/v5_d_browser_connected.cjs
           PYTHONPATH="$PWD/fixtures/finals:$PYTHONPATH" .venv/bin/python -m pytest -q -o addopts= \
             fixtures/finals/test_v5_d_connected_smoke_budget.py
       - name: Preserve actual failures and test counts
