@@ -1,0 +1,104 @@
+{
+  "report_version": "d-ready-batch-0.1",
+  "date_kst": "2026-10-25",
+  "source_revision": "5b9c857e590485ed04be92884e680a37b981455f",
+  "phase_basis": "d0111d82490a0c30d9b36275776487ebd4ba69e8",
+  "plan_version": "5.1",
+  "shared_contract_version": "v5-shared-0.2",
+  "scope": "D independent preparation and separately approved v2 development24, not whole stage completion",
+  "source_export": "git archive; analyzer/core/API import paths checked; no .git/.env/key",
+  "runtime": {
+    "python": "3.13.7",
+    "openai": "2.54.0",
+    "httpx": "0.28.1",
+    "pydantic": "2.13.5",
+    "pytest": "9.1.1",
+    "pillow": "13.0.0",
+    "opentelemetry-api": "1.45.1",
+    "same_existing_dependencies": true,
+    "other_physical_machine": false
+  },
+  "default_suite": {
+    "passed": 1185,
+    "skipped": 11,
+    "failures": 0,
+    "errors": 0,
+    "warning": "existing Starlette httpx deprecation",
+    "junit_sha256": "2b17f568f2959a4f08314d70197be2abd872fc763fda2115587721486531deaf"
+  },
+  "consistency": {
+    "ruff": "PASS",
+    "review_packet": "PASS",
+    "all_5_generate_scripts": "PASS",
+    "tracked_diff": []
+  },
+  "development_images_and_scripts": {
+    "status": "OFFLINE_ASSET_CONSISTENCY_PASS",
+    "source_rows": 24,
+    "image_assets": 23,
+    "recording_script_drafts": 22,
+    "audio_recordings": 0,
+    "actual_conversion_evaluations": 0,
+    "paid_calls": 0,
+    "holdout_assets_created": 0,
+    "pixel_or_audio_time_annotations": "NOT_CREATED"
+  },
+  "local_synthetic_speech_drafts": {
+    "status": "OFFLINE_LOCAL_TTS_CONSISTENCY_PASS",
+    "local_tts_drafts": 13,
+    "human_verified_transcripts": 0,
+    "actual_stt_evaluations": 0,
+    "paid_api_calls": 0,
+    "holdout_assets": 0
+  },
+  "local_tts_bytes": 2348240,
+  "native_tts_probe": {
+    "sandboxed_returncode": 0,
+    "sandboxed_pcm_frames": 0,
+    "sandboxed_rejected_by_existing_pcm_inspector": true,
+    "ordinary_local_generation_valid": true,
+    "paid_or_network_fallback": false,
+    "native_generation_not_run_in_default_pytest": true
+  },
+  "actual_paid_evaluations": {
+    "v1_calls": 24,
+    "v2_calls": 24,
+    "total_text_calls": 48,
+    "v2_correct": 24,
+    "v2_macro_f1": 1.0,
+    "v2_grounding_rejected": 0,
+    "score_scope": "same development24 used for changes, combined rules+model; not independent final/model-only score",
+    "expected_span_boundary_exact_match_v2": {
+      "matched": 0,
+      "total": 12
+    },
+    "prior_actual_journals_unchanged": true,
+    "holdout_calls": 0,
+    "image_audio_model_calls": 0
+  },
+  "holdout_preparation": {
+    "candidate_frozen": true,
+    "source_and_runtime_reference": "docs/qa/v5-d-holdout-candidate-20261025.json",
+    "paid_execution_approved": false,
+    "proposed_calls": 36,
+    "total_calls_if_separately_approved": 84
+  },
+  "all_four_paid_policies_inactive": true,
+  "corpus_labels_evidence_split_unchanged": true,
+  "text_model_sources_unchanged_since_actual_v2": true,
+  "shared_contract_or_other_owner_code_changed": false,
+  "audio_human_reviewed_transcripts": 0,
+  "tts_is_not_product_stt_model_selection": true,
+  "image_ocr_speech_stt_accuracy": "NOT_EVALUATED",
+  "team_messages_or_review_requests_sent": false,
+  "remote_merge_performed": false,
+  "stage_complete": false,
+  "hashes": {
+    "fixtures/synthetic/selected_input_development_v1/manifest.json": "7225223b15a0f7e3b5996e43b8c1512da5bc1700cbbfbb841bc7200b3bba5fdf",
+    "fixtures/synthetic/local_tts_development_preview_v1/manifest.json": "b14a900a55a0a7de897921276c849809ba6525a4f574a8a4ca7fc2b0e78a599e",
+    "fixtures/synthetic/phishing_sources_v1.json": "3c3b0c66fd3c4f851dce01255855f6a5db5f28397f9ade20469ec27918522199",
+    "services/analyzer/src/originproof_analyzer/input_asset_pack.py": "70e4829b3d9bb3ff3dfa28d79323a5ecc93c0c89d4db58c067d38e2c9dc9350c",
+    "services/analyzer/src/originproof_analyzer/review_packet.py": "ebebf904ff258f2230f55466fa6c56feba64e7c27c4803ba0dd902385c4f453b",
+    "uv.lock": "27a5db65cb7f317ddbb48bd8bb44b7024363dc3631db12ed3e915e2b2debfdd7"
+  }
+}

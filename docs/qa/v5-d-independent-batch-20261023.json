@@ -1,0 +1,243 @@
+{
+  "report_version": "d-independent-batch-0.1",
+  "date_kst": "2026-10-23",
+  "source_revision": "be66e6c95f5d62e723c68d1714ac4203959b7990",
+  "phase_basis": "f6e7fdb6727f6b7957d8acc7f3e0bf7e7674ea5f",
+  "source_export": "git archive, no .git, imported analyzer/core/API from export",
+  "environment": {
+    "python": "3.13.7",
+    "pillow": "13.0.0",
+    "openai": "2.54.0",
+    "pydantic": "2.13.5",
+    "httpx": "0.28.1",
+    "pytest": "9.1.1",
+    "same_installed_dependencies": true,
+    "other_physical_machine": false
+  },
+  "default_suite": {
+    "passed": 1083,
+    "skipped": 11,
+    "failures": 0,
+    "errors": 0,
+    "warning": "existing Starlette httpx deprecation",
+    "junit_sha256": "1c6eec7889ba3a41ab9a26f8812588dd1cd049687201daac9dc1bc8382061779"
+  },
+  "fixture_qa": {
+    "status": "OFFLINE_MEDIA_CONTRACT_PASS",
+    "media_cases": [
+      {
+        "id": "DMI-01",
+        "passed": true,
+        "error_code": null
+      },
+      {
+        "id": "DMI-02",
+        "passed": true,
+        "error_code": null
+      },
+      {
+        "id": "DMI-03",
+        "passed": true,
+        "error_code": null
+      },
+      {
+        "id": "DMI-04",
+        "passed": true,
+        "error_code": null
+      },
+      {
+        "id": "DMI-05",
+        "passed": true,
+        "error_code": null
+      },
+      {
+        "id": "DMI-06",
+        "passed": true,
+        "error_code": null
+      },
+      {
+        "id": "DMI-07",
+        "passed": true,
+        "error_code": null
+      },
+      {
+        "id": "DMI-08",
+        "passed": true,
+        "error_code": "MALFORMED_INPUT"
+      },
+      {
+        "id": "DMI-09",
+        "passed": true,
+        "error_code": "MALFORMED_INPUT"
+      },
+      {
+        "id": "DMI-10",
+        "passed": true,
+        "error_code": "MALFORMED_INPUT"
+      },
+      {
+        "id": "DMI-11",
+        "passed": true,
+        "error_code": "MALFORMED_INPUT"
+      },
+      {
+        "id": "DMI-12",
+        "passed": true,
+        "error_code": null
+      },
+      {
+        "id": "DMA-01",
+        "passed": true,
+        "error_code": null
+      },
+      {
+        "id": "DMA-02",
+        "passed": true,
+        "error_code": null
+      },
+      {
+        "id": "DMA-03",
+        "passed": true,
+        "error_code": null
+      },
+      {
+        "id": "DMA-04",
+        "passed": true,
+        "error_code": null
+      },
+      {
+        "id": "DMA-05",
+        "passed": true,
+        "error_code": null
+      },
+      {
+        "id": "DMA-06",
+        "passed": true,
+        "error_code": "MALFORMED_INPUT"
+      },
+      {
+        "id": "DMA-07",
+        "passed": true,
+        "error_code": "MALFORMED_INPUT"
+      },
+      {
+        "id": "DMA-08",
+        "passed": true,
+        "error_code": "MALFORMED_INPUT"
+      },
+      {
+        "id": "DMA-09",
+        "passed": true,
+        "error_code": "UNSUPPORTED_INPUT"
+      },
+      {
+        "id": "DMA-10",
+        "passed": true,
+        "error_code": "MALFORMED_INPUT"
+      },
+      {
+        "id": "DMA-11",
+        "passed": true,
+        "error_code": "MALFORMED_INPUT"
+      },
+      {
+        "id": "DMA-12",
+        "passed": true,
+        "error_code": null
+      }
+    ],
+    "failure_replays": [
+      {
+        "id": "DF-01",
+        "passed": true,
+        "error_code": "MALFORMED_INPUT"
+      },
+      {
+        "id": "DF-02",
+        "passed": true,
+        "error_code": "MALFORMED_INPUT"
+      },
+      {
+        "id": "DF-03",
+        "passed": true,
+        "error_code": "MALFORMED_INPUT"
+      },
+      {
+        "id": "DF-04",
+        "passed": true,
+        "error_code": "MALFORMED_INPUT"
+      },
+      {
+        "id": "DF-05",
+        "passed": true,
+        "error_code": "INCOMPLETE_OUTPUT"
+      },
+      {
+        "id": "DF-06",
+        "passed": true,
+        "error_code": "INCOMPLETE_OUTPUT"
+      },
+      {
+        "id": "DF-07",
+        "passed": true,
+        "error_code": "SCHEMA_MISMATCH"
+      },
+      {
+        "id": "DF-08",
+        "passed": true,
+        "error_code": "SCHEMA_MISMATCH"
+      },
+      {
+        "id": "DF-09",
+        "passed": true,
+        "error_code": "INCOMPLETE_OUTPUT"
+      },
+      {
+        "id": "DF-10",
+        "passed": true,
+        "error_code": "INCOMPLETE_OUTPUT"
+      },
+      {
+        "id": "DF-11",
+        "passed": true,
+        "error_code": "SCHEMA_MISMATCH"
+      },
+      {
+        "id": "DF-12",
+        "passed": true,
+        "error_code": "SCHEMA_MISMATCH"
+      }
+    ],
+    "processor_calls": 0,
+    "paid_calls": 0,
+    "semantic_evaluation": "NOT_RUN",
+    "holdout_predictions": 0,
+    "manifest_sha256": "a5215d5179e623387c5a8fae6f0c927fd94d73eb269729ac18041827c76573d5"
+  },
+  "hashes": {
+    "services/analyzer/src/originproof_analyzer/media_fixtures.py": "25f07d4786d71ec7fcf6d9f9ca224dcd35f594bd74a34789ac2fb373197894b3",
+    "services/analyzer/src/originproof_analyzer/conversion_metrics.py": "ad67d19fffce950ab91298fdb396ac4a34d541b55b1843e6e1415c59cb2a3c10",
+    "services/analyzer/src/originproof_analyzer/audio_inputs.py": "8853c3fc1c1cbe0f7884d95308347d7ae817aa8778e5a2f9fd00043858523bfc",
+    "services/analyzer/src/originproof_analyzer/converted_inputs.py": "08607dc088adea2df285d0b47bd4715ac2a01e2a5243b836267b6b5dd20afb0e",
+    "fixtures/synthetic/media_safety_v1/manifest.json": "a5215d5179e623387c5a8fae6f0c927fd94d73eb269729ac18041827c76573d5",
+    "fixtures/synthetic/phishing_sources_v1.json": "944e6e1ec87b24510c6d1cad2e1a6aac4f51e373230bc387e66f542b265595e9",
+    "uv.lock": "bd617d34973fcae555ddc543388aacf017a3ef71616e407c125f73de089e812f"
+  },
+  "fixed_reproductions": {
+    "initial_failed_tests": 5,
+    "external_cancel_swallowed": 1,
+    "extensible_wav_metadata": 4,
+    "fixed": true
+  },
+  "scorer_checks": "controlled correct/incorrect/absent inputs; no model quality evaluated",
+  "ruff": "PASS/full clean export",
+  "review_packet_consistency": "PASS",
+  "paid_calls": 0,
+  "holdout_model_predictions": 0,
+  "actual_ocr_stt": false,
+  "actual_new_api_browser_rpc_e2e": false,
+  "other_owner_code_or_shared_contract_changed": false,
+  "remote_merge_performed": false,
+  "team_messages_sent": false,
+  "stage_complete": false
+}

@@ -16,7 +16,7 @@ CORPUS = Path(__file__).resolve().parents[3] / "fixtures/synthetic/phishing_sour
 @pytest.fixture
 def prepared(tmp_path):
     data = json.loads(CORPUS.read_text())
-    # Simulated approval metadata only in a disposable test copy; original remains unreviewed.
+    # Disposable simulated approval, never authorization for actual paid calls.
     data.update(labels_human_reviewed=True, review_status="TEST_ONLY", input_selection="TEXT")
     path = tmp_path / "test-corpus.json"
     path.write_text(json.dumps(data))
@@ -50,11 +50,15 @@ def response(response_body):
 
 
 def test_draft_plan_never_constructs_client_or_creates_checkpoint(tmp_path, monkeypatch, capsys):
+    draft = json.loads(CORPUS.read_text())
+    draft.update(labels_human_reviewed=False, review_status="DRAFT_REVIEW_REQUIRED")
+    draft_path = tmp_path / "unreviewed.json"
+    draft_path.write_text(json.dumps(draft))
     _, policy, journal = (tmp_path / "x", {}, tmp_path / "never.json")
     policy = {
         "schema_version": "v5-d-live-policy-0.1",
         "approved_for_paid_calls": False,
-        "corpus_sha256": hashlib.sha256(CORPUS.read_bytes()).hexdigest(),
+        "corpus_sha256": hashlib.sha256(draft_path.read_bytes()).hexdigest(),
         "model": "gpt-6-luna",
         "split": "development",
         "review_reference": "",
@@ -74,7 +78,7 @@ def test_draft_plan_never_constructs_client_or_creates_checkpoint(tmp_path, monk
         [
             "eval",
             "--manifest",
-            str(CORPUS),
+            str(draft_path),
             "--policy",
             str(file),
             "--journal",
@@ -291,3 +295,118 @@ async def test_provider_usage_above_cap_stops_further_requests(prepared, respons
 async def test_selected_case_ids_cannot_cross_split_or_disappear():
     with pytest.raises(ValueError):
         await live.evaluate_phishing(CORPUS, case_ids=["NONEXISTENT"])
+
+
+def test_recorded_development_plan_retains_paid_approval_gate():
+    fixtures = CORPUS.parent
+    policy = json.loads(
+        (fixtures / "v5_d_live_evaluation_policy.development.pending.json").read_text()
+    )
+    assert policy["approved_for_paid_calls"] is False
+    assert (
+        policy["max_calls"],
+        policy["max_output_tokens"],
+        policy["output_token_budget"],
+        policy["max_input_characters"],
+    ) == (24, 1024, 24576, 200)
+    result = live.plan(CORPUS, policy)
+    assert result["blocks"] == ["PAID_SCOPE_NOT_APPROVED"]
+    assert result["paid_calls"] == 0
+    example = json.loads((fixtures / "v5_d_live_evaluation_policy.example.json").read_text())
+    assert example["approved_for_paid_calls"] is False and example["max_calls"] == 0
+
+
+@pytest.mark.parametrize(
+    "status,code,expected",
+    [
+        (404, "model_not_found", "model_not_found"),
+        (401, "invalid_api_key", "invalid_api_key"),
+        (429, "insufficient_quota", "insufficient_quota"),
+        (400, "PRIVATE_SECRET_CODE", "UNCLASSIFIED"),
+        (503, {"private": "PRIVATE_SECRET"}, "UNCLASSIFIED"),
+    ],
+)
+async def test_http_diagnostics_never_persist_provider_message_or_unknown_code(
+    prepared, status, code, expected
+):
+    path, policy, journal = prepared
+    result = await live.execute(
+        path,
+        policy,
+        journal,
+        api_key="placeholder",
+        stop_after=1,
+        transport=httpx.MockTransport(
+            lambda r: httpx.Response(
+                status, json={"error": {"code": code, "message": "PRIVATE_SECRET_MESSAGE"}}
+            )
+        ),
+    )
+    stored = journal.read_text()
+    row = json.loads(stored)["rows"][0]
+    assert row["http_status"] == status and row["provider_error_code"] == expected
+    assert "PRIVATE_SECRET" not in stored
+    assert result["http_attempts"] == 1 and result["live_model_evaluated"] is False
+
+
+async def test_active_prompt_hash_is_bound_and_old_prompt_cannot_resume(
+    prepared,
+    response_body,
+    monkeypatch,
+):
+    path, policy, journal = prepared
+    await live.execute(
+        path,
+        policy,
+        journal,
+        api_key="synthetic-placeholder",
+        stop_after=1,
+        transport=httpx.MockTransport(lambda r: httpx.Response(200, json=response(response_body))),
+    )
+    before = journal.read_bytes()
+    state = json.loads(before)
+    identity = state["identity"]
+    assert identity["analysis_prompt_version"] == "phishing_analysis_v2"
+    assert "phishing_analysis_v2.md" in identity["source_sha256"]
+    assert "phishing_analysis_v1.md" not in identity["source_sha256"]
+    assert state["summary"]["candidate_location_note"].startswith("RAW_OFFSETS_NOT_REQUESTED")
+    monkeypatch.setattr(live, "ANALYSIS_PROMPT_VERSION", "phishing_analysis_v1")
+    with pytest.raises(ValueError, match="incompatible"):
+        await live.execute(
+            path,
+            policy,
+            journal,
+            api_key="synthetic-placeholder",
+            resume=True,
+            transport=httpx.MockTransport(lambda r: pytest.fail("no cross-prompt replay")),
+        )
+    assert journal.read_bytes() == before
+
+
+def test_holdout_is_prepared_disabled_and_candidate_preserves_model_source_hashes(monkeypatch):
+    fixtures = CORPUS.parent
+    policy = json.loads((fixtures / "v5_d_live_evaluation_policy.holdout.pending.json").read_text())
+    assert policy["approved_for_paid_calls"] is False
+    assert (policy["split"], policy["max_calls"], policy["output_token_budget"]) == (
+        "holdout",
+        36,
+        36864,
+    )
+    monkeypatch.setattr(live, "AsyncOpenAI", lambda **kw: pytest.fail("no final-model call"))
+    assert live.plan(CORPUS, policy)["blocks"] == ["PAID_SCOPE_NOT_APPROVED"]
+    candidate = json.loads(
+        (CORPUS.parents[2] / "docs/qa/v5-d-holdout-candidate-20261025.json").read_text()
+    )
+    assert candidate["prompt_candidate_frozen"] and not candidate["paid_execution_approved"]
+    assert candidate["already_used_text_calls"] == 48 and candidate["holdout_predictions"] == 0
+    assert candidate["corpus_sha256"] == hashlib.sha256(CORPUS.read_bytes()).hexdigest()
+    code_root = Path(live.__file__).parent
+    files = {p.name: p for p in code_root.glob("*.py")}
+    files["phishing_analysis_v2.md"] = code_root / "prompts/phishing_analysis_v2.md"
+    core = Path(live.wallet_contract.__file__).parent
+    files["wallet_contract.py"], files["models.py"] = (
+        core / "wallet_contract.py",
+        core / "models.py",
+    )
+    for name, digest in candidate["source_and_runtime_identity"]["source_sha256"].items():
+        assert hashlib.sha256(files[name].read_bytes()).hexdigest() == digest

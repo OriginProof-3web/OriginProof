@@ -1,0 +1,760 @@
+{
+  "version": "selected-input-development-0.1",
+  "source": "synthetic",
+  "purpose": "Rendered text references and recording drafts; no media accuracy measured",
+  "source_fixture_sha256": "3c3b0c66fd3c4f851dce01255855f6a5db5f28397f9ade20469ec27918522199",
+  "font": {
+    "file_name": "AppleSDGothicNeo.ttc",
+    "sha256": "f2fe69e39644d04a9484802044836ba9d4a950aed2e32b006a3e16d5df5f49f1",
+    "index": 0,
+    "size": 28,
+    "family": "Apple SD Gothic Neo",
+    "renderer": "Pillow BASIC 13.0.0",
+    "redistributed": false,
+    "source_glyph_coverage_checked": true
+  },
+  "image_content": "SOURCE_TEXT_ONLY; NO_LABEL_OR_ANSWER_METADATA",
+  "audio_recordings": 0,
+  "paid_calls": 0,
+  "holdout_assets_created": 0,
+  "image_pixel_region_annotations": null,
+  "recording_guide_sha256": "77273b32f74a04de830d81f2831c2c3cc46b1bfd323d2e1f534f7d5aed4aeb58",
+  "cases": [
+    {
+      "source_id": "DP-H01",
+      "source_group": "DP-H01",
+      "split": "development",
+      "label_from_text": "HIGH",
+      "reference_text": "Origin Mock Bank 보안팀입니다. 본인 확인을 위해 인증번호를 알려주세요.",
+      "source_expected_evidence": [
+        {
+          "quote": "인증번호를 알려주세요",
+          "start_offset": 35,
+          "end_offset": 46
+        }
+      ],
+      "modality_review": "PENDING; TEXT_REVIEW_DOES_NOT_APPROVE_IMAGE_OR_SPEECH_QUALITY",
+      "image_status": "CREATED_NOT_EVALUATED",
+      "recording": {
+        "status": "DRAFT_AUDIO_NOT_RECORDED",
+        "candidate_script": "Origin Mock Bank 보안팀입니다. 본인 확인을 위해 인증번호를 알려주세요.",
+        "review_flags": [
+          "LATIN_TOKEN_PRONUNCIATION_REVIEW"
+        ],
+        "audio_asset": null,
+        "reference_transcript": null,
+        "word_or_evidence_timestamps": null,
+        "human_reviewed": false
+      },
+      "image_conversion_evaluated": false,
+      "speech_conversion_evaluated": false,
+      "image_asset": {
+        "path": "images/DP-H01.png",
+        "sha256": "1ca57377bef00f437559c2af1ca91e8a789da5de3198d18f6164220125150acd",
+        "width": 858,
+        "height": 80
+      }
+    },
+    {
+      "source_id": "DP-H02",
+      "source_group": "DP-H02",
+      "split": "development",
+      "label_from_text": "HIGH",
+      "reference_text": "계정이 도용되었습니다. OTP를 보내주세요. 상담원이 대신 처리합니다.",
+      "source_expected_evidence": [
+        {
+          "quote": "OTP를 보내주세요",
+          "start_offset": 13,
+          "end_offset": 23
+        }
+      ],
+      "modality_review": "PENDING; TEXT_REVIEW_DOES_NOT_APPROVE_IMAGE_OR_SPEECH_QUALITY",
+      "image_status": "CREATED_NOT_EVALUATED",
+      "recording": {
+        "status": "DRAFT_AUDIO_NOT_RECORDED",
+        "candidate_script": "계정이 도용되었습니다. OTP를 보내주세요. 상담원이 대신 처리합니다.",
+        "review_flags": [
+          "LATIN_TOKEN_PRONUNCIATION_REVIEW"
+        ],
+        "audio_asset": null,
+        "reference_transcript": null,
+        "word_or_evidence_timestamps": null,
+        "human_reviewed": false
+      },
+      "image_conversion_evaluated": false,
+      "speech_conversion_evaluated": false,
+      "image_asset": {
+        "path": "images/DP-H02.png",
+        "sha256": "1842ab329479f814dd91a64a7774ea5caf627f400020b7bce872f287a372f651",
+        "width": 805,
+        "height": 80
+      }
+    },
+    {
+      "source_id": "DP-H03",
+      "source_group": "DP-H03",
+      "split": "development",
+      "label_from_text": "HIGH",
+      "reference_text": "Origin Mock Office 점검을 위해 원격제어 앱을 설치해 주세요.",
+      "source_expected_evidence": [
+        {
+          "quote": "원격제어 앱을 설치해 주세요",
+          "start_offset": 26,
+          "end_offset": 41
+        }
+      ],
+      "modality_review": "PENDING; TEXT_REVIEW_DOES_NOT_APPROVE_IMAGE_OR_SPEECH_QUALITY",
+      "image_status": "CREATED_NOT_EVALUATED",
+      "recording": {
+        "status": "DRAFT_AUDIO_NOT_RECORDED",
+        "candidate_script": "Origin Mock Office 점검을 위해 원격제어 앱을 설치해 주세요.",
+        "review_flags": [
+          "LATIN_TOKEN_PRONUNCIATION_REVIEW"
+        ],
+        "audio_asset": null,
+        "reference_transcript": null,
+        "word_or_evidence_timestamps": null,
+        "human_reviewed": false
+      },
+      "image_conversion_evaluated": false,
+      "speech_conversion_evaluated": false,
+      "image_asset": {
+        "path": "images/DP-H03.png",
+        "sha256": "ae9b4b75a772c91f5ddac2b6cb0621354176a4055f541df257a5d2a0309e997e",
+        "width": 721,
+        "height": 80
+      }
+    },
+    {
+      "source_id": "DP-H04",
+      "source_group": "DP-H04",
+      "split": "development",
+      "label_from_text": "HIGH",
+      "reference_text": "수사 협조 대상입니다. 지금 아래 계좌로 송금하세요.",
+      "source_expected_evidence": [
+        {
+          "quote": "지금 아래 계좌로 송금하세요",
+          "start_offset": 13,
+          "end_offset": 28
+        }
+      ],
+      "modality_review": "PENDING; TEXT_REVIEW_DOES_NOT_APPROVE_IMAGE_OR_SPEECH_QUALITY",
+      "image_status": "CREATED_NOT_EVALUATED",
+      "recording": {
+        "status": "DRAFT_AUDIO_NOT_RECORDED",
+        "candidate_script": "수사 협조 대상입니다. 지금 아래 계좌로 송금하세요.",
+        "review_flags": [],
+        "audio_asset": null,
+        "reference_transcript": null,
+        "word_or_evidence_timestamps": null,
+        "human_reviewed": false
+      },
+      "image_conversion_evaluated": false,
+      "speech_conversion_evaluated": false,
+      "image_asset": {
+        "path": "images/DP-H04.png",
+        "sha256": "b7f7e13d35471de5d00ee921ab1a089a114280a0f098e63a3dd2269f36b9dfaf",
+        "width": 606,
+        "height": 80
+      }
+    },
+    {
+      "source_id": "DP-H05",
+      "source_group": "DP-H05",
+      "split": "development",
+      "label_from_text": "HIGH",
+      "reference_text": "본인 보호 절차입니다. 은행에 확인하지 마세요. 조사 내용은 비밀입니다.",
+      "source_expected_evidence": [
+        {
+          "quote": "은행에 확인하지 마세요",
+          "start_offset": 13,
+          "end_offset": 25
+        }
+      ],
+      "modality_review": "PENDING; TEXT_REVIEW_DOES_NOT_APPROVE_IMAGE_OR_SPEECH_QUALITY",
+      "image_status": "CREATED_NOT_EVALUATED",
+      "recording": {
+        "status": "DRAFT_AUDIO_NOT_RECORDED",
+        "candidate_script": "본인 보호 절차입니다. 은행에 확인하지 마세요. 조사 내용은 비밀입니다.",
+        "review_flags": [],
+        "audio_asset": null,
+        "reference_transcript": null,
+        "word_or_evidence_timestamps": null,
+        "human_reviewed": false
+      },
+      "image_conversion_evaluated": false,
+      "speech_conversion_evaluated": false,
+      "image_asset": {
+        "path": "images/DP-H05.png",
+        "sha256": "62c1aa57e90457ed6ea9b4a9f67231dc35bd0e48660ebb9b911a17b32267e003",
+        "width": 818,
+        "height": 80
+      }
+    },
+    {
+      "source_id": "DP-H06",
+      "source_group": "DP-H06",
+      "split": "development",
+      "label_from_text": "HIGH",
+      "reference_text": "청구 계좌가 바뀌었습니다. 즉시 변경된 계좌로 입금해 주세요.",
+      "source_expected_evidence": [
+        {
+          "quote": "즉시 변경된 계좌로 입금해 주세요",
+          "start_offset": 15,
+          "end_offset": 33
+        }
+      ],
+      "modality_review": "PENDING; TEXT_REVIEW_DOES_NOT_APPROVE_IMAGE_OR_SPEECH_QUALITY",
+      "image_status": "CREATED_NOT_EVALUATED",
+      "recording": {
+        "status": "DRAFT_AUDIO_NOT_RECORDED",
+        "candidate_script": "청구 계좌가 바뀌었습니다. 즉시 변경된 계좌로 입금해 주세요.",
+        "review_flags": [],
+        "audio_asset": null,
+        "reference_transcript": null,
+        "word_or_evidence_timestamps": null,
+        "human_reviewed": false
+      },
+      "image_conversion_evaluated": false,
+      "speech_conversion_evaluated": false,
+      "image_asset": {
+        "path": "images/DP-H06.png",
+        "sha256": "ff4661c7238ac3fed6e2e456d68e1a250340733791caa773a45cd05c41657af1",
+        "width": 709,
+        "height": 80
+      }
+    },
+    {
+      "source_id": "DP-C01",
+      "source_group": "DP-C01",
+      "split": "development",
+      "label_from_text": "CAUTION",
+      "reference_text": "안내드립니다. 변경된 계좌로 입금해 주세요. 변경 사유와 담당자는 적혀 있지 않습니다.",
+      "source_expected_evidence": [
+        {
+          "quote": "변경된 계좌로 입금해 주세요",
+          "start_offset": 8,
+          "end_offset": 23
+        }
+      ],
+      "modality_review": "PENDING; TEXT_REVIEW_DOES_NOT_APPROVE_IMAGE_OR_SPEECH_QUALITY",
+      "image_status": "CREATED_NOT_EVALUATED",
+      "recording": {
+        "status": "DRAFT_AUDIO_NOT_RECORDED",
+        "candidate_script": "안내드립니다. 변경된 계좌로 입금해 주세요. 변경 사유와 담당자는 적혀 있지 않습니다.",
+        "review_flags": [],
+        "audio_asset": null,
+        "reference_transcript": null,
+        "word_or_evidence_timestamps": null,
+        "human_reviewed": false
+      },
+      "image_conversion_evaluated": false,
+      "speech_conversion_evaluated": false,
+      "image_asset": {
+        "path": "images/DP-C01.png",
+        "sha256": "c61c029cee6c5b08a1826db415c1d996c51e56a392f5c02c63c742ebb8a9b8af",
+        "width": 976,
+        "height": 80
+      }
+    },
+    {
+      "source_id": "DP-C02",
+      "source_group": "DP-C02",
+      "split": "development",
+      "label_from_text": "CAUTION",
+      "reference_text": "신청한 기억이 없는 환급 안내가 왔습니다. https://refund.example.invalid 에서 접수하라고 합니다.",
+      "source_expected_evidence": [
+        {
+          "quote": "https://refund.example.invalid 에서 접수하라고 합니다",
+          "start_offset": 24,
+          "end_offset": 67
+        }
+      ],
+      "modality_review": "PENDING; TEXT_REVIEW_DOES_NOT_APPROVE_IMAGE_OR_SPEECH_QUALITY",
+      "image_status": "CREATED_NOT_EVALUATED",
+      "recording": {
+        "status": "DRAFT_AUDIO_NOT_RECORDED",
+        "candidate_script": "신청한 기억이 없는 환급 안내가 왔습니다. https://refund.example.invalid 에서 접수하라고 합니다.",
+        "review_flags": [
+          "URL_PRONUNCIATION_UNDECIDED",
+          "LATIN_TOKEN_PRONUNCIATION_REVIEW"
+        ],
+        "audio_asset": null,
+        "reference_transcript": null,
+        "word_or_evidence_timestamps": null,
+        "human_reviewed": false
+      },
+      "image_conversion_evaluated": false,
+      "speech_conversion_evaluated": false,
+      "image_asset": {
+        "path": "images/DP-C02.png",
+        "sha256": "69bdbe7c40ce6dcf0d1ca8687183ee5a0af2c728fa129c11bcab07e64b35468b",
+        "width": 1121,
+        "height": 80
+      }
+    },
+    {
+      "source_id": "DP-C03",
+      "source_group": "DP-C03",
+      "split": "development",
+      "label_from_text": "CAUTION",
+      "reference_text": "알 수 없는 발신자가 서류 확인을 위해 링크에 이름과 생년월일을 입력해 달라고 합니다.",
+      "source_expected_evidence": [
+        {
+          "quote": "이름과 생년월일을 입력해 달라고 합니다",
+          "start_offset": 26,
+          "end_offset": 47
+        }
+      ],
+      "modality_review": "PENDING; TEXT_REVIEW_DOES_NOT_APPROVE_IMAGE_OR_SPEECH_QUALITY",
+      "image_status": "CREATED_NOT_EVALUATED",
+      "recording": {
+        "status": "DRAFT_AUDIO_NOT_RECORDED",
+        "candidate_script": "알 수 없는 발신자가 서류 확인을 위해 링크에 이름과 생년월일을 입력해 달라고 합니다.",
+        "review_flags": [],
+        "audio_asset": null,
+        "reference_transcript": null,
+        "word_or_evidence_timestamps": null,
+        "human_reviewed": false
+      },
+      "image_conversion_evaluated": false,
+      "speech_conversion_evaluated": false,
+      "image_asset": {
+        "path": "images/DP-C03.png",
+        "sha256": "bdaa696c21c7fe86c23771926d33f2cbd886cd70e9b2f007c96c8e0d152333fb",
+        "width": 978,
+        "height": 80
+      }
+    },
+    {
+      "source_id": "DP-C04",
+      "source_group": "DP-C04",
+      "split": "development",
+      "label_from_text": "CAUTION",
+      "reference_text": "처음 보는 관리자가 업무용이라고 설명하며 일반 앱 설치 파일을 보내왔습니다.",
+      "source_expected_evidence": [
+        {
+          "quote": "일반 앱 설치 파일을 보내왔습니다",
+          "start_offset": 23,
+          "end_offset": 41
+        }
+      ],
+      "modality_review": "PENDING; TEXT_REVIEW_DOES_NOT_APPROVE_IMAGE_OR_SPEECH_QUALITY",
+      "image_status": "CREATED_NOT_EVALUATED",
+      "recording": {
+        "status": "DRAFT_AUDIO_NOT_RECORDED",
+        "candidate_script": "처음 보는 관리자가 업무용이라고 설명하며 일반 앱 설치 파일을 보내왔습니다.",
+        "review_flags": [],
+        "audio_asset": null,
+        "reference_transcript": null,
+        "word_or_evidence_timestamps": null,
+        "human_reviewed": false
+      },
+      "image_conversion_evaluated": false,
+      "speech_conversion_evaluated": false,
+      "image_asset": {
+        "path": "images/DP-C04.png",
+        "sha256": "b7cb53472b18d516d1985d62ed37fc271a06fd555fd9ff491be95cbf432e294d",
+        "width": 885,
+        "height": 80
+      }
+    },
+    {
+      "source_id": "DP-C05",
+      "source_group": "DP-C05",
+      "split": "development",
+      "label_from_text": "CAUTION",
+      "reference_text": "기존 안내와 계좌가 다른 납부 문서를 받았습니다. 실제 변경 승인 여부는 확인되지 않았습니다.",
+      "source_expected_evidence": [
+        {
+          "quote": "기존 안내와 계좌가 다른 납부 문서",
+          "start_offset": 0,
+          "end_offset": 19
+        }
+      ],
+      "modality_review": "PENDING; TEXT_REVIEW_DOES_NOT_APPROVE_IMAGE_OR_SPEECH_QUALITY",
+      "image_status": "CREATED_NOT_EVALUATED",
+      "recording": {
+        "status": "DRAFT_AUDIO_NOT_RECORDED",
+        "candidate_script": "기존 안내와 계좌가 다른 납부 문서를 받았습니다. 실제 변경 승인 여부는 확인되지 않았습니다.",
+        "review_flags": [],
+        "audio_asset": null,
+        "reference_transcript": null,
+        "word_or_evidence_timestamps": null,
+        "human_reviewed": false
+      },
+      "image_conversion_evaluated": false,
+      "speech_conversion_evaluated": false,
+      "image_asset": {
+        "path": "images/DP-C05.png",
+        "sha256": "05d4e82a83507d8d84ad749fdca840a52879be9084fc1044ac5d755154958882",
+        "width": 1056,
+        "height": 80
+      }
+    },
+    {
+      "source_id": "DP-C06",
+      "source_group": "DP-C06",
+      "split": "development",
+      "label_from_text": "CAUTION",
+      "reference_text": "Origin Mock Office를 사칭하는지 알 수 없는 계정이 개인 대화로 수수료 납부를 요구합니다.",
+      "source_expected_evidence": [
+        {
+          "quote": "개인 대화로 수수료 납부를 요구합니다",
+          "start_offset": 37,
+          "end_offset": 57
+        }
+      ],
+      "modality_review": "PENDING; TEXT_REVIEW_DOES_NOT_APPROVE_IMAGE_OR_SPEECH_QUALITY",
+      "image_status": "CREATED_NOT_EVALUATED",
+      "recording": {
+        "status": "DRAFT_AUDIO_NOT_RECORDED",
+        "candidate_script": "Origin Mock Office를 사칭하는지 알 수 없는 계정이 개인 대화로 수수료 납부를 요구합니다.",
+        "review_flags": [
+          "LATIN_TOKEN_PRONUNCIATION_REVIEW"
+        ],
+        "audio_asset": null,
+        "reference_transcript": null,
+        "word_or_evidence_timestamps": null,
+        "human_reviewed": false
+      },
+      "image_conversion_evaluated": false,
+      "speech_conversion_evaluated": false,
+      "image_asset": {
+        "path": "images/DP-C06.png",
+        "sha256": "7ba9015dea56e46889e081f2d202bce9aff534a57aca367f6dd20e010f2811bd",
+        "width": 1037,
+        "height": 80
+      }
+    },
+    {
+      "source_id": "DP-N01",
+      "source_group": "DP-N01",
+      "split": "development",
+      "label_from_text": "NO_CLEAR_INDICATORS",
+      "reference_text": "Origin Mock Bank는 문자나 전화로 인증번호를 요청하지 않습니다. 공식 앱에서 안내를 확인하세요.",
+      "source_expected_evidence": [],
+      "modality_review": "PENDING; TEXT_REVIEW_DOES_NOT_APPROVE_IMAGE_OR_SPEECH_QUALITY",
+      "image_status": "CREATED_NOT_EVALUATED",
+      "recording": {
+        "status": "DRAFT_AUDIO_NOT_RECORDED",
+        "candidate_script": "Origin Mock Bank는 문자나 전화로 인증번호를 요청하지 않습니다. 공식 앱에서 안내를 확인하세요.",
+        "review_flags": [
+          "LATIN_TOKEN_PRONUNCIATION_REVIEW"
+        ],
+        "audio_asset": null,
+        "reference_transcript": null,
+        "word_or_evidence_timestamps": null,
+        "human_reviewed": false
+      },
+      "image_conversion_evaluated": false,
+      "speech_conversion_evaluated": false,
+      "image_asset": {
+        "path": "images/DP-N01.png",
+        "sha256": "1cc5d842151cb120ffb30cba5d3c7739e72b5b8230277134d47d035c0c8a8b39",
+        "width": 1119,
+        "height": 80
+      }
+    },
+    {
+      "source_id": "DP-N02",
+      "source_group": "DP-N02",
+      "split": "development",
+      "label_from_text": "NO_CLEAR_INDICATORS",
+      "reference_text": "합성 시설의 정기 점검은 다음 주 화요일입니다. 점검 중 일부 조회가 지연될 수 있습니다.",
+      "source_expected_evidence": [],
+      "modality_review": "PENDING; TEXT_REVIEW_DOES_NOT_APPROVE_IMAGE_OR_SPEECH_QUALITY",
+      "image_status": "CREATED_NOT_EVALUATED",
+      "recording": {
+        "status": "DRAFT_AUDIO_NOT_RECORDED",
+        "candidate_script": "합성 시설의 정기 점검은 다음 주 화요일입니다. 점검 중 일부 조회가 지연될 수 있습니다.",
+        "review_flags": [],
+        "audio_asset": null,
+        "reference_transcript": null,
+        "word_or_evidence_timestamps": null,
+        "human_reviewed": false
+      },
+      "image_conversion_evaluated": false,
+      "speech_conversion_evaluated": false,
+      "image_asset": {
+        "path": "images/DP-N02.png",
+        "sha256": "8ccca7cc78b5b363b50425eeee593b90704b4cf858dcdf88c82f01645417faa3",
+        "width": 991,
+        "height": 80
+      }
+    },
+    {
+      "source_id": "DP-N03",
+      "source_group": "DP-N03",
+      "split": "development",
+      "label_from_text": "NO_CLEAR_INDICATORS",
+      "reference_text": "사기 예방 예시: \"지금 아래 계좌로 송금하세요\"라는 문구를 받으면 응하지 말고 공식 창구에서 확인하세요.",
+      "source_expected_evidence": [],
+      "modality_review": "PENDING; TEXT_REVIEW_DOES_NOT_APPROVE_IMAGE_OR_SPEECH_QUALITY",
+      "image_status": "CREATED_NOT_EVALUATED",
+      "recording": {
+        "status": "DRAFT_AUDIO_NOT_RECORDED",
+        "candidate_script": "사기 예방 예시: \"지금 아래 계좌로 송금하세요\"라는 문구를 받으면 응하지 말고 공식 창구에서 확인하세요.",
+        "review_flags": [],
+        "audio_asset": null,
+        "reference_transcript": null,
+        "word_or_evidence_timestamps": null,
+        "human_reviewed": false
+      },
+      "image_conversion_evaluated": false,
+      "speech_conversion_evaluated": false,
+      "image_asset": {
+        "path": "images/DP-N03.png",
+        "sha256": "a42864f1e5e8c2a8ad1b9528cdaa95fef0320151559e2121ab8dc60c4a11faf3",
+        "width": 1179,
+        "height": 80
+      }
+    },
+    {
+      "source_id": "DP-N04",
+      "source_group": "DP-N04",
+      "split": "development",
+      "label_from_text": "NO_CLEAR_INDICATORS",
+      "reference_text": "Origin Mock Office의 신청 문서는 방문 창구에서 수령할 수 있습니다. 신분 확인은 현장에서 진행합니다.",
+      "source_expected_evidence": [],
+      "modality_review": "PENDING; TEXT_REVIEW_DOES_NOT_APPROVE_IMAGE_OR_SPEECH_QUALITY",
+      "image_status": "CREATED_NOT_EVALUATED",
+      "recording": {
+        "status": "DRAFT_AUDIO_NOT_RECORDED",
+        "candidate_script": "Origin Mock Office의 신청 문서는 방문 창구에서 수령할 수 있습니다. 신분 확인은 현장에서 진행합니다.",
+        "review_flags": [
+          "LATIN_TOKEN_PRONUNCIATION_REVIEW"
+        ],
+        "audio_asset": null,
+        "reference_transcript": null,
+        "word_or_evidence_timestamps": null,
+        "human_reviewed": false
+      },
+      "image_conversion_evaluated": false,
+      "speech_conversion_evaluated": false,
+      "image_asset": {
+        "path": "images/DP-N04.png",
+        "sha256": "8299e52c0570513703086e73b821b8d64ed8a1a30047e726fafc36ae9035ea4e",
+        "width": 1170,
+        "height": 80
+      }
+    },
+    {
+      "source_id": "DP-N05",
+      "source_group": "DP-N05",
+      "split": "development",
+      "label_from_text": "NO_CLEAR_INDICATORS",
+      "reference_text": "이미 처리된 신청이며 추가 납부는 없습니다. 이번 안내는 진행 상태를 알려드리는 문서입니다.",
+      "source_expected_evidence": [],
+      "modality_review": "PENDING; TEXT_REVIEW_DOES_NOT_APPROVE_IMAGE_OR_SPEECH_QUALITY",
+      "image_status": "CREATED_NOT_EVALUATED",
+      "recording": {
+        "status": "DRAFT_AUDIO_NOT_RECORDED",
+        "candidate_script": "이미 처리된 신청이며 추가 납부는 없습니다. 이번 안내는 진행 상태를 알려드리는 문서입니다.",
+        "review_flags": [],
+        "audio_asset": null,
+        "reference_transcript": null,
+        "word_or_evidence_timestamps": null,
+        "human_reviewed": false
+      },
+      "image_conversion_evaluated": false,
+      "speech_conversion_evaluated": false,
+      "image_asset": {
+        "path": "images/DP-N05.png",
+        "sha256": "26c7e20e5c3278dc5c8a794c0c596d109208accadaa80ae569a4fcbdfb7f6452",
+        "width": 1049,
+        "height": 80
+      }
+    },
+    {
+      "source_id": "DP-N06",
+      "source_group": "DP-N06",
+      "split": "development",
+      "label_from_text": "NO_CLEAR_INDICATORS",
+      "reference_text": "인증번호나 비밀번호를 누구에게도 알려주지 마세요. 의심되면 기존 공식 연락처를 직접 찾아 확인하세요.",
+      "source_expected_evidence": [],
+      "modality_review": "PENDING; TEXT_REVIEW_DOES_NOT_APPROVE_IMAGE_OR_SPEECH_QUALITY",
+      "image_status": "CREATED_NOT_EVALUATED",
+      "recording": {
+        "status": "DRAFT_AUDIO_NOT_RECORDED",
+        "candidate_script": "인증번호나 비밀번호를 누구에게도 알려주지 마세요. 의심되면 기존 공식 연락처를 직접 찾아 확인하세요.",
+        "review_flags": [],
+        "audio_asset": null,
+        "reference_transcript": null,
+        "word_or_evidence_timestamps": null,
+        "human_reviewed": false
+      },
+      "image_conversion_evaluated": false,
+      "speech_conversion_evaluated": false,
+      "image_asset": {
+        "path": "images/DP-N06.png",
+        "sha256": "4f80577abcb6cf6def5d06e7962326097b79e4dfd069883fbe29d90d756700ce",
+        "width": 1169,
+        "height": 80
+      }
+    },
+    {
+      "source_id": "DP-U01",
+      "source_group": "DP-U01",
+      "split": "development",
+      "label_from_text": "UNDETERMINED",
+      "reference_text": "입금... [이후 내용 누락]",
+      "source_expected_evidence": [],
+      "modality_review": "PENDING; TEXT_REVIEW_DOES_NOT_APPROVE_IMAGE_OR_SPEECH_QUALITY",
+      "image_status": "CREATED_NOT_EVALUATED",
+      "recording": {
+        "status": "DRAFT_AUDIO_NOT_RECORDED",
+        "candidate_script": "입금... [이후 내용 누락]",
+        "review_flags": [
+          "STAGE_DIRECTION_REQUIRES_ADAPTATION"
+        ],
+        "audio_asset": null,
+        "reference_transcript": null,
+        "word_or_evidence_timestamps": null,
+        "human_reviewed": false
+      },
+      "image_conversion_evaluated": false,
+      "speech_conversion_evaluated": false,
+      "image_asset": {
+        "path": "images/DP-U01.png",
+        "sha256": "faa3332e5f01da47638c3e67f6023e8c9c3f31e6b42a6fd4d7cdf8b61af0f809",
+        "width": 299,
+        "height": 80
+      }
+    },
+    {
+      "source_id": "DP-U02",
+      "source_group": "DP-U02",
+      "split": "development",
+      "label_from_text": "UNDETERMINED",
+      "reference_text": "1234 5678 90",
+      "source_expected_evidence": [],
+      "modality_review": "PENDING; TEXT_REVIEW_DOES_NOT_APPROVE_IMAGE_OR_SPEECH_QUALITY",
+      "image_status": "CREATED_NOT_EVALUATED",
+      "recording": {
+        "status": "DRAFT_AUDIO_NOT_RECORDED",
+        "candidate_script": "1234 5678 90",
+        "review_flags": [
+          "NUMBER_TRANSCRIPTION_CONVENTION_UNDECIDED"
+        ],
+        "audio_asset": null,
+        "reference_transcript": null,
+        "word_or_evidence_timestamps": null,
+        "human_reviewed": false
+      },
+      "image_conversion_evaluated": false,
+      "speech_conversion_evaluated": false,
+      "image_asset": {
+        "path": "images/DP-U02.png",
+        "sha256": "3ad108207a40081729678530a192444adda54b6060c16efb53ba0c1802da56df",
+        "width": 212,
+        "height": 80
+      }
+    },
+    {
+      "source_id": "DP-U03",
+      "source_group": "DP-U03",
+      "split": "development",
+      "label_from_text": "UNDETERMINED",
+      "reference_text": "???? …",
+      "source_expected_evidence": [],
+      "modality_review": "PENDING; TEXT_REVIEW_DOES_NOT_APPROVE_IMAGE_OR_SPEECH_QUALITY",
+      "image_status": "CREATED_NOT_EVALUATED",
+      "recording": {
+        "status": "NO_SPOKEN_WORDS_SCRIPT_NOT_READY",
+        "candidate_script": null,
+        "review_flags": [],
+        "audio_asset": null,
+        "reference_transcript": null,
+        "word_or_evidence_timestamps": null,
+        "human_reviewed": false
+      },
+      "image_conversion_evaluated": false,
+      "speech_conversion_evaluated": false,
+      "image_asset": {
+        "path": "images/DP-U03.png",
+        "sha256": "ab7a0f94d2e08efdb27b1a4c7f1fc3d7251d996c06e07c710cff6f53b913e7b9",
+        "width": 131,
+        "height": 80
+      }
+    },
+    {
+      "source_id": "DP-U04",
+      "source_group": "DP-U04",
+      "split": "development",
+      "label_from_text": "UNDETERMINED",
+      "reference_text": "그쪽 번호 먼저 확인하고 보내주세요.",
+      "source_expected_evidence": [],
+      "modality_review": "PENDING; TEXT_REVIEW_DOES_NOT_APPROVE_IMAGE_OR_SPEECH_QUALITY",
+      "image_status": "CREATED_NOT_EVALUATED",
+      "recording": {
+        "status": "DRAFT_AUDIO_NOT_RECORDED",
+        "candidate_script": "그쪽 번호 먼저 확인하고 보내주세요.",
+        "review_flags": [],
+        "audio_asset": null,
+        "reference_transcript": null,
+        "word_or_evidence_timestamps": null,
+        "human_reviewed": false
+      },
+      "image_conversion_evaluated": false,
+      "speech_conversion_evaluated": false,
+      "image_asset": {
+        "path": "images/DP-U04.png",
+        "sha256": "295adacee3b8eff296115166bfd457501a0a216b356d22ead2cb5d3b3be9cafc",
+        "width": 442,
+        "height": 80
+      }
+    },
+    {
+      "source_id": "DP-U05",
+      "source_group": "DP-U05",
+      "split": "development",
+      "label_from_text": "UNDETERMINED",
+      "reference_text": "[합성 판독 불가: 요청 내용 없음]",
+      "source_expected_evidence": [],
+      "modality_review": "PENDING; TEXT_REVIEW_DOES_NOT_APPROVE_IMAGE_OR_SPEECH_QUALITY",
+      "image_status": "EXCLUDED_AGREED_TEXT_ONLY",
+      "recording": {
+        "status": "EXCLUDED_AGREED_TEXT_ONLY",
+        "candidate_script": null,
+        "review_flags": [
+          "STAGE_DIRECTION_REQUIRES_ADAPTATION"
+        ],
+        "audio_asset": null,
+        "reference_transcript": null,
+        "word_or_evidence_timestamps": null,
+        "human_reviewed": false
+      },
+      "image_conversion_evaluated": false,
+      "speech_conversion_evaluated": false,
+      "image_asset": null
+    },
+    {
+      "source_id": "DP-U06",
+      "source_group": "DP-U06",
+      "split": "development",
+      "label_from_text": "UNDETERMINED",
+      "reference_text": "아까 말한 절차대로 진행하시면 됩니다.",
+      "source_expected_evidence": [],
+      "modality_review": "PENDING; TEXT_REVIEW_DOES_NOT_APPROVE_IMAGE_OR_SPEECH_QUALITY",
+      "image_status": "CREATED_NOT_EVALUATED",
+      "recording": {
+        "status": "DRAFT_AUDIO_NOT_RECORDED",
+        "candidate_script": "아까 말한 절차대로 진행하시면 됩니다.",
+        "review_flags": [],
+        "audio_asset": null,
+        "reference_transcript": null,
+        "word_or_evidence_timestamps": null,
+        "human_reviewed": false
+      },
+      "image_conversion_evaluated": false,
+      "speech_conversion_evaluated": false,
+      "image_asset": {
+        "path": "images/DP-U06.png",
+        "sha256": "6ef34ae95d3f7162c1fc3c7f0337e9d6197e9b538d8bfae516c30611ff79d886",
+        "width": 466,
+        "height": 80
+      }
+    }
+  ]
+}

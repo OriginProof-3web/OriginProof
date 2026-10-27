@@ -60,6 +60,9 @@ class CandidateEvidenceObserver:
         self.provider = provider
         self.provider_name = provider.provider_name
         self.model = provider.model
+        self.evidence_offset_mode = getattr(
+            provider, "evidence_offset_mode", "PROVIDER_SUPPLIED_OR_UNSPECIFIED"
+        )
         self.expected = []
         self.counts = Counter()
 

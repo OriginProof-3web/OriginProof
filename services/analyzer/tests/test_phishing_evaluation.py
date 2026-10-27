@@ -11,16 +11,14 @@ from originproof_analyzer.phishing_evaluation import (
     load_corpus,
 )
 
-CORPUS = (
-    Path(__file__).resolve().parents[3] / "fixtures/synthetic/phishing_sources_v1.json"
-)
+CORPUS = Path(__file__).resolve().parents[3] / "fixtures/synthetic/phishing_sources_v1.json"
 
 
-def test_sixty_source_draft_has_proposed_24_36_split_and_no_cross_split_variants():
+def test_sixty_reviewed_sources_keep_confirmed_24_36_split():
     manifest = load_corpus(CORPUS)
-    assert manifest["review_status"] == "DRAFT_REVIEW_REQUIRED"
-    assert manifest["input_selection"] == "UNDECIDED"
-    assert manifest["labels_human_reviewed"] is False
+    assert manifest["review_status"] == "A_AND_C_CONFIRMED_UNCHANGED"
+    assert manifest["input_selection"] == "TEXT"
+    assert manifest["labels_human_reviewed"] is True
 
 
 @pytest.mark.parametrize("change", ["leak", "duplicate", "bad_span", "count"])
@@ -63,14 +61,13 @@ async def test_default_evaluation_only_runs_development_without_labels_in_proces
 
     result = await evaluate_phishing(CORPUS, processor=failed)
     draft = load_corpus(CORPUS)
-    expected = [
-        item["text"] for item in draft["cases"] if item["split"] == "development"
-    ]
+    expected = [item["text"] for item in draft["cases"] if item["split"] == "development"]
     assert seen == expected
     assert result["total"] == result["failures"] == 24
     assert result["abstentions"] == 0
     assert result["classification"]["macro_f1"] == 0
     assert result["live_model_evaluated"] is False
+    assert result["acceptance_status"] == "LABELS_CONFIRMED_EXECUTION_REVIEW_REQUIRED"
     assert "PRIVATE_PROVIDER_PAYLOAD" not in json.dumps(result)
     assert result["evidence"]["candidate_grounding"]["grounding_ratio"] is None
     assert result["evidence"]["expected_span_count"] == 12
