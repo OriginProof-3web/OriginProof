@@ -111,7 +111,7 @@ jobs:
         run: |
           .venv/bin/ruff check fixtures/finals/v5_d_connected_smoke.py fixtures/finals/v5_d_run_connected_smoke.py fixtures/finals/test_v5_d_connected_smoke_budget.py
           node --check fixtures/finals/v5_d_browser_connected.cjs
-          PYTHONPATH="$PWD/fixtures/finals:$PYTHONPATH" .venv/bin/python -m pytest -q -o addopts= \
+          PYTHONPATH="$PWD/fixtures/finals:$PWD/apps/api/src:$PWD/packages/python:$PWD/services/analyzer/src:$PWD/services/indexer/src" .venv/bin/python -m pytest -q -o addopts= \
             fixtures/finals/test_v5_d_connected_smoke_budget.py
       - name: Preserve actual failures and test counts
         if: always()
