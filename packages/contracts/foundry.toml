@@ -14,3 +14,9 @@ line_length = 100
 
 [fuzz]
 runs = 512
+
+# Aliases keep provider-keyed URLs off the command line: `cast chain-id --rpc-url sepolia`.
+# SEPOLIA_RPC_URL is read from the environment only when the alias is used.
+[rpc_endpoints]
+sepolia = "${SEPOLIA_RPC_URL}"
+anvil = "http://127.0.0.1:8545"

@@ -20,6 +20,7 @@ from originproof_core.ports import IssuerRecord, KeyRecord
 from .accounts import router as auth_router
 from .applications import router as applications_router
 from .chain_management import router as chain_router
+from .chain_network import router as chain_network_router
 from .database import Database
 from .finals_proofs import router as finals_router
 from .operations import router as operations_router
@@ -51,8 +52,9 @@ def configured_blockchain_reader(settings: Settings) -> BlockchainReader:
     if not settings.blockchain_rpc_url or not settings.blockchain_manifest_path:
         return UnavailableBlockchainReader()
     try:
+        # CHAIN_TARGET picks chain ID and RPC rules; reads fail over primary -> fallback.
         return JsonRpcBlockchainReader(
-            settings.blockchain_rpc_url,
+            settings.blockchain_rpc_urls,
             settings.blockchain_manifest_path,
             issuer_ids=[settings.blockchain_issuer_id],
             expected_chain_id=settings.blockchain_chain_id,
@@ -132,6 +134,7 @@ def create_app(
     app.include_router(applications_router)
     app.include_router(operations_router)
     app.include_router(chain_router)
+    app.include_router(chain_network_router)
     app.include_router(finals_router)
     app.include_router(wallet_onboarding_router)
     app.include_router(wallet_governance_router)
