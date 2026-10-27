@@ -160,3 +160,9 @@ W3/W4/W5/W6/후보 560/568/601/650/659 PASS입니다. 임시 PostgreSQL 16.4의 
 실제 PostgreSQL·API 프로세스 복구 7개, 정식 migration 적용 DB 선택 검사 1개가 통과했고,
 migration head의 `alembic check`와 0006 downgrade 뒤 재적용도 차이가 없었습니다.
 Registry/receipt는 합성입니다. Claude가 수정·검사를 수행했으며 사람의 재리뷰는 미확인입니다.
+
+## 2026-10-27 분석기 생산 연결 (블록 8·10)
+
+`PhishingAnalyzer`(D #75~#101)를 생산 `app`의 `analysis_processor`로 연결했습니다. 공급자는 기존 `LLM_PROVIDER` 설정을 그대로 쓰고, 기본값 mock은 규칙 근거만 돌려줍니다. `create_app()`의 기본값(None)은 그대로라 검사·fixture는 계속 명시적으로 주입합니다. 연결을 위해 API에 analyzer workspace 의존성을 추가했고(`uv.lock` 2줄, 버전 변경 없음), `api.Dockerfile`에 analyzer 소스 복사를 넣었습니다. 텍스트 입력은 migration 순서 문제로 기본값 false를 유지하고, runbook에 켜는 절차를 적었습니다.
+
+AI(Codex, claude-opus-5-5)가 사용자님 지시로 구현·검사·기록했습니다. D 리뷰(analyzer 의존 방향·lock)는 PR에서 요청합니다.

@@ -10,6 +10,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from infrastructure.blockchain import JsonRpcBlockchainReader
 from infrastructure.blockchain.wallet_deployment import WalletRegistryConnector
+from originproof_analyzer.phishing import PhishingAnalyzer
 from originproof_core import (
     BlockchainReader,
     DependencyUnavailableError,
@@ -223,4 +224,5 @@ def create_app(
     return app
 
 
-app = create_app()
+# Production composition: LLM_PROVIDER picks the provider (default mock: rules only, no paid call).
+app = create_app(analysis_processor=PhishingAnalyzer())

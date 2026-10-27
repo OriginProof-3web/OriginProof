@@ -7,9 +7,14 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 from originproof_analyzer.phishing import PhishingAnalyzer
 from originproof_analyzer.providers import MockLLMProvider
-from originproof_api.main import create_app
+from originproof_api.main import app, create_app
 
 pytest_plugins = ("test_wallet_runtime",)
+
+
+def test_production_app_wires_phishing_analyzer():
+    assert isinstance(app.state.analysis_processor, PhishingAnalyzer)
+    assert create_app().state.analysis_processor is None  # tests and fixtures inject explicitly
 
 
 @pytest.mark.parametrize(
