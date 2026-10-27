@@ -172,3 +172,9 @@ AI(Codex, claude-opus-5-5)가 사용자님 지시로 구현·검사·기록했�
 `/v3/inputs`가 `DOCUMENT_IMAGE`를 받습니다(기본 꺼짐). 형식 검사는 D `SemanticInput`을, 판독은 D `document_image_to_text`를, 판독문 분석과 위치 대조는 D `analyze_conversion`과 C `ground_report`를 재사용했습니다. 새 요청 모델은 `originproof_core/wallet_inputs.py`에 두었습니다. 처음에는 `wallet_contract.py`에 넣었는데, #100의 동결 평가 후보가 그 파일의 sha256을 고정하고 있어 D 검사가 실패했고, 그래서 파일을 분리했습니다(평가 기록은 건드리지 않음). 이미지가 켜졌을 때만 `/v3/inputs` 본문 상한을 늘립니다. 근거 위치는 판독문 글자 기준이며 픽셀 영역과 판독문 전체 표시는 후속입니다.
 
 AI(Codex, claude-opus-5-5)가 사용자님 지시로 구현·검사·기록했습니다.
+
+## 2026-10-27 Track B 원본 찾기 (#88)
+
+검증 코드가 없는 문자에서 읽은 기관·금액·계좌(또는 공문 번호)로 보관 중인 발행 기록을 찾는 `POST /v3/document-lookups`를 추가했습니다. 일치하는 기록이 없으면 `UNVERIFIED`, 여럿이면 `AMBIGUOUS`이고, 하나면 기존 검증 흐름을 `run_verification`으로 떼어 내 그대로 실행합니다. 부분 일치를 VERIFIED로 올리지 않습니다. v5 content에 수신자 정보가 없어 수신자 해시 키는 넣지 않았고, 발송일 범위와 분석기 자동 추출 연결은 후속입니다.
+
+AI(Codex, claude-opus-5-5)가 사용자님 지시로 구현·검사·기록했습니다.
