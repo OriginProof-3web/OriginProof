@@ -69,6 +69,18 @@ def test_other_chain_address_or_missing_evidence_is_refused(tmp_path, kwargs, ov
         wd.load_wallet_deployment(path, abi_path=abi, **kwargs)
 
 
+def test_lowercase_manifest_matches_checksummed_setting(tmp_path):
+    lower = "0xe540bf29622afff40174b76992b016112f372a2e"
+    path, abi = write(tmp_path)
+    data = json.loads(path.read_text())
+    data["contracts"][wd.NAME]["address"] = lower
+    path.write_text(json.dumps(data))
+    deployment, _ = wd.load_wallet_deployment(
+        path, chain_id=31337, address="0xE540Bf29622AFFf40174B76992b016112f372A2e", abi_path=abi
+    )
+    assert deployment["address"].lower() == lower
+
+
 def test_changed_abi_is_refused(tmp_path):
     path, abi = write(tmp_path)
     abi.write_text("[]\n")

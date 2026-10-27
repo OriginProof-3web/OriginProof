@@ -12,6 +12,19 @@
 | `approver_2` | 승인 노드 #2 금융·산업 자율규제원(금융보안원 모델) | 모델(실제 기관 아님) |
 | `approver_3` | 승인 노드 #3 통신·인프라 보안컨소시엄 | 모델(실제 기관 아님) |
 
+## 실제 배포 결과 (2026-10-27)
+
+| 항목 | 값 |
+| --- | --- |
+| Registry 주소 | [`0xE540Bf29622AFFf40174B76992b016112f372A2e`](https://sepolia.etherscan.io/address/0xE540Bf29622AFFf40174B76992b016112f372A2e) |
+| 배포 거래 | [`0x9e40ba5f…a4bc`](https://sepolia.etherscan.io/tx/0x9e40ba5f455da2a583989d24255c324230bdb804255e249f35cf256f4866a4bc) · 블록 12001755 · status 1 · 19,035,289 gas · 0.0001047 ETH |
+| 배포 지갑 | `0xED8ad0A5841451b91883Eac3A9e41982878b3b50` (대표 시험용 지갑, Foundry keystore) |
+| 승인자(모델, 실제 기관 아님) | #1 KISA 모델 `0x4f12cb684fbd76962A85E5Bc66fe769597aeCA2a` · #2 금융보안원 모델 `0xE5d0531Ef3c419A5acFB3774B731A2d239ECb240` · #3 통신 컨소시엄 `0x2Efd70f041Fe1b400125e8b99029c5fa0Af4eB1c` |
+| 배포 기록 | `packages/contracts/deployments/11155111.wallet.json` (source `72440c0`) |
+| 확인 | API `WalletRegistryConnector`로 실제 Sepolia 연결·CREATE/코드/승인자 검증·`getIssuer` 읽기 성공. 주 RPC 장애 시 보조 RPC 연결 성공 |
+
+**가스 주의:** forge 1.8.1 로컬 모의 실행(약 2.7M gas)은 Sepolia의 오른 코드 저장 비용을 모릅니다. 실제 노드 `eth_estimateGas`는 약 19.19M이었고, 130%·200% 배포(`0xa11034…`, `0xc98a4e…`)는 가스 부족으로 실패했습니다. Sepolia 배포는 `--gas-multiplier 800`을 붙입니다(실제 사용 가스만 청구).
+
 ## 구성 요소
 
 - `packages/contracts/script/DeployWalletRegistry.s.sol`: B 소스를 import하지 않고 artifact 이름으로 배포합니다. `WALLET_DEPLOY_CHAIN_ID`와 연결된 체인이 다르면 거부합니다.

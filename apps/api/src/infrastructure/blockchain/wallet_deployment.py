@@ -54,7 +54,8 @@ def load_wallet_deployment(manifest_path, *, chain_id, address, abi_path=None):
         contract = manifest["contracts"][NAME]
         if manifest["chain_id"] != chain_id:
             raise BlockchainConfigurationError("wallet manifest is for another chain")
-        if validate_address(contract["address"]) != validate_address(address):
+        # 배포 기록은 소문자, 설정은 체크섬 대소문자일 수 있어 주소 값으로 비교
+        if validate_address(contract["address"]).lower() != validate_address(address).lower():
             raise BlockchainConfigurationError("wallet manifest address differs from settings")
         if hashlib.sha256(abi_raw).hexdigest() != contract["abi_sha256"]:
             raise BlockchainConfigurationError("committed ABI differs from the deployed ABI")
