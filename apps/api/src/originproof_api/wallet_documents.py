@@ -386,6 +386,7 @@ async def reconcile(operation_id: str, request: Request, identity: Identity):
     account = service.authorize(request, identity)
     async with service.database.session_factory() as db:
         row = await owned_operation(service, db, operation_id, account)
+        row = await service.lock_operation(db, row.operation_id)
         if row.status in ("CONFIRMED", "FAILED"):
             return service.operation_view(row)
         # A verified binding supersedes a stale lookup candidate left by a rejected race.
@@ -399,7 +400,16 @@ async def reconcile(operation_id: str, request: Request, identity: Identity):
             else:
                 if result.status in ("CONFIRMED", "FAILED"):
                     return result
-        tx = await service.rpc("find_transaction", row.input_body)
+        try:
+            tx = await service.rpc("find_transaction", row.input_body)
+        except HTTPException as error:
+            if error.status_code != 503:
+                raise
+            row.recovery_reference = row.recovery_reference | {
+                "lookup_error": "WALLET_REGISTRY_UNAVAILABLE"
+            }
+            await service.commit(db)
+            tx = None
         if tx:
             return await accept_transaction(service, db, row, tx.tx_hash)
         row = await service.lock_operation(db, row.operation_id)
@@ -407,9 +417,12 @@ async def reconcile(operation_id: str, request: Request, identity: Identity):
             return service.operation_view(row)
         if row.input_body["action"] in ("Publish", "Revoke"):
             message = row.input_body["arguments"]["message"]
-            if now() >= message["deadline"]:
-                issuer = await service.rpc("issuer", message["issuerId"])
-                chain = await service.rpc("document", message["documentId"], message["version"])
+            block = await service.rpc("snapshot")
+            if int(block["timestamp"], 16) >= message["deadline"]:
+                issuer = await service.rpc("issuer", message["issuerId"], block)
+                chain = await service.rpc(
+                    "document", message["documentId"], message["version"], block
+                )
                 absent = (
                     chain is None
                     if row.input_body["action"] == "Publish"
