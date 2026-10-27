@@ -13,7 +13,7 @@ import httpx
 from dotenv import dotenv_values
 from fastapi import Depends, Request
 from openai import AsyncOpenAI
-from originproof_analyzer.converted_inputs import analyze_conversion
+from originproof_analyzer.converted_inputs import analyze_conversion, prepare_conversion
 from originproof_analyzer.inputs import SemanticInput
 from originproof_analyzer.live_evaluation import CappedTransport, digest, save
 from originproof_analyzer.media_converters import document_image_to_text
@@ -29,7 +29,7 @@ CAPS = (1024, 4096, 1024)
 
 
 class SmokeTransport(httpx.AsyncBaseTransport):
-    """Reserve one of three approved requests before sending; unknown outcomes are never replayed."""
+    """Reserve one of three requests before sending; never replay unknown outcomes."""
 
     def __init__(self, journal, inner=None):
         self.journal = Path(journal)
@@ -138,6 +138,10 @@ def process_app():
             analyzed = await analyze_conversion(
                 conversion, app.state.analysis_processor, remaining_seconds=deadline - loop.time()
             )
-        return {"qa_only": True, "report": analyzed.report.model_dump(mode="json")}
+        return {
+            "qa_only": True,
+            "report": analyzed.report.model_dump(mode="json"),
+            "converted_text": prepare_conversion(conversion).text,
+        }
 
     return app
