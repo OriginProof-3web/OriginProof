@@ -55,3 +55,9 @@ V5_C_LIVE_TEST=1 .uv-venv/bin/python -m pytest -q -o addopts= scripts/ci/test_v5
 - **W7**: 팀의 RC/배포·문서·제출 기준 고정 후 같은 후보 리허설3회·대체 장비·영상·제출 링크/파일 점검. 수정 시 새 후보로 재검증.
 
 G07은 #91의 **RESOLVED_LOCAL_LEGACY**를 유지하고 신규 Registry 전체 복구 완료로 확대하지 않습니다. #84 소비 검토·A/C60개 검토·기존24회 승인을 다시 요청하지 않습니다. W6 branch 병합은 integration 승격·제품 단계 완료와 다릅니다. 이번 작업은 D 독립 구현/검사와 실제 텍스트 평가이며 전체 단계 완료가 아닙니다.
+
+## 최종 소스 검증
+
+검증 source **`bfd115329d71e0c4600f0184284d33e812c67611`**, `.env`·키 없는 git archive/같은 노트북·기존 의존성 재사용입니다. 기본 **1310 PASS /19 SKIP /0 FAIL·ERROR**, 기존 Starlette 경고1. 19 skip에는 위 별도 실행으로 통과한 v5 실제 복구7개가 포함되므로 미실행 총합으로 중복 집계하지 않습니다. 나머지 DB/체인 opt-in과 로컬 Foundry cast 부재 사례는 미실행입니다.
+
+D 동일 소스 stage43·consumer31, 고정 C63 독립 RPC71 PASS. 신규 이미지16개는1310에 포함되며 합산하지 않습니다. 원본/생성기5종 차이0·검토본120개/이미지자산 일치·전체 Ruff PASS. 실제 모델 평가36회는 단위검사와 분리합니다. 현재5개 운영 유료 정책 모두false·기존24/24 journal hash 불변입니다. [JUnit/hash·환경·검사별 실제 경계](../qa/v5-d-service-readiness-20261027.json).

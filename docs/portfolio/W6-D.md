@@ -46,3 +46,5 @@ D 사용자가 충전 완료·텍스트24회 활성화/실행을 직접 승인�
 - 재사용/타인 기여: C의 W6 실제 DB/API 복구7개와 A의 #99 고정 b0b77e2 HTTP4개를 그대로 독립 실행했습니다. API/DB 복구 코드와 HTTP 기준선의 원저자는 C/A이며 D가 새로 만든 기능으로 합산하지 않습니다.
 - 문제 해결: 저장소 밖으로 추출한 HTTP 검사를 첫 실행할 때 프로젝트 pytest 설정이 검색되지 않아 async fixture4개가 setup 오류였습니다. `-c pyproject.toml`로 기존 asyncio_mode=auto 설정을 명시한 뒤4개 통과했습니다. 시험/fixture 자체를 완화하지 않았습니다.
 - 한계/다음 담당: 모델 단독 점수·실제 이미지 판독·생산 API 주입·실제 B Registry+웹 전체 동선·다른 노트북·RC3회는 별도입니다. 일반 복구7개의 Registry/분석기 응답은 합성입니다. [실측](../qa/v5-d-live-holdout-20261027.md), [현재 인계·요청 표](../handoffs/v5_d_service_readiness_20261027.md). 신규 CI/clean-source 검증은 최종 증거 보고서와 PR에 기록합니다.
+
+- 최종 검증 source `bfd115329d71e0c4600f0184284d33e812c67611`: 키 없는 git archive 기본1310 PASS/19 SKIP/기존경고1, D stage43·consumer31·고정 C63 독립71. 생성기5종 차이0·검토본/자료 일치·Ruff 통과. 신규16개는 전체에 포함됩니다. 실제 DB/API 복구7개는 기본 skip과 별도로 실행했고 일반 검증100회 p50 15.0273ms/p95 16.1677ms(합성 Registry, 모델/RPC 미포함)입니다. [전체 검증 경계](../qa/v5-d-service-readiness-20261027.json).
