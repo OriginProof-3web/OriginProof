@@ -1,6 +1,8 @@
-# 5.1 C 원격 공유 준비안
+# 5.1 C 원격 공유 기록
 
 대상 저장소: **OriginProof-3web/OriginProof** (`https://github.com/OriginProof-3web/OriginProof`). 사용자님의 명시적 push/PR 생성 지시에 따라 아래 여섯 브랜치를 공유하고 Draft PR #57~#62를 생성했습니다. PR은 순서대로 선행 브랜치에 의존합니다. 단계 통합/병합·main 승격은 포함하지 않습니다.
+
+2026-10-16 후속: 잔여 C 개발 요청에 따른 신규 지갑 복구·독립 검증을 [Draft PR #63](https://github.com/OriginProof-3web/OriginProof/pull/63)으로 공유했습니다. `feat/v5-w6-c-recovery-integration` → `feat/v5-w5-c-analysis-retention`, 최종 코드 근거 `b3c10a5e4d0358b7d0754260283853b0338e072f`입니다. 기존 여섯 PR의 코드 근거/이력을 덮어쓰지 않습니다. 실제 5개 복구·527개 전체 회귀와 초기 CI 실패/수정·합성 범위·남은 연결은 [W6 구현 기록](v5_c_implementation.md#v5-w6-c-신규-지갑-복구독립-검증-2026-10-16)을 확인합니다. 새 PR의 원격 CI와 작성자 외 리뷰는 별도입니다.
 
 공통 실행 코드 근거는 `650e85cd939ac4be493e14b4004daf081f92afa9`, 문서 근거는 이 파일을 포함한 후속 커밋입니다. [구현/검사 기록](v5_c_implementation.md), [실행 API 인계](../api/v5_c_runtime.md), [공유 계약 0.2](../shared_contract_v5.md)를 함께 검토합니다.
 
