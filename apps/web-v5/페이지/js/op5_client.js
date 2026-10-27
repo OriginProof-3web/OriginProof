@@ -454,6 +454,15 @@
   /* ---------------- 첨부 업로드 자리 ----------------
      계약(d0111d8)에는 이미지·PDF·음성 업로드 경로가 없음(POST /v3/inputs 는 kind TEXT 만).
      계약이 생기면 이 함수 안에서 그 경로로 보내고 { ok:true, input_ref } 를 돌려주면 됨. 지금은 보내지 않음. */
+  // Connection captions follow received reports; prepared RAG is not a connection signal.
+  function analysisCaption(answer) {
+    if (answer && answer.sample) return '규칙·AI 위험 분석 · 예시 응답';
+    if (!answer || answer.analysis_status !== 'COMPLETED' || !answer.ai_report) return '규칙·AI 위험 분석 · 서버 분석기 연결 전';
+    var limits = Array.isArray(answer.ai_report.limitations) ? answer.ai_report.limitations : [];
+    if (limits.some(function (x) { return typeof x === 'string' && x.indexOf('LLM_ANALYSIS_UNAVAILABLE:') === 0; })) return '규칙 검사 · AI 분석 사용 불가';
+    if (limits.indexOf('MOCK_REPLAY_NOT_MODEL_PERFORMANCE') >= 0) return '규칙·AI 위험 분석 · 기록 응답';
+    return '규칙·AI 위험 분석 · 서버 보고서';
+  }
   function uploadAttachment(file) {
     var name = file && typeof file.name === 'string' ? file.name : '';
     return Promise.resolve({ ok: false, code: 'UPLOAD_NOT_CONNECTED', name: name, text: '첨부 업로드는 아직 연결 전이에요(서버 계약에 업로드 경로가 없어요).' });
@@ -461,6 +470,7 @@
 
   Hk.op5 = {
     uploadAttachment: uploadAttachment,
+    analysisCaption: analysisCaption,
     CODE_TEXT: CODE_TEXT, explain: explain, createClient: createClient, createWallet: createWallet,
     parseDraft: parseDraft, parseRevoke: parseRevoke, parseTxHash: parseTxHash, parseBase: parseBase,
     EIP712_TYPES: EIP712_TYPES, typedData: typedData, RE: RE

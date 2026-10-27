@@ -50,6 +50,8 @@ class SmokeTransport(httpx.AsyncBaseTransport):
                 for r in rows
             ):
                 raise ValueError("smoke quota consumed or previous outcome uncertain")
+            if json.loads(request.content).get("model") != "gpt-6-luna":
+                raise ValueError("unapproved smoke model")
             image = any(
                 item.get("type") == "input_image"
                 for message in json.loads(request.content).get("input", [])

@@ -235,7 +235,7 @@
 
     var aiz = el('section', 'op-zone op-ai');
     aiz.setAttribute('aria-label', 'AI 위험 설명');
-    aiz.append(el('span', 'op-zone-tag', '규칙·AI 위험 분석 · 서버 분석기·RAG 연결 전'), el('h4', null, 'AI 위험 설명 · 맥락'));
+    aiz.append(el('span', 'op-zone-tag', O.analysisCaption(a)), el('h4', null, 'AI 위험 설명 · 맥락'));
     if (ai) aiz.append(opRow(ai));
     var text = a.input && typeof a.input.text === 'string' ? a.input.text : '';
     var sp = riskSpans(a, ai, text);

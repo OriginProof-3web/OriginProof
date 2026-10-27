@@ -40,7 +40,7 @@ function fakeFetch(route) {
         if (r.reject) return reject(new TypeError(r.reject));
         const headers = Object.assign({}, r.headers || {});
         const text = r.raw != null ? r.raw : JSON.stringify(r.body == null ? null : r.body);
-        resolve({ status: r.status, headers: { get: h => { for (const k of Object.keys(headers)) if (k.toLowerCase() === h.toLowerCase()) return headers[k]; return null; } }, text: () => Promise.resolve(text) });
+        resolve({ status: r.status, ok: r.status >= 200 && r.status < 300, json: () => Promise.resolve().then(() => JSON.parse(text)), headers: { get: h => { for (const k of Object.keys(headers)) if (k.toLowerCase() === h.toLowerCase()) return headers[k]; return null; } }, text: () => Promise.resolve(text) });
       }, r.delay || 0);
     });
   };

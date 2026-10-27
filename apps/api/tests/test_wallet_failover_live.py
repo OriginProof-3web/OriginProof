@@ -158,7 +158,16 @@ async def test_runtime_failover_keeps_reads_and_projection_on_live_chain(tmp_pat
                 pytest.fail("disposable Anvil did not start")
             for _ in range(100):
                 ready = subprocess.run(
-                    ["docker", "exec", container, "pg_isready", "-h", "127.0.0.1", "-U", "originproof"],
+                    [
+                        "docker",
+                        "exec",
+                        container,
+                        "pg_isready",
+                        "-h",
+                        "127.0.0.1",
+                        "-U",
+                        "originproof",
+                    ],
                     capture_output=True,
                 )
                 if ready.returncode == 0:

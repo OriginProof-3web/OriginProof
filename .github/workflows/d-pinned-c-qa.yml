@@ -12,6 +12,8 @@ on:
       - "fixtures/finals/test_v5_d_acceptance_runner.py"
       - "fixtures/synthetic/v5_d_live_evaluation_policy.example.json"
       - "fixtures/finals/v5_d_g07_runner.py"
+      - "fixtures/finals/v5_d_connected_smoke.py"
+      - "fixtures/finals/test_v5_d_connected_smoke_budget.py"
       - "fixtures/finals/test_v5_d_g07_runner.py"
       - "fixtures/finals/w5_p0_api_qa.py"
       - "fixtures/finals/w5_projection_qa.py"
@@ -101,6 +103,11 @@ jobs:
           .venv/bin/python -m pytest -q -o addopts= \
             --junitxml="qa-results/$SUITE.xml" "${tests[@]}"
           .venv/bin/python fixtures/finals/v5_d_junit_guard.py "qa-results/$SUITE.xml" --suite "$SUITE"
+      - name: Check bounded provider smoke without any live call
+        if: matrix.suite == 'stage'
+        run: |
+          PYTHONPATH="$PWD/fixtures/finals:$PYTHONPATH" .venv/bin/python -m pytest -q -o addopts= \
+            fixtures/finals/test_v5_d_connected_smoke_budget.py
       - name: Preserve actual failures and test counts
         if: always()
         uses: actions/upload-artifact@v4

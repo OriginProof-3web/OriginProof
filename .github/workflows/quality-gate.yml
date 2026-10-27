@@ -46,6 +46,9 @@ jobs:
           uv run pytest
           uv run ruff check apps packages services scripts
           uv run python -m compileall -q apps packages services scripts
+      - name: Run v5 web contract and connection checks
+        run: |
+          node --test apps/web-v5/시험/*.test.js apps/web-v5/시험/*.test.mjs apps/web-v5/시험/가져온/regression/*.test.js
       - name: Run web demo checks
         run: |
           corepack enable

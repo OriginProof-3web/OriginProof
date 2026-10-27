@@ -390,3 +390,14 @@ test('첨부 업로드 자리: 계약에 경로가 없어 보내지 않고 연�
   assert.equal(r.ok, false);
   assert.equal(r.code, 'UPLOAD_NOT_CONNECTED');
 });
+
+
+test('분석 표시: 실제 서버 보고서·규칙 fallback·기록 응답·예시·미연결을 구분', () => {
+  const Hk = load(), caption = Hk.op5.analysisCaption;
+  assert.match(caption({ analysis_status: 'COMPLETED', ai_report: { limitations: [] } }), /서버 보고서/);
+  assert.ok(!caption({ analysis_status: 'COMPLETED', ai_report: { limitations: [] } }).includes('연결 전'));
+  assert.match(caption({ analysis_status: 'COMPLETED', ai_report: { limitations: ['LLM_ANALYSIS_UNAVAILABLE:TIMEOUT'] } }), /규칙 검사 · AI 분석 사용 불가/);
+  assert.match(caption({ analysis_status: 'COMPLETED', ai_report: { limitations: ['MOCK_REPLAY_NOT_MODEL_PERFORMANCE'] } }), /기록 응답/);
+  assert.match(caption({ sample: true, analysis_status: 'COMPLETED', ai_report: { limitations: [] } }), /예시 응답/);
+  assert.match(caption({ analysis_status: 'FAILED' }), /연결 전/);
+});
