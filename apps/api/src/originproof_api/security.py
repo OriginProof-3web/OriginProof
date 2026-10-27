@@ -7,6 +7,9 @@ from time import monotonic
 from starlette.datastructures import Headers, MutableHeaders
 from starlette.responses import JSONResponse
 
+# DocumentImageInputRequest base64 cap (5MB image) plus a small JSON envelope.
+IMAGE_INPUT_MAX_BYTES = 7 * 1024 * 1024 + 1024
+
 
 class RequestSecurity:
     def __init__(self, app, settings):
@@ -62,11 +65,17 @@ class RequestSecurity:
             ):
                 return await reject(403, "ORIGIN_FORBIDDEN")
         length = headers.get("content-length")
+        # Only the image upload route gets the larger cap, and only while image input is on.
+        limit = (
+            IMAGE_INPUT_MAX_BYTES
+            if scope["path"] == "/v3/inputs" and self.settings.wallet_image_input_enabled
+            else self.settings.request_body_max_bytes
+        )
         if length is not None:
             if not length.isascii() or not length.isdecimal():
                 return await reject(400, "INVALID_CONTENT_LENGTH")
             normalized = length.lstrip("0") or "0"
-            if len(normalized) > 10 or int(normalized) > self.settings.request_body_max_bytes:
+            if len(normalized) > 10 or int(normalized) > limit:
                 return await reject(413, "REQUEST_TOO_LARGE")
 
         async def read_body():
@@ -76,7 +85,7 @@ class RequestSecurity:
                 if message["type"] == "http.disconnect":
                     return None
                 chunk = message.get("body", b"")
-                if len(buffer) + len(chunk) > self.settings.request_body_max_bytes:
+                if len(buffer) + len(chunk) > limit:
                     raise OverflowError
                 buffer.extend(chunk)
                 if not message.get("more_body", False):

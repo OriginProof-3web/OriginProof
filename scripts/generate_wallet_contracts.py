@@ -10,6 +10,7 @@ from pathlib import Path
 from eth_keys import keys
 from generate_schemas import typescript_interface
 from originproof_core import wallet_contract as models
+from originproof_core import wallet_inputs
 from originproof_core.canonicalization import canonical_json_bytes
 from originproof_core.wallet_signatures import (
     CONTENT_SCHEMAS,
@@ -91,7 +92,7 @@ def write_json(path: Path, value) -> None:
 
 def generate_schemas() -> None:
     definitions = {}
-    for name, model in vars(models).items():
+    for name, model in {**vars(models), **vars(wallet_inputs)}.items():
         if (
             isinstance(model, type)
             and issubclass(model, models.ContractModel)

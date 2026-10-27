@@ -79,6 +79,12 @@ export interface DocumentDraftRequest {
   content: PaymentContent | OfficialContent;
 }
 
+export interface DocumentImageInputRequest {
+  kind: "DOCUMENT_IMAGE";
+  image_media_type: "image/png" | "image/jpeg" | "image/webp";
+  image_base64: string;
+}
+
 export interface DocumentView {
   document_id: string;
   issuer_id: string;
