@@ -165,7 +165,14 @@ class WalletScan:
             )
             await greenlet_spawn(self.store.initialize)
         # sync() always reaches the confirmed tip, so a checkpoint means SYNCED.
-        await self.store.sync()
+        try:
+            await self.store.sync()
+        except ValueError as exc:
+            if "reorg" not in str(exc):
+                raise
+            # 재조직: 아직 정본인 저장 블록(없으면 배포 블록)으로 되감은 뒤 다시 따라잡는다.
+            await self.store.recover_reorg()
+            await self.store.sync()
         checkpoint = await greenlet_spawn(self.store.checkpoint)
         return SyncView(
             status="SYNCED" if checkpoint else "WAITING_CONFIRMATIONS",

@@ -224,7 +224,10 @@ def main(argv=None) -> Path:
     parser.add_argument("--sender")
     parser.add_argument("--source-commit-sha")
     parser.add_argument(
-        "--gas-multiplier", type=int, default=200, help="forge --gas-estimate-multiplier (%%)"
+        "--gas-multiplier",
+        type=int,
+        default=None,
+        help="forge --gas-estimate-multiplier (%%); default 800 on sepolia, 200 on anvil",
     )
     args = parser.parse_args(argv)
 
@@ -252,6 +255,8 @@ def main(argv=None) -> Path:
         tx_hash = validate_hash(args.deployment_tx)
     else:
         signer = signer_args(args, target)
+        if args.gas_multiplier is None:
+            args.gas_multiplier = 800 if target.name == "sepolia" else 200
         if not 100 <= args.gas_multiplier <= 2000:
             raise ValueError("--gas-multiplier must be 100..2000")
         tx_hash = run_forge(

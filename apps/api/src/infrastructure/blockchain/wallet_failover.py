@@ -66,6 +66,10 @@ class FailoverWalletRpc:
             try:
                 if index == 1 and not active:
                     await endpoint.snapshot()  # verify the fallback before trusting it
+                    # Record the switch as soon as the fallback is verified, so a request budget
+                    # cancelled mid-call does not make the next request wait on the primary again.
+                    self.fallback_until = self.clock() + self.fallback_seconds
+                    logger.warning("wallet RPC switched to fallback for %ss", self.fallback_seconds)
                 result = await getattr(endpoint, method)(*args)
             except _CallReverted:
                 raise  # a contract answer, not an endpoint failure
@@ -74,10 +78,7 @@ class FailoverWalletRpc:
                 if index == 1:
                     self.fallback_until = None
                 continue
-            if index == 1 and not active:
-                self.fallback_until = self.clock() + self.fallback_seconds
-                logger.warning("wallet RPC switched to fallback for %ss", self.fallback_seconds)
-            elif index == 0 and self.fallback_until is not None:
+            if index == 0 and self.fallback_until is not None:
                 self.fallback_until = None
                 logger.info("wallet RPC back on primary")
             return result

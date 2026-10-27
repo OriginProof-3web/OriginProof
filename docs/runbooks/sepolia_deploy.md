@@ -23,7 +23,7 @@
 | 배포 기록 | `packages/contracts/deployments/11155111.wallet.json` (source `72440c0`) |
 | 확인 | API `WalletRegistryConnector`로 실제 Sepolia 연결·CREATE/코드/승인자 검증·`getIssuer` 읽기 성공. 주 RPC 장애 시 보조 RPC 연결 성공 |
 
-**가스 주의:** forge 1.8.1 로컬 모의 실행(약 2.7M gas)은 Sepolia의 오른 코드 저장 비용을 모릅니다. 실제 노드 `eth_estimateGas`는 약 19.19M이었고, 130%·200% 배포(`0xa11034…`, `0xc98a4e…`)는 가스 부족으로 실패했습니다. Sepolia 배포는 `--gas-multiplier 800`을 붙입니다(실제 사용 가스만 청구).
+**가스 주의:** forge 1.8.1 로컬 모의 실행(약 2.7M gas)은 Sepolia의 오른 코드 저장 비용을 모릅니다. 실제 노드 `eth_estimateGas`는 약 19.19M이었고, 130%·200% 배포(`0xa11034…`, `0xc98a4e…`)는 가스 부족으로 실패했습니다. 래퍼의 Sepolia 기본 배율은 800입니다(Anvil 200). 실제 사용 가스만 청구됩니다.
 
 ## 구성 요소
 
@@ -51,7 +51,7 @@
    3. 연결 확인(`packages/contracts`에서): `cast chain-id --rpc-url sepolia` → `11155111`이어야 합니다. `sepolia`는 foundry.toml 별칭이며 URL은 환경 변수에서 읽습니다.
    4. 승인자 주소를 셸에 넣습니다: `export WALLET_APPROVER_1_ADDRESS=0x… WALLET_APPROVER_2_ADDRESS=0x… WALLET_APPROVER_3_ADDRESS=0x…`(공개 주소라 기록돼도 무방).
    5. 저장소 루트로 돌아가(`cd ../..`) 실행합니다. 래퍼는 `SEPOLIA_RPC_URL`(또는 `CHAIN_RPC_URL`)을 환경에서 읽어 forge에도 환경으로만 넘깁니다.
-      - keystore: `PYTHONPATH=apps/api/src:packages/python uv run --package originproof-api python packages/contracts/script/deploy_wallet_registry.py --chain-target sepolia --account deployer`(비밀번호는 forge가 숨김 프롬프트로 묻습니다)
+      - keystore: `PYTHONPATH=apps/api/src:packages/python uv run --package originproof-api python packages/contracts/script/deploy_wallet_registry.py --chain-target sepolia --account deployer --gas-multiplier 800`(Sepolia 기본값도 800)(비밀번호는 forge가 숨김 프롬프트로 묻습니다)
       - 하드웨어 지갑: 위 명령에서 `--account deployer` 대신 `--ledger --sender 0x<배포주소>` 또는 `--trezor --sender 0x<배포주소>`
       - 브라우저 지갑: 설치된 forge 1.8.1에는 브라우저 지갑 서명 옵션이 없습니다. 브라우저 지갑으로 직접 배포했다면 tx hash로 manifest만 기록합니다: `… deploy_wallet_registry.py --chain-target sepolia --deployment-tx 0x<tx hash>`. 이 경로도 tx input이 **로컬 `forge build` artifact의 `bytecode.object` + `abi.encode(address[3] 승인자)`와 바이트 단위로 같아야** 기록됩니다. Remix 등 다른 컴파일 결과는 metadata가 달라 거부되므로, 배포 데이터는 로컬 artifact의 bytecode 뒤에 `cast abi-encode "f(address[3])" "[승인자1,승인자2,승인자3]"` 결과(앞의 `0x` 제외)를 붙여 만듭니다.
    6. 출력된 `packages/contracts/deployments/11155111.wallet.json`의 `address`·`deployment_tx`·`deployment_block`을 확인합니다. **아직 `SEPOLIA_RPC_URL`을 지우지 않습니다**(5단계 확인에 필요, 지우는 것은 마지막 8단계).
@@ -93,11 +93,12 @@
 
 | 연결할 곳 | 상태 |
 | --- | --- |
-| `create_app` lifespan → `WalletRuntime.chain` | **연결됨.** `API_WALLET_REGISTRY_ADDRESS`와 RPC가 설정되면 `infrastructure/blockchain/wallet_deployment.py`의 `WalletRegistryConnector`가 wallet manifest를 읽고 `WalletRegistryReadAdapter.from_deployment`로 체인 위 CREATE·생성 코드·런타임 코드 해시·고정 승인자 3명을 다시 검증한 뒤에만 주입합니다. 실패하면 주입하지 않고 503을 유지하며, 이후 호출 때 15초 간격으로 다시 시도합니다. |
+| `create_app` lifespan → `WalletRuntime.chain` | **연결됨.** `API_WALLET_REGISTRY_ADDRESS`와 RPC가 설정되면 `infrastructure/blockchain/wallet_deployment.py`의 `WalletRegistryConnector`가 wallet manifest를 읽고 `FailoverWalletRpc`(주·보조 RPC)와 `verified_approvers`로 체인 위 CREATE·생성 코드·런타임 코드 해시·고정 승인자 3명을 다시 검증한 뒤에만 주입합니다. 실패하면 주입하지 않고 503을 유지하며, 이후 호출 때 15초 간격으로 다시 시도합니다. |
 | 주/보조 RPC | **실행 중 전환(읽기만).** `infrastructure/blockchain/wallet_failover.py`의 `FailoverWalletRpc`가 `WalletRpc`를 주·보조 하나씩 감쌉니다. 주 읽기가 연결 오류·시간 초과·잘못된 chain/배포/코드로 실패하면, 보조가 chain ID·배포 블록 hash·런타임 코드 해시 검사(`snapshot`)를 먼저 통과한 경우에만 같은 호출을 보조로 다시 합니다. 보조 성공 뒤 60초 동안 보조를 쓰고 그 뒤 주부터 다시 시도합니다. 제출(쓰기)은 주로만 보내고 다른 노드로 재전송하지 않습니다. 둘 다 실패하면 `DependencyUnavailableError` → 503이며 로그·오류에는 `primary`/`fallback`만 남깁니다. 요청 URL을 남기는 `httpx`(INFO)·`httpcore`(DEBUG) 로거는 이 모듈이 WARNING으로 고정하므로 루트 로거가 DEBUG여도 URL·호스트·경로의 키가 로그에 나오지 않습니다(루트 DEBUG 전체 캡처 시험, 실제 TCP 전송 포함). 요청당 10초 안에 주 시간 초과 뒤 보조 재시도까지 끝나도록 지갑 RPC 요청 시간 제한은 4초입니다. |
 | wallet manifest | **소비됨.** 래퍼가 `runtime_code_hash`·`creation_bytecode`를 함께 기록하고, API는 chain ID·주소·커밋된 ABI(`abi_sha256`)가 맞을 때만 사용합니다. 이 필드가 없는 예전 manifest는 `--deployment-tx`로 다시 기록합니다. |
 | 도커 이미지 | `infra/docker/api.Dockerfile`이 `packages/contracts/abi`·`deployments`를 복사합니다(`*.local.json` 제외). |
 | 신규 이벤트 projection | **연결됨(기존 projection과 함께).** `API_PROJECTION_ENABLED=true`이면 lifespan이 두 작업을 따로 돌립니다. ① 기존 ProofStatusRegistry projection(`scan`)은 그대로 돌며(지갑 주소만 있고 `API_BLOCKCHAIN_MANIFEST_PATH`가 비어 있는 Sepolia 구성만 제외) 상태는 `app.state.projection`. ② `API_WALLET_REGISTRY_ADDRESS`가 설정되면 `WalletScan`이 지갑 Registry가 연결된 뒤에만 `WalletProjection`을 그 adapter의 전환 RPC 인스턴스로 실행하고(미연결이면 `RECOVERING`), 위에 한 블록이 더 쌓인 확정 블록까지만 `wallet_events`·`wallet_checkpoints`에 반영합니다(기존과 같은 2-확인 규칙). 상태는 `app.state.wallet_projection`. readiness는 도는 projection 모두가 `SYNCED`/`WAITING_CONFIRMATIONS`이고 `projection_poll_seconds`×3 안에 갱신되었을 때만 준비 완료이며(한쪽 장애·지연이면 503), `/v1/chain-sync`는 기존 projection이 돌면 그 상태를, 지갑 전용이면 지갑 상태를 같은 `SyncView`로 냅니다. 지갑 표는 아직 alembic이 아닌 `WalletProjection.initialize()`(create_all)로 만듭니다. |
+| 재조직 복구 | **자동.** 지갑 projection이 재조직을 만나면 `WalletProjection.recover_reorg()`가 아직 정본인 가장 최근 저장 블록(없으면 배포 블록)으로 되감고 다시 따라잡습니다. 정본 블록 hash 가 앞 블록 전체를 보증하므로 공통 조상으로 씁니다. `/v1/chain-sync`는 두 projection이 함께 돌면 기존 projection 상태만 보여 주며, 지갑 projection 상태는 readiness 에 반영됩니다. |
 | 복구·대사 | 대기. `WalletRecovery`·`WalletReconciler`는 코드·시험이 있으나 API 유지 작업에는 아직 연결하지 않았습니다. |
 
 검증(실행 중 전환·projection): `ORIGINPROOF_WALLET_LIVE=1 uv run pytest apps/api/tests/test_wallet_failover_live.py`가 일회용 Anvil 하나 앞에 로컬 TCP 프록시 두 개(주·보조)를 두고 일회용 PostgreSQL(`postgres:16.4-alpine`, tmpfs)로 `create_app` lifespan을 띄웁니다. 같은 Anvil에 기존 Issuer/Key/ProofStatus Registry도 배포(manifest는 임시 폴더)해 두 projection을 함께 돌립니다. 기존 `ProofRegistered` 이벤트가 `proof_chain_events`에, 지갑 이벤트가 `wallet_events`에 각각 반영되고, 실행 중 주 프록시를 끊은 뒤 새 승인 거래의 결과(기관 ACTIVE)를 보조로 읽고, 그 뒤의 새 지갑·기존 이벤트가 각각 PostgreSQL에 반영되며, 보조 사용 시간이 지나면 주로 돌아오고, 배포가 없는 다른 Anvil은 보조 검증에서 거부되는 것을 확인합니다(1 passed).
@@ -106,6 +107,6 @@
 
 ## 현재 한계
 
-- 로컬 검증은 B 실제 컨트랙트의 Anvil 배포까지입니다. Sepolia 실제 배포와 브라우저 지갑 서명은 아직 실행하지 않았습니다.
+- Sepolia 실제 배포는 위 "실제 배포 결과"대로 완료했습니다(keystore 서명). 브라우저 지갑 서명 배포와, 배포 뒤 기관 등록·발행 같은 쓰기 흐름은 아직 실행하지 않았습니다.
 - 신규 Wallet Registry 경로의 주/보조 RPC 전환은 읽기만 실행 중에 합니다. 실제 확인은 같은 Anvil 앞의 로컬 프록시 두 개이며, 서로 다른 provider(Sepolia) 사이 전환은 아직 실행하지 않았습니다. 복구·대사 작업의 생산 연결은 위 표의 대기 항목입니다.
 - `httpx`·`httpcore` 로거를 WARNING으로 고정한 것은 프로세스 전체에 적용됩니다. 운영 로깅 설정이 이 두 로거의 레벨을 다시 INFO/DEBUG로 내리면 URL이 남으므로 그렇게 설정하지 않습니다.

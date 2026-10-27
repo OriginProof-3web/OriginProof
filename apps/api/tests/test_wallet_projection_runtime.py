@@ -65,6 +65,10 @@ class Node:
 
     def __init__(self):
         self.head, self.down = 2, False
+        self.fork = {}  # 재조직 흉내: 블록 번호 → 바뀐 해시
+
+    def hash(self, number):
+        return self.fork.get(number, block_hash(number))
 
     def handle(self, request):
         if self.down:
@@ -76,7 +80,7 @@ class Node:
             number = self.head if tag == "latest" else int(tag, 16)
             return {
                 "number": hex(number),
-                "hash": block_hash(number),
+                "hash": self.hash(number),
                 "timestamp": hex(100 + number),
                 "transactions": [TX] if number >= 2 else [],
             }
@@ -86,7 +90,7 @@ class Node:
             "eth_getBlockByNumber": lambda: block(params[0]),
             "eth_getCode": lambda: "0x" + CODE.hex(),
             "eth_getLogs": lambda: [
-                approved_log(n)
+                approved_log(n) | {"blockHash": self.hash(n)}
                 for n in range(int(params[0]["fromBlock"], 16), int(params[0]["toBlock"], 16) + 1)
                 if n >= 2
             ],
@@ -291,6 +295,30 @@ async def test_enabled_and_connected_projects_confirmed_blocks_with_failover_rpc
         assert app.state.wallet_projection.deployment_id == wired.created[0].deployment
         # 지갑 전용(기존 manifest 없음)이면 기존 projection 은 돌지 않는다(Sepolia 구성).
         assert app.state.projection.status == "DISABLED" and legacy_blocks(wired.engine) == []
+
+
+async def test_reorg_rewinds_automatically_and_returns_to_synced(wired):
+    app = wired.app()
+    async with app.router.lifespan_context(app):
+        wired.node.head = 4
+        for _ in range(150):
+            if app.state.wallet_projection.checkpoint_block == 3:
+                break
+            await asyncio.sleep(0.02)
+        assert journal_blocks(wired.engine) == [2, 3]
+        # 블록 3·4 재조직: 아직 정본인 블록 2로 자동 되감고 새 블록 3을 다시 반영해야 한다
+        wired.node.fork = {3: "0x" + "f3" * 32, 4: "0x" + "f4" * 32}
+        for _ in range(200):
+            view = app.state.wallet_projection
+            if view.status == "SYNCED" and view.checkpoint_hash == "0x" + "f3" * 32:
+                break
+            await asyncio.sleep(0.02)
+        view = app.state.wallet_projection
+        assert view.status == "SYNCED" and view.checkpoint_hash == "0x" + "f3" * 32
+        with wired.engine.connect() as conn:
+            rows = {r.block_number: r.payload for r in conn.execute(select(journal))}
+        assert sorted(rows) == [2, 3] and "f3" * 32 in rows[3]
+        assert await ready(app)
 
 
 async def test_disabled_or_unconnected_never_runs_wallet_projection(wired):
