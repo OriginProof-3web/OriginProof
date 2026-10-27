@@ -25,6 +25,8 @@ asyncio_mode = "auto"
 [tool.ruff]
 target-version = "py313"
 line-length = 100
+# apps/web-v5: A 정적 웹(5안) — 파이썬은 로컬 실행 보조 도구뿐이라 제품 린트 대상에서 뺌
+extend-exclude = ["apps/web-v5"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]

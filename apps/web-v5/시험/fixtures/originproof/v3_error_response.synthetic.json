@@ -1,0 +1,9 @@
+{
+  "_source": "OriginProof-감사 origin/phase/W5(15c5588) fixtures/synthetic/shared_contract_cases_v1.json .error (v3 ErrorResponse 모양)",
+  "error": {
+    "detail": "REQUEST_ID_CONFLICT",
+    "field_paths": [],
+    "request_id": "req_publish_001",
+    "retry_after_seconds": null
+  }
+}

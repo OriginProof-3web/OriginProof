@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OriginProof — 시작</title>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<script>try{var g=new URLSearchParams(location.search).get("glow"),G={flare:"#E9E6E0",sun:"#FBF5F0",blue:"#F5F7FC",teal:"#F4F8F7",gold:"#FBF8F1",lavender:"#F7F6FB",bluepurple:"#F6F6FC"};g=g||"sun";if(G[g])document.documentElement.style.setProperty("--entry-light-bg",G[g]);if(/[?&]theme=light/.test(location.search)||localStorage.getItem("op5.theme")==="light")document.documentElement.dataset.theme="light"}catch(e){}</script>
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:#08080a;color:#f4f4f4;font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Noto Sans KR",sans-serif}
+.landing{--stream-size:clamp(2.8rem,6.5vw,4.6rem);position:fixed;inset:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#08080a;color:#f4f4f4;overflow:hidden;isolation:isolate}.landing:before{content:"";position:absolute;z-index:0;inset:0;background:radial-gradient(ellipse 52% 21% at 50% 80.25%,#b79bfa38 0%,#6d529744 20%,#3a2a782b 42%,transparent 76%),radial-gradient(ellipse 23% 12% at 50% 79.25%,#ffffff30 0%,#c7b2ff22 25%,transparent 72%);filter:blur(18px);animation:horizon-breathe 8s ease-in-out infinite alternate}.landing:after{content:"";position:absolute;z-index:0;top:80.25%;left:0;width:100%;height:1px;background:linear-gradient(90deg,transparent 4%,#78649b22 25%,#b79bfa88 42%,#fff 50%,#b79bfa88 58%,#78649b22 75%,transparent 96%);box-shadow:0 0 7px #b79bfa99,0 0 25px #8c70ce66;opacity:.78}#beyond-horizon-canvas{position:absolute;inset:0;z-index:1;width:100%;height:100%;display:block;pointer-events:none}.text-stream{position:relative;z-index:2;transform:translateY(-38px);width:min(100%,720px);height:400px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.6rem}.stream-prefix{margin:0;color:#a9a2b8;font-size:clamp(.8rem,1.7vw,1rem);font-weight:400;letter-spacing:.3em;text-transform:uppercase}.stream-viewport{position:relative;width:100%;height:calc(var(--stream-size) * 2.2);flex-shrink:0;overflow:hidden;text-align:center;mask-image:linear-gradient(to bottom,transparent 0%,#000 30%,#000 70%,transparent 100%);-webkit-mask-image:linear-gradient(to bottom,transparent 0%,#000 30%,#000 70%,transparent 100%)}.stream-track{position:absolute;left:0;right:0;top:0;display:flex;flex-direction:column;font-size:var(--stream-size);font-weight:600;line-height:1.1;letter-spacing:-.035em;color:#fff;mix-blend-mode:difference;text-shadow:none;will-change:transform}.stream-copy{display:flex;flex-direction:column}.stream-copy a{display:block;align-self:center;width:max-content;padding:6px 0;color:inherit;text-decoration:none;white-space:nowrap;cursor:pointer}.landing[hidden],.hide{display:none!important}
+@keyframes horizon-breathe{from{transform:scaleX(.92);opacity:.72}to{transform:scaleX(1.08);opacity:1}}
+@media(prefers-reduced-motion:reduce){.landing:before{animation:none}.stream-track{transform:none!important}.stream-copy[aria-hidden="true"]{display:none}.stream-viewport{height:auto;mask-image:none;-webkit-mask-image:none}.stream-copy:not(:first-child){display:none!important}}
+@media(max-width:760px){.landing{--stream-size:clamp(2.6rem,11vw,4rem)}.text-stream{height:400px;width:100%}}
+.landing{cursor:pointer}
+.entry-logo{width:clamp(180px,22vw,280px);height:auto;margin-bottom:6px;filter:drop-shadow(0 0 18px #b79bfa55)}
+
+.stream-copy span{display:block;padding:6px 0;white-space:nowrap}
+.entry-top{position:fixed;z-index:3;top:20px;left:24px;right:24px;display:flex;align-items:center;justify-content:space-between}
+.entry-brand{display:flex;align-items:center;gap:10px;color:#f4f4f4;font-size:15px;font-weight:650;letter-spacing:-.2px}
+.entry-links{display:flex;gap:8px}
+.entry-links a{height:34px;display:inline-flex;align-items:center;padding:0 14px;border:1px solid #3a3a44;border-radius:999px;color:#e3e5ec;text-decoration:none;font-size:13px;background:#111115b3}
+.entry-links a:hover{background:#1d1e20}
+.entry-hint{position:fixed;z-index:3;left:50%;bottom:9%;transform:translateX(-50%);text-align:center;color:#c9c3d8}
+.entry-hint b{display:block;font-size:16px;font-weight:600;color:#f4f4f4;letter-spacing:-.2px}
+.entry-hint span{display:block;margin-top:6px;font-size:12px;color:#a9a2b8}
+.entry-pulse{display:inline-block;width:8px;height:8px;margin-right:8px;border-radius:50%;background:#b79bfa;box-shadow:0 0 0 0 #b79bfa88;animation:entry-pulse 1.8s ease-out infinite;vertical-align:middle}
+@keyframes entry-pulse{to{box-shadow:0 0 0 14px #b79bfa00}}
+:focus-visible{outline:2px solid #b79bfa;outline-offset:3px}
+/* 모드 단추(메인 화면과 같은 설정 op5.theme 를 씀) */
+.entry-theme{width:34px;height:34px;display:inline-grid;place-items:center;border:1px solid #3a3a44;border-radius:999px;background:#111115b3;color:#e3e5ec;padding:0}
+.entry-theme:hover{background:#1d1e20}
+html[data-theme="light"] .ico-sun{display:none}html:not([data-theme="light"]) .ico-moon{display:none}
+.logo-light{display:none}
+/* 밝은 모드: 어두운 그림 배경(WebGL)을 끄고, 같은 자리의 지평선 빛을 밝은 색으로 */
+html[data-theme="light"],html[data-theme="light"] body{background:#ffffff;color:#16181d}
+html[data-theme="light"] .landing{background:#ffffff;color:#16181d}
+html[data-theme="light"] #beyond-horizon-canvas,html[data-theme="light"] .landing:before,html[data-theme="light"] .landing:after{display:none}
+html[data-theme="light"] .entry-brand{color:#16181d}
+html[data-theme="light"] .entry-links a,html[data-theme="light"] .entry-theme{border-color:#cfd2d8;background:#ffffffcc;color:#16181d}
+html[data-theme="light"] .entry-links a:hover,html[data-theme="light"] .entry-theme:hover{background:#eceef1}
+html[data-theme="light"] .entry-hint{color:#565b67}
+html[data-theme="light"] .entry-hint b{color:#16181d}
+html[data-theme="light"] .entry-hint span{color:#676c79}
+html[data-theme="light"] .entry-pulse{background:#16181d;box-shadow:0 0 0 0 #16181d55;animation-name:entry-pulse-ink}
+@keyframes entry-pulse-ink{to{box-shadow:0 0 0 14px #16181d00}}
+html[data-theme="light"] .entry-logo{filter:none}
+html[data-theme="light"] .logo-dark{display:none}html[data-theme="light"] .logo-light{display:block}
+html[data-theme="light"] .entry-brand .logo-light{display:inline}
+@media(prefers-reduced-motion:reduce){.entry-pulse{animation:none}}
+@media(max-width:760px){.entry-top{left:16px;right:16px}.entry-hint{bottom:7%;width:calc(100% - 32px)}}
+</style>
+</head>
+<body>
+<header class="entry-top">
+  <div class="entry-brand"><img class="logo-dark" src="assets/logo-mark-light.svg" alt="" width="30" height="23"><img class="logo-light" src="assets/logo-mark-dark.svg" alt="" width="30" height="23">OriginProof</div>
+  <nav class="entry-links" aria-label="계정·화면 모드"><a href="login.html?next=business.html" id="entryLogin">로그인</a><a href="join.html">회원가입</a><button type="button" class="entry-theme" id="entryTheme" aria-label="밝은 모드로 바꾸기" title="밝은 모드로 바꾸기"><svg class="ico-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="ico-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button></nav>
+</header>
+<section class="landing" id="landing" role="button" tabindex="0" aria-label="화면을 누르면 시작해요. 받은 문자 확인 화면으로 들어갑니다.">
+  <canvas id="beyond-horizon-canvas" aria-hidden="true"></canvas>
+  <div class="text-stream">
+    <img class="entry-logo logo-dark" src="assets/logo-full-light.svg" alt="OriginProof">
+    <img class="entry-logo logo-light" src="assets/logo-full-dark.svg" alt="OriginProof">
+</div>
+  </div>
+</section>
+<div class="entry-hint" aria-hidden="true"><b><i class="entry-pulse"></i>화면을 누르면 시작해요</b><span>회원가입 없이도 예시 확인·파일 검사를 쓸 수 있어요 · 정확한 확인과 AI 분석은 로그인 후</span></div>
+<script>
+// 입장 화면: 아무 곳이나 누르거나 Enter·Space 를 누르면 메인(받은 문자 확인) 화면으로 들어간다. 위의 로그인·회원가입은 각 화면으로.
+(function(){
+  const go=()=>{location.href="business.html"};
+  const landing=document.getElementById("landing");
+  document.addEventListener("click",e=>{if(e.target.closest(".entry-links"))return;go()});
+  document.addEventListener("keydown",e=>{if(e.target.closest&&e.target.closest(".entry-links"))return;if(e.key==="Enter"||e.key===" "){e.preventDefault();go()}});
+  landing.focus({preventScroll:true});
+  // 밝은·어두운 모드 바꾸기(메인 화면과 같은 저장값)
+  const tb=document.getElementById("entryTheme");
+  const paint=()=>{const light=document.documentElement.dataset.theme==="light";const t=light?"어두운 모드로 바꾸기":"밝은 모드로 바꾸기";tb.setAttribute("aria-label",t);tb.title=t};
+  tb.addEventListener("click",()=>{const light=document.documentElement.dataset.theme!=="light";document.documentElement.dataset.theme=light?"light":"dark";try{localStorage.setItem("op5.theme",light?"light":"dark")}catch(e){}paint()});
+  paint();
+})();
+</script>
+<script src="beyond-horizon.js"></script>
+</body>
+</html>

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OriginProof — Individual Sign In</title>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg"><link rel="stylesheet" href="auth.css">
+</head>
+<body>
+<div class="auth-bg" aria-hidden="true"><canvas id="beyond-horizon-canvas"></canvas></div>
+<header class="auth-top"><a class="brand" href="index.html">OriginProof</a><a class="back-link" href="index.html">← 메인으로</a></header>
+<main class="auth-page"><section class="auth-card business-signin-card" aria-labelledby="page-title">
+  <p class="eyebrow">INDIVIDUAL · RECIPIENT ACCOUNT</p><h1 id="page-title">Individual Sign In</h1><p class="intro">준비된 일반 사용자 테스트 계정으로 로그인하세요.</p>
+  <form data-auth-form data-admin-preview data-preview-next="index.html#user" novalidate>
+    <div class="field"><label for="username">계정 이름</label><input id="username" name="username" autocomplete="username" placeholder="준비된 테스트 계정 이름" required></div>
+    <div class="field"><label for="password">비밀번호</label><input id="password" name="password" type="password" autocomplete="current-password" placeholder="비밀번호를 입력하세요" required></div>
+    <p data-login-error role="alert" hidden>비밀번호를 확인해 주세요.</p>
+    <button class="primary-button" type="submit">Sign In</button>
+  </form>
+  <p class="policy-note">본선 데모는 준비된 테스트 계정을 사용합니다. 계정 역할과 기관은 서버에서 확인하며 이 화면에서 선택하거나 바꿀 수 없습니다.</p>
+  <nav class="auth-options" aria-label="로그인 유형"><a href="user-login.html">Individual Sign In</a><a href="business-login.html">Business Sign In</a><a href="signup.html">Registration Info</a></nav>
+</section></main>
+<script src="beyond-horizon.js"></script><script type="module" src="auth.js"></script>
+</body></html>

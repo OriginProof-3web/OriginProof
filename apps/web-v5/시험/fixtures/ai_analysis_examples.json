@@ -1,0 +1,66 @@
+{
+  "_example": "예시 — 실서버 응답 아님. 피터(개발)가 계약 모양(OP-AI연결-준비 packages/python/originproof_core/wallet_contract.py AnalysisJob 441-449·AnalysisReport 425-438·AnalysisEvidence 407-422, apps/api/src/originproof_api/wallet_analyses.py view()·ground_report()·process())을 흉내 내 손으로 만든 GET /v3/analyses/{id} 응답 본문. 모델 성능·실제 판정과 무관.",
+  "_offset_unit": "start_offset·end_offset 은 파이썬 str 위치(유니코드 코드포인트), end 미포함. text 맨 앞 이모지(📢)는 UTF-16 으로 2칸이라 코드포인트 위치와 1 차이 남 — 변환 확인용.",
+  "text": "📢 [OO은행] 보안 점검 안내예요. 아래 주소에서 인증번호를 입력하세요. 원격 지원 앱을 설치해 주세요.",
+  "jobs": {
+    "HIGH": {
+      "analysis_id": "ana_example_high", "status": "COMPLETED", "retain_report": false, "retain_original": false,
+      "result_expires_at": 1792000600, "original_expires_at": null, "error_code": null,
+      "report": {
+        "risk_level": "HIGH",
+        "evidence": [
+          { "rule_id": "R_OTP_REQUEST", "quote": "인증번호를 입력하세요", "start_offset": 29, "end_offset": 40, "page": null, "start_ms": null, "end_ms": null, "source": "RULE" },
+          { "rule_id": "L_REMOTE_APP", "quote": "원격 지원 앱을 설치해 주세요", "start_offset": 42, "end_offset": 58, "page": null, "start_ms": null, "end_ms": null, "source": "LLM" }
+        ],
+        "limitations": ["예시 — 실서버 응답 아님"],
+        "verification": null,
+        "verification_not_run_reason": "NO_DOCUMENT_REFERENCE"
+      }
+    },
+    "CAUTION": {
+      "analysis_id": "ana_example_caution", "status": "COMPLETED", "retain_report": false, "retain_original": false,
+      "result_expires_at": 1792000600, "original_expires_at": null, "error_code": null,
+      "report": {
+        "risk_level": "CAUTION",
+        "evidence": [
+          { "rule_id": "L_URGENCY", "quote": "보안 점검 안내", "start_offset": 9, "end_offset": 17, "page": null, "start_ms": null, "end_ms": null, "source": "LLM" }
+        ],
+        "limitations": [],
+        "verification": null,
+        "verification_not_run_reason": "NO_DOCUMENT_REFERENCE"
+      }
+    },
+    "NO_CLEAR_INDICATORS": {
+      "analysis_id": "ana_example_noclear", "status": "COMPLETED", "retain_report": false, "retain_original": false,
+      "result_expires_at": 1792000600, "original_expires_at": null, "error_code": null,
+      "report": { "risk_level": "NO_CLEAR_INDICATORS", "evidence": [], "limitations": [], "verification": null, "verification_not_run_reason": "NO_DOCUMENT_REFERENCE" }
+    },
+    "UNDETERMINED": {
+      "analysis_id": "ana_example_undetermined", "status": "COMPLETED", "retain_report": false, "retain_original": false,
+      "result_expires_at": 1792000600, "original_expires_at": null, "error_code": null,
+      "report": { "risk_level": "UNDETERMINED", "evidence": [], "limitations": ["예시 — 실서버 응답 아님"], "verification": null, "verification_not_run_reason": "NO_DOCUMENT_REFERENCE" }
+    },
+    "FAILED_ANALYZER_UNAVAILABLE": {
+      "analysis_id": "ana_example_noanalyzer", "status": "FAILED", "retain_report": false, "retain_original": false,
+      "result_expires_at": 1792000600, "original_expires_at": null, "report": null, "error_code": "ANALYZER_UNAVAILABLE"
+    },
+    "FAILED_ANALYSIS_TIMEOUT": {
+      "analysis_id": "ana_example_timeout", "status": "FAILED", "retain_report": false, "retain_original": false,
+      "result_expires_at": 1792000600, "original_expires_at": null, "report": null, "error_code": "ANALYSIS_TIMEOUT"
+    },
+    "FAILED_GROUNDING_MISMATCH": {
+      "analysis_id": "ana_example_grounding", "status": "FAILED", "retain_report": false, "retain_original": false,
+      "result_expires_at": 1792000600, "original_expires_at": null, "report": null, "error_code": "GROUNDING_MISMATCH"
+    }
+  },
+  "_bad_offsets_note": "아래는 계약 검사(pydantic·ground_report)를 통과할 수 없는 위치 값 — 서버가 잘못 보냈을 때 화면이 깨지지 않는지 보는 방어 예시.",
+  "bad_evidence": [
+    { "rule_id": "X_OUT", "quote": "주세요", "start_offset": 56, "end_offset": 99, "source": "RULE" },
+    { "rule_id": "X_REV", "quote": "인증번호", "start_offset": 33, "end_offset": 29, "source": "RULE" },
+    { "rule_id": "X_MISMATCH", "quote": "비밀번호", "start_offset": 29, "end_offset": 33, "source": "LLM" },
+    { "rule_id": "X_UTF16", "quote": "인증번호를 입력하세요", "start_offset": 30, "end_offset": 41, "source": "LLM" },
+    { "rule_id": "X_HALF", "quote": "인증번호", "start_offset": 29, "end_offset": null, "source": "RULE" },
+    { "rule_id": "X_OVERLAP", "quote": "입력하세요", "start_offset": 35, "end_offset": 40, "source": "LLM" },
+    { "rule_id": "X_NOQUOTE", "quote": "", "start_offset": 0, "end_offset": 1, "source": "RULE" }
+  ]
+}

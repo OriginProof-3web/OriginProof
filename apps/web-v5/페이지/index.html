@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OriginProof — 일반 사용자 디자인 방향 01</title>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="stylesheet" href="sidebar.bundle.css">
+<link rel="stylesheet" href="user-workspace.css">
+<style>
+:root{--ink:#eeeeF2;--muted:#a0a2ac;--line:#282830;--paper:#08080a;--green:#86cda8;--green-soft:#193026;--nav:224px;--dock:#1d1e20;--dock-pill:#343638}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Noto Sans KR",sans-serif}button{cursor:pointer}.app{min-height:100vh;display:grid;grid-template-columns:auto minmax(0,1fr);transition:grid-template-columns .28s cubic-bezier(.16,1,.3,1)}
+.main{position:relative;min-width:0;min-height:100vh;background:#08080a}.topbar{height:57px;position:absolute;inset:0 0 auto;display:flex;align-items:center;justify-content:space-between;padding:0 27px;border-bottom:1px solid #282830;background:#111115d9;backdrop-filter:blur(12px);z-index:2}.crumb{font-size:11px;color:#90939e}.crumb b{color:#d1d3dc;font-weight:600}.top-right{display:flex;align-items:center;gap:10px}.secure{display:flex;align-items:center;gap:6px;color:#a0a3ad;font-size:10px}.secure i{width:6px;height:6px;border-radius:50%;background:#66a77c}.top-avatar{width:26px;height:26px;border-radius:50%;background:#21352b;color:#a0dbba;display:grid;place-items:center;font-size:10px;font-weight:700}.canvas{min-height:100vh;padding:0}.empty-state{text-align:center;max-width:380px;transform:translateY(-8px)}.empty-mark{height:52px;width:52px;margin:0 auto 17px;border:1px solid #2b2b34;border-radius:17px;background:#111115;color:#86cda8;display:grid;place-items:center;font-size:21px;box-shadow:0 6px 22px #1a322308}.empty-state h1{margin:0;color:#e3e5ec;font-size:17px;font-weight:620;letter-spacing:-.4px}.empty-state p{margin:7px 0 0;color:#a0a3ad;font-size:11px}.canvas-note{position:absolute;top:82px;left:50%;transform:translateX(-50%);padding:4px 8px;border-radius:5px;background:#1d1d24;color:#a0a3ad;font-size:9px;letter-spacing:.2px;white-space:nowrap}
+.bottom-dock-wrap{position:absolute;z-index:6;left:50%;top:24px;transform:translateX(-50%);width:max-content;max-width:calc(100% - 32px)}.bottom-dock{display:flex;align-items:center;gap:2px;padding:4px;border:1px solid #383a3d;border-radius:999px;background:var(--dock);box-shadow:0 12px 34px #14161924}.dock-item{height:39px;min-width:96px;display:flex;align-items:center;justify-content:center;gap:7px;padding:0 14px;border:1px solid transparent;border-radius:999px;background:transparent;color:#95999d;font-size:12px;font-weight:550;white-space:nowrap;transition:background .16s,color .16s,border-color .16s}.dock-item:hover{color:#e4e6e7}.dock-item.active{border-color:#494b4e;background:#252729;color:#f5f6f6;box-shadow:inset 0 1px 2px #0005}.dock-icon{font-size:14px;line-height:1;color:inherit}.canvas-context{position:fixed;left:50%;bottom:83px;transform:translateX(-50%);color:#a0a3ad;font-size:10px;white-space:nowrap;transition:left .28s cubic-bezier(.16,1,.3,1)}.app.collapsed .canvas-context{left:calc(50% + 27px)}
+.hide{display:none!important}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition-duration:.01ms!important}}
+
+.landing{--stream-size:clamp(2.8rem,6.5vw,4.6rem);position:fixed;inset:0;min-height:100vh;display:flex;align-items:center;justify-content:center;background:#08080a;color:#f4f4f4;overflow:hidden;isolation:isolate}.landing:before{content:"";position:absolute;z-index:0;inset:0;background:radial-gradient(ellipse 52% 21% at 50% 80.25%,#b79bfa38 0%,#6d529744 20%,#3a2a782b 42%,transparent 76%),radial-gradient(ellipse 23% 12% at 50% 79.25%,#ffffff30 0%,#c7b2ff22 25%,transparent 72%);filter:blur(18px);animation:horizon-breathe 8s ease-in-out infinite alternate}.landing:after{content:"";position:absolute;z-index:0;top:80.25%;left:0;width:100%;height:1px;background:linear-gradient(90deg,transparent 4%,#78649b22 25%,#b79bfa88 42%,#fff 50%,#b79bfa88 58%,#78649b22 75%,transparent 96%);box-shadow:0 0 7px #b79bfa99,0 0 25px #8c70ce66;opacity:.78}#beyond-horizon-canvas{position:absolute;inset:0;z-index:1;width:100%;height:100%;display:block;pointer-events:none}.text-stream{position:relative;z-index:2;transform:translateY(-38px);width:min(100%,720px);height:400px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.6rem}.stream-prefix{margin:0;color:#a9a2b8;font-size:clamp(.8rem,1.7vw,1rem);font-weight:400;letter-spacing:.3em;text-transform:uppercase}.stream-viewport{position:relative;width:100%;height:calc(var(--stream-size) * 2.2);flex-shrink:0;overflow:hidden;text-align:center;mask-image:linear-gradient(to bottom,transparent 0%,#000 30%,#000 70%,transparent 100%);-webkit-mask-image:linear-gradient(to bottom,transparent 0%,#000 30%,#000 70%,transparent 100%)}.stream-track{position:absolute;left:0;right:0;top:0;display:flex;flex-direction:column;font-size:var(--stream-size);font-weight:600;line-height:1.1;letter-spacing:-.035em;color:#fff;mix-blend-mode:difference;text-shadow:none;will-change:transform}.stream-copy{display:flex;flex-direction:column}.stream-copy a{display:block;align-self:center;width:max-content;padding:6px 0;color:inherit;text-decoration:none;white-space:nowrap;cursor:pointer}.landing[hidden],.hide{display:none!important}
+@keyframes horizon-breathe{from{transform:scaleX(.92);opacity:.72}to{transform:scaleX(1.08);opacity:1}}
+@media(prefers-reduced-motion:reduce){.landing:before{animation:none}.stream-track{transform:none!important}.stream-copy[aria-hidden="true"]{display:none}.stream-viewport{height:auto;mask-image:none;-webkit-mask-image:none}.stream-copy:not(:first-child){display:none!important}}
+@media(max-width:760px){.landing{--stream-size:clamp(2.6rem,11vw,4rem)}.text-stream{height:400px;width:100%}}
+
+.quick-nav{position:absolute;top:24px;right:24px;z-index:10}.quick-nav summary{list-style:none;width:42px;height:42px;display:grid;place-items:center;border:1px solid #ffffff18;border-radius:50%;background:#08080a;color:#c8c3d2;cursor:pointer}.quick-nav summary::-webkit-details-marker{display:none}.quick-nav:not([open]) summary:hover{background:#18181d;color:#fff}.quick-nav[open] summary{background:#08080a;color:#c8c3d2}.quick-nav summary:focus-visible,.quick-nav a:focus-visible{outline:2px solid #b79bfa;outline-offset:3px}.quick-nav-panel{position:absolute;right:0;top:52px;width:260px;max-width:calc(100vw - 48px);padding:10px;border:1px solid #ffffff20;border-radius:16px;background:#08080a;box-shadow:0 16px 50px #0006}.quick-nav-group{padding:6px 0}.quick-nav-group+.quick-nav-group{border-top:1px solid #ffffff12}.quick-nav-group h2{margin:4px 12px 6px;color:#a9a2b8;font-size:12px;font-weight:500}.quick-nav a{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:8px;color:#eeeaf5;font-size:14px;text-decoration:none}.quick-nav a:hover{background:#ffffff0c}.quick-nav a span{color:#8d839f}
+</style>
+</head>
+<body>
+<section class="landing" id="landing" aria-label="OriginProof 메인 화면">
+  <canvas id="beyond-horizon-canvas" aria-hidden="true"></canvas>
+  <details class="quick-nav" id="quick-nav">
+    <summary aria-label="바로가기 메뉴" title="바로가기 메뉴"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg></summary>
+    <nav class="quick-nav-panel" aria-label="계정 바로가기">
+      <section class="quick-nav-group"><h2>로그인</h2><a href="user-login.html">개인 로그인<span aria-hidden="true">↗</span></a><a href="business-login.html">기관 로그인<span aria-hidden="true">↗</span></a></section>
+      <section class="quick-nav-group"><h2>기관</h2><a href="signup.html#business">기관 가입<span aria-hidden="true">↗</span></a><a href="application-status-login.html">가입 현황<span aria-hidden="true">↗</span></a></section>
+      <section class="quick-nav-group"><h2>개인</h2><a href="signup.html#individual">회원가입<span aria-hidden="true">↗</span></a></section>
+    </nav>
+  </details>
+  <div class="text-stream" aria-label="Business, Individual, Issuer Application">
+    <p class="stream-prefix">Sign In</p>
+    <div class="stream-viewport" id="stream-viewport">
+      <div class="stream-track" id="stream-track">
+        <div class="stream-copy"><a href="business-login.html">Business</a><a href="user-login.html">Individual</a><a href="signup.html">Issuer Apply</a></div>
+        <div class="stream-copy" aria-hidden="true"><a href="business-login.html" tabindex="-1">Business</a><a href="user-login.html" tabindex="-1">Individual</a><a href="signup.html" tabindex="-1">Issuer Apply</a></div>
+        <div class="stream-copy" aria-hidden="true"><a href="business-login.html" tabindex="-1">Business</a><a href="user-login.html" tabindex="-1">Individual</a><a href="signup.html" tabindex="-1">Issuer Apply</a></div>
+      </div>
+    </div>
+  </div>
+</section>
+<div class="app hide" id="app">
+  <div id="sidebar-root" class="dark"></div>
+  <main class="main">
+    <section class="canvas" id="user-workspace-root" aria-label="일반 사용자 검증 작업"></section>
+<nav class="bottom-dock-wrap hide" id="user-dock" aria-label="일반 사용자 검증 메뉴">
+  <div class="bottom-dock" role="tablist" aria-label="조회, 내용 비교, 요청 사용, 검증 내역">
+    <button class="dock-item active" role="tab" aria-selected="true" data-dock="verify" title="Proof ID·QR·검증 링크로 발행 기록과 현재 상태를 조회합니다"><span class="dock-icon">⌕</span>Proof 조회</button>
+    <button class="dock-item" role="tab" aria-selected="false" data-dock="compare" title="인증 후 받은 자료의 금액·문서번호 등 핵심 필드를 비교합니다"><span class="dock-icon">⇄</span>내용 비교</button>
+    <button class="dock-item" role="tab" aria-selected="false" data-dock="consume" title="인증된 지정 수신자가 허가된 1회성 요청을 사용합니다. 조회와 별도 동작입니다"><span class="dock-icon">↗</span>요청 사용</button>
+    <button class="dock-item" role="tab" aria-selected="false" data-dock="history" title="내가 확인한 검증 결과를 다시 봅니다"><span class="dock-icon">▤</span>검증 내역</button>
+  </div>
+</nav>
+  </main>
+</div>
+
+<script src="beyond-horizon.js"></script>
+<script>
+
+const app=document.querySelector("#app"),landing=document.querySelector("#landing"),userDock=document.querySelector("#user-dock");
+const quickNav=document.querySelector("#quick-nav");
+document.addEventListener("click",event=>{if(!quickNav.contains(event.target))quickNav.open=false});
+document.addEventListener("keydown",event=>{if(event.key==="Escape"&&quickNav.open){quickNav.open=false;quickNav.querySelector("summary").focus()}});
+function selectAction(key,proofId){document.querySelectorAll(".dock-item").forEach(button=>{const active=button.dataset.dock===key;button.classList.toggle("active",active);button.setAttribute("aria-selected",String(active))});window.dispatchEvent(new CustomEvent("originproof-action",{detail:{key,proofId}}))}
+document.querySelectorAll("[data-dock]").forEach(button=>button.addEventListener("click",()=>selectAction(button.dataset.dock)));
+function showLanding(){app.classList.add("hide");userDock.classList.add("hide");landing.classList.remove("hide");if(location.hash==="#user")history.replaceState(null,"",location.pathname+location.search);window.scrollTo(0,0)}
+if(location.hash==="#user"){landing.classList.add("hide");app.classList.remove("hide");userDock.classList.remove("hide")}
+
+const streamTrack=document.querySelector("#stream-track");
+const streamCopy=document.querySelector(".stream-copy");
+const streamViewport=document.querySelector("#stream-viewport");
+const reduceMotion=window.matchMedia("(prefers-reduced-motion: reduce)");
+if(streamTrack&&streamCopy&&!reduceMotion.matches){
+  let y=0,distance=streamCopy.getBoundingClientRect().height,velocity=-.35,target=-.35,lastY=window.scrollY,resetTimer,hoverPaused=false,wheelActive=false;
+  streamTrack.querySelectorAll("a").forEach(link=>{
+    link.addEventListener("pointerenter",()=>{
+      hoverPaused=true;
+      if(!wheelActive)velocity=target=-.35;
+    });
+    link.addEventListener("pointerleave",()=>{hoverPaused=false});
+  });
+  const wrap=()=>{distance=streamCopy.getBoundingClientRect().height};
+  const tick=()=>{
+    if((!hoverPaused||wheelActive)&&!landing.classList.contains("hide")&&distance){
+      velocity+=(target-velocity)*.22;
+      y+=velocity;
+      if(y<=-distance)y+=distance;
+      if(y>=0)y-=distance;
+      streamTrack.style.transform=`translate3d(0,${y}px,0)`;
+    }
+    requestAnimationFrame(tick);
+  };
+  const onWheel=event=>{
+    if(landing.classList.contains("hide"))return;
+    const delta=event.deltaY||window.scrollY-lastY;
+    if(!delta)return;
+    wheelActive=true;
+    const direction=delta>0?-1:1;
+    const impulse=Math.min(7,.75+Math.pow(Math.abs(delta),.72)*.16);
+    const sameDirection=Math.sign(target)===direction;
+    target=direction*(sameDirection?Math.min(18,Math.abs(target)+impulse):impulse);
+    lastY=window.scrollY;
+    clearTimeout(resetTimer);
+    resetTimer=setTimeout(()=>{
+      wheelActive=false;
+      target=-.35;
+      if(hoverPaused)velocity=-.35;
+    },260);
+  };
+  window.addEventListener("wheel",onWheel,{passive:true});
+  window.addEventListener("scroll",()=>{
+    const next=window.scrollY;
+    if(next!==lastY)onWheel({deltaY:next-lastY});
+    lastY=next;
+  },{passive:true});
+  new ResizeObserver(wrap).observe(streamViewport);
+  tick();
+}
+</script>
+<script src="sidebar.bundle.js"></script>
+</body>
+</html>

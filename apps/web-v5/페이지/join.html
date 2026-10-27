@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- AI 키를 다루는 화면: 외부로 보내는 연결을 막는다(connect-src 'self'), 외부 스크립트 없음 -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'">
+<meta name="referrer" content="no-referrer">
+<title>OriginProof — 회원가입</title>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<script>try{if(/[?&]theme=light/.test(location.search)||localStorage.getItem("op5.theme")==="light")document.documentElement.dataset.theme="light"}catch(e){}</script>
+<link rel="stylesheet" href="auth5.css">
+</head>
+<body>
+<canvas id="beyond-horizon-canvas" aria-hidden="true"></canvas>
+<header class="a-top">
+  <a class="a-brand" href="entry.html"><img class="logo-dark" src="assets/logo-mark-light.svg" alt="" width="30" height="23"><img class="logo-light" src="assets/logo-mark-dark.svg" alt="" width="30" height="23">OriginProof</a>
+  <div class="a-tools">
+    <a class="a-pill" href="login.html?next=business.html">로그인</a>
+    <button type="button" class="a-pill a-icon" id="themeBtn" aria-label="밝은 모드로 바꾸기" title="밝은 모드로 바꾸기"><svg class="ico-sun" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg><svg class="ico-moon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg></button>
+  </div>
+</header>
+<main class="a-main">
+  <section class="a-card wide" aria-labelledby="t">
+    <img class="a-logo logo-dark" src="assets/logo-full-light.svg" alt="">
+    <img class="a-logo logo-light" src="assets/logo-full-dark.svg" alt="">
+    <h1 id="t">회원가입</h1>
+    <p class="a-sub">어떤 용도로 쓸지 먼저 골라 주세요.</p>
+    <p class="a-msg" id="msg" role="alert"></p>
+    <form id="form" novalidate autocomplete="on">
+      <fieldset style="border:0;padding:0;margin:0">
+        <legend class="sr-only">가입 종류</legend>
+        <div class="a-choice">
+          <label class="a-opt"><input type="radio" name="kind" value="personal" checked><b>개인 회원</b><span>받은 문자 확인 · 내 AI(GPT/Claude)로 분석</span></label>
+          <label class="a-opt"><input type="radio" name="kind" value="business"><b>기업(기관) 회원</b><span>안내문 발행 · 키 관리 · 공동승인 신청</span></label>
+        </div>
+      </fieldset>
+
+      <div class="a-field"><label for="displayName">이름</label><input id="displayName" autocomplete="name" maxlength="60" required></div>
+      <div class="a-field"><label for="username">계정 이름</label><input id="username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="120" required><span class="a-help">영문·숫자·_ 3~40자</span></div>
+      <div class="a-field"><label for="email" id="emailLabel">이메일</label><input id="email" type="email" autocomplete="email" autocapitalize="none" spellcheck="false" maxlength="254" required></div>
+      <div class="a-field"><label for="password">비밀번호</label><div class="a-key"><input id="password" type="password" autocomplete="new-password" minlength="8" maxlength="256" required><button type="button" class="peek" data-for="password" aria-pressed="false">보기</button></div><span class="a-help" id="pwHelp">8자 이상 · 영문과 숫자를 섞어 주세요</span></div>
+      <div class="a-field"><label for="password2">비밀번호 확인</label><input id="password2" type="password" autocomplete="new-password" maxlength="256" required></div>
+
+      <!-- 개인 회원: AI 고르기 + API 키 -->
+      <div id="personalBox">
+        <fieldset style="border:0;padding:0;margin:4px 0 0">
+          <legend class="a-field" style="padding:0;margin-bottom:6px;font-size:13px;font-weight:600">분석에 쓸 AI</legend>
+          <div class="a-choice">
+            <label class="a-opt"><input type="radio" name="provider" value="openai" checked><b>GPT</b><span>OpenAI API 키 (sk-…)</span></label>
+            <label class="a-opt"><input type="radio" name="provider" value="anthropic"><b>Claude</b><span>Anthropic API 키 (sk-ant-…)</span></label>
+          </div>
+        </fieldset>
+        <div class="a-field"><label for="apiKey" id="keyLabel">GPT API 키</label>
+          <div class="a-key"><input id="apiKey" type="password" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="300" data-lpignore="true" data-1p-ignore placeholder="sk-…"><button type="button" class="peek" data-for="apiKey" aria-pressed="false">보기</button></div>
+          <span class="a-help" id="keyHelp">나중에 넣어도 돼요. 키가 없으면 AI 분석 없이 기관 기록 확인만 해요.</span></div>
+        <div class="a-lock" role="note"><span aria-hidden="true">🔒</span><span><b>키는 OriginProof 서버로 보내지 않아요.</b> 위 비밀번호로 잠가(AES-256 암호화) 이 기기에만 저장하고, 화면에는 끝 4자리만 보여요. 공용 컴퓨터라면 저장하지 마세요.</span></div>
+        <label class="a-check"><input type="checkbox" id="saveKey" checked> 이 기기에 암호화해서 저장</label>
+        <label class="a-check"><input type="checkbox" id="keyRisk"> API 키는 제가 직접 관리하며, 키 분실·유출이나 기기·브라우저 보안 문제로 생기는 피해(요금 부과 포함)는 OriginProof가 책임지지 않음에 동의해요.</label>
+        <p class="a-help" id="savedInfo" style="margin:-6px 0 14px"></p>
+      </div>
+
+      <!-- 기업 회원: 기관 정보 + 절차 안내 -->
+      <div id="businessBox" class="hide">
+        <div class="a-field"><label for="orgName">기관 이름</label><input id="orgName" autocomplete="organization" maxlength="120"></div>
+        <div class="a-field"><label for="orgDept">담당 부서</label><input id="orgDept" maxlength="80"></div>
+        <p class="a-help" style="margin:0 0 6px">기관 회원은 이런 순서로 활성화돼요(서버 계약 기준).</p>
+        <ol class="a-steps">
+          <li>기관 신청 접수 (<code>POST /v1/issuer-applications</code>)</li>
+          <li>업무 이메일 확인 코드 (<code>/v3/issuer-applications/{id}/email-codes</code>)</li>
+          <li>기관 내부 승인 (<code>internal-approvals</code>)</li>
+          <li>운영 승인자 3명 중 2명 공동승인 (<code>/v3/proposals</code>)</li>
+          <li>체인에 기관 활성화 → 안내문 발행 가능</li>
+        </ol>
+      </div>
+
+      <!-- 약관 동의: 고른 회원 종류에 맞는 약관을 보여 주고, 하단 '확인함'까지 체크해야 가입 완료 -->
+      <section class="a-terms-wrap" aria-labelledby="termsTitle">
+        <h2 class="a-terms-h" id="termsTitle">약관 동의 <span id="termsKind">· 개인 회원</span></h2>
+
+        <div class="a-terms" tabindex="0" role="region" aria-label="이용약관 본문">
+          <div data-kind="personal">
+            <h3>OriginProof 개인 회원 이용약관</h3>
+            <p><b>제1조(목적)</b> 이 약관은 찐품명품 팀(이하 "운영팀")이 제공하는 OriginProof 서비스(이하 "서비스")를 개인 회원이 이용할 때의 권리·의무와 책임을 정합니다.</p>
+            <p><b>제2조(서비스의 성격)</b> 서비스는 해커톤 시연을 위한 것으로, 실제 기관·금융회사와 관계가 없습니다. 시연 기간이 끝나면 미리 알린 뒤 중단될 수 있습니다.</p>
+            <p><b>제3조(서비스 내용)</b> 서비스는 회원이 받은 문자·문서가 해당 기관이 실제로 보낸 것인지 기관 기록과 대조해 확인하고, 회원이 고른 AI(GPT 또는 Claude)로 위험 신호를 분석해 보여 줍니다.</p>
+            <p><b>제4조(결과의 한계)</b> 확인·분석 결과는 판단을 돕는 참고 정보이며 진위나 안전을 보증하지 않습니다. 송금, 개인정보 입력 등 중요한 결정 전에는 해당 기관의 공식 연락처로 다시 확인해야 합니다.</p>
+            <p><b>제5조(AI API 키)</b> ① 회원은 본인 명의의 AI 사업자(OpenAI·Anthropic) API 키를 직접 입력해 사용합니다. ② 운영팀은 API 키를 서버로 받거나 보관하지 않으며, 키는 회원의 기기에 암호화되어 저장됩니다. ③ 키의 관리와 키 사용으로 생기는 요금은 회원과 해당 AI 사업자 사이의 일입니다.</p>
+            <p><b>제6조(회원의 의무)</b> 회원은 다른 사람의 정보를 도용하거나, 서비스를 공격·우회하거나, 불법적인 목적으로 이용해서는 안 되며, 계정 이름과 비밀번호를 다른 사람에게 넘겨서는 안 됩니다.</p>
+            <p><b>제7조(이용 제한과 탈퇴)</b> ① 운영팀은 회원이 제6조를 어기면 이용을 제한할 수 있습니다. ② 회원은 언제든 탈퇴할 수 있으며, 탈퇴하면 회원의 개인정보는 지체 없이 파기됩니다. 다만 법령에 따라 보관해야 하는 정보는 그 기간 동안 보관합니다.</p>
+            <p><b>제8조(책임의 제한)</b> 운영팀은 천재지변, 회원의 잘못, 외부 AI 사업자나 통신망의 장애로 생긴 손해에 대해 책임을 지지 않습니다. 다만 운영팀의 고의 또는 중대한 과실로 생긴 손해는 그러하지 않습니다.</p>
+            <p><b>제9조(약관의 변경)</b> 운영팀은 약관을 바꿀 때 적용일 7일 전(회원에게 불리한 변경은 30일 전)부터 서비스 화면에 알립니다.</p>
+            <p><b>제10조(준거법과 관할)</b> 이 약관은 대한민국 법을 따르며, 분쟁은 민사소송법에 따른 관할 법원에서 해결합니다.</p>
+          </div>
+          <div data-kind="business">
+            <h3>OriginProof 기관 회원 이용약관</h3>
+            <p><b>제1조(목적)</b> 이 약관은 찐품명품 팀(이하 "운영팀")이 제공하는 OriginProof 서비스(이하 "서비스")를 기관 회원이 이용할 때의 권리·의무와 책임을 정합니다.</p>
+            <p><b>제2조(서비스의 성격)</b> 서비스는 해커톤 시연을 위한 것으로, 실제 기관·금융회사와 관계가 없습니다. 시연 기간이 끝나면 미리 알린 뒤 중단될 수 있습니다.</p>
+            <p><b>제3조(서비스 내용)</b> 서비스는 기관이 보내는 안내문의 기록(발행), 발행 키 관리, 공동승인 신청 기능을 제공합니다.</p>
+            <p><b>제4조(가입과 활성화)</b> ① 기관 회원은 신청 접수, 업무 이메일 확인, 기관 내부 승인, 운영 승인자 3명 중 2명의 공동승인을 모두 거친 뒤 활성화됩니다. ② 운영팀은 기관을 확인할 수 없거나 신청 내용이 사실과 다르면 신청을 보류하거나 거절할 수 있습니다.</p>
+            <p><b>제5조(신청자의 보증)</b> 신청자는 해당 기관을 대표하거나 기관으로부터 위임받은 권한이 있음을 보증합니다. 허위 신청으로 생긴 책임은 신청자와 해당 기관에 있습니다.</p>
+            <p><b>제6조(발행 내용의 책임)</b> ① 기관이 발행한 안내문 내용의 정확성과 적법성은 기관이 책임집니다. ② 블록체인에 기록된 발행 기록은 지울 수 없으며, 정정이나 폐기는 별도의 기록으로만 할 수 있습니다.</p>
+            <p><b>제7조(키와 계정 관리)</b> 발행 키와 담당자 계정의 관리 책임은 기관에 있습니다. 유출이 의심되면 기관은 즉시 운영팀에 알리고 키를 폐기·교체해야 합니다.</p>
+            <p><b>제8조(이용 제한)</b> 운영팀은 허위 발행, 다른 기관 사칭, 키 도용이 확인되면 활성화를 취소하거나 이용을 제한할 수 있습니다.</p>
+            <p><b>제9조(책임의 제한)</b> 운영팀은 천재지변, 기관의 잘못, 블록체인 네트워크나 통신망의 장애로 생긴 손해에 대해 책임을 지지 않습니다. 다만 운영팀의 고의 또는 중대한 과실로 생긴 손해는 그러하지 않습니다.</p>
+            <p><b>제10조(약관의 변경)</b> 운영팀은 약관을 바꿀 때 적용일 7일 전(기관에 불리한 변경은 30일 전)부터 서비스 화면과 업무 이메일로 알립니다.</p>
+            <p><b>제11조(준거법과 관할)</b> 이 약관은 대한민국 법을 따르며, 분쟁은 민사소송법에 따른 관할 법원에서 해결합니다.</p>
+          </div>
+        </div>
+        <label class="a-check"><input type="checkbox" id="tTerms"> <span><b class="a-req">[필수]</b> 위 이용약관에 동의해요.</span></label>
+
+        <div class="a-terms a-terms-sm" tabindex="0" role="region" aria-label="개인정보 수집·이용 안내">
+          <h3>개인정보 수집·이용 안내 (개인정보 보호법 제15조)</h3>
+          <dl>
+            <dt>수집 항목</dt><dd data-kind="personal">이름, 계정 이름, 이메일, 비밀번호(암호화 저장)</dd><dd data-kind="business">담당자 이름, 계정 이름, 업무 이메일, 비밀번호(암호화 저장), 기관 이름, 담당 부서</dd>
+            <dt>이용 목적</dt><dd data-kind="personal">회원 확인과 로그인, 서비스 관련 안내</dd><dd data-kind="business">기관 확인과 활성화 심사, 담당자 계정 관리, 발행 관련 안내</dd>
+            <dt>보유 기간</dt><dd>탈퇴할 때까지(시연이 끝나면 지체 없이 파기). 법령에 따라 보관해야 하는 정보는 그 기간까지 보관해요.</dd>
+            <dt>동의 거부</dt><dd data-kind="personal">동의하지 않을 수 있어요. 다만 회원가입은 할 수 없고, 비회원 기능만 쓸 수 있어요.</dd><dd data-kind="business">동의하지 않을 수 있어요. 다만 기관 회원 신청은 할 수 없어요.</dd>
+          </dl>
+          <p data-kind="personal">AI API 키는 수집하지 않아요. 이 기기에만 암호화되어 저장돼요.</p>
+        </div>
+        <label class="a-check"><input type="checkbox" id="tPriv"> <span><b class="a-req">[필수]</b> 개인정보 수집·이용에 동의해요.</span></label>
+        <label class="a-check" data-kind="personal"><input type="checkbox" id="tAge"> <span><b class="a-req">[필수]</b> 만 14세 이상이에요.</span></label>
+        <label class="a-check" data-kind="business"><input type="checkbox" id="tAuth"> <span><b class="a-req">[필수]</b> 기관을 대표하거나 위임받은 권한이 있어요.</span></label>
+
+        <label class="a-check a-confirm"><input type="checkbox" id="agree"> <span><b>확인함</b> — 위 약관과 개인정보 안내를 모두 읽었으며, 해커톤 시연용 서비스로 실제 기관과 관계없음을 확인했어요.</span></label>
+        <p class="a-help a-terms-ver">약관 버전 v0.1 · 2026-10-26 시행</p>
+      </section>
+      <button class="a-btn" type="submit" id="submit">가입 신청</button>
+    </form>
+    <div class="a-row"><span>이미 계정이 있나요?</span><a href="login.html?next=business.html">로그인</a></div>
+  </section>
+</main>
+<script src="js/op5_keyvault.js"></script>
+<script>
+(function(){
+  "use strict";
+  const $=id=>document.getElementById(id),V=window.OP5KeyVault,form=$("form"),msg=$("msg");
+  const kind=()=>form.querySelector('input[name="kind"]:checked').value, provider=()=>form.querySelector('input[name="provider"]:checked').value;
+  function show(k,t){msg.className="a-msg show "+k;msg.textContent=t;msg.scrollIntoView({block:"nearest"})}
+  function sync(){
+    const biz=kind()==="business";
+    $("personalBox").classList.toggle("hide",biz);$("businessBox").classList.toggle("hide",!biz);
+    $("emailLabel").textContent=biz?"업무 이메일":"이메일";
+    // 약관·개인정보 안내를 회원 종류에 맞게 바꿈. 종류를 바꾸면 동의를 다시 받음
+    document.querySelectorAll(".a-terms-wrap [data-kind]").forEach(el=>el.classList.toggle("hide",el.dataset.kind!==(biz?"business":"personal")));
+    $("termsKind").textContent=biz?"· 기관 회원":"· 개인 회원";
+    if(sync.k!==undefined&&sync.k!==biz)["tTerms","tPriv","tAge","tAuth","agree"].forEach(id=>$(id).checked=false);
+    sync.k=biz;
+    const p=provider();$("keyLabel").textContent=(p==="anthropic"?"Claude":"GPT")+" API 키";$("apiKey").placeholder=p==="anthropic"?"sk-ant-…":"sk-…";
+    const saved=V&&V.info();$("savedInfo").textContent=saved?"이 기기에 저장된 키: "+saved.name+" "+saved.hint+" (새로 넣으면 바뀌어요)":"";
+  }
+  form.addEventListener("change",sync);
+  document.querySelectorAll(".peek").forEach(b=>b.addEventListener("click",()=>{const i=$(b.dataset.for),on=i.type==="password";i.type=on?"text":"password";b.textContent=on?"숨기기":"보기";b.setAttribute("aria-pressed",String(on))}));
+  // 키 칸을 벗어나면 다시 가림(어깨 너머 노출 줄이기)
+  $("apiKey").addEventListener("blur",()=>{const i=$("apiKey");if(i.type==="text"){i.type="password";const b=document.querySelector('.peek[data-for="apiKey"]');b.textContent="보기";b.setAttribute("aria-pressed","false")}});
+  $("apiKey").addEventListener("input",()=>{const k=$("apiKey").value.trim();$("keyHelp").textContent=k?(V.check(provider(),k)||"형식 확인됨 · 끝자리 "+k.slice(-4)):"나중에 넣어도 돼요. 키가 없으면 AI 분석 없이 기관 기록 확인만 해요."});
+
+  form.addEventListener("submit",async e=>{
+    e.preventDefault();
+    const name=$("displayName").value.trim(),user=$("username").value.trim(),email=$("email").value.trim(),pw=$("password").value,pw2=$("password2").value;
+    if(!name)return show("err","이름을 넣어 주세요."),$("displayName").focus();
+    if(!/^[A-Za-z0-9_]{3,40}$/.test(user))return show("err","계정 이름은 영문·숫자·_ 3~40자예요."),$("username").focus();
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return show("err","이메일 형식이 아니에요."),$("email").focus();
+    if(pw.length<8||!/[A-Za-z]/.test(pw)||!/[0-9]/.test(pw))return show("err","비밀번호는 8자 이상, 영문과 숫자를 섞어 주세요."),$("password").focus();
+    if(pw!==pw2)return show("err","비밀번호 확인이 달라요."),$("password2").focus();
+    if(kind()==="business"&&!$("orgName").value.trim())return show("err","기관 이름을 넣어 주세요."),$("orgName").focus();
+    // 약관: 필수 항목 → 하단 '확인함' 순서로 확인
+    const biz=kind()==="business",need=[["tTerms","이용약관에 동의해 주세요."],["tPriv","개인정보 수집·이용에 동의해 주세요."],biz?["tAuth","기관 권한이 있는지 확인해 주세요."]:["tAge","만 14세 이상인지 확인해 주세요."]];
+    for(const [id,t] of need)if(!$(id).checked)return show("err","[필수] "+t),$(id).focus();
+    if(!$("agree").checked)return show("err","맨 아래 '확인함'을 체크해야 가입이 완료돼요."),$("agree").focus();
+    const btn=$("submit");btn.disabled=true;
+    let keyNote="";
+    try{
+      if(kind()==="personal"){
+        const key=$("apiKey").value.trim();
+        if(key){
+          const bad=V.check(provider(),key);if(bad){show("err",bad);$("apiKey").focus();return}
+          if(!$("keyRisk").checked){show("err","API 키를 넣으려면 키 관리 책임 안내에 동의해 주세요.");$("keyRisk").focus();return}
+          if($("saveKey").checked){const r=await V.save(provider(),key,pw);keyNote=" AI 키("+r.name+" "+r.hint+")는 이 기기에 암호화해서 저장했어요.";}
+          else keyNote=" AI 키는 저장하지 않았어요(이 기기에 남지 않음).";
+        }else keyNote=" AI 키는 나중에 넣을 수 있어요.";
+      }
+      // 키·비밀번호 칸은 바로 비운다(화면·메모리에 오래 두지 않음)
+      $("apiKey").value="";$("password").value="";$("password2").value="";
+      // 공개 회원가입 API는 서버에 아직 없다(계정은 운영자·seed가 만듦). 서버로 보내지 않고 정직하게 알린다.
+      show("info",(kind()==="business"?"기관 회원 가입 신청 내용을 확인했어요. ":"개인 회원 가입 내용을 확인했어요. ")+"다만 계정을 만드는 서버 기능이 아직 연결 전이라 계정은 운영자가 발급해요."+keyNote+(kind()==="business"?" 기관 활성화는 위 5단계를 거쳐요.":""));
+      sync();
+    }catch(err){show("err",err&&err.message?err.message:"처리하지 못했어요.")}
+    finally{btn.disabled=false}
+  });
+  const tb=$("themeBtn"),paint=()=>{const l=document.documentElement.dataset.theme==="light",t=l?"어두운 모드로 바꾸기":"밝은 모드로 바꾸기";tb.title=t;tb.setAttribute("aria-label",t)};
+  tb.addEventListener("click",()=>{const l=document.documentElement.dataset.theme!=="light";document.documentElement.dataset.theme=l?"light":"dark";try{localStorage.setItem("op5.theme",l?"light":"dark")}catch(_){}paint()});paint();
+  sync();
+})();
+</script>
+<script src="beyond-horizon.js"></script>
+</body>
+</html>
