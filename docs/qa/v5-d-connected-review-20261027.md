@@ -60,7 +60,7 @@ export PATH=/path/to/fixed-foundry-1.4.4:$PATH
 export PYTHONPATH=apps/api/src:packages/python:services/analyzer/src:services/indexer/src:apps/api/tests:fixtures/finals:scripts/fixtures
 python -m pytest -q fixtures/finals/test_v5_d_connected_smoke_budget.py
 ORIGINPROOF_WALLET_LIVE=1 python -m pytest -q apps/api/tests/test_wallet_deploy_live.py apps/api/tests/test_wallet_failover_live.py services/indexer/tests/test_wallet_api_process.py
-node --test apps/web-v5/시험/*.test.js apps/web-v5/시험/*.test.mjs apps/web-v5/시험/가져온/regression/*.test.js
+node --test apps/web-v5/시험/*.test.js apps/web-v5/시험/*.test.mjs apps/web-v5/시험/가져온/*.test.js apps/web-v5/시험/가져온/regression/*.test.js
 ```
 
 `fixtures/finals/v5_d_run_connected_smoke.py`는 **실제3회를 이미 소진한 수동 QA 실행기**입니다. 현재 정책false와 기존journal 존재로 재실행을 막습니다. 새 호출 승인으로 해석하지 마세요. API 이미지·서비스 API를 새로 구현한 도구가 아니며 CI는 mock budget 검사만 실행합니다. `.env`·테스트 계정/세션 파일은 결과 자료에 포함하지 않았습니다.
