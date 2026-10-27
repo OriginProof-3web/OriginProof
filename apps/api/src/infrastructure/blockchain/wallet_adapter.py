@@ -21,7 +21,7 @@ from originproof_core.wallet_signatures import document_id as calculate_document
 from .errors import BlockchainConfigurationError, BlockchainDependencyError
 from .wallet_creation import ADDRESS, WalletCreationProof, verified_approvers
 from .wallet_reconciliation import WalletReconciler, require
-from .wallet_rpc import hex_bytes, named, quantity
+from .wallet_rpc import WalletRpc, hex_bytes, named, quantity
 
 
 def dependency_boundary(method):
@@ -59,6 +59,15 @@ class WalletRegistryReadAdapter:
             raise BlockchainConfigurationError("creation_proof must be WalletCreationProof")
         self.creation_proof = creation_proof
         self.reconciler = WalletReconciler(rpc)
+
+    @classmethod
+    @dependency_boundary
+    async def from_deployment(cls, client, rpc_url, *, creation_proof, **deployment):
+        """Verify trusted deployment/build evidence before injection; caller owns the client."""
+        require(isinstance(creation_proof, WalletCreationProof), "creation proof is required")
+        rpc = WalletRpc(client, rpc_url, **deployment)
+        await verified_approvers(rpc, creation_proof)
+        return cls(rpc, creation_proof=creation_proof)
 
     def _position(self, block):
         return {

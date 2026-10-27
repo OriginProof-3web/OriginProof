@@ -8,6 +8,7 @@ from fastapi import HTTPException
 from sqlalchemy import select, text
 
 from .database import AccountRow
+from .projection import running_views
 
 REVISION = "20261016_0009"
 
@@ -72,9 +73,10 @@ async def check_ready(app):
             from .main import configured_blockchain_reader
 
             await configured_blockchain_reader(settings).get_issuer(settings.blockchain_issuer_id)
-        if settings.projection_enabled and app.state.projection.status not in (
-            "SYNCED",
-            "WAITING_CONFIRMATIONS",
+        # Every running projection (legacy and wallet) must be current: one failing or stale
+        # (not refreshed within three polls, same rule as /v1/chain-sync) is not ready.
+        if any(
+            view.status not in ("SYNCED", "WAITING_CONFIRMATIONS") for view in running_views(app)
         ):
             raise ValueError("projection not ready")
     except Exception:

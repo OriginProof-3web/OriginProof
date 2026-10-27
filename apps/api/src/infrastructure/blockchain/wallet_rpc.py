@@ -228,9 +228,15 @@ class WalletRpc:
                     raise ValueError("event range or duplicate")
                 seen.add(position)
                 if number not in blocks:
-                    blocks[number] = await self.block(hex(number))
-                if blocks[number]["hash"] != log["blockHash"]:
+                    canonical = await self.block(hex(number))
+                    if not isinstance(canonical["transactions"], list):
+                        raise ValueError("invalid canonical transaction list")
+                    blocks[number] = (canonical["hash"], set(canonical["transactions"]))
+                block_hash, transactions = blocks[number]
+                if block_hash != log["blockHash"]:
                     raise ValueError("orphan log")
+                if log["transactionHash"] not in transactions:
+                    raise ValueError("log transaction absent from canonical block")
                 result.append({**log, "decoded": decoded})
             await self.check(block)
             return sorted(result, key=lambda x: (quantity(x["blockNumber"]),

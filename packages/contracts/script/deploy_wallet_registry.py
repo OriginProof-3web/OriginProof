@@ -24,6 +24,7 @@ import subprocess
 from pathlib import Path
 
 import httpx
+from eth_utils import keccak
 from infrastructure.blockchain.manifest import validate_address, validate_hash
 from infrastructure.blockchain.network import APPROVER_NODES, chain_target, rpc_urls
 
@@ -81,7 +82,9 @@ def rpc_caller(url):
     return rpc
 
 
-def run_forge(contracts_dir: Path, target, url: str, approver_addresses, signer: list[str]) -> str:
+def run_forge(
+    contracts_dir: Path, target, url: str, approver_addresses, signer: list[str], gas_multiplier=200
+) -> str:
     forge = shutil.which("forge")
     if forge is None:
         raise ValueError("forge must be on PATH")
@@ -91,8 +94,19 @@ def run_forge(contracts_dir: Path, target, url: str, approver_addresses, signer:
     }
     env |= {f"WALLET_APPROVER_{i}_ADDRESS": a for i, a in enumerate(approver_addresses, 1)}
     # Output is not captured so keystore/hardware prompts stay interactive.
+    # forge 1.8.1 로컬 모의 실행(약 2.7M gas)은 Sepolia 의 오른 코드 저장 비용을 모름.
+    # 2026-10-27 실제 노드 eth_estimateGas 는 19,187,530 → 130%·200% 배포 모두 가스 부족 실패
+    # (0xa11034…, 0xc98a4e…). Sepolia 는 --gas-multiplier 800 으로 보냄. 실제 사용 가스만 청구됨.
     subprocess.run(
-        [forge, "script", f"script/{SCRIPT}:DeployWalletRegistry", "--broadcast", *signer],
+        [
+            forge,
+            "script",
+            f"script/{SCRIPT}:DeployWalletRegistry",
+            "--broadcast",
+            "--gas-estimate-multiplier",
+            str(gas_multiplier),
+            *signer,
+        ],
         cwd=contracts_dir,
         env=env,
         check=True,
@@ -151,7 +165,8 @@ def build_manifest(rpc, target, contracts_dir: Path, tx_hash: str, approver_addr
         raise ValueError("deployment input does not match the local Registry artifact")
     registry = validate_address(receipt["contractAddress"])
     block = int(receipt["blockNumber"], 16)
-    if rpc("eth_getCode", [registry, hex(block)]) in ("0x", "0x0"):
+    code = rpc("eth_getCode", [registry, hex(block)])
+    if not isinstance(code, str) or code in ("0x", "0x0"):
         raise ValueError("no Registry code at the deployed address")
     genesis = rpc("eth_getBlockByNumber", ["0x0", False])
     deployed = rpc("eth_getBlockByNumber", [hex(block), False])
@@ -189,6 +204,11 @@ def build_manifest(rpc, target, contracts_dir: Path, tx_hash: str, approver_addr
         "deployer": validate_address(transaction["from"]),
         "roles": roles,
         "role_labels": {node["role"]: node for node in APPROVER_NODES},
+        # API 주입(from_deployment)이 체인에서 다시 검증하는 값. 배포 ID 계산에는 넣지 않음.
+        # runtime_code_hash: 배포 블록 실제 코드의 keccak
+        # creation_bytecode: 로컬 빌드 생성 코드(생성자 인자 제외)
+        "runtime_code_hash": "0x" + keccak(bytes.fromhex(code[2:])).hex(),
+        "creation_bytecode": expected_input[: len(expected_input) - 64 * 3],
     }
 
 
@@ -203,6 +223,12 @@ def main(argv=None) -> Path:
     parser.add_argument("--unlocked", action="store_true", help="Anvil only, with --sender")
     parser.add_argument("--sender")
     parser.add_argument("--source-commit-sha")
+    parser.add_argument(
+        "--gas-multiplier",
+        type=int,
+        default=None,
+        help="forge --gas-estimate-multiplier (%%); default 800 on sepolia, 200 on anvil",
+    )
     args = parser.parse_args(argv)
 
     target = chain_target(args.chain_target)
@@ -229,7 +255,13 @@ def main(argv=None) -> Path:
         tx_hash = validate_hash(args.deployment_tx)
     else:
         signer = signer_args(args, target)
-        tx_hash = run_forge(contracts_dir, target, url, approver_addresses, signer)
+        if args.gas_multiplier is None:
+            args.gas_multiplier = 800 if target.name == "sepolia" else 200
+        if not 100 <= args.gas_multiplier <= 2000:
+            raise ValueError("--gas-multiplier must be 100..2000")
+        tx_hash = run_forge(
+            contracts_dir, target, url, approver_addresses, signer, args.gas_multiplier
+        )
     manifest = build_manifest(
         rpc_caller(url), target, contracts_dir, tx_hash, approver_addresses, sha
     )

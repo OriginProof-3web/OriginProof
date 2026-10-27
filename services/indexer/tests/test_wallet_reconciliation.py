@@ -218,7 +218,11 @@ async def test_absent_rechecks_canonical_hash(env):
         await rpc.call("getIssuer", [ISSUER], head)
 
 
-def proposal_logs(approvals=2):
+def proposal_logs(oracle, approvals=2):
+    oracle.blocks["0x1"]["transactions"] = [H1]
+    oracle.blocks["0x2"]["transactions"] = [H3, TX] if approvals == 2 else [TX]
+    index = hex(oracle.blocks["0x2"]["transactions"].index(TX))
+    oracle.tx["transactionIndex"] = oracle.receipt["transactionIndex"] = index
     logs = [
         event(
             "ProposalCreated", {"proposalId": PID, "issuerId": ISSUER, "action": 1}, number=1, tx=H1
@@ -243,7 +247,7 @@ def proposal_logs(approvals=2):
 @pytest.mark.parametrize("count", [0, 1, 2])
 async def test_proposal_list_count_and_execution_same_snapshot(env, count):
     oracle, _, reconciler = env
-    oracle.logs = proposal_logs(count)
+    oracle.logs = proposal_logs(oracle, count)
     oracle.views["getProposal"] = (PROPOSAL, count, count == 2)
     result = await reconciler.proposal(PID)
     assert result["approvals"] == [OTHER, SENDER][:count]
@@ -265,7 +269,7 @@ async def test_proposal_list_count_and_execution_same_snapshot(env, count):
 )
 async def test_inconsistent_approval_history_is_dependency_failure(env, kind):
     oracle, _, reconciler = env
-    oracle.logs = proposal_logs()
+    oracle.logs = proposal_logs(oracle)
     oracle.views["getProposal"] = (PROPOSAL, 2, True)
     if kind == "missing_creation":
         oracle.logs.pop(0)
@@ -371,7 +375,7 @@ async def test_revoke_superseded_history_and_pending_failed(env):
 
 async def test_approve_second_and_propose_reconcile(env):
     oracle, _, reconciler = env
-    logs = proposal_logs()
+    logs = proposal_logs(oracle)
     oracle.install("approve", [bytes.fromhex(PID[2:])], logs[2:])
     oracle.logs = logs
     oracle.views["getProposal"] = (PROPOSAL, 2, True)
@@ -513,11 +517,13 @@ async def test_current_nonce_or_immutable_regression_fails(env):
 
 async def test_first_approval_can_observe_execution_later_in_same_block(env):
     oracle, _, reconciler = env
-    logs = proposal_logs()
+    logs = proposal_logs(oracle)
     oracle.install("approve", [bytes.fromhex(PID[2:])], [logs[1]])
     oracle.tx["from"], oracle.receipt["from"] = OTHER, OTHER
     logs[1]["transactionHash"] = TX
     logs[2]["transactionHash"] = logs[3]["transactionHash"] = H3
+    oracle.blocks["0x2"]["transactions"] = [TX, H3]
+    oracle.tx["transactionIndex"] = oracle.receipt["transactionIndex"] = "0x0"
     oracle.logs = logs
     oracle.views["getProposal"] = (PROPOSAL, 2, True)
     result = await reconciler.transaction(
@@ -529,7 +535,7 @@ async def test_first_approval_can_observe_execution_later_in_same_block(env):
 
 async def test_second_approval_missing_execution_receipt_fails(env):
     oracle, _, reconciler = env
-    logs = proposal_logs()
+    logs = proposal_logs(oracle)
     oracle.install("approve", [bytes.fromhex(PID[2:])], [logs[2]])
     oracle.logs = logs
     oracle.views["getProposal"] = (PROPOSAL, 2, True)
@@ -608,3 +614,23 @@ async def test_successor_after_revoked_predecessor_needs_no_supersession_event(
     else:
         with pytest.raises(BlockchainDependencyError, match="revoked predecessor"):
             await reconciler.transaction(TX, function="publish", arguments=oracle.intent)
+
+
+@pytest.mark.parametrize("missing_from", ["receipt", "canonical"])
+async def test_suspension_receipt_must_match_canonical_transaction_events(env, missing_from):
+    oracle, _, reconciler = env
+    reason = keccak(text="OTHER")
+    oracle.install(
+        "suspendIssuer",
+        [ISSUER, reason],
+        [event("IssuerSuspended", {"issuerId": ISSUER, "actor": SENDER, "reasonCode": reason})],
+    )
+    oracle.views["getIssuer"] = (2, KEY, SENDER, b"m" * 32)
+    if missing_from == "receipt":
+        oracle.receipt["logs"] = []
+    else:
+        oracle.logs = []
+    with pytest.raises(BlockchainDependencyError):
+        await reconciler.transaction(
+            TX, function="suspendIssuer", arguments=oracle.intent, sender=SENDER
+        )

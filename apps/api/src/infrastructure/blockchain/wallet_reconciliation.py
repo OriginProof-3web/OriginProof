@@ -120,6 +120,12 @@ class WalletReconciler:
         elif function in {"propose", "approve"}:
             old, latest = await self._proposal_transaction(evidence, receipt, current)
         else:
+            logs = await self.rpc.logs(quantity(receipt["number"]), receipt)
+            require(
+                [log["decoded"] for log in logs if log["transactionHash"] == tx_hash]
+                == evidence["events"],
+                "suspension receipt/canonical events mismatch",
+            )
             old, latest = await self._suspension(evidence, receipt, current)
         await self.rpc.check(receipt)
         await self.rpc.check(current)

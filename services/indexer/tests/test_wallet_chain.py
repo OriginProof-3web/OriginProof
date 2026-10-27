@@ -321,13 +321,40 @@ async def test_explicit_reorg_rewind_and_replay(setup):
         engine.dispose()
 
 
-async def test_failed_fetch_cannot_advance_checkpoint(setup):
+async def test_automatic_reorg_recovery_rewinds_to_verified_ancestor(setup):
     chain, rpc = setup
     engine = create_engine("sqlite://")
     try:
         store = WalletProjection(engine, rpc)
         store.initialize()
-        chain.logs[0]["removed"] = True
+        await store.sync()
+        # 이벤트가 있던 블록 2가 재조직으로 바뀜: 저장된 블록 2는 고아라서 배포 블록까지 되감는다
+        chain.blocks["0x2"] = block(2, H3)
+        chain.logs = [make_log(block_hash=H3)]
+        with pytest.raises(ValueError, match="explicit rewind"):
+            await store.sync()
+        assert await store.recover_reorg() == (1, H1)
+        assert store.checkpoint() == (1, H1)
+        assert await store.sync() == 1
+        with engine.connect() as conn:
+            rows = conn.execute(select(journal)).mappings().all()
+            assert len(rows) == 1 and H3 in rows[0]["payload"]
+        # 재조직이 없으면 가장 최근 저장 블록(정본)으로 되감고 이벤트를 남긴다
+        assert await store.recover_reorg() == (2, H3)
+        with engine.connect() as conn:
+            assert len(conn.execute(select(journal)).all()) == 1
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.parametrize("patch", [{"removed": True}, {"transactionHash": H3}])
+async def test_failed_fetch_cannot_advance_checkpoint(setup, patch):
+    chain, rpc = setup
+    engine = create_engine("sqlite://")
+    try:
+        store = WalletProjection(engine, rpc)
+        store.initialize()
+        chain.logs[0].update(patch)
         with pytest.raises(BlockchainDependencyError):
             await store.sync()
         assert store.checkpoint() is None
@@ -481,3 +508,11 @@ def test_bigint_positions_preserve_values_above_int4(tmp_path):
         assert row["deployment"] == checkpoint["deployment"] == "preserved"
     finally:
         engine.dispose()
+
+
+async def test_log_transaction_must_belong_to_canonical_block(setup):
+    chain, rpc = setup
+    chain.logs[0]["transactionHash"] = H3
+    head = await rpc.snapshot()
+    with pytest.raises(BlockchainDependencyError):
+        await rpc.logs(1, head)
