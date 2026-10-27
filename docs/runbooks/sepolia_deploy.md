@@ -25,6 +25,20 @@
 
 **가스 주의:** forge 1.8.1 로컬 모의 실행(약 2.7M gas)은 Sepolia의 오른 코드 저장 비용을 모릅니다. 실제 노드 `eth_estimateGas`는 약 19.19M이었고, 130%·200% 배포(`0xa11034…`, `0xc98a4e…`)는 가스 부족으로 실패했습니다. 래퍼의 Sepolia 기본 배율은 800입니다(Anvil 200). 실제 사용 가스만 청구됩니다.
 
+## Sepolia 시연 데이터 (2026-10-27, `scripts/fixtures/wallet_demo_flow.py --signer keystore`)
+
+실제 `/v3` API(일회용 PostgreSQL, `CHAIN_TARGET=sepolia`) → Sepolia Registry 로 끝까지 실행했습니다. 기관은 합성 `iss_origin_mock_bank`, 지갑은 대표 시험용 계정입니다.
+
+| 단계 | 결과 |
+| --- | --- |
+| 기관 신청·데모 메일·내부 승인·키 증명 | 완료(기관 지갑 `0x2c972C6c390C7742BFd070bC57DDAb539235d161` 서명) |
+| 2-of-3 공동승인 | 제안 `0xe796b23d…5cda82` **EXECUTED**, 승인 #1 KISA 모델·#2 금융보안원 모델 → 기관 **ACTIVE**. 제안 tx `0x97a46147…4fa7`, 승인 #1 tx `0xbb451d4a…02e3` |
+| 안내문 v1(154,000원) | 발행 확정 tx `0x394f0cce482c61269c8d3bf1d3e95202b3d717b7bfa3f03e18197d20b61a1f88` |
+| 안내문 v2(120,000원, 정정) | 발행 확정 tx `0xf7d6b418e9b0f766ee8f985069324ade216e9e87914c060f907e4c67bcb3542d` · document `0x2bc2f605c8b185bc9b1d5d9ed2560a62ccd4e2a6338574c3925752b63c07e8a9` |
+| 검증 | 정본 v2 **VERIFIED** · 금액 1원 변조 **TAMPERED**(PROTECTED_FIELDS_MISMATCH) · 정정 전 v1 **SUPERSEDED** |
+
+관찰: 공개 RPC(publicnode)는 읽기가 자주 실패해 보조(tenderly)로 전환됐고, 승인 #2 거래 확인 때 두 노드 모두 잠시 최신 블록을 못 읽어 API가 503을 냈습니다(체인 상태는 EXECUTED 로 정상). 스크립트는 일시적 503을 자동 재시도합니다. 시연 당일은 Alchemy/Infura 같은 키 RPC를 주로 쓰는 것을 권합니다.
+
 ## 구성 요소
 
 - `packages/contracts/script/DeployWalletRegistry.s.sol`: B 소스를 import하지 않고 artifact 이름으로 배포합니다. `WALLET_DEPLOY_CHAIN_ID`와 연결된 체인이 다르면 거부합니다.

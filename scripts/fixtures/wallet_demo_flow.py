@@ -109,7 +109,7 @@ class Signers:
 
 
 async def rpc(client, url, method, params):
-    response = await client.post(url, json={"jsonrpc": "2.0", "id": 1, "method": method,
+    response = await post(client, url, json={"jsonrpc": "2.0", "id": 1, "method": method,
                                             "params": params})
     response.raise_for_status()
     body = response.json()
@@ -137,7 +137,7 @@ class Api:
     async def as_(self, username) -> httpx.AsyncClient:
         if username not in self.clients:
             client = httpx.AsyncClient(base_url=self.base, timeout=60, trust_env=False)
-            login = await client.post("/v1/auth/login",
+            login = await post(client, "/v1/auth/login",
                                       json={"username": username, "password": self.password})
             if login.status_code != 200:
                 raise SystemExit(f"login failed for {username}: HTTP {login.status_code}")
@@ -149,6 +149,17 @@ class Api:
     async def close(self):
         for client in self.clients.values():
             await client.aclose()
+
+
+async def post(client, path, **kwargs):
+    """POST that waits out a temporary 503 (RPC lag between nodes); request_id is idempotent."""
+    for attempt in range(6):
+        response = await client.post(path, **kwargs)
+        if response.status_code != 503:
+            return response
+        say(f"체인 조회가 잠시 안 돼서 다시 시도합니다({attempt + 1}/5)")
+        await asyncio.sleep(10)
+    return response
 
 
 def ok(response, *codes):
@@ -166,7 +177,7 @@ async def settle(api_client, operation, attempts=40):
         if operation["status"] == "FAILED":
             raise SystemExit(f"operation failed: {operation}")
         await asyncio.sleep(4)
-        operation = ok(await api_client.post(
+        operation = ok(await post(api_client, 
             f"/v3/operations/{operation['operation_id']}/reconcile"), 202)
     raise SystemExit(f"operation not confirmed: {operation['operation_id']}")
 
@@ -208,24 +219,24 @@ async def run(args):
             apps = (await bank.get("/v1/issuer-applications/mine")).json()
             app_id = apps["application_id"] if isinstance(apps, dict) and apps else None
             if not app_id:
-                app_id = ok(await bank.post("/v1/issuer-applications",
+                app_id = ok(await post(bank, "/v1/issuer-applications",
                                             json={"issuer_name": ISSUER_NAME}), 201)[
                     "application_id"]
             say(f"기관 신청 {app_id}")
             started = await bank.get(f"/v3/issuer-applications/{app_id}")
             view = ok(started, 200, 404) if started.status_code != 404 else {}
             if not view.get("email_verified"):
-                ok(await bank.post(f"/v3/issuer-applications/{app_id}/email-codes",
+                ok(await post(bank, f"/v3/issuer-applications/{app_id}/email-codes",
                                    json={"email": EMAIL}), 201)
                 code = ok(await bank.get(f"/v3/issuer-applications/{app_id}/demo-inbox"),
                           200)["code"]
-                ok(await bank.post(f"/v3/issuer-applications/{app_id}/email-verifications",
+                ok(await post(bank, f"/v3/issuer-applications/{app_id}/email-verifications",
                                    json={"code": code}), 200)
                 say("업무 이메일 확인 완료(데모 메일)")
             checks = ok(await bank.get(f"/v3/issuer-applications/{app_id}"), 200)
             if not checks.get("internally_approved"):
                 internal = await api.as_("v5_bank_approver")
-                checks = ok(await internal.post(
+                checks = ok(await post(internal, 
                     f"/v3/issuer-applications/{app_id}/internal-approvals",
                     json={"decision": "APPROVE", "reason": "합성 시연 내부 승인"}), 200)
                 say("기관 내부 승인 완료")
@@ -236,12 +247,12 @@ async def run(args):
             if issuer is None or issuer.state != "ACTIVE":
                 # 2) 키 보유 증명(기관 지갑 서명)
                 stamp = int(time.time())
-                challenge = SigningRequest.model_validate(ok(await bank.post(
+                challenge = SigningRequest.model_validate(ok(await post(bank, 
                     "/v3/key-challenges",
                     json={"request_id": f"req_key_{stamp}", "application_id": app_id,
                           "signer": args.institution.lower()}), 201))
                 proof_sig = await signers.sign(chain_client, "institution", challenge)
-                ok(await bank.post("/v3/key-proofs", json={
+                ok(await post(bank, "/v3/key-proofs", json={
                     "request_id": f"req_proof_{stamp}",
                     "signing_request_id": challenge.signing_request_id,
                     "signature": proof_sig}), 200)
@@ -249,7 +260,7 @@ async def run(args):
                 # 3) 운영 승인자 제안 → 체인 propose/approve ×2
                 op1, op2 = await api.as_("v5_operator1"), await api.as_("v5_operator2")
                 gov_nonce = issuer.governance_nonce if issuer else "0"
-                prepared = ok(await op1.post("/v3/proposals", json={
+                prepared = ok(await post(op1, "/v3/proposals", json={
                     "request_id": f"req_proposal_{stamp}",
                     "key_proof_request_id": challenge.signing_request_id,
                     "proposal": {
@@ -269,14 +280,14 @@ async def run(args):
                     "signature": prepared["key_proof_signature"],
                 })
                 tx = await signers.send(chain_client, "approver1", "0x" + propose.hex())
-                ok(await op1.post(f"/v3/proposals/{pid}/transactions",
+                ok(await post(op1, f"/v3/proposals/{pid}/transactions",
                                   json={"request_id": f"req_propose_{stamp}", "tx_hash": tx}),
                    202)
                 say(f"승인 노드 #1(KISA 모델) 제안 거래 {tx}")
                 approve = "0x" + calldata(reader, "approve", {"proposalId": pid}).hex()
                 for who, client in (("approver1", op1), ("approver2", op2)):
                     tx = await signers.send(chain_client, who, approve)
-                    ok(await client.post(f"/v3/proposals/{pid}/approvals",
+                    ok(await post(client, f"/v3/proposals/{pid}/approvals",
                                          json={"request_id": f"req_{who}_{stamp}",
                                                "tx_hash": tx}), 202)
                     say(f"{who} 승인 거래 {tx}")
@@ -291,13 +302,13 @@ async def run(args):
             published = {}
             for version, amount in ((1, 154000), (2, 120000)):
                 stamp = int(time.time())
-                draft = ok(await bank.post("/v3/document-drafts", json={
+                draft = ok(await post(bank, "/v3/document-drafts", json={
                     "request_id": f"req_draft_{version}_{stamp}", "doc_key": doc_key,
                     "expected_version": version, "expires_at": stamp + 30 * 86400,
                     "content": content(amount)}), 201)
                 signing = SigningRequest.model_validate(draft)
                 sig = await signers.sign(chain_client, "institution", signing)
-                op = ok(await bank.post("/v3/publications", json={
+                op = ok(await post(bank, "/v3/publications", json={
                     "request_id": f"req_publish_{version}_{stamp}",
                     "signing_request_id": signing.signing_request_id, "signature": sig}), 202)
                 publish = calldata(reader, "publish", {
@@ -306,7 +317,7 @@ async def run(args):
                     "signature": sig,
                 })
                 tx = await signers.send(chain_client, "institution", "0x" + publish.hex())
-                op = ok(await bank.post(
+                op = ok(await post(bank, 
                     f"/v3/signing-requests/{signing.signing_request_id}/transactions",
                     json={"request_id": f"req_direct_{version}_{stamp}",
                           "signing_request_id": signing.signing_request_id, "tx_hash": tx}),
@@ -323,7 +334,7 @@ async def run(args):
                          ("금액 1원 변조", did, None, genuine | {"amount_minor": 120001}),
                          ("정정 전 v1", published[1][0], 1, published[1][1]))
                 for label, document_id, version, candidate in cases:
-                    result = ok(await recipient.post("/v3/verifications", json={
+                    result = ok(await post(recipient, "/v3/verifications", json={
                         "request_id": f"req_verify_{int(time.time() * 1000)}",
                         "document_id": document_id, "version": version,
                         "scope": "PROTECTED_FIELDS", "candidate": candidate}), 200)
