@@ -82,7 +82,9 @@ def rpc_caller(url):
     return rpc
 
 
-def run_forge(contracts_dir: Path, target, url: str, approver_addresses, signer: list[str]) -> str:
+def run_forge(
+    contracts_dir: Path, target, url: str, approver_addresses, signer: list[str], gas_multiplier=200
+) -> str:
     forge = shutil.which("forge")
     if forge is None:
         raise ValueError("forge must be on PATH")
@@ -92,8 +94,9 @@ def run_forge(contracts_dir: Path, target, url: str, approver_addresses, signer:
     }
     env |= {f"WALLET_APPROVER_{i}_ADDRESS": a for i, a in enumerate(approver_addresses, 1)}
     # Output is not captured so keystore/hardware prompts stay interactive.
-    # 기본 여유(130%)로는 Sepolia 실제 배포가 가스 부족으로 실패했음(0xa11034…, 2026-10-27).
-    # 한도만 넉넉히 잡고, 실제로 쓴 가스만 청구됨.
+    # forge 1.8.1 로컬 모의 실행(약 2.7M gas)은 Sepolia 의 오른 코드 저장 비용을 모름.
+    # 2026-10-27 실제 노드 eth_estimateGas 는 19,187,530 → 130%·200% 배포 모두 가스 부족 실패
+    # (0xa11034…, 0xc98a4e…). Sepolia 는 --gas-multiplier 800 으로 보냄. 실제 사용 가스만 청구됨.
     subprocess.run(
         [
             forge,
@@ -101,7 +104,7 @@ def run_forge(contracts_dir: Path, target, url: str, approver_addresses, signer:
             f"script/{SCRIPT}:DeployWalletRegistry",
             "--broadcast",
             "--gas-estimate-multiplier",
-            "200",
+            str(gas_multiplier),
             *signer,
         ],
         cwd=contracts_dir,
@@ -220,6 +223,9 @@ def main(argv=None) -> Path:
     parser.add_argument("--unlocked", action="store_true", help="Anvil only, with --sender")
     parser.add_argument("--sender")
     parser.add_argument("--source-commit-sha")
+    parser.add_argument(
+        "--gas-multiplier", type=int, default=200, help="forge --gas-estimate-multiplier (%%)"
+    )
     args = parser.parse_args(argv)
 
     target = chain_target(args.chain_target)
@@ -246,7 +252,11 @@ def main(argv=None) -> Path:
         tx_hash = validate_hash(args.deployment_tx)
     else:
         signer = signer_args(args, target)
-        tx_hash = run_forge(contracts_dir, target, url, approver_addresses, signer)
+        if not 100 <= args.gas_multiplier <= 2000:
+            raise ValueError("--gas-multiplier must be 100..2000")
+        tx_hash = run_forge(
+            contracts_dir, target, url, approver_addresses, signer, args.gas_multiplier
+        )
     manifest = build_manifest(
         rpc_caller(url), target, contracts_dir, tx_hash, approver_addresses, sha
     )
