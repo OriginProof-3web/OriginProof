@@ -92,8 +92,18 @@ def run_forge(contracts_dir: Path, target, url: str, approver_addresses, signer:
     }
     env |= {f"WALLET_APPROVER_{i}_ADDRESS": a for i, a in enumerate(approver_addresses, 1)}
     # Output is not captured so keystore/hardware prompts stay interactive.
+    # 기본 여유(130%)로는 Sepolia 실제 배포가 가스 부족으로 실패했음(0xa11034…, 2026-10-27).
+    # 한도만 넉넉히 잡고, 실제로 쓴 가스만 청구됨.
     subprocess.run(
-        [forge, "script", f"script/{SCRIPT}:DeployWalletRegistry", "--broadcast", *signer],
+        [
+            forge,
+            "script",
+            f"script/{SCRIPT}:DeployWalletRegistry",
+            "--broadcast",
+            "--gas-estimate-multiplier",
+            "200",
+            *signer,
+        ],
         cwd=contracts_dir,
         env=env,
         check=True,
