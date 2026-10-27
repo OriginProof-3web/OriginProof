@@ -38,3 +38,15 @@ D 사용자가 충전 완료·텍스트24회 활성화/실행을 직접 승인�
 로컬 fixture 제작용 macOS say/Yuna로 발음 미정 flag가 없는13개 PCM 음성 초안을 추가했습니다(유료/네트워크 API0). 사람 녹음/정답 전사/시간 주석·실제STT는 미검토/미실행입니다. sandbox의 종료0·0프레임 probe 거부와 일반로컬 정상생성을 구분하고 기존 PCM 검사를 유지했습니다. 원본frames를 보존한 canonical WAV, hash·출처·미검토·경로/변조 거부 검사를 추가했습니다. 제품 분석/STT 모델·프로덕션 계약을 변경하지 않았습니다. [제작·한계·명령](../qa/v5-d-selected-input-assets-20261025.md).
 
 최종 자료 준비 코드 `5b9c857e590485ed04be92884e680a37b981455f`: clean-source 기본1185 PASS/11 SKIP·Ruff/검토/이미지/음성 검사·공통 생성5개 diff0. [실제48회와 자료23/22/13, 원본 보존·비활성 정책·미검증 구분](../qa/v5-d-ready-batch-20261025.json). 사람 음성 정답·OCR/STT 평가/최종36·브라우저/다른 장비/전체RC 완료를 대신하지 않습니다.
+
+
+## 2026-10-27 최종 텍스트 평가·선정 이미지 평가 도구
+
+- 사용자 판단: 최신 TEXT/DOCUMENT_IMAGE 범위·기존 OpenAI gpt-6-luna 선택을 유지하고, “최종 36회 실행 승인”으로 기존48회와 별도 범위를 직접 승인했습니다. Claude/RAG·이미지 유료 호출·원격 병합은 승인한 것으로 해석하지 않았습니다.
+- D/Codex 구현·실행: 최신 W6 `e29fa8e`의 새 D 작업 branch에서 기존 동결 fingerprint를 확인한 후36회 한 번 실행,33/36·macro-F1 0.911842·HIGH9/9·근거 포함13/18·정확 경계0/18을 기록했습니다. 최종 분할을 보고 튜닝·재실행하지 않았고 A/C 라벨·분할·기존48회 기록을 보존했습니다.
+- D/Codex 신규 구현: 기존 이미지23개 checker·변환 검증·CER·분류 지표를 연결한 document_evaluation. 기본은 미실행 계획, 명시적 callback에도 정답/ID를 전달하지 않으며 실패를 분모에 남깁니다. 네트워크 차단16개 검사 통과. 새 의존성·공통 계약·타 소유자 생산 코드는 변경하지 않았습니다.
+- 재사용/타인 기여: C의 W6 실제 DB/API 복구7개와 A의 #99 고정 b0b77e2 HTTP4개를 그대로 독립 실행했습니다. API/DB 복구 코드와 HTTP 기준선의 원저자는 C/A이며 D가 새로 만든 기능으로 합산하지 않습니다.
+- 문제 해결: 저장소 밖으로 추출한 HTTP 검사를 첫 실행할 때 프로젝트 pytest 설정이 검색되지 않아 async fixture4개가 setup 오류였습니다. `-c pyproject.toml`로 기존 asyncio_mode=auto 설정을 명시한 뒤4개 통과했습니다. 시험/fixture 자체를 완화하지 않았습니다.
+- 한계/다음 담당: 모델 단독 점수·실제 이미지 판독·생산 API 주입·실제 B Registry+웹 전체 동선·다른 노트북·RC3회는 별도입니다. 일반 복구7개의 Registry/분석기 응답은 합성입니다. [실측](../qa/v5-d-live-holdout-20261027.md), [현재 인계·요청 표](../handoffs/v5_d_service_readiness_20261027.md). 신규 CI/clean-source 검증은 최종 증거 보고서와 PR에 기록합니다.
+
+- 최종 검증 source `bfd115329d71e0c4600f0184284d33e812c67611`: 키 없는 git archive 기본1310 PASS/19 SKIP/기존경고1, D stage43·consumer31·고정 C63 독립71. 생성기5종 차이0·검토본/자료 일치·Ruff 통과. 신규16개는 전체에 포함됩니다. 실제 DB/API 복구7개는 기본 skip과 별도로 실행했고 일반 검증100회 p50 15.0273ms/p95 16.1677ms(합성 Registry, 모델/RPC 미포함)입니다. [전체 검증 경계](../qa/v5-d-service-readiness-20261027.json).
