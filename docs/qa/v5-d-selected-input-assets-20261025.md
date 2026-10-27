@@ -1,3 +1,5 @@
+> **2026-10-27 현재 범위:** 지원 입력은 텍스트(TEXT)·이미지(DOCUMENT_IMAGE)입니다. 음성(AUDIO·WAV), STT, 녹음·TTS 자료 및 관련 코드는 **보류(향후 확장)**로 보존하며 현재 지원·필수 평가 대상에서 제외합니다. 아래 날짜별 음성 기록은 과거 이력입니다.
+
 # D 선정 입력 개발용 자료·최종 텍스트 후보 준비 — 2026-10-25
 
 D 여인준 @yijun0330 / Codex 보조 / V5-W5-D·V5-W6-D 준비. 사용자가 D 작업 전체 진행을 지시하고 v2 개발24회 추가 유료평가를 별도 승인했습니다. 이번 자료 생성기는 provider를 호출하지 않았습니다. 실제 텍스트는 v1/v2 각24·누적48회이며 최종36/이미지/음성0입니다.
@@ -26,7 +28,7 @@ export PYTHONPATH=services/analyzer/src:apps/api/src:packages/python:services/in
 .uv-venv/bin/python -m originproof_analyzer.review_packet --check
 ```
 
-asset checker는 source/라벨/전사/시간/검토/과금 결과 위조, 파일 hash·경로/누락/추가·symlink·text-only 배제 위반·폰트 출처 위조·대본 변경을 거부합니다. 기존 review_packet 생성기의 180개는 여전히 후보 매핑 수이며 실제 미디어180개/필수 호출 수가 아닙니다. 현재 개발23이미지/22대본 상태를 연결하고 실행 flag가 export/asset 범위임을 명시했습니다. 실제 텍스트 호출 이력은 [v1](v5-d-live-development-20261025.md)/[v2](v5-d-live-development-v2-20261025.md)에서 확인합니다.
+asset checker는 source/라벨/전사/시간/검토/과금 결과 위조, 파일 hash·경로/누락/추가·symlink·text-only 배제 위반·폰트 출처 위조·대본 변경을 거부합니다. 현재 review_packet 생성기의 120개는 텍스트·이미지 두 형식의 후보 매핑 수이며 실제 미디어120개/필수 호출 수가 아닙니다. 현재 개발23이미지/22대본 상태를 연결하고 실행 flag가 export/asset 범위임을 명시했습니다. 실제 텍스트 호출 이력은 [v1](v5-d-live-development-20261025.md)/[v2](v5-d-live-development-v2-20261025.md)에서 확인합니다.
 
 ## 최종36개 준비와 남은 일
 
@@ -34,7 +36,7 @@ v2 실제 개발 결과 확인 후 모델 alias/프롬프트·코드/runtime has
 
 [최종36개 비활성 정책](../../fixtures/synthetic/v5_d_live_evaluation_policy.holdout.pending.json)은 false·회당1024·총예약36864·원문200자입니다. 현재 preflight는 PAID_SCOPE_NOT_APPROVED이며 실제호출0입니다. 별도로 승인해 실행하면 이전48회와 누적84회가 될 수 있습니다. 추가 충전·모델/포맷·최종 평가 실행을 임의 수행하지 않았습니다.
 
-남은 직접 입력은 음성 낭독 자료와 STT 모델/코덱 선택입니다. C/A 업로드·보관/삭제·서버/브라우저 및 B 실제 배포/Adapter·다른 장비·최종 RC는 통합 인계 뒤 검증합니다. 팀원 메시지·재리뷰 요청·원격 병합·공개 배포는 하지 않았습니다. G07 로컬 legacy 해결·Decisions API 제외·v1/v2 서명/권한/consume 회귀를 유지합니다.
+음성 낭독 자료와 STT 모델/코덱 선택은 보류(향후 확장)이며 현재 필수 잔여 작업이 아닙니다. C/A 업로드·보관/삭제·서버/브라우저 및 B 실제 배포/Adapter·다른 장비·최종 RC는 통합 인계 뒤 검증합니다. 팀원 메시지·재리뷰 요청·원격 병합·공개 배포는 하지 않았습니다. G07 로컬 legacy 해결·Decisions API 제외·v1/v2 서명/권한/consume 회귀를 유지합니다.
 
 
 ## 로컬 합성 음성13개 추가 (STT·사람 녹음 아님)

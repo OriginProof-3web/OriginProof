@@ -1,3 +1,7 @@
+> **2026-10-27 현재 범위:** 지원 입력은 텍스트(TEXT)·이미지(DOCUMENT_IMAGE)입니다. 음성(AUDIO·WAV), STT, 녹음·TTS 자료 및 관련 코드는 **보류(향후 확장)**로 보존하며 현재 지원·필수 평가 대상에서 제외합니다. 아래 날짜별 음성 기록은 과거 이력입니다.
+
+> **2026-10-26 최신 결정:** 텍스트·이미지(문서)만 지원 대상으로 선정하고 음성은 제외합니다. 아래 날짜별 음성 선정·준비·STT 후속 서술은 과거 기록이며 현재 지원 계획이 아닙니다. 음성 관련 추가 작업은 향후 별도 결정 전 보류합니다.
+
 # D 비동기 분석기·평가 초안 인계
 
 > **2026-10-25 v2 실제 개발 재평가·자료 준비:** 추가24회 승인 후 v2 개발24/24·grounding 거부0, 누적48회입니다. [v2 실측](../qa/v5-d-live-development-v2-20261025.md), [문서23개/대본22개·로컬TTS13개·최종 후보 준비](../qa/v5-d-selected-input-assets-20261025.md). 정책은 다시false이고 최종36개/이미지/음성 호출0입니다. 아래 v2 미실행 표시는 후속 승인 전 기록입니다.
@@ -54,7 +58,7 @@ C가 발행 검증 세션을 별도로 집계합니다. D는 verification을 생
 
 [`phishing_sources_v1.json`](../../fixtures/synthetic/phishing_sources_v1.json)은 네 수준별 15개, 총 60개 합성 텍스트 원본 초안입니다. 제안 분할은 개발 24/보류 36(수준별 6/9)이며 같은 source_group의 변형이 분할을 넘지 않도록 검사합니다. 동일 원문이 양쪽에 들어가는 것도 거부합니다. 기존 30개 근거 replay와 카드 추출 10개 평가를 위험 분류 60개와 합산하지 않습니다.
 
-2026-10-25 현재 **A_AND_C_CONFIRMED_UNCHANGED / labels_human_reviewed=true / input_selection=TEXT**입니다. A/C의 실제 확인 링크와 원문·라벨·근거·분할 불변을 기록했고, 이후 문장은 10월23일 준비 당시 상태입니다. 당시에는 **DRAFT_REVIEW_REQUIRED / labels_human_reviewed=false**를 유지했습니다. 원본 파일의 input_selection=UNDECIDED는 10월16일 역사 스냅샷이며, 현재 입력 선택은 텍스트·이미지(문서)·음성입니다. 사용자의 최신 지시로 D가 평가를 준비해 A와 C가 검토하도록 [60개 검토본과 입력 인계](v5_d_input_evaluation_20261023.md)를 공유합니다. 검토 전에는 확정 평가셋으로 동결하지 않습니다. 현재 합성 텍스트 원형은 OCR/STT/PDF 지원을 뜻하지 않습니다.
+2026-10-25 현재 **A_AND_C_CONFIRMED_UNCHANGED / labels_human_reviewed=true / input_selection=TEXT**입니다. A/C의 실제 확인 링크와 원문·라벨·근거·분할 불변을 기록했고, 이후 문장은 10월23일 준비 당시 상태입니다. 당시에는 **DRAFT_REVIEW_REQUIRED / labels_human_reviewed=false**를 유지했습니다. 원본 파일의 input_selection=UNDECIDED는 10월16일 역사 스냅샷이며, 현재 입력 선택은 2026-10-26 대표 결정에 따라 텍스트·이미지(문서)만이며 음성은 제외입니다. 사용자의 최신 지시로 D가 평가를 준비해 A와 C가 검토하도록 [60개 검토본과 입력 인계](v5_d_input_evaluation_20261023.md)를 공유합니다. 검토 전에는 확정 평가셋으로 동결하지 않습니다. 현재 합성 텍스트 원형은 OCR/STT/PDF 지원을 뜻하지 않습니다.
 
 ```sh
 PYTHONPATH=apps/api/src:packages/python:services/analyzer/src \

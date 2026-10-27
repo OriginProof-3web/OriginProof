@@ -9,7 +9,7 @@ from pathlib import Path
 
 from .phishing_evaluation import load_corpus
 
-MODALITIES = ("TEXT", "DOCUMENT_IMAGE", "AUDIO")
+MODALITIES = ("TEXT", "DOCUMENT_IMAGE")
 
 
 def build_packet(corpus_path: Path, self_review_path: Path) -> dict:
@@ -98,28 +98,11 @@ def build_packet(corpus_path: Path, self_review_path: Path) -> dict:
                         if row["image_asset"]
                         else None
                     )
-                elif variant["kind"] == "AUDIO":
-                    variant["asset_status"] = row["recording"]["status"]
-                    variant["script_reference"] = "selected_input_development_v1/recording_plan.md"
-    speech = None
-    speech_root = corpus_path.parent / "local_tts_development_preview_v1"
-    if (speech_root / "manifest.json").exists():
-        from .input_asset_pack import check_speech_previews
-
-        speech = check_speech_previews(corpus_path, speech_root)
-        manifest = json.loads((speech_root / "manifest.json").read_text())
-        previews = {row["source_id"]: row for row in manifest["cases"]}
-        for case in cases:
-            if case["id"] in previews:
-                for variant in case["planned_variants"]:
-                    if variant["kind"] == "AUDIO":
-                        variant["asset_status"] = "LOCAL_TTS_DRAFT_NOT_REVIEWED_OR_TRANSCRIBED"
-                        variant["tts_preview_path"] = (
-                            "local_tts_development_preview_v1/" + previews[case["id"]]["audio_path"]
-                        )
     return {
         "version": "v5-d-input-review-0.3",
-        "unreviewed_local_speech_previews": speech,
+        "audio_scope": (
+            "DEFERRED_FUTURE_EXTENSION; NOT_CURRENTLY_SUPPORTED; HISTORICAL_ASSETS_ONLY"
+        ),
         "execution_flags_scope": "EXPORT_ASSET_PREPARATION_ONLY; TEXT_RUNS_SEPARATE",
         "generated_development_assets": assets,
         "date_kst": "2026-10-25" if reviewed else "2026-10-23",
@@ -128,7 +111,7 @@ def build_packet(corpus_path: Path, self_review_path: Path) -> dict:
         if reviewed
         else "D preparation for A and C review; no human approval or evaluation execution",
         "decision": {
-            "authority": "D user instruction in this chat, 2026-10-23",
+            "authority": "Representative decision, 2026-10-26; text and images only",
             "selected_inputs": list(MODALITIES),
             "priority": "TEXT_EVALUATION_FIRST; REMAINING_ORDER_PROPOSED"
             if reviewed
@@ -136,7 +119,6 @@ def build_packet(corpus_path: Path, self_review_path: Path) -> dict:
             "document_formats_pdf_inclusion": "DOCUMENT_IMAGES_ONLY; PDF_NOT_SELECTED"
             if reviewed
             else "UNDECIDED",
-            "audio_codecs": "UNDECIDED",
             "model": "gpt-6-luna",
             "budget": "ISSUE_92_TEXT_SCOPE; LOCAL_FUNDING_UNVERIFIED"
             if reviewed
@@ -151,7 +133,7 @@ def build_packet(corpus_path: Path, self_review_path: Path) -> dict:
         "similarity_caveat": corpus.get("similarity_caveat"),
         "source_cases": 60,
         "proposed_split": {"development": 24, "holdout": 36},
-        "planned_variants": 180,
+        "planned_variants": 60 * len(MODALITIES),
         "variant_count_is_not_independent_sources_or_evaluated_assets": True,
         "split_review_groups": review["split_review_groups"],
         "paid_calls": 0,
@@ -165,7 +147,7 @@ def render_markdown(packet: dict) -> str:
     lines = [
         "# D 입력·평가 A/C 검토본 — " + packet["date_kst"],
         "",
-        "텍스트·이미지(문서)·음성 선택, gpt-6-luna 유지. 음성 코덱/전사 모델은 미정입니다.",
+        "2026-10-26 결정: 텍스트·이미지(문서)만 선정, 음성은 보류(향후 확장)로 현재 지원에서 제외. gpt-6-luna 유지.",
         "텍스트 평가 우선, PDF 파일은 미선정입니다."
         if reviewed
         else "세부 형식·우선순위 미정입니다.",
@@ -173,10 +155,10 @@ def render_markdown(packet: dict) -> str:
         if reviewed
         else "라벨·근거는 D 초안이며 A/C 검토 PENDING입니다.",
         "유료 정책은 별도이며 기본 비승인입니다. 이 생성기는 실제 호출·승인을 하지 않습니다.",
-        "180은 세 형식 매핑 수이며 독립 원본/제작/변환/실제 평가 완료 수가 아닙니다.",
+        "120은 두 형식 매핑 수이며 독립 원본/제작/변환/실제 평가 완료 수가 아닙니다.",
         "paid/model flag는 export 준비 범위입니다. 실제 텍스트 평가 이력은 별도 보고서입니다.",
         "텍스트 위치는 Unicode 코드 포인트 [start,end)이며 "
-        "이미지 영역·음성 시간으로 복사하지 않습니다.",
+        "이미지 영역으로 복사하지 않습니다.",
         "아래 D 판단 근거·flags·분할 관계는 검토 전 제안 이력으로 보존합니다.",
         "",
     ]
@@ -196,17 +178,9 @@ def render_markdown(packet: dict) -> str:
         lines.extend(
             [
                 f"개발 이미지 {assets['image_assets']}개, "
-                f"대본 {assets['recording_script_drafts']}개. 정식 녹음/변환 평가0.",
+                "이미지 변환 평가0. 기존 녹음 대본은 보류(향후 확장) 자료로 보존합니다.",
                 "[이미지/녹음 계획 manifest]"
                 "(../../fixtures/synthetic/selected_input_development_v1/manifest.json)",
-                "",
-            ]
-        )
-    if packet.get("unreviewed_local_speech_previews"):
-        speech = packet["unreviewed_local_speech_previews"]
-        lines.extend(
-            [
-                f"별도 로컬 TTS 초안 {speech['local_tts_drafts']}개. 사람 검토/실제 STT 평가0.",
                 "",
             ]
         )
@@ -245,7 +219,14 @@ def main() -> int:
     parser.add_argument(
         "--check", action="store_true", help="compare generated proposal; never write"
     )
+    parser.add_argument(
+        "--regenerate",
+        action="store_true",
+        help="explicitly replace generated exports after reviewing human notes",
+    )
     args = parser.parse_args()
+    if args.check and args.regenerate:
+        parser.error("--check and --regenerate are mutually exclusive")
     root = Path(__file__).resolve().parents[4]
     fixtures = root / "fixtures/synthetic"
     packet = build_packet(
@@ -258,7 +239,7 @@ def main() -> int:
         + "\n",
         root / "docs/qa/v5-d-input-evaluation-review-20261023.md": render_markdown(packet),
     }
-    if not args.check and any(path.exists() for path in outputs):
+    if not args.check and not args.regenerate and any(path.exists() for path in outputs):
         raise SystemExit("refusing to overwrite an existing proposal; preserve human notes")
     for path, content in outputs.items():
         if args.check:
@@ -268,7 +249,7 @@ def main() -> int:
             path.write_text(content, encoding="utf-8")
     print(
         "A/C review export consistent: 60 sources, 24/36 split, "
-        "180 planned variants; calls/predictions 0"
+        "120 planned variants; calls/predictions 0"
     )
     return 0
 

@@ -1,5 +1,8 @@
 """Opt-in SDK conversion adapters. Disabled by default; no key lookup or client creation."""
 
+# AUDIO/WAV/STT: deferred for future extension; not a currently supported input.
+# Preserve historical validation and assets; current inputs are TEXT/DOCUMENT_IMAGE.
+
 from __future__ import annotations
 
 import asyncio

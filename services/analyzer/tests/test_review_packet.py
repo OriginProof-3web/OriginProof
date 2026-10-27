@@ -22,7 +22,10 @@ def test_offline_packet_preserves_sources_splits_and_recorded_reviews(monkeypatc
     before = CORPUS.read_bytes(), SELF_REVIEW.read_bytes()
     packet = build_packet(CORPUS, SELF_REVIEW)
     assert packet["source_fixture_sha256"] == hashlib.sha256(before[0]).hexdigest()
-    assert packet["decision"]["selected_inputs"] == list(MODALITIES)
+    assert packet["decision"]["selected_inputs"] == list(MODALITIES) == ["TEXT", "DOCUMENT_IMAGE"]
+    assert "audio_codecs" not in packet["decision"]
+    assert "DEFERRED_FUTURE_EXTENSION" in packet["audio_scope"]
+    assert packet["planned_variants"] == 120
     assert packet["decision"]["approved_for_paid_calls"] is False
     assert packet["decision"]["call_scope"] == "TEXT_DEVELOPMENT_24_PREPARED_DISABLED"
     assert packet["labels_human_reviewed"] is True
@@ -30,7 +33,7 @@ def test_offline_packet_preserves_sources_splits_and_recorded_reviews(monkeypatc
     assert len(packet["cases"]) == 60
     assert sum(c["proposed_split"] == "development" for c in packet["cases"]) == 24
     variants = [v for c in packet["cases"] for v in c["planned_variants"]]
-    assert len(variants) == len({v["id"] for v in variants}) == 180
+    assert len(variants) == len({v["id"] for v in variants}) == 120
     originals = json.loads(before[0])["cases"]
     for original, case in zip(originals, packet["cases"], strict=True):
         assert case["text"] == original["text"]
@@ -95,3 +98,10 @@ def test_review_flag_without_valid_recorded_confirmations_is_rejected(tmp_path, 
     review_path.write_text(json.dumps(review))
     with pytest.raises(ValueError, match="review confirmations"):
         build_packet(path, review_path)
+
+
+def test_check_and_regenerate_cannot_be_combined(monkeypatch):
+    monkeypatch.setattr("sys.argv", ["review_packet", "--check", "--regenerate"])
+    with pytest.raises(SystemExit) as exc:
+        main()
+    assert exc.value.code == 2
