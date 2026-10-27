@@ -37,6 +37,8 @@ def sha256(value):
 class WalletRuntime:
     def __init__(self, database, settings, chain=None):
         self.database, self.settings, self.chain = database, settings, chain
+        # lifespan 이 넣는 연결기(WalletRegistryConnector). 미연결이면 호출 때 다시 시도.
+        self.connect = None
 
     @property
     def domain(self):
@@ -48,6 +50,8 @@ class WalletRuntime:
         )
 
     async def rpc(self, method, *args):
+        if self.chain is None and self.connect is not None:
+            self.chain = await self.connect()
         if self.chain is None:
             raise HTTPException(503, "WALLET_REGISTRY_UNAVAILABLE")
         try:

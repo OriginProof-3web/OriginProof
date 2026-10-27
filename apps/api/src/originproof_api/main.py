@@ -4,10 +4,12 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from uuid import uuid4
 
+import httpx
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from infrastructure.blockchain import JsonRpcBlockchainReader
+from infrastructure.blockchain.wallet_deployment import WalletRegistryConnector
 from originproof_core import (
     BlockchainReader,
     DependencyUnavailableError,
@@ -88,8 +90,19 @@ def create_app(
             or app_settings.wallet_text_input_enabled
             or app_settings.wallet_demo_email_enabled
         )
-        task = maintenance_task = None
+        task = maintenance_task = wallet_client = None
         try:
+            # 지갑 Registry 생산 연결: 주입된 chain 이 없고 주소·RPC 가 있을 때만.
+            # 배포 기록(manifest)으로 체인 위 배포를 검증한 뒤에만 연결한다.
+            runtime = app.state.wallet_runtime
+            if (
+                runtime.chain is None
+                and app_settings.wallet_registry_address
+                and app_settings.blockchain_rpc_urls
+            ):
+                wallet_client = httpx.AsyncClient(timeout=10, trust_env=False)
+                runtime.connect = WalletRegistryConnector(wallet_client, app_settings)
+                runtime.chain = await runtime.connect()
             if wallet_enabled:
                 for analysis_id in await cleanup(app, restart=True):
                     launch(app, analysis_id)
@@ -109,6 +122,8 @@ def create_app(
             if pending:
                 await asyncio.gather(*pending, return_exceptions=True)
             await app_database.dispose()
+            if wallet_client is not None:
+                await wallet_client.aclose()
 
     app = FastAPI(
         title="OriginProof API",

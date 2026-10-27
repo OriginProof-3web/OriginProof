@@ -24,6 +24,7 @@ import subprocess
 from pathlib import Path
 
 import httpx
+from eth_utils import keccak
 from infrastructure.blockchain.manifest import validate_address, validate_hash
 from infrastructure.blockchain.network import APPROVER_NODES, chain_target, rpc_urls
 
@@ -151,7 +152,8 @@ def build_manifest(rpc, target, contracts_dir: Path, tx_hash: str, approver_addr
         raise ValueError("deployment input does not match the local Registry artifact")
     registry = validate_address(receipt["contractAddress"])
     block = int(receipt["blockNumber"], 16)
-    if rpc("eth_getCode", [registry, hex(block)]) in ("0x", "0x0"):
+    code = rpc("eth_getCode", [registry, hex(block)])
+    if not isinstance(code, str) or code in ("0x", "0x0"):
         raise ValueError("no Registry code at the deployed address")
     genesis = rpc("eth_getBlockByNumber", ["0x0", False])
     deployed = rpc("eth_getBlockByNumber", [hex(block), False])
@@ -189,6 +191,11 @@ def build_manifest(rpc, target, contracts_dir: Path, tx_hash: str, approver_addr
         "deployer": validate_address(transaction["from"]),
         "roles": roles,
         "role_labels": {node["role"]: node for node in APPROVER_NODES},
+        # API 주입(from_deployment)이 체인에서 다시 검증하는 값. 배포 ID 계산에는 넣지 않음.
+        # runtime_code_hash: 배포 블록 실제 코드의 keccak
+        # creation_bytecode: 로컬 빌드 생성 코드(생성자 인자 제외)
+        "runtime_code_hash": "0x" + keccak(bytes.fromhex(code[2:])).hex(),
+        "creation_bytecode": expected_input[: len(expected_input) - 64 * 3],
     }
 
 

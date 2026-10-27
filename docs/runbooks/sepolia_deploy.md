@@ -47,7 +47,7 @@
    2. `cast code <address> --rpc-url sepolia` → `0x`가 아닌 코드가 나와야 합니다.
    3. 승인자 인식(거래를 보내지 않는 읽기 호출): `cast call <address> "approve(bytes32)" 0x0000000000000000000000000000000000000000000000000000000000000001 --from <승인자 주소> --rpc-url sepolia`. 승인자는 `UnknownProposal`, 다른 주소는 `Unauthorized`로 되돌아오면 정상입니다.
    4. 브라우저에서 `https://sepolia.etherscan.io/tx/<deployment_tx>`(Status Success, From이 배포 지갑, Contract Creation이 `address`)와 `https://sepolia.etherscan.io/address/<address>`(코드 존재, 블록 번호가 `deployment_block`)를 봅니다.
-   5. API `.env`에 `API_WALLET_REGISTRY_ADDRESS=<address>`를 설정합니다(현재 API는 wallet manifest에서 주소를 자동으로 읽지 않음, 아래 B 연결 대기). `11155111.wallet.json`은 `.gitignore`의 `*.local.json` 규칙에 걸리지 않으므로, 검증된 비로컬 manifest의 커밋 여부는 B 리뷰로 정합니다(현재 `phase/W5`에는 `packages/contracts/deployments/` 디렉터리와 그 안내 문서가 없습니다).
+   5. API `.env`에 `API_WALLET_REGISTRY_ADDRESS=<address>`를 설정합니다(API는 이 주소와 `CHAIN_TARGET`의 wallet manifest가 일치할 때만 기동 시 자동 연결합니다. 아래 "API 자동 연결"). `11155111.wallet.json`은 `.gitignore`의 `*.local.json` 규칙에 걸리지 않으므로, 검증된 비로컬 manifest의 커밋 여부는 B 리뷰로 정합니다(현재 `phase/W5`에는 `packages/contracts/deployments/` 디렉터리와 그 안내 문서가 없습니다).
 6. **실패 시 Anvil 전환.** Anvil 명령은 **새 터미널**에서 실행합니다. 래퍼는 `CHAIN_RPC_URL`을 target과 관계없이 먼저 읽으므로, Sepolia RPC 값이 남은 4~5단계 터미널에서 실행하지 않습니다. 새 터미널에서 값을 출력하지 않고 비어 있는지만 확인합니다: `[ -z "${SEPOLIA_RPC_URL-}${CHAIN_RPC_URL-}" ] && echo clean` → `clean`이어야 합니다. 현장 RPC가 느리거나 끊기면 `.env`에서 `CHAIN_TARGET=anvil`, `API_BLOCKCHAIN_RPC_URL=http://anvil:8545`(호스트 실행이면 `http://127.0.0.1:8545`), `API_BLOCKCHAIN_RPC_FALLBACK_URL=` 비움(또는 다른 로컬 노드), `API_BLOCKCHAIN_MANIFEST_PATH`를 31337 manifest로, `API_WALLET_REGISTRY_ADDRESS`를 Anvil 배포 주소로 바꾸고 API를 재시작합니다. 거꾸로 Anvil→Sepolia도 같은 값들을 되돌리면 됩니다.
    - Anvil은 시작 화면에 개발용 개인키를 출력하므로 **처음부터 출력을 버리는 명령으로만** 띄웁니다: `anvil --chain-id 31337 >/dev/null 2>&1 &`
    - `packages/contracts`에서 `cast chain-id --rpc-url anvil` → `31337`을 확인하고, `cast rpc eth_accounts --rpc-url anvil`로 공개 주소만 보고, 1·2·3번 주소를 `WALLET_APPROVER_1~3_ADDRESS`로, 0번 주소를 `--sender`로 씁니다.
@@ -76,16 +76,20 @@
 - `WalletRuntime.domain`(`apps/api/src/originproof_api/wallet_runtime.py`): EIP-712 domain chainId가 target을 따름.
 - 기존 manifest는 `load_manifest(path, CHAIN_TARGET chain ID)`로 다른 네트워크 manifest를 거부.
 
-B 연결 대기(B 브랜치 `origin/codex/v5-w5-b-live-recovery` `e7d0bae` 기준 이름, 이 브랜치에 없음):
+### API 자동 연결 (W6, `feat/v5-w6-blockchain-completion`)
 
-| 연결할 곳 | 현재 이 브랜치 | 필요한 B 코드 |
-| --- | --- | --- |
-| `create_app(wallet_chain=…)`(`apps/api/src/originproof_api/main.py`) → `WalletRuntime.rpc`, `readiness.check_ready`의 wallet 분기 | 실제 Adapter 미주입(503 `WALLET_REGISTRY_UNAVAILABLE`) | `apps/api/src/infrastructure/blockchain/wallet_rpc.py` `WalletRpc(client, rpc_url, *, chain_id, address, deployment_block, deployment_hash, runtime_code_hash, abi)`에 `Settings.blockchain_chain_id`·`blockchain_rpc_urls`·wallet manifest 값을 넘기는 생성 함수. 주/보조 RPC 전환도 이 Adapter에서 |
-| `Settings.wallet_manifest_path` 소비 | 경로만 선택, 읽는 코드 없음. 주소는 `API_WALLET_REGISTRY_ADDRESS` 수동 | B-C01 wallet manifest 로더(형식은 B 확정). 이 래퍼 manifest에는 `WalletRpc`가 요구하는 `runtime_code_hash`가 아직 없음 |
-| 신규 이벤트 projection | `projection.scan`은 기존 ProofStatusRegistry만 | `services/indexer/src/originproof_indexer/wallet_projection.py` `WalletProjection(engine, rpc)` |
-| 복구·대사 | 없음 | `wallet_recovery.py` `WalletRecovery`, `wallet_reconciliation.py` `WalletReconciler` |
+| 연결할 곳 | 상태 |
+| --- | --- |
+| `create_app` lifespan → `WalletRuntime.chain` | **연결됨.** `API_WALLET_REGISTRY_ADDRESS`와 RPC가 설정되면 `infrastructure/blockchain/wallet_deployment.py`의 `WalletRegistryConnector`가 wallet manifest를 읽고 `WalletRegistryReadAdapter.from_deployment`로 체인 위 CREATE·생성 코드·런타임 코드 해시·고정 승인자 3명을 다시 검증한 뒤에만 주입합니다. 실패하면 주입하지 않고 503을 유지하며, 이후 호출 때 15초 간격으로 다시 시도합니다. |
+| 주/보조 RPC | **연결 시점 전환.** 주 RPC로 검증이 실패하면 보조 RPC로 연결합니다. 연결 뒤 실행 중 자동 전환은 하지 않습니다(다음 재시작·재연결 때 다시 선택). |
+| wallet manifest | **소비됨.** 래퍼가 `runtime_code_hash`·`creation_bytecode`를 함께 기록하고, API는 chain ID·주소·커밋된 ABI(`abi_sha256`)가 맞을 때만 사용합니다. 이 필드가 없는 예전 manifest는 `--deployment-tx`로 다시 기록합니다. |
+| 도커 이미지 | `infra/docker/api.Dockerfile`이 `packages/contracts/abi`·`deployments`를 복사합니다(`*.local.json` 제외). |
+| 신규 이벤트 projection | 대기. `projection.scan`은 기존 ProofStatusRegistry만 읽습니다. `WalletProjection(engine, rpc)`의 생산 연결은 남았습니다. |
+| 복구·대사 | 대기. `WalletRecovery`·`WalletReconciler`는 코드·시험이 있으나 API 유지 작업에는 아직 연결하지 않았습니다. |
+
+검증: `ORIGINPROOF_WALLET_LIVE=1 uv run pytest apps/api/tests/test_wallet_deploy_live.py`가 실제 Anvil에 B 컨트랙트를 배포하고, 주 RPC 장애 시 보조 RPC 연결, `create_app` lifespan 자동 연결·실제 `getIssuer` 읽기·종료 시 연결 정리, 위조 manifest 거부를 확인합니다.
 
 ## 현재 한계
 
-- 로컬 검증은 스크래치 사본(가짜 `OriginProofWalletRegistry`, 같은 `address[3]` 생성자)의 Anvil 실행이며 B 실제 컨트랙트·Sepolia·브라우저 지갑 검증은 실행하지 않았습니다.
-- Dual-RPC 자동 전환은 기존 Reader·projection 읽기까지이며, 신규 Wallet Registry 경로와 G07 해소는 위 B 연결 대기입니다.
+- 로컬 검증은 B 실제 컨트랙트의 Anvil 배포까지입니다. Sepolia 실제 배포와 브라우저 지갑 서명은 아직 실행하지 않았습니다.
+- 신규 Wallet Registry 경로의 주/보조 RPC 전환은 연결 시점에만 합니다. 신규 이벤트 projection·복구 작업의 생산 연결은 위 표의 대기 항목입니다.
