@@ -20,9 +20,18 @@ cursors = Table(
 )
 
 
+async def direct(fn):
+    return fn()
+
+
 class WalletProjection:
-    def __init__(self, engine, rpc):
-        self.engine, self.rpc = engine, rpc
+    def __init__(self, engine, rpc, *, run=direct, confirmations=1):
+        # run(fn) executes the synchronous DB callback fn; the API passes SQLAlchemy's
+        # greenlet_spawn so an asyncpg engine's sync_engine works. confirmations=2 keeps the
+        # last block out until it has one block on top (same rule as the legacy projection).
+        if type(confirmations) is not int or confirmations < 1:
+            raise ValueError("invalid confirmations")
+        self.engine, self.rpc, self.run, self.confirmations = engine, rpc, run, confirmations
         self.deployment = f"{rpc.chain_id}:{rpc.address}:{rpc.deployment_hash}"
 
     def initialize(self):
@@ -37,7 +46,12 @@ class WalletProjection:
 
     async def sync(self):
         head = await self.rpc.snapshot()
-        previous = self.checkpoint()
+        if self.confirmations > 1:
+            confirmed = int(head["number"], 16) - self.confirmations + 1
+            if confirmed < self.rpc.deployment_block:
+                return 0
+            head = await self.rpc.block(hex(confirmed))
+        previous = await self.run(self.checkpoint)
         if previous is not None:
             if int(head["number"], 16) < previous[0]:
                 raise ValueError("wallet head regressed; retry RPC observation")
@@ -48,6 +62,10 @@ class WalletProjection:
         if start > int(head["number"], 16):
             return 0
         logs = await self.rpc.logs(start, head)
+        await self.run(lambda: self._store(previous, head, logs))
+        return len(logs)
+
+    def _store(self, previous, head, logs):
         # Compare-and-swap makes a competing worker roll back its entire page.
         with self.engine.begin() as conn:
             if previous is None:
@@ -68,7 +86,6 @@ class WalletProjection:
                     log_index=int(log["logIndex"], 16),
                     payload=json.dumps(log, sort_keys=True, separators=(",", ":")),
                 ))
-        return len(logs)
 
     async def rewind(self, safe_block, safe_hash):
         if safe_block < self.rpc.deployment_block:

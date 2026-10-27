@@ -16,8 +16,10 @@ from originproof_indexer.projection import (
     ProjectionStore,
     decode_proof_log,
 )
+from originproof_indexer.wallet_projection import WalletProjection
 from pydantic import BaseModel
 from sqlalchemy import text
+from sqlalchemy.util import greenlet_spawn
 
 from .accounts import current_session
 from .database import Database
@@ -141,20 +143,91 @@ async def scan(settings):
         await database.dispose()
 
 
-async def run_projection(app, stop):
+class WalletScan:
+    """New Registry events through the connected adapter's (failover) RPC; never authority."""
+
+    def __init__(self, app):
+        self.app, self.store = app, None
+
+    async def __call__(self):
+        runtime = self.app.state.wallet_runtime
+        if runtime.chain is None and runtime.connect is not None:
+            runtime.chain = await runtime.connect()
+        rpc = getattr(runtime.chain, "rpc", None)
+        if rpc is None:
+            raise DependencyUnavailableError("wallet registry not connected")
+        if self.store is None or self.store.rpc is not rpc:
+            self.store = WalletProjection(
+                self.app.state.database.engine.sync_engine,
+                rpc,
+                run=greenlet_spawn,
+                confirmations=2,
+            )
+            await greenlet_spawn(self.store.initialize)
+        # sync() always reaches the confirmed tip, so a checkpoint means SYNCED.
+        await self.store.sync()
+        checkpoint = await greenlet_spawn(self.store.checkpoint)
+        return SyncView(
+            status="SYNCED" if checkpoint else "WAITING_CONFIRMATIONS",
+            deployment_id=self.store.deployment,
+            checkpoint_block=checkpoint[0] if checkpoint else None,
+            checkpoint_hash=checkpoint[1] if checkpoint else None,
+            checked_at=datetime.now(UTC),
+        )
+
+
+def legacy_projection_enabled(settings):
+    """ProofStatusRegistry projection keeps running as before; only a wallet-only deployment
+    without a legacy manifest (Sepolia) skips it."""
+    return settings.projection_enabled and (
+        not settings.wallet_registry_address or bool(settings.blockchain_manifest_path)
+    )
+
+
+def wallet_projection_enabled(settings):
+    return settings.projection_enabled and bool(settings.wallet_registry_address)
+
+
+def current(view, settings):
+    """A view not refreshed within three polls is STALE, never current."""
+    if view.checked_at and (datetime.now(UTC) - view.checked_at).total_seconds() > (
+        settings.projection_poll_seconds * 3
+    ):
+        return view.model_copy(update={"status": "STALE", "error_code": "PROJECTION_STALE"})
+    return view
+
+
+def running_views(app):
+    """Current view of every projection this runtime runs (legacy first, then wallet)."""
+    settings = app.state.settings
+    views = []
+    if legacy_projection_enabled(settings):
+        views.append(app.state.projection)
+    if wallet_projection_enabled(settings):
+        views.append(app.state.wallet_projection)
+    return [current(view, settings) for view in views]
+
+
+async def run_projection(app, stop, scan_once=None, attr="projection"):
+    async def legacy():
+        return await asyncio.to_thread(lambda: asyncio.run(scan(app.state.settings)))
+
+    scan_once = scan_once or legacy
     while not stop.is_set():
         try:
-            app.state.projection = await asyncio.to_thread(
-                lambda: asyncio.run(scan(app.state.settings))
-            )
+            setattr(app.state, attr, await scan_once())
         except Exception:
             # Retain last checkpoint for diagnostics, never present its status as current.
-            app.state.projection = app.state.projection.model_copy(
-                update={
-                    "status": "RECOVERING",
-                    "error_code": "PROJECTION_UNAVAILABLE",
-                    "checked_at": datetime.now(UTC),
-                }
+            setattr(
+                app.state,
+                attr,
+                getattr(app.state, attr).model_copy(
+                    update={
+                        "status": "RECOVERING",
+                        "error_code": "PROJECTION_UNAVAILABLE",
+                        "checked_at": datetime.now(UTC),
+                    }
+                ),
             )
         try:
             await asyncio.wait_for(stop.wait(), timeout=app.state.settings.projection_poll_seconds)
@@ -169,9 +242,6 @@ async def sync_status(request: Request, identity: Annotated[tuple, Depends(curre
         account.role == "issuer" and not account.issuer_id
     ):
         raise HTTPException(403, "FORBIDDEN")
-    view = request.app.state.projection
-    if view.checked_at and (datetime.now(UTC) - view.checked_at).total_seconds() > (
-        request.app.state.settings.projection_poll_seconds * 3
-    ):
-        return view.model_copy(update={"status": "STALE", "error_code": "PROJECTION_STALE"})
-    return view
+    # Legacy view when the legacy projection runs (unchanged); wallet view for wallet-only.
+    views = running_views(request.app)
+    return views[0] if views else current(request.app.state.projection, request.app.state.settings)

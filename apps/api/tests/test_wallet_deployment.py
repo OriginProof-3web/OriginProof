@@ -8,7 +8,9 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 from infrastructure.blockchain import wallet_deployment as wd
-from infrastructure.blockchain.errors import BlockchainConfigurationError
+from infrastructure.blockchain.errors import BlockchainConfigurationError, BlockchainDependencyError
+from infrastructure.blockchain.wallet_failover import FailoverWalletRpc
+from infrastructure.blockchain.wallet_rpc import WalletRpc
 from originproof_api.wallet_runtime import WalletRuntime
 
 ADDRESS = "0x" + "12" * 20
@@ -102,22 +104,31 @@ def test_connector_uses_fallback_when_primary_fails_and_throttles_retries(tmp_pa
     monkeypatch.setattr(wd, "ABI_PATH", abi)
     tried = []
 
-    async def fake(client, url, *, creation_proof, **deployment):
-        tried.append(url)
-        if url == "http://primary":
-            raise RuntimeError("down")
-        return "adapter"
+    async def snapshot(rpc):
+        tried.append(rpc.url)
+        if rpc.url == "http://primary":
+            raise BlockchainDependencyError("down")
+        return {"number": "0x7"}
 
-    monkeypatch.setattr(wd.WalletRegistryReadAdapter, "from_deployment", fake)
+    async def approvers(rpc, proof):
+        assert proof.tx_hash == TX
+        await rpc.snapshot()
+
+    # 연결 검증(승인자 확인)은 실행 중 계속 쓰는 전환 RPC를 그대로 거친다.
+    monkeypatch.setattr(WalletRpc, "snapshot", snapshot)
+    monkeypatch.setattr(wd, "verified_approvers", approvers)
     now = [100.0]
     connector = wd.WalletRegistryConnector(None, settings(path), clock=lambda: now[0])
-    assert asyncio.run(connector()) == "adapter"
-    assert tried == ["http://primary", "http://fallback"] and connector.rpc_index == 1
+    adapter = asyncio.run(connector())
+    assert isinstance(adapter.rpc, FailoverWalletRpc) and adapter.rpc.on_fallback
+    # 주 실패 → 보조 검증(snapshot) → 보조로 같은 호출
+    assert tried == ["http://primary", "http://fallback", "http://fallback"]
+    assert connector.rpc_index == 1
     # 재시도 간격 안에서는 체인에 다시 묻지 않음
-    assert asyncio.run(connector()) is None and len(tried) == 2
+    assert asyncio.run(connector()) is None and len(tried) == 3
     now[0] += wd.RETRY_SECONDS
     asyncio.run(connector())
-    assert len(tried) == 4
+    assert len(tried) == 6
 
 
 def test_connector_leaves_api_unconnected_on_bad_manifest(tmp_path):
