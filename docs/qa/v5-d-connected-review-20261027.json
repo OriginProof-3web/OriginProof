@@ -1,0 +1,399 @@
+{
+  "version": "v5-d-connected-review-0.1",
+  "date_kst": "2026-10-27",
+  "plan_version": "5.1",
+  "shared_contract_version": "v5-shared-0.2",
+  "reviewed_pr99_head": "c325cf00e2a769c3186222c3859d285d911f8685",
+  "reviewed_pr100_head": "cc09ebf6b7c3890e18c7a5503a4dae7a79cf43f6",
+  "actual_connected_qa_source": "e4611213ac514ae445345f3699e6c35d9ee1ea85",
+  "clean_source_tested": "73bea7c9ab9749934f2bfd3173f8eb93c097f3c2",
+  "code_review": {
+    "pr99": "Manual review of blockchain/API/projection boundaries, web session/proxy/report flow, deployment helper and regression evidence",
+    "pr100": "Self-review of image evaluator callback boundary, failed denominators, shared deadlines, frozen text source, and actual evaluation reporting; not another reviewer approval",
+    "findings": [
+      {
+        "priority": "P2",
+        "id": "DCR01",
+        "problem": "pg_isready Unix socket may report initdb temporary server ready before TCP is available",
+        "fix": "Check -h 127.0.0.1; preserve all actual failover assertions"
+      },
+      {
+        "priority": "P2",
+        "id": "DCR02",
+        "problem": "Live report still displays server analyzer connection pending",
+        "fix": "Caption follows completed report, unavailable model, recorded replay, sample and disconnected states"
+      },
+      {
+        "priority": "P2",
+        "id": "DCR03",
+        "problem": "demo scene performs real auth read and may revert simulated API mode",
+        "fix": "Load scenes before auth and bypass real session lookup/guard only for explicitly valid scene"
+      },
+      {
+        "priority": "P2",
+        "id": "DCR04",
+        "problem": "Imported web tests require external design path and uncommitted screenshots; old auth/style snapshots fail",
+        "fix": "Portable synthetic PNG CLI files; documented current wording regression snapshot; keep engine-status invariants, bundle pins and auth boundaries"
+      }
+    ],
+    "other_person_or_owner_approval": "NOT_CLAIMED",
+    "remote_merge_performed": false
+  },
+  "actual_connected_validation": {
+    "source_revision": "e4611213ac514ae445345f3699e6c35d9ee1ea85",
+    "qa_only_composition": true,
+    "public_image_upload_connected": false,
+    "actual_chain": "DISPOSABLE_ANVIL",
+    "actual_database": "POSTGRESQL",
+    "steps": [],
+    "default_processor_missing_reproduced": true,
+    "public_image_kind_status": 422,
+    "actual_chain_demo": {
+      "governance": true,
+      "v1_v2_publication": true,
+      "normal_tampered_superseded": true
+    },
+    "mock_browser": {
+      "mode": "RULE_FALLBACK_MOCK",
+      "status": "COMPLETED",
+      "risk": "HIGH",
+      "evidence": [
+        {
+          "source": "RULE",
+          "start": 7,
+          "end": 18
+        }
+      ],
+      "limitations": [
+        "RULE_SCAN_NOT_A_SAFETY_GUARANTEE",
+        "phishing-rules-0.1",
+        "LLM_ANALYSIS_UNAVAILABLE:PROVIDER_UNAVAILABLE"
+      ],
+      "request_statuses": [
+        {
+          "path": "/api/v1/auth/login",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "path": "/api/v3/inputs",
+          "status": 201
+        },
+        {
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "path": "/api/v3/analyses",
+          "status": 202
+        },
+        {
+          "path": "/api/v3/analyses/ana_377043fdb0204beca5c28e0f8f411293",
+          "status": 200
+        },
+        {
+          "path": "/api/v3/analyses/ana_377043fdb0204beca5c28e0f8f411293",
+          "status": 200
+        }
+      ],
+      "page_errors": [],
+      "actual_api_proxy": true,
+      "synthetic_data": true
+    },
+    "live_browser": {
+      "mode": "ACTUAL_OPENAI",
+      "status": "COMPLETED",
+      "risk": "HIGH",
+      "evidence": [
+        {
+          "source": "RULE",
+          "start": 7,
+          "end": 18
+        },
+        {
+          "source": "LLM",
+          "start": 7,
+          "end": 19
+        }
+      ],
+      "limitations": [
+        "RULE_SCAN_NOT_A_SAFETY_GUARANTEE",
+        "phishing-rules-0.1"
+      ],
+      "request_statuses": [
+        {
+          "path": "/api/v1/auth/login",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "path": "/api/v3/inputs",
+          "status": 201
+        },
+        {
+          "path": "/api/v1/auth/me",
+          "status": 200
+        },
+        {
+          "path": "/api/v3/analyses",
+          "status": 202
+        },
+        {
+          "path": "/api/v3/analyses/ana_909d3f03e3dd4f018ee7ea27df2cd691",
+          "status": 200
+        },
+        {
+          "path": "/api/v3/analyses/ana_909d3f03e3dd4f018ee7ea27df2cd691",
+          "status": 200
+        },
+        {
+          "path": "/api/v3/analyses/ana_909d3f03e3dd4f018ee7ea27df2cd691",
+          "status": 200
+        }
+      ],
+      "page_errors": [],
+      "actual_api_proxy": true,
+      "synthetic_data": true
+    },
+    "image_qa": {
+      "status": "PASS",
+      "risk": "HIGH",
+      "conversion": {
+        "reference_characters": 47,
+        "hypothesis_characters": 47,
+        "edit_distance": 0,
+        "character_error_rate": 0.0,
+        "exact_match": true,
+        "status": "COMPUTED"
+      },
+      "pixel_accuracy": "NOT_EVALUATED",
+      "qa_bridge_only": true,
+      "report_evidence_sources": [
+        "RULE",
+        "LLM"
+      ]
+    },
+    "stored_list_http_status": 200,
+    "paid_requests": [
+      {
+        "stage": "TEXT_SMOKE",
+        "http_attempts": 1,
+        "http_status": 200,
+        "usage": {
+          "input_tokens": 904,
+          "output_tokens": 140,
+          "total_tokens": 1044
+        },
+        "usage_exceeds_output_cap": false
+      },
+      {
+        "stage": "IMAGE_CONVERSION",
+        "http_attempts": 1,
+        "http_status": 200,
+        "usage": {
+          "input_tokens": 412,
+          "output_tokens": 101,
+          "total_tokens": 513
+        },
+        "usage_exceeds_output_cap": false
+      },
+      {
+        "stage": "IMAGE_ANALYSIS",
+        "http_attempts": 1,
+        "http_status": 200,
+        "usage": {
+          "input_tokens": 913,
+          "output_tokens": 145,
+          "total_tokens": 1058
+        },
+        "usage_exceeds_output_cap": false
+      }
+    ],
+    "cumulative_actual_calls": 87,
+    "resources_cleaned": true
+  },
+  "authorization": {
+    "statement": "연결 검증용 추가 3회 승인",
+    "prior_calls": 84,
+    "additional_calls": 3,
+    "cumulative_model_calls": 87,
+    "cap_per_stage": [
+      1024,
+      4096,
+      1024
+    ],
+    "total_output_reservation": 6144,
+    "automatic_retries": 0
+  },
+  "actual_usage": {
+    "input_tokens": 2229,
+    "output_tokens": 386,
+    "total_tokens": 2615
+  },
+  "private_journal": {
+    "git_ignored": true,
+    "mode": "0o600",
+    "sha256_after_closing_approval": "dfea5f2f75fe8450df1df5c2f9a768f24612194d3c20cd1dbfdc6220c58384e7",
+    "approval_closed": true,
+    "raw_model_response_or_api_key_saved": false
+  },
+  "actual_evm_api_initial_run": {
+    "passed": 8,
+    "failures": 1,
+    "errors": 0,
+    "skipped": 0,
+    "junit_sha256": "1faedd5861f0be072ba09c4d2111252e5d5704c3a25270fdfd6f86a5c388efd3"
+  },
+  "actual_evm_api_fixed_final_run": {
+    "passed": 9,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "junit_sha256": "5378cd7451a5960bfa5a2caea4e675c8eb908fc6658f8a5b2b463f81a522fcc1"
+  },
+  "default_clean_regression": {
+    "passed": 1361,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 19,
+    "junit_sha256": "a9b0c1431eac134a8e27f30b841879413907f0bf99f11d77890a85489a23680d",
+    "warning": "existing Starlette/httpx deprecation"
+  },
+  "web_tests": {
+    "initial_passed": 115,
+    "initial_failed": 10,
+    "initial_skipped": 6,
+    "final_passed": 126,
+    "final_failed": 0,
+    "final_skipped": 6,
+    "skips": "Existing imported web-2-only files not used by web-v5; unchanged",
+    "source_log_sha256": "fbcee50ac73cccc5424077e54b84c2f1689a8b1b4e18c2f148b2c0c88c113763"
+  },
+  "budget_guard_tests": {
+    "passed": 6,
+    "live_requests": 0,
+    "in_ci": true
+  },
+  "contracts": {
+    "passed": 101,
+    "failures": 0,
+    "skipped": 0,
+    "foundry": "1.4.4",
+    "official_download_digest": "fcd2295fec449467985866057a148723d8ad625e4f9d86b3aaacc4f0948e5cfe"
+  },
+  "clean_generation": {
+    "source_revision": "73bea7c9ab9749934f2bfd3173f8eb93c097f3c2",
+    "five_generators_passed": true,
+    "generated_tracked_diff": [],
+    "unicode_paths_checked_with_null_delimiters": true
+  },
+  "caption_fix_browser": {
+    "scope": "CONTROLLED_UI_REPLAY_ONLY",
+    "caption": "규칙·AI 위험 분석 · 서버 보고서",
+    "all_api_responses_intercepted": true,
+    "paid_calls": 0,
+    "mobile": {
+      "width": 320,
+      "scrollWidth": 320,
+      "horizontal_overflow": false
+    },
+    "api_paths": [
+      "/api/v1/auth/me",
+      "/api/v1/auth/me",
+      "/api/v3/inputs",
+      "/api/v1/auth/me",
+      "/api/v3/analyses",
+      "/api/v3/analyses/ana_controlled_replay"
+    ]
+  },
+  "read_only_sepolia": {
+    "manifest_and_abi": "PASS",
+    "chain_id_and_current_deployment_snapshot": "PASS",
+    "creation_approver_proof": "NOT_COMPLETED",
+    "failed_rpc_method": "eth_getCode",
+    "json_rpc_error_code": -32000,
+    "rpc_diagnostic": {
+      "status": "BlockchainDependencyError",
+      "rpc_methods": [
+        {
+          "method": "eth_chainId",
+          "http_status": 200,
+          "json_rpc_error_code": null
+        },
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "json_rpc_error_code": null
+        },
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "json_rpc_error_code": null
+        },
+        {
+          "method": "eth_getCode",
+          "http_status": 200,
+          "json_rpc_error_code": null
+        },
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "json_rpc_error_code": null
+        },
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "json_rpc_error_code": null
+        },
+        {
+          "method": "eth_getTransactionByHash",
+          "http_status": 200,
+          "json_rpc_error_code": null
+        },
+        {
+          "method": "eth_getTransactionReceipt",
+          "http_status": 200,
+          "json_rpc_error_code": null
+        },
+        {
+          "method": "eth_getCode",
+          "http_status": 200,
+          "json_rpc_error_code": -32000
+        }
+      ],
+      "writes": 0
+    },
+    "writes": 0,
+    "service_api_calls": 0,
+    "document_original_signature_verification": "NOT_RUN_NO_EXPORTED_PUBLIC_ORIGINAL_PACKAGE"
+  },
+  "preservation": {
+    "original_D_branch": "codex/v5-w6-d-service-readiness",
+    "pr100_unchanged": true,
+    "prior84_journals_unchanged": true,
+    "original_local_env_unchanged": true,
+    "shared_models_abi_schemas_unchanged": true
+  },
+  "not_done": [
+    "Product default app still has analysis_processor=None; validated explicit D QA composition only",
+    "Product /v3/inputs image kind returns422; QA document bridge is not the product upload contract",
+    "Full direct Sepolia creation/original-signature verification blocked on historical eth_getCode -32000 and missing exported material",
+    "Other physical laptop reproduction and same RC rehearsal3",
+    "Human owner/independent approval"
+  ],
+  "stage_complete": false
+}
