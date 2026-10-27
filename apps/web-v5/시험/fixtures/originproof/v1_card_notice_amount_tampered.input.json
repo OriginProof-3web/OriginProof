@@ -1,0 +1,14 @@
+{
+  "source": "synthetic",
+  "proof_id": "prf_demo_001",
+  "issuer_name": "Origin Mock Bank",
+  "masked_card": "1234",
+  "amount_minor": 1540000,
+  "currency": "KRW",
+  "merchant": "ORIGIN CAFE",
+  "approved_at": "2026-09-03T03:14:00Z",
+  "transaction_id": "txn_demo_001",
+  "expected_verification_status": "TAMPERED",
+  "expected_lifecycle_status": "ACTIVE",
+  "expected_reason_codes": ["AMOUNT_MISMATCH"]
+}

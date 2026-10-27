@@ -20,9 +20,18 @@ cursors = Table(
 )
 
 
+async def direct(fn):
+    return fn()
+
+
 class WalletProjection:
-    def __init__(self, engine, rpc):
-        self.engine, self.rpc = engine, rpc
+    def __init__(self, engine, rpc, *, run=direct, confirmations=1):
+        # run(fn) executes the synchronous DB callback fn; the API passes SQLAlchemy's
+        # greenlet_spawn so an asyncpg engine's sync_engine works. confirmations=2 keeps the
+        # last block out until it has one block on top (same rule as the legacy projection).
+        if type(confirmations) is not int or confirmations < 1:
+            raise ValueError("invalid confirmations")
+        self.engine, self.rpc, self.run, self.confirmations = engine, rpc, run, confirmations
         self.deployment = f"{rpc.chain_id}:{rpc.address}:{rpc.deployment_hash}"
 
     def initialize(self):
@@ -37,7 +46,12 @@ class WalletProjection:
 
     async def sync(self):
         head = await self.rpc.snapshot()
-        previous = self.checkpoint()
+        if self.confirmations > 1:
+            confirmed = int(head["number"], 16) - self.confirmations + 1
+            if confirmed < self.rpc.deployment_block:
+                return 0
+            head = await self.rpc.block(hex(confirmed))
+        previous = await self.run(self.checkpoint)
         if previous is not None:
             if int(head["number"], 16) < previous[0]:
                 raise ValueError("wallet head regressed; retry RPC observation")
@@ -48,6 +62,10 @@ class WalletProjection:
         if start > int(head["number"], 16):
             return 0
         logs = await self.rpc.logs(start, head)
+        await self.run(lambda: self._store(previous, head, logs))
+        return len(logs)
+
+    def _store(self, previous, head, logs):
         # Compare-and-swap makes a competing worker roll back its entire page.
         with self.engine.begin() as conn:
             if previous is None:
@@ -68,7 +86,6 @@ class WalletProjection:
                     log_index=int(log["logIndex"], 16),
                     payload=json.dumps(log, sort_keys=True, separators=(",", ":")),
                 ))
-        return len(logs)
 
     async def rewind(self, safe_block, safe_hash):
         if safe_block < self.rpc.deployment_block:
@@ -77,15 +94,19 @@ class WalletProjection:
         block = await self.rpc.block(hex(safe_block))
         if block["hash"] != safe_hash:
             raise ValueError("safe ancestor hash mismatch")
-        old = self.checkpoint()
+        old = await self.run(self.checkpoint)
         if old is None or safe_block > old[0]:
             raise ValueError("invalid safe ancestor")
+
         # A caller-selected height is not evidence of a common ancestor.
-        with self.engine.connect() as conn:
-            retained = conn.execute(select(journal).where(
-                journal.c.deployment == self.deployment,
-                journal.c.block_number <= safe_block,
-            )).mappings().all()
+        def retained_rows():
+            with self.engine.connect() as conn:
+                return conn.execute(select(journal).where(
+                    journal.c.deployment == self.deployment,
+                    journal.c.block_number <= safe_block,
+                )).mappings().all()
+
+        retained = await self.run(retained_rows)
         canonical = {}
         for row in retained:
             number = row["block_number"]
@@ -94,13 +115,48 @@ class WalletProjection:
             if json.loads(row["payload"])["blockHash"] != canonical[number]["hash"]:
                 raise ValueError("safe ancestor retains orphan wallet events")
         await self.rpc.check(block)
-        with self.engine.begin() as conn:
-            changed = conn.execute(update(cursors).where(
-                cursors.c.deployment == self.deployment, cursors.c.block_number == old[0],
-                cursors.c.block_hash == old[1],
-            ).values(block_number=safe_block, block_hash=block["hash"]))
-            if changed.rowcount != 1:
-                raise ValueError("concurrent wallet checkpoint change; retry")
-            conn.execute(delete(journal).where(
-                journal.c.deployment == self.deployment, journal.c.block_number > safe_block,
-            ))
+
+        def move():
+            with self.engine.begin() as conn:
+                changed = conn.execute(update(cursors).where(
+                    cursors.c.deployment == self.deployment, cursors.c.block_number == old[0],
+                    cursors.c.block_hash == old[1],
+                ).values(block_number=safe_block, block_hash=block["hash"]))
+                if changed.rowcount != 1:
+                    raise ValueError("concurrent wallet checkpoint change; retry")
+                conn.execute(delete(journal).where(
+                    journal.c.deployment == self.deployment, journal.c.block_number > safe_block,
+                ))
+
+        await self.run(move)
+
+    async def recover_reorg(self):
+        """Rewind to the newest stored event block that is still canonical, else deployment.
+
+        A canonical block hash commits to every earlier block, so a stored event block whose
+        hash still matches is a verified common ancestor; rewind() re-checks retained events.
+        """
+        old = await self.run(self.checkpoint)
+        if old is None:
+            return None
+
+        def stored_blocks():
+            with self.engine.connect() as conn:
+                return [row[0] for row in conn.execute(
+                    select(journal.c.block_number).where(
+                        journal.c.deployment == self.deployment,
+                        journal.c.block_number <= old[0],
+                    ).distinct().order_by(journal.c.block_number.desc())
+                )]
+
+        for number in await self.run(stored_blocks):
+            if number < self.rpc.deployment_block:
+                break
+            try:
+                block = await self.rpc.block(hex(number))
+                await self.rewind(number, block["hash"])
+                return number, block["hash"]
+            except ValueError:
+                continue  # orphaned or mismatched; try an older stored block
+        await self.rewind(self.rpc.deployment_block, self.rpc.deployment_hash)
+        return self.rpc.deployment_block, self.rpc.deployment_hash

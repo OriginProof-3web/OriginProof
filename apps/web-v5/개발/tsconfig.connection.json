@@ -1,0 +1,40 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": [
+      "DOM",
+      "DOM.Iterable",
+      "ES2022"
+    ],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noEmit": true,
+    "allowJs": true,
+    "checkJs": false,
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./*"
+      ],
+      "react": [
+        "../../OriginProof-feat-mvp-demo-page/apps/web/node_modules/@types/react/index.d.ts"
+      ],
+      "react/jsx-runtime": [
+        "../../OriginProof-feat-mvp-demo-page/apps/web/node_modules/@types/react/jsx-runtime.d.ts"
+      ]
+    },
+    "typeRoots": [
+      "../node_modules/@types",
+      "../../OriginProof-feat-mvp-demo-page/apps/web/node_modules/@types"
+    ]
+  },
+  "include": [
+    "components/user/UserWorkspace.tsx",
+    "components/business/BusinessWorkspace.tsx",
+    "components/api-types.generated.ts",
+    "api-client.js"
+  ]
+}

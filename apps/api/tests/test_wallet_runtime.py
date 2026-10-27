@@ -514,6 +514,36 @@ async def test_governance_tx_requires_decoded_call_and_two_chain_approvers(walle
     assert denied.status_code == 422
 
 
+async def test_propose_tx_matches_saved_key_proof_when_chain_view_has_none(wallet):
+    # A real Registry getProposal returns no KeyProof; the API must still expect the proof it
+    # prepared, not a zero proof (live Anvil 2026-10-27 found DIRECT_TX_MISMATCH here).
+    data, _ = await prepared_proposal(wallet)
+    pid, tx_hash = data["proposal_id"], "0x" + "46" * 32
+    from originproof_core.wallet_contract import ProposalView
+
+    chain_view = ProposalView.model_validate(data).model_copy(
+        update={"status": "PENDING", "key_proof": None, "key_proof_signature": None}
+    )
+    wallet.chain.proposals[pid] = WalletProposal(**BLOCK, proposal=chain_view)
+    wallet.chain.transactions[tx_hash] = WalletTransaction(
+        **BLOCK,
+        tx_hash=tx_hash,
+        sender=APPROVERS[0],
+        action="Propose",
+        status="CONFIRMED",
+        arguments={
+            "proposal": body_proposal(data),
+            "proof": data["key_proof"],
+            "signature": data["key_proof_signature"],
+        },
+    )
+    accepted = await wallet.client.post(
+        f"/v3/proposals/{pid}/transactions", json={"request_id": "req_tx2", "tx_hash": tx_hash}
+    )
+    assert accepted.status_code == 202, accepted.text
+    assert accepted.json()["status"] == "CONFIRMED"
+
+
 def body_proposal(data):
     from originproof_core.wallet_contract import GovernanceProposal
 

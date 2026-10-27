@@ -1,0 +1,20 @@
+{
+  "_source": "코드로 재구성(실행해서 얻은 값 아님). origin/phase/W5(15c5588) packages/python/originproof_core/wallet_verification.py 53-82(checks 5개·result 모양), 98-100(unavailable -> current_state UNAVAILABLE CHAIN_UNAVAILABLE, INCONCLUSIVE). 해시·주소·시각은 자리 표시. docs/_A1_엔드포인트_조사.md 7장과 같음",
+  "session_id": "vsn_0000000000000000000000000000000a",
+  "verification_status": "INCONCLUSIVE",
+  "comparison_scope": "ID_ONLY",
+  "document": null,
+  "checks": [
+    {"name": "signature", "status": "NOT_RUN", "field_path": null, "reason_code": null},
+    {"name": "original_hash", "status": "NOT_RUN", "field_path": null, "reason_code": null},
+    {"name": "protected_fields", "status": "NOT_RUN", "field_path": null, "reason_code": null},
+    {"name": "current_state", "status": "UNAVAILABLE", "field_path": null, "reason_code": "CHAIN_UNAVAILABLE"},
+    {"name": "content", "status": "NOT_RUN", "field_path": null, "reason_code": null}
+  ],
+  "reason_codes": ["CHAIN_UNAVAILABLE"],
+  "checked_at": 1792000000,
+  "chain_id": "31337",
+  "verifying_contract": "0x0000000000000000000000000000000000000001",
+  "block_number": null,
+  "block_hash": null
+}

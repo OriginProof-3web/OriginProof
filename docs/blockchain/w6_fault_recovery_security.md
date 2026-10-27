@@ -1,5 +1,7 @@
 # W6-B 장애·재배포·보안 점검 기록 (2026-10-02)
 
+> 아래 초기 기록은 2026-10-02 당시 결과입니다. 신규 지갑 경계 보완의 최신 범위와 검증은 [2026-10-24 추가 검증](#2026-10-24-v5-w6-b-이벤트-증거-경계-보완)을 확인합니다.
+
 - 담당: B / `@hamin1228`
 - 브랜치: `codex/w6-b-recovery-security` (최신 W5-B `b7a4107` 선행)
 - 상태: B Adapter/indexer의 장애 주입·임시 로컬 EVM 재현과 보안 점검 실행.
@@ -92,3 +94,60 @@ checkpoint 복구, 실제 재배포,
 반영한다. `make security`는 안내
 명령이므로 보안 검사 성공으로 세지 않았다. 감사에서 발견한 공유 의존성 위험을
 무시하거나 성공으로 표시하지 않는다.
+
+
+## 2026-10-24 V5-W6-B 이벤트 증거 경계 보완
+
+담당: B 여하민 `@hamin1228`. 사용자 승인에 따라 Codex가 조사·수정·검사했다.
+이 기록은 독립 구현·검사 결과이며 W6 단계 완료, 작성자 외 리뷰, 실제 C API 연결을 뜻하지 않는다.
+
+### 기준과 수정 범위
+
+- 준비 브랜치: `codex/v5-w6-b-evidence-boundaries`.
+- 시작: 최신 integration `ec8e15c6bc684ae1e8d68f53ea40b4a8e47aad67`.
+- 선행: phase/W5 `5f3540ac1d9c63493cb0091a705e7e74a3f11287`를 작업 브랜치에 반영했다.
+  integration에는 신규 지갑 구현이 없어 이 선행 코드가 필요하다. #95 승격은 아직 미병합이다.
+- 검증 코드 SHA: `b50cbde1d7b9a25fa8229013d843cb8ca4de779e`.
+- phase/W6가 없어 준비 상태다. 비교용 Draft PR의 임시 base는 phase/W5이며,
+  W5에 W6 변경을 병합하지 않고 phase/W6 생성 후 최신 기준 반영·재검증·대상 변경이 필요하다.
+- API/Schema/ABI/서명 계약·DB migration·Contract는 변경하지 않았다.
+
+### 실패 재현과 변경 후 동작
+
+1. 정지 거래 receipt에서 이벤트를 제거해도 기존 대사는 정지 상태만 보고 증거를 반환했다.
+   반대로 receipt에만 이벤트가 있고 canonical 로그에 없는 경우도 통과했다.
+   이제 receipt 블록의 로그 중 **같은 tx hash**의 이벤트를 대조하고, 다르면 dependency 오류로 보류한다.
+   실제 반복 정지처럼 양쪽 모두 이벤트가 없는 경우는 기존대로 허용한다.
+2. eth_getLogs의 로그에 블록에 없는 거래 hash를 넣어도 기존 검증은 통과했다.
+   이제 해당 canonical 블록의 거래 목록에 소속되는지 확인한다.
+   목록은 블록마다 한 번만 집합으로 만들고 재사용한다. 불일치하면 journal과 checkpoint를 전진시키지 않는다.
+3. 기존 합성 제안 fixture의 생성·승인 거래를 실제 블록 거래 목록에 넣고 receipt index를 일치시켰다.
+   정상 fixture를 바로잡았으며, 검증 실패 기대값을 성공으로 바꾸지 않았다.
+
+재현은 합성 httpx MockTransport/SQLite이며 실제 체인 공격을 입증하지 않는다.
+같은 제공자가 receipt·로그·상태를 모두 일관되게 조작하는 상황을 방지하는 독립 노드 증명도 아니다.
+
+### 실행 증거
+
+환경: macOS arm64, Python 3.13.14, Foundry 1.4.4 (`05794498`), Solc 0.8.26.
+기존 설치 Python 환경을 재사용했으며, 이 작업에서 lockfile로 새 환경을 sync하지 않았다.
+
+| 명령·사례 | 결과 | 종류 |
+| --- | --- | --- |
+| 수정 전 신규 회귀·기존 removed 로그 검사 | 4 failed / 1 passed | 두 결함과 journal/checkpoint 영향 재현 |
+| `python -m pytest services/indexer/tests/test_wallet_chain.py services/indexer/tests/test_wallet_reconciliation.py services/indexer/tests/test_wallet_adapter.py services/indexer/tests/test_wallet_approvers.py services/indexer/tests/test_wallet_recovery.py -q` | 226 passed | 합성 RPC·SQLite·Adapter |
+| `python -m pytest -q` | 957 passed / 11 skipped, 기존 anyio deprecation warning 1건 | 저장소 기본 Python 전체 |
+| `ORIGINPROOF_WALLET_LIVE=1 python -m pytest services/indexer/tests/test_wallet_live.py -q` | 1 passed | 폐기 가능한 실제 Anvil, 복구·reorg·정지/재활성화 |
+| 변경 Python 5파일 `ruff check --no-cache`, `git diff --check` | 통과 | lint·diff |
+
+위 초기 기록의 오래된 보안 감사 실패와 현재 의존성을 혼동하지 않는다.
+이번 수정에서 의존성은 바꾸지 않았다. 별도 #89 + W5 `5f3540a` 통합 사본에서는
+2026-10-24 `make security`가 취약점 0건으로 통과했지만 이 수정 SHA에서 보안 감사를 새로 실행한 것은 아니다.
+
+### 남은 연결과 인계
+
+- C: 신규 Registry/Adapter를 실제 API·Operation 영속 복구에 연결한 뒤 권한·UNKNOWN 왕복 검증.
+- D: 동일 후보 SHA의 독립 실패 사례·다른 환경 재현.
+- phase/W6 생성 뒤 기준 반영·Draft PR 대상 변경, 작성자 외 리뷰·새 CI 확인.
+- 이번에 미실행: PostgreSQL 복구·웹/브라우저·Sepolia/공개 RPC·공개 배포.
+- 코드 작성·로컬 검사·Draft PR 공유를 단계 완료나 사람 리뷰로 표현하지 않는다.

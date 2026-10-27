@@ -1,0 +1,88 @@
+{
+  "checked_at": "2026-10-06T08:51:17.353822+00:00",
+  "progress": [
+    "W1: 김형준님 담당 PR #27은 승인·병합됐습니다. 팀 단계의 integration 승격 #39는 대기입니다.",
+    "W2: 담당 PR #28은 승인·병합됐지만 D의 phase/W2 실제 브라우저 검사 #51에 6개 실패가 남아 있습니다. 관리자의 후속 구현 통과가 기존 W2 최종 SHA 재검사를 대신하지 않습니다.",
+    "W3: 공식 웹 #44 승인·병합. QR 후속 #48 구현·연결 검사·CI 통과, 리뷰·병합 대기입니다.",
+    "W4: 관리자 기능과 실제 검사 완료 후 기업·개인 페이지에 키 관리·폐기·consume·거래 복구를 연결했습니다. phase/W4 웹 PR·D 독립 재현은 대기입니다.",
+    "W6/W7: 관리자 일부 복구 검사는 완료했지만 전체 장애 화면·다른 환경 재현·발표/RC 수용 기준은 미완료입니다.",
+    "최신 로컬 재검사: 서버 재시작 후 관리자 19개, 브라우저 최종 15개(전체 13 통과/2 선택자 실패 후 2개 재검사 통과), 컴포넌트 23개, 런타임 보호 5개 통과. 기업·개인 페이지에 같은 실제 API를 연결했습니다. 과거 7 통과/1 실패는 복구 이전 결과입니다.",
+    "2026-10-06: 최신 fetch에서 W7 branch/PR 없음. phase/W1~W4만 존재. C/B W6 후보와 D W5 QA 기록은 단계 전체 완료를 뜻하지 않습니다.",
+    "W5 최신 자체 검사: 웹 39 PASS, fresh 두 기관·세 역할 관리자 1 PASS, 접근성 1 PASS. 마지막 mixed API는 17 PASS/1 FAIL(G07 재발). C/B 원인 해결, D 독립 확인·작성자 외 리뷰·최종 phase/W5 SHA가 남아 단계 완료가 아닙니다.",
+    "최종 PR #55 head 56dbd82 Quality Gate 통과: Python/web checks·Contract 모두 PASS. 실제 mixed G07 재발과 D 독립 수용은 별도로 남습니다."
+  ],
+  "pull_requests": [
+    {
+      "number": 55,
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/55",
+      "title": "W5 A 화면·접근성 보완과 fresh 검증, mixed G07 실패 인계",
+      "state": "OPEN",
+      "draft": true,
+      "sha": "56dbd82",
+      "note": "웹 fresh·접근성 자체 검사 PASS; G07 mixed 실패와 D 독립 검증·리뷰 대기"
+    },
+    {
+      "number": 39,
+      "title": "draft: W1 단계 결과 integration 승격 검토",
+      "state": "OPEN",
+      "draft": true,
+      "sha": "ab86892f1aedc14664e3129231225e79220b7394",
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/39",
+      "note": "W1 최종 phase의 integration 승격은 아직 Draft입니다."
+    },
+    {
+      "number": 48,
+      "title": "feat(web): W3 발행 Proof QR 전달 및 최신 API 연결 검증",
+      "state": "OPEN",
+      "draft": false,
+      "sha": "76533198a4130a81d33917f6af08c7b6fa6188ff",
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/48",
+      "note": "QR 구현·실제 연결 검사·CI 통과. 작성자 외 리뷰와 병합은 대기입니다."
+    },
+    {
+      "number": 49,
+      "title": "test(qa): W4 D 상태·consume 검증 및 D3 실행 준비",
+      "state": "OPEN",
+      "draft": false,
+      "sha": "f2e9774003badb692fb4de6b89de640a155c1fa6",
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/49",
+      "note": "팀원 보고: D1/D2 통과. D3 브라우저 12개는 준비만 완료·NOT_RUN입니다."
+    },
+    {
+      "number": 50,
+      "title": "fix(blockchain): 전송 전 저장 실패·취소 시 nonce 예약 해제",
+      "state": "OPEN",
+      "draft": false,
+      "sha": "7e75986d68dc7e8b60b4a088f232c8ab26819716",
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/50",
+      "note": "전송 전 저장 실패·취소의 nonce 예약 해제 수정. W2 병합·후속 재검증 대기입니다."
+    },
+    {
+      "number": 51,
+      "title": "test(qa): W2 실제 브라우저 연결·미완료 재현",
+      "state": "OPEN",
+      "draft": true,
+      "sha": "17f78e300b04aa9395fb20f6f76f5313d705db3d",
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/51",
+      "note": "팀원 보고: W2 브라우저 6 통과·6 실패. 활성화·키 GET/등록/폐기·ACTIVE 표시·접근성 미완료입니다."
+    },
+    {
+      "number": 52,
+      "title": "docs: W5 D acceptance, candidate QA and recovery reproduction",
+      "state": "OPEN",
+      "draft": true,
+      "sha": "ff1d4e796115ded4759dadb6e3fc53b6cf75f90c",
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/52",
+      "note": "팀원 보고: fresh API 18 PASS, mixed 장애 17 PASS/1 FAIL(G07 Reader UNAVAILABLE). 통합 UI 15개 NOT_RUN입니다."
+    },
+    {
+      "number": 38,
+      "title": "feat(api): W6 C1~C3 실제 복구·보존 검증과 보안 패치",
+      "state": "OPEN",
+      "draft": true,
+      "sha": "3ef1fd40943914c1450e8bc05047119ab7eabbc0",
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/38",
+      "note": "A 최신 fresh 18 PASS, 마지막 mixed 17 PASS/1 FAIL: G07 issuer UNAVAILABLE 재발. 원인/안정성 검증과 리뷰 대기"
+    }
+  ]
+}

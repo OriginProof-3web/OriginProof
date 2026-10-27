@@ -379,13 +379,16 @@ async def proposal_transaction(
         if row is None:
             raise HTTPException(404, "PROPOSAL_NOT_FOUND")
         view = await proposal_view(service, row)
+        # The on-chain proposal carries no KeyProof; the proof/signature the propose call must
+        # carry come from the proposal this API prepared (view already matched its content).
+        saved = ProposalView.model_validate(row.payload)
         arguments = (
             {"proposalId": proposal_id}
             if approving
             else {
                 "proposal": view.proposal.model_dump(by_alias=True),
-                "proof": view.key_proof.model_dump(by_alias=True)
-                if view.key_proof
+                "proof": saved.key_proof.model_dump(by_alias=True)
+                if saved.key_proof
                 else {
                     "action": 0,
                     "applicationId": "0x" + "00" * 32,
@@ -394,7 +397,7 @@ async def proposal_transaction(
                     "challengeNonce": "0x" + "00" * 32,
                     "deadline": 0,
                 },
-                "signature": view.key_proof_signature or "0x",
+                "signature": saved.key_proof_signature or "0x",
             }
         )
         operation = service.operation(

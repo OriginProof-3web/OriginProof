@@ -4,10 +4,12 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from uuid import uuid4
 
+import httpx
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from infrastructure.blockchain import JsonRpcBlockchainReader
+from infrastructure.blockchain.wallet_deployment import WalletRegistryConnector
 from originproof_core import (
     BlockchainReader,
     DependencyUnavailableError,
@@ -24,7 +26,13 @@ from .chain_network import router as chain_network_router
 from .database import Database
 from .finals_proofs import router as finals_router
 from .operations import router as operations_router
-from .projection import SyncView, run_projection
+from .projection import (
+    SyncView,
+    WalletScan,
+    legacy_projection_enabled,
+    run_projection,
+    wallet_projection_enabled,
+)
 from .projection import router as projection_router
 from .repositories import SqlAlchemyProofRepository
 from .security import RequestSecurity
@@ -88,18 +96,39 @@ def create_app(
             or app_settings.wallet_text_input_enabled
             or app_settings.wallet_demo_email_enabled
         )
-        task = maintenance_task = None
+        maintenance_task = wallet_client = None
+        tasks = []
         try:
+            # 지갑 Registry 생산 연결: 주입된 chain 이 없고 주소·RPC 가 있을 때만.
+            # 배포 기록(manifest)으로 체인 위 배포를 검증한 뒤에만 연결한다.
+            runtime = app.state.wallet_runtime
+            if (
+                runtime.chain is None
+                and app_settings.wallet_registry_address
+                and app_settings.blockchain_rpc_urls
+            ):
+                # 요청당 10초 안에 주 RPC 시간 초과 뒤 보조 RPC 재시도까지 끝나도록 짧게 둔다.
+                wallet_client = httpx.AsyncClient(timeout=4, trust_env=False)
+                runtime.connect = WalletRegistryConnector(wallet_client, app_settings)
+                runtime.chain = await runtime.connect()
             if wallet_enabled:
                 for analysis_id in await cleanup(app, restart=True):
                     launch(app, analysis_id)
                 maintenance_task = asyncio.create_task(maintenance(app, stop))
-            if app_settings.projection_enabled:
-                task = asyncio.create_task(run_projection(app, stop))
+            # 기존 ProofStatusRegistry projection 은 그대로 돌고, 지갑 Registry 가 설정되면
+            # 신규 이벤트 projection(연결된 전환 RPC 사용)을 따로 함께 돌린다.
+            if legacy_projection_enabled(app_settings):
+                tasks.append(asyncio.create_task(run_projection(app, stop)))
+            if wallet_projection_enabled(app_settings):
+                tasks.append(
+                    asyncio.create_task(
+                        run_projection(app, stop, WalletScan(app), "wallet_projection")
+                    )
+                )
             yield
         finally:
             stop.set()
-            if task:
+            for task in tasks:
                 await task
             if maintenance_task:
                 await maintenance_task
@@ -109,6 +138,8 @@ def create_app(
             if pending:
                 await asyncio.gather(*pending, return_exceptions=True)
             await app_database.dispose()
+            if wallet_client is not None:
+                await wallet_client.aclose()
 
     app = FastAPI(
         title="OriginProof API",
@@ -127,7 +158,10 @@ def create_app(
     app.state.analysis_tasks = set()
     app.state.analysis_worker_error = None
     app.state.projection = SyncView(
-        status="STARTING" if app_settings.projection_enabled else "DISABLED"
+        status="STARTING" if legacy_projection_enabled(app_settings) else "DISABLED"
+    )
+    app.state.wallet_projection = SyncView(
+        status="STARTING" if wallet_projection_enabled(app_settings) else "DISABLED"
     )
     app.include_router(projection_router)
     app.include_router(auth_router)

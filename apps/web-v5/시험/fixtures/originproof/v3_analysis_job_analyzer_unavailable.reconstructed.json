@@ -1,0 +1,11 @@
+{
+  "_source": "코드로 재구성(실행해서 얻은 값 아님). origin/phase/W5(15c5588) apps/api/src/originproof_api/wallet_analyses.py 152-160(처리기 없음 -> FAILED ANALYZER_UNAVAILABLE), AnalysisJob 모양 packages/python/originproof_core/wallet_contract.py 441-449. 시험 근거 apps/api/tests/test_wallet_analyses.py 339-345",
+  "analysis_id": "ana_0000000000000000000000000000000b",
+  "status": "FAILED",
+  "retain_report": false,
+  "retain_original": false,
+  "result_expires_at": 1792000600,
+  "original_expires_at": null,
+  "report": null,
+  "error_code": "ANALYZER_UNAVAILABLE"
+}
