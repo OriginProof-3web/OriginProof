@@ -1,5 +1,7 @@
 # D G07 후속 반복 재현 절차
 
+> 2026-10-22 최신: D #72~#76은 팀에서 병합했고, B/C 검토를 근거로 G07을 로컬 legacy 범위 해결로 갱신했습니다. 병합 후953 PASS/opt-in11 SKIP. [정확한 SHA·검토·범위](v5-d-postmerge-20261022.md). 아래 이전 OPEN/미병합/리뷰 대기 문구는 당시 기록입니다. 사람 본인 확인·실제 신규 연결·단계 완료와 구분합니다.
+
 > 추가 실제 실행: #64/#68 반영 제품33396ba에서 fresh1/mixed5 각18 PASS입니다. [실행·새 로컬 독립 검증](v5-d-development-completion-20261021.md). C 최종 검토 전 OPEN입니다.
 
 > 최신 2026-10-21: #86/#87 병합 뒤 `d757a267c5381e5a9b528f63a6c3acef852da996`에서 fresh1/mixed3를 실제 실행했습니다. 판정 PASS_REQUIRES_B_C_REVIEW, G07은 B/C 검토 전 OPEN입니다. [회차별 결과](v5-d-performance-independent-20261021.md). 아래 차단 결과는 병합 전 기록입니다.
