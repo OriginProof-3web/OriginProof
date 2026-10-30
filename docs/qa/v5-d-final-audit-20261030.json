@@ -50,6 +50,12 @@
       "skipped": 5,
       "failures": 0,
       "log_sha256": "90490ca5669f0e40eb82ce04713ee3cbebedeb8fc7bd8f9bc1fcde47b67c0d7f"
+    },
+    "B_probe_and_deployment_guards": {
+      "tests": 63,
+      "failures": 0,
+      "errors": 0,
+      "junit_sha256": "d5ac8063ac1f227e998f1fd19e52ccda1b6c97715076cc617293547cd5a0f945"
     }
   },
   "reviews": [
@@ -82,6 +88,18 @@
       "url": "https://github.com/OriginProof-3web/OriginProof/pull/98#pullrequestreview-5712169989",
       "state": "COMMENTED",
       "commit": "456f73b26268c6252b2a10890be2416429c0a42b"
+    },
+    {
+      "pr": 102,
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/102#pullrequestreview-5712283091",
+      "state": "COMMENTED",
+      "commit": "5fb349619d6ab297abaf43e43c0c11a7e742a565"
+    },
+    {
+      "pr": 111,
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/111#pullrequestreview-5712283336",
+      "state": "COMMENTED",
+      "commit": "d21d4c3e23a6a182c5fe940a3c39af9c3e8e52e6"
     }
   ],
   "acceptance": [
@@ -547,5 +565,13 @@
     "original_workspace_untouched": true,
     "original_D_branch": "codex/v5-w6-d-service-readiness",
     "original_D_head": "cc09ebf6b7c3890e18c7a5503a4dae7a79cf43f6"
+  },
+  "same_qa_head_supporting_acceptance": {
+    "qa_sha": "a034c9a318085a2aff710341c4de3ab8278f8192",
+    "status": "SUPPORTING_SUITES_PASS_ACCEPTANCE_BLOCKED",
+    "passed": 112,
+    "paid_calls": 0,
+    "summary_sha256": "6b5d5e2cdb491c8d5e987b4ae0ae0482f66845d306cf296434a00984d4479c76",
+    "final_rc_accepted": false
   }
 }

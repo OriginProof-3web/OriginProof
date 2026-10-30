@@ -2,6 +2,8 @@
 
 D 여인준 `yijun0330`, Codex 검토·수정·실행 보조. 사용자 요청 “확인해서 이제 완전 마무리해”, [승격 체크리스트 #110](https://github.com/OriginProof-3web/OriginProof/issues/110)을 기준으로 수행했습니다. 계획5.1 / v5-shared-0.2. **D의 독립 수정·평가·소비 리뷰를 기록했으며 최종 통합 RC·다른 실제 장비·W7 제출 수용은 미완료입니다.**
 
+마무리 공유: [PR #113](https://github.com/OriginProof-3web/OriginProof/pull/113). B #102와 합본 보고 #111에도 실제 재현·D 수정 범위를 기술 리뷰로 기록했습니다.
+
 ## 최신 기준과 보존
 
 - fetch 후 `phase/W6` `5f7135b`, `integration` `d0111d8` 확인. 기존 #100·#101·#99는 병합됐습니다. 같은 변경을 다시 적용하지 않았습니다.
@@ -45,6 +47,8 @@ D 여인준 `yijun0330`, Codex 검토·수정·실행 보조. 사용자 요청 �
 | C 스택+D 패치 관련 | **201 PASS**. C #109 `09d3da9` git archive + D lifespan/Git 패치. API/가입/조회/변환/fixtures, 실제 서비스 전체 RC 아님 |
 | 웹 소비 대조 | **127 PASS/5 기존SKIP**, 위 사본에 A #105 ai_analysis 검사 파일 적용. Node 검사이며 실제 브라우저 재실행 아님 |
 | 새 이미지 예산 | **7 PASS**, 기존 smoke6과 함께13 PASS. 네트워크/키 차단·실제 추가 호출0 |
+| 같은 D QA HEAD 지원 수용 | `a034c9a`에서 stage43·consumer31·benchmark16·고정 C63 독립22 = **112 PASS**, paid0. 반환 상태 SUPPORTING_SUITES_PASS_ACCEPTANCE_BLOCKED(exit2); 최종 수용 성공으로 바꾸지 않음 |
+| B 도구/배포 guard | **63 PASS**, 키 없는 C 스택 사본에 B #102 고정 도구·검사를 공급. 합성 RPC·공개 실제3회와 별도 |
 | 실제 이미지 모델 | **46 HTTP200**, OpenAI 직접 평가. 제품 API 업로드를 경유하지 않음 |
 | 실제 공개 RPC | 배포·constructor·runtime **3 PASS**. 공개 원본/보호 content/기관 metadata 패키지는 아직 미확보 |
 | #112 원격 CI | `2b2849e`에서6/6 PASS. 실제 복구 job과 Contract 포함, 제품 이미지 실제 모델 실행으로 합산하지 않음 |

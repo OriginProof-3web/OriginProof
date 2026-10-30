@@ -1,3 +1,12 @@
+# 2026-10-30 D 마무리 후속
+
+- 담당 D 여인준 `yijun0330`, Codex 검토·수정·실행 보조. 시작 `phase/W6` `5f7135b`, 작업 `codex/v5-w6-d-final-audit`. [상세 인계](../qa/v5-d-final-audit-20261030.md)·[수치/검증 SHA](../qa/v5-d-final-audit-20261030.json).
+- #110의 #106~#109 소비/실패 리뷰와 #98 사후 확인을 등록하고 예산 문구를 실제 실행으로 정정했습니다. 이미지 전용 lifespan 누락은 D가 재현·한 줄 수정·40 PASS로 [#112](https://github.com/OriginProof-3web/OriginProof/pull/112)에 공유했습니다. C의 API·모델·보관 구현을 새 D 기능으로 합산하지 않습니다.
+- #111에서 인계된 Git 환경 상속 위험은 fixture commit과 runner Git/child 경계를 함께 고쳤고, 다른 합성 저장소 HEAD/index 불변을 포함해28 PASS입니다. 외부 Foundry vendor Ruff 제외도 반영했습니다.
+- 사용자가 이미지23개 추가 최대46회를 직접 승인했습니다. 기존 D converter/analyzer/evaluator/CappedTransport를 재사용하고 별도 요청 가드를 작성·mock7 PASS 후 실행했습니다. **23/23 완료,46 HTTP200, 분류22/23·macro-F1 0.9545454545, 판독22/23 일치·CER3/963**. [불일치·실행/미실행·원본 보존](../qa/v5-d-live-images-20261030.md). 정책/journal 종료false, 누적133회, 기존 private JSON7개 hash 불변입니다.
+- C 스택+D 패치의 키 없는 소스 사본 관련201 PASS, A #105 검사를 적용한 웹127 PASS/5 기존SKIP입니다. C63 source 준비 오류는 기존 override와 고정 hash를 유지해 해결했습니다. 실제 유료평가·실제 공개 RPC와 ASGI/합성 테스트를 구분합니다.
+- B #102 도구·기존 배포/Adapter를 재사용해 공개 배포/과거 코드/승인자 검증3회 PASS를 독립 재현했습니다. 도구를 D 단독 구현으로 합산하지 않습니다. 공개 원본 export 전체 대조·최종 통합 RC·다른 실제 장비·리허설3회·사람 검토는 미완료입니다. 타인 승인/병합·제출 완료를 만들지 않았습니다.
+
 > **2026-10-27 코드 리뷰·실제 연결 후속:** #99 고정 c325cf0에서 재현한 DB TCP 준비/AI 상태 문구/demo 인증·휴대용 검사 결함을 D 수정 branch에서 보완했습니다. 실제 Anvil·PostgreSQL·API·프록시·브라우저·OpenAI3회, 9개 실제 연결·계약101·기본1361·Node126/6skip·budget6을 구분 기록했습니다. 기존84회/PR #100 보존, 누적87회·추가 정책false. [기여/실패 해결/실측/미해결 전체 기록](../qa/v5-d-connected-review-20261027.md). 사용자님은 추가3회를 직접 승인했고 Codex가 리뷰·수정·실행을 보조했습니다. C API·B 체인·A 웹/시연 도구는 원저자 재사용이며 타인 승인·비율을 만들지 않았습니다.
 
 # W6 D — 기준 동기화·평가 인계 (부분 완료)
@@ -50,11 +59,3 @@ D 사용자가 충전 완료·텍스트24회 활성화/실행을 직접 승인�
 - 한계/다음 담당: 모델 단독 점수·실제 이미지 판독·생산 API 주입·실제 B Registry+웹 전체 동선·다른 노트북·RC3회는 별도입니다. 일반 복구7개의 Registry/분석기 응답은 합성입니다. [실측](../qa/v5-d-live-holdout-20261027.md), [현재 인계·요청 표](../handoffs/v5_d_service_readiness_20261027.md). 신규 CI/clean-source 검증은 최종 증거 보고서와 PR에 기록합니다.
 
 - 최종 검증 source `bfd115329d71e0c4600f0184284d33e812c67611`: 키 없는 git archive 기본1310 PASS/19 SKIP/기존경고1, D stage43·consumer31·고정 C63 독립71. 생성기5종 차이0·검토본/자료 일치·Ruff 통과. 신규16개는 전체에 포함됩니다. 실제 DB/API 복구7개는 기본 skip과 별도로 실행했고 일반 검증100회 p50 15.0273ms/p95 16.1677ms(합성 Registry, 모델/RPC 미포함)입니다. [전체 검증 경계](../qa/v5-d-service-readiness-20261027.json).
-# 2026-10-30 D 마무리 후속
-
-- 담당 D 여인준 `yijun0330`, Codex 검토·수정·실행 보조. 시작 `phase/W6` `5f7135b`, 작업 `codex/v5-w6-d-final-audit`. [상세 인계](../qa/v5-d-final-audit-20261030.md)·[수치/검증 SHA](../qa/v5-d-final-audit-20261030.json).
-- #110의 #106~#109 소비/실패 리뷰와 #98 사후 확인을 등록하고 예산 문구를 실제 실행으로 정정했습니다. 이미지 전용 lifespan 누락은 D가 재현·한 줄 수정·40 PASS로 [#112](https://github.com/OriginProof-3web/OriginProof/pull/112)에 공유했습니다. C의 API·모델·보관 구현을 새 D 기능으로 합산하지 않습니다.
-- #111에서 인계된 Git 환경 상속 위험은 fixture commit과 runner Git/child 경계를 함께 고쳤고, 다른 합성 저장소 HEAD/index 불변을 포함해28 PASS입니다. 외부 Foundry vendor Ruff 제외도 반영했습니다.
-- 사용자가 이미지23개 추가 최대46회를 직접 승인했습니다. 기존 D converter/analyzer/evaluator/CappedTransport를 재사용하고 별도 요청 가드를 작성·mock7 PASS 후 실행했습니다. **23/23 완료,46 HTTP200, 분류22/23·macro-F1 0.9545454545, 판독22/23 일치·CER3/963**. [불일치·실행/미실행·원본 보존](../qa/v5-d-live-images-20261030.md). 정책/journal 종료false, 누적133회, 기존 private JSON7개 hash 불변입니다.
-- C 스택+D 패치의 키 없는 소스 사본 관련201 PASS, A #105 검사를 적용한 웹127 PASS/5 기존SKIP입니다. C63 source 준비 오류는 기존 override와 고정 hash를 유지해 해결했습니다. 실제 유료평가·실제 공개 RPC와 ASGI/합성 테스트를 구분합니다.
-- B #102 도구·기존 배포/Adapter를 재사용해 공개 배포/과거 코드/승인자 검증3회 PASS를 독립 재현했습니다. 도구를 D 단독 구현으로 합산하지 않습니다. 공개 원본 export 전체 대조·최종 통합 RC·다른 실제 장비·리허설3회·사람 검토는 미완료입니다. 타인 승인/병합·제출 완료를 만들지 않았습니다.
