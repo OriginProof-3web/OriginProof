@@ -73,7 +73,15 @@ class SyntheticRegistry:
             raise DependencyUnavailableError("synthetic unavailable")
         return state
 
-    async def issuer(self, identifier):
+    async def snapshot(self):
+        self.read()
+        return {
+            "number": hex(int(POSITION["block_number"])),
+            "hash": POSITION["block_hash"],
+            "timestamp": hex(int(time.time())),
+        }
+
+    async def issuer(self, identifier, block=None):
         return self.read()["issuers"].get(identifier)
 
     async def key(self, identifier):
@@ -85,7 +93,7 @@ class SyntheticRegistry:
     async def proposal(self, identifier):
         return None
 
-    async def document(self, identifier, version):
+    async def document(self, identifier, version, block=None):
         rows = [d for d in self.read()["documents"] if d["document"]["document_id"] == identifier]
         if version is None:
             return max(rows, key=lambda d: d["document"]["version"], default=None)
