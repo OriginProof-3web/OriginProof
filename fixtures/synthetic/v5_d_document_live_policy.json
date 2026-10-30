@@ -1,11 +1,14 @@
 {
   "version": "v5-d-document-live-0.1",
-  "approved_for_paid_calls": true,
+  "approved_for_paid_calls": false,
   "approval": "User: 이미지 23개 추가 최대 46회 승인 (2026-10-30)",
   "scope": "development synthetic document images only; no text holdout replay",
   "model": "gpt-6-luna",
   "max_calls": 46,
-  "output_caps": {"CONVERSION": 4096, "ANALYSIS": 1024},
+  "output_caps": {
+    "CONVERSION": 4096,
+    "ANALYSIS": 1024
+  },
   "output_token_reservation": 117760,
   "asset_manifest_sha256": "7225223b15a0f7e3b5996e43b8c1512da5bc1700cbbfbb841bc7200b3bba5fdf",
   "prior_paid_calls": 87,
