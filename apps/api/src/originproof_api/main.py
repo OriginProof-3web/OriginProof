@@ -100,6 +100,7 @@ def create_app(
         wallet_enabled = (
             app_settings.wallet_registry_address
             or app_settings.wallet_text_input_enabled
+            or app_settings.wallet_image_input_enabled
             or app_settings.wallet_demo_email_enabled
         )
         maintenance_task = wallet_client = None
