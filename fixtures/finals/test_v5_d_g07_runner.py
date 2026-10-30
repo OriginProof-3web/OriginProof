@@ -10,7 +10,9 @@ import v5_d_g07_runner as runner
 
 def git(root, *args):
     return (
-        subprocess.check_output(["git", *args], cwd=root, stderr=subprocess.DEVNULL)
+        subprocess.check_output(
+            ["git", *args], cwd=root, env=runner.git_environment(), stderr=subprocess.DEVNULL
+        )
         .decode()
         .strip()
     )
@@ -49,6 +51,37 @@ def test_clean_candidate_includes_merged_fix_and_identical_lock(history):
     assert plan["status"] == "READY_TO_EXECUTE_NOT_TESTED"
     assert plan["live_executed"] is False
     assert plan["lock_sha256"] == hashlib.sha256((root / "uv.lock").read_bytes()).hexdigest()
+
+
+def test_parent_git_environment_cannot_redirect_qa_reads_or_fixture_writes(
+    history, tmp_path_factory, monkeypatch
+):
+    root, _, fixed = history
+    other = tmp_path_factory.mktemp("other-repository")
+    git(other, "init", "--quiet")
+    (other / "preserved.txt").write_text("must stay unchanged")
+    preserved = commit(other, "unrelated repository")
+    index = (other / ".git/index").read_bytes()
+    for key, value in {
+        "GIT_DIR": str(other / ".git"),
+        "GIT_WORK_TREE": str(other),
+        "GIT_COMMON_DIR": str(other / ".git"),
+        "GIT_INDEX_FILE": str(other / ".git/index"),
+        "GIT_OBJECT_DIRECTORY": str(other / ".git/objects"),
+        "GIT_CONFIG_COUNT": "1",
+        "GIT_CONFIG_KEY_0": "core.bare",
+        "GIT_CONFIG_VALUE_0": "true",
+    }.items():
+        monkeypatch.setenv(key, value)
+    plan = runner.preflight(fixed, root=root, fix_sha=fixed)
+    assert plan["status"] == "READY_TO_EXECUTE_NOT_TESTED"
+    (root / "fix.txt").write_text("another synthetic fix\n")
+    changed = commit(root, "isolated fixture commit")
+    assert runner.git(root, "rev-parse", "HEAD").decode().strip() == changed != fixed
+    assert runner.ancestor(root, fixed, changed)
+    assert git(other, "rev-parse", "HEAD") == preserved
+    assert (other / ".git/index").read_bytes() == index
+    assert (other / "preserved.txt").read_text() == "must stay unchanged"
 
 
 @pytest.mark.parametrize("sha", ["HEAD", "origin/phase/W5", "--all", "abc1234", "f" * 40])
@@ -186,10 +219,12 @@ def test_candidate_and_mode_reach_the_locked_child_without_paid_key(history, mon
     plan = runner.preflight(fixed, root=root, fix_sha=fixed)
     monkeypatch.setenv("OPENAI_API_KEY", "PRIVATE_KEY_MUST_NOT_REACH_CHILD")
     monkeypatch.setenv("W5_D_MIXED_STACK_QA", "1")
+    monkeypatch.setenv("GIT_DIR", "/unrelated/repository/.git")
 
     def child(args, *, cwd, env, stdout, stderr):
         assert args[:6] == ["uv", "run", "--all-packages", "--all-groups", "--locked", "python"]
         assert cwd == root and "OPENAI_API_KEY" not in env
+        assert not any(key.startswith("GIT_") for key in env)
         assert env["W5_D_PRODUCT_SHA"] == fixed and env["LLM_PROVIDER"] == "mock"
         assert (env.get("W5_D_MIXED_STACK_QA") == "1") == (mode == "MIXED_DIAGNOSTIC")
         out = root / "child" / "synthetic-run"
