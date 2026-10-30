@@ -44,6 +44,7 @@ class Settings(BaseSettings):
     wallet_email_secret: SecretStr | None = Field(default=None, repr=False, exclude=True)
     wallet_text_input_enabled: bool = False
     wallet_image_input_enabled: bool = False
+    signup_enabled: bool = False
     wallet_relay_enabled: bool = False
 
     model_config = SettingsConfigDict(

@@ -55,7 +55,8 @@ class RequestSecurity:
         headers = Headers(scope=scope)
         peer = scope.get("client") or ("unknown", 0)
         # Forwarded headers are caller-controlled unless a trusted proxy is configured.
-        retry = self.allowance(peer[0], scope["path"] == "/v1/auth/login")
+        # Sign-up shares the login budget: both hash a password and invite guessing.
+        retry = self.allowance(peer[0], scope["path"] in ("/v1/auth/login", "/v1/auth/register"))
         if retry:
             return await reject(429, "RATE_LIMITED", {"Retry-After": str(retry)})
         if scope["method"] not in ("GET", "HEAD", "OPTIONS"):

@@ -5,10 +5,13 @@ import hmac
 import re
 import secrets
 from datetime import UTC, datetime, timedelta
+from typing import Literal
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from starlette.concurrency import run_in_threadpool
 
 from .database import AccountRow, SessionRow
@@ -34,6 +37,22 @@ class AccountView(BaseModel):
 
 class LogoutView(BaseModel):
     status: str = "logged_out"
+
+
+class RegisterInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    kind: Literal["personal", "business"]
+    email: str = Field(min_length=3, max_length=120)
+    password: str = Field(min_length=8, max_length=256)
+    terms_accepted: Literal[True]
+    issuer_id: str | None = Field(default=None, max_length=128)
+
+
+class RegisteredView(BaseModel):
+    account_id: str
+    username: str
+    role: str
+    issuer_id: str | None
 
 
 def password_hash(password: str, salt: bytes | None = None) -> str:
@@ -122,6 +141,44 @@ async def login(body: LoginInput, request: Request, response: Response) -> Accou
         issuer_id=account.issuer_id,
         csrf_token=csrf_token,
     )
+
+
+@router.post("/register", response_model=RegisteredView, status_code=201)
+async def register(body: RegisterInput, request: Request) -> RegisteredView:
+    """Opt-in synthetic sign-up: only reserved .invalid mail, so no real personal data."""
+    from .wallet_onboarding import ROSTER  # local import: wallet_onboarding imports this module
+
+    if not request.app.state.settings.signup_enabled:
+        raise HTTPException(409, "SIGNUP_DISABLED")
+    email = body.email.strip().casefold()
+    match = re.fullmatch(r"[^@\s]+@([a-z0-9-]+(?:\.[a-z0-9-]+)+)", email)
+    domain = match.group(1) if match else ""
+    if body.kind == "business":
+        # Staff of a roster institution sign up with that institution's synthetic domain.
+        entry = ROSTER.get(body.issuer_id or "")
+        if entry is None or domain != entry[1]:
+            raise HTTPException(422, "SYNTHETIC_ROSTER_MISMATCH")
+    elif body.issuer_id is not None:
+        raise HTTPException(422, "MALFORMED_INPUT")
+    elif not domain.endswith(".invalid"):
+        raise HTTPException(422, "SYNTHETIC_EMAIL_REQUIRED")
+    if not (re.search(r"[A-Za-z]", body.password) and re.search(r"[0-9]", body.password)):
+        raise HTTPException(422, "WEAK_PASSWORD")
+    view = RegisteredView(
+        account_id=f"acct_{uuid4().hex}",
+        username=email,
+        role="issuer" if body.kind == "business" else "recipient",
+        issuer_id=body.issuer_id if body.kind == "business" else None,
+    )
+    hashed = await run_in_threadpool(password_hash, body.password)
+    async with request.app.state.database.session_factory() as db:
+        db.add(AccountRow(**view.model_dump(), password_hash=hashed))
+        try:
+            await db.commit()
+        except IntegrityError:
+            await db.rollback()
+            raise HTTPException(409, "ACCOUNT_EXISTS") from None
+    return view
 
 
 @router.get("/me", response_model=AccountView)
