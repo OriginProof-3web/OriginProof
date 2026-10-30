@@ -125,10 +125,16 @@ SignedSubmission은 signing_request_id와 signature만 전달합니다. 서버�
 | --- | --- |
 | 401/403 | 세션 없음 / 역할·서명자·체인 승인 권한 불일치 |
 | 404 | 문서/작업 미존재 또는 타인 비공개 객체 |
-| 409 | REQUEST_ID_CONFLICT, VERSION_CONFLICT, NONCE_ALREADY_USED, PROPOSAL_STALE, DUPLICATE_APPROVAL |
+| 409 | REQUEST_ID_CONFLICT, VERSION_CONFLICT, NONCE_ALREADY_USED, PROPOSAL_STALE, DUPLICATE_APPROVAL, SIGNER_IS_APPROVER (체인 승인자는 기관 signer로 등록 불가) |
 | 410 | SIGNATURE_EXPIRED, PROPOSAL_EXPIRED, RESULT_EXPIRED, ORIGINAL_UNAVAILABLE |
 | 422 | MALFORMED_INPUT, DOCUMENT_ID_MISMATCH, CONTENT_SCHEMA_MISMATCH, ORIGINAL_HASH_MISMATCH, PROTECTED_HASH_MISMATCH, SIGNATURE_SCHEMA_UNSUPPORTED, DIRECT_TX_MISMATCH |
 | 429/503 | 요청 제한(retry_after_seconds) / 제출용 의존성 장애 |
+
+`/v3/key-challenges`와 `/v3/proposals`는 체인 `is_approver(signer)`가 참이면
+409 `SIGNER_IS_APPROVER`, 조회 실패이면 503 `WALLET_REGISTRY_UNAVAILABLE`로 거부합니다.
+문서 작업 reconcile은 거래 검색 실패를 기록하고, 어댑터 `snapshot()`의 블록 timestamp로
+기한을 판단합니다. 만료 시 `issuer(id, block)`·`document(id, version, block)`에 동일 블록을
+전달하며 두 조회 성공·nonce 미소비·문서 조건 충족 시에만 예약을 해제합니다.
 
 조회 검사 중 RPC 장애는 HTTP 오류로 가짜/변조 판정을 만들지 않고 200 INCONCLUSIVE·UNAVAILABLE 체크로 응답합니다. error 구조는 `detail`, 선택 request_id/retry_after_seconds, field_paths이며 원본·계좌·서명 요청 전체를 오류/로그에 복제하지 않습니다. 이미 tx를 제출했는지 불명확하면 503으로 단순 재시도를 유도하지 않고 기존 Operation을 조회하도록 합니다.
 

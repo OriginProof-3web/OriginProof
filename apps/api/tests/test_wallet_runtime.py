@@ -60,7 +60,10 @@ class Chain:
     async def is_approver(self, address):
         return address in APPROVERS
 
-    async def issuer(self, issuer_id):
+    async def snapshot(self):
+        return {"number": "0xa", "timestamp": hex(int(time.time())), "hash": BLOCK["block_hash"]}
+
+    async def issuer(self, issuer_id, block=None):
         return self.issuers.get(issuer_id)
 
     async def key(self, key_id):
@@ -72,7 +75,7 @@ class Chain:
     async def transaction(self, tx_hash):
         return self.transactions.get(tx_hash)
 
-    async def document(self, document_id, version):
+    async def document(self, document_id, version, block=None):
         candidates = [v for (did, _), v in self.documents.items() if did == document_id]
         if version is None:
             return max(candidates, key=lambda v: v.document.version, default=None)
@@ -797,9 +800,11 @@ async def test_unsubmitted_expired_operation_reconciles_and_releases_nonce(walle
     }
     pending = await wallet.client.post("/v3/publications", json=body)
     assert pending.status_code == 202 and pending.json()["next_action"] == "RECONCILE"
-    monkeypatch.setattr(
-        "originproof_api.wallet_documents.now", lambda: signing["message"]["deadline"]
-    )
+
+    async def expired_block():
+        return {"number": "0xa", "timestamp": hex(signing["message"]["deadline"])}
+
+    monkeypatch.setattr(wallet.chain, "snapshot", expired_block)
     result = await wallet.client.post(f"/v3/operations/{pending.json()['operation_id']}/reconcile")
     assert result.status_code == 202 and result.json()["status"] == "FAILED"
     assert result.json()["next_action"] == "RESIGN" and wallet.chain.sends == []
@@ -1387,8 +1392,6 @@ async def test_distinct_chain_approvals_are_separate_from_confirmation_of_one_ap
 async def test_expired_unsubmitted_operation_requires_new_signature_after_chain_lookup(
     wallet, monkeypatch
 ):
-    from originproof_api import wallet_documents
-
     await activated(wallet)
     signing = await draft(wallet)
     response = await wallet.client.post(
@@ -1400,7 +1403,11 @@ async def test_expired_unsubmitted_operation_requires_new_signature_after_chain_
         },
     )
     operation = response.json()["operation_id"]
-    monkeypatch.setattr(wallet_documents, "now", lambda: signing["message"]["deadline"])
+
+    async def expired_block():
+        return {"number": "0xa", "timestamp": hex(signing["message"]["deadline"])}
+
+    monkeypatch.setattr(wallet.chain, "snapshot", expired_block)
     result = await wallet.client.post(f"/v3/operations/{operation}/reconcile")
     assert result.status_code == 202, result.text
     assert result.json()["status"] == "FAILED"
@@ -1622,3 +1629,166 @@ async def test_retained_revoke_request_cannot_reference_a_deleted_operation(wall
         },
     )
     assert response.status_code == 410 and response.json()["detail"] == "RESULT_EXPIRED"
+
+
+@pytest.mark.parametrize("action", ["Publish", "Revoke"])
+@pytest.mark.parametrize(
+    "case", ["before", "expired", "consumed", "snapshot", "issuer", "document"]
+)
+async def test_lookup_failure_uses_pinned_expiry_evidence(wallet, monkeypatch, action, case):
+    from originproof_api.database import OperationRow
+    from originproof_core import DependencyUnavailableError
+
+    await activated(wallet)
+    signing = await draft(wallet)
+    endpoint = "/v3/publications"
+    if action == "Revoke":
+        doc, _ = await confirmed_publication(wallet, signing)
+        response = await wallet.client.post(
+            "/v3/revoke-drafts",
+            json={
+                "request_id": "req_recovery_revoke",
+                "document_id": doc.document_id,
+                "version": 1,
+            },
+        )
+        assert response.status_code == 201, response.text
+        signing = response.json()
+        endpoint = "/v3/revocations"
+    pending = await wallet.client.post(
+        endpoint,
+        json={
+            "request_id": "req_recovery",
+            "signing_request_id": signing["signing_request_id"],
+            "signature": sign(signing),
+        },
+    )
+    assert pending.status_code == 202, pending.text
+    operation = pending.json()["operation_id"]
+    with Session(wallet.engine) as db:
+        db.get(OperationRow, operation).status = "UNKNOWN"
+        db.commit()
+    block = {
+        "number": "0xa",
+        "hash": BLOCK["block_hash"],
+        "timestamp": hex(signing["message"]["deadline"] - (case == "before")),
+    }
+    calls = []
+
+    async def unavailable(*args):
+        raise DependencyUnavailableError("synthetic lookup failure")
+
+    async def snapshot():
+        calls.append("snapshot")
+        if case == "snapshot":
+            raise DependencyUnavailableError("synthetic block failure")
+        return block
+
+    original_issuer, original_document = wallet.chain.issuer, wallet.chain.document
+
+    async def issuer(identifier, pinned):
+        assert pinned is block
+        calls.append("issuer")
+        if case == "issuer":
+            raise DependencyUnavailableError("synthetic issuer failure")
+        value = await original_issuer(identifier)
+        return value.model_copy(update={"next_nonce": "2"}) if case == "consumed" else value
+
+    async def document(identifier, version, pinned):
+        assert pinned is block
+        calls.append("document")
+        if case == "document":
+            raise DependencyUnavailableError("synthetic document failure")
+        return await original_document(identifier, version)
+
+    monkeypatch.setattr(wallet.chain, "find_transaction", unavailable)
+    monkeypatch.setattr(wallet.chain, "snapshot", snapshot)
+    monkeypatch.setattr(wallet.chain, "issuer", issuer)
+    monkeypatch.setattr(wallet.chain, "document", document)
+    # A wildly advanced server clock must not expire a signature before the chain does.
+    monkeypatch.setattr(
+        "originproof_api.wallet_documents.now", lambda: signing["message"]["deadline"] + 100
+    )
+    response = await wallet.client.post(f"/v3/operations/{operation}/reconcile")
+    assert response.status_code == (503 if case in ("snapshot", "issuer", "document") else 202)
+    with Session(wallet.engine) as db:
+        row = db.get(OperationRow, operation)
+        assert row.status == ("FAILED" if case == "expired" else "UNKNOWN")
+        assert row.recovery_reference["lookup_error"] == "WALLET_REGISTRY_UNAVAILABLE"
+        assert row.error_code == ("SIGNATURE_EXPIRED" if case == "expired" else None)
+    assert calls.count("snapshot") == 1
+    if case in ("expired", "consumed", "document"):
+        assert calls == ["snapshot", "issuer", "document"]
+    if case == "before":
+        assert calls == ["snapshot"]
+    assert wallet.chain.sends == []
+    if case == "expired":
+        monkeypatch.setattr(wallet.chain, "issuer", original_issuer)
+        monkeypatch.setattr(wallet.chain, "document", original_document)
+        fresh = await wallet.client.post(
+            "/v3/document-drafts" if action == "Publish" else "/v3/revoke-drafts",
+            json=(
+                {
+                    "request_id": "req_fresh",
+                    "doc_key": identifier_hash("public_notice"),
+                    "expected_version": 1,
+                    "expires_at": int(time.time()) + 86400,
+                    "content": payment_content(),
+                }
+                if action == "Publish"
+                else {"request_id": "req_fresh", "document_id": doc.document_id, "version": 1}
+            ),
+        )
+        assert fresh.status_code == 201, fresh.text
+        accepted = await wallet.client.post(
+            endpoint,
+            json={
+                "request_id": "req_after_recovery",
+                "signing_request_id": fresh.json()["signing_request_id"],
+                "signature": sign(fresh.json()),
+            },
+        )
+        assert accepted.status_code == 202, accepted.text
+
+
+@pytest.mark.parametrize("endpoint", ["/v3/key-challenges", "/v3/proposals"])
+@pytest.mark.parametrize(
+    "case,expected", [("approver", 409), ("ordinary", 201), ("unavailable", 503)]
+)
+async def test_signer_approver_guard(wallet, monkeypatch, endpoint, case, expected):
+    from originproof_core import DependencyUnavailableError
+
+    if endpoint == "/v3/key-challenges":
+        await onboarding(wallet)
+        body = {"request_id": "req_guard", "application_id": "app_test", "signer": SIGNER}
+    else:
+        checks, signing, _ = await proved_key(wallet)
+        wallet.who["name"] = "operator"
+        body = {
+            "request_id": "req_guard",
+            "key_proof_request_id": signing["signing_request_id"],
+            "proposal": {
+                "action": 1,
+                "issuerId": ISSUER_HASH,
+                "keyId": identifier_hash("key_guard"),
+                "signer": SIGNER,
+                "metadataHash": checks["metadata_hash"],
+                "nonce": "0",
+                "deadline": signing["message"]["deadline"],
+            },
+        }
+
+    async def is_approver(address):
+        if address == SIGNER:
+            if case == "unavailable":
+                raise DependencyUnavailableError("synthetic authorization failure")
+            return case == "approver"
+        return address in APPROVERS
+
+    monkeypatch.setattr(wallet.chain, "is_approver", is_approver)
+    response = await wallet.client.post(endpoint, json=body)
+    assert response.status_code == expected, response.text
+    if expected == 409:
+        assert response.json()["detail"] == "SIGNER_IS_APPROVER"
+    if expected == 503:
+        assert response.json()["detail"] == "WALLET_REGISTRY_UNAVAILABLE"
