@@ -1,0 +1,1199 @@
+{
+  "version": "v5-d-document-evaluation-0.1",
+  "scope": "ACTUAL_OPENAI_DEVELOPMENT_IMAGES_NOT_PRODUCT_ACCEPTANCE",
+  "source_fixture_sha256": "3c3b0c66fd3c4f851dce01255855f6a5db5f28397f9ade20469ec27918522199",
+  "asset_manifest_sha256": "7225223b15a0f7e3b5996e43b8c1512da5bc1700cbbfbb841bc7200b3bba5fdf",
+  "split": "development",
+  "selected_images": 23,
+  "excluded_text_only_ids": [
+    "DP-U05"
+  ],
+  "completed": 23,
+  "failed": 0,
+  "not_run": 0,
+  "conversion": {
+    "total_cases": 23,
+    "complete": true,
+    "evaluated_cases": 23,
+    "failed_cases": 0,
+    "resource_limited_cases": 0,
+    "reference_characters_all_cases": 963,
+    "corpus_character_error_rate": 0.003115264797507788,
+    "results": [
+      {
+        "id": "DP-H01",
+        "reference_characters": 47,
+        "hypothesis_characters": 47,
+        "edit_distance": 0,
+        "character_error_rate": 0.0,
+        "exact_match": true,
+        "status": "COMPUTED"
+      },
+      {
+        "id": "DP-H02",
+        "reference_characters": 39,
+        "hypothesis_characters": 39,
+        "edit_distance": 0,
+        "character_error_rate": 0.0,
+        "exact_match": true,
+        "status": "COMPUTED"
+      },
+      {
+        "id": "DP-H03",
+        "reference_characters": 42,
+        "hypothesis_characters": 42,
+        "edit_distance": 0,
+        "character_error_rate": 0.0,
+        "exact_match": true,
+        "status": "COMPUTED"
+      },
+      {
+        "id": "DP-H04",
+        "reference_characters": 29,
+        "hypothesis_characters": 29,
+        "edit_distance": 0,
+        "character_error_rate": 0.0,
+        "exact_match": true,
+        "status": "COMPUTED"
+      },
+      {
+        "id": "DP-H05",
+        "reference_characters": 40,
+        "hypothesis_characters": 40,
+        "edit_distance": 0,
+        "character_error_rate": 0.0,
+        "exact_match": true,
+        "status": "COMPUTED"
+      },
+      {
+        "id": "DP-H06",
+        "reference_characters": 34,
+        "hypothesis_characters": 34,
+        "edit_distance": 0,
+        "character_error_rate": 0.0,
+        "exact_match": true,
+        "status": "COMPUTED"
+      },
+      {
+        "id": "DP-C01",
+        "reference_characters": 48,
+        "hypothesis_characters": 48,
+        "edit_distance": 0,
+        "character_error_rate": 0.0,
+        "exact_match": true,
+        "status": "COMPUTED"
+      },
+      {
+        "id": "DP-C02",
+        "reference_characters": 68,
+        "hypothesis_characters": 68,
+        "edit_distance": 0,
+        "character_error_rate": 0.0,
+        "exact_match": true,
+        "status": "COMPUTED"
+      },
+      {
+        "id": "DP-C03",
+        "reference_characters": 48,
+        "hypothesis_characters": 48,
+        "edit_distance": 0,
+        "character_error_rate": 0.0,
+        "exact_match": true,
+        "status": "COMPUTED"
+      },
+      {
+        "id": "DP-C04",
+        "reference_characters": 42,
+        "hypothesis_characters": 42,
+        "edit_distance": 0,
+        "character_error_rate": 0.0,
+        "exact_match": true,
+        "status": "COMPUTED"
+      },
+      {
+        "id": "DP-C05",
+        "reference_characters": 52,
+        "hypothesis_characters": 52,
+        "edit_distance": 0,
+        "character_error_rate": 0.0,
+        "exact_match": true,
+        "status": "COMPUTED"
+      },
+      {
+        "id": "DP-C06",
+        "reference_characters": 58,
+        "hypothesis_characters": 58,
+        "edit_distance": 0,
+        "character_error_rate": 0.0,
+        "exact_match": true,
+        "status": "COMPUTED"
+      },
+      {
+        "id": "DP-N01",
+        "reference_characters": 60,
+        "hypothesis_characters": 60,
+        "edit_distance": 0,
+        "character_error_rate": 0.0,
+        "exact_match": true,
+        "status": "COMPUTED"
+      },
+      {
+        "id": "DP-N02",
+        "reference_characters": 50,
+        "hypothesis_characters": 50,
+        "edit_distance": 0,
+        "character_error_rate": 0.0,
+        "exact_match": true,
+        "status": "COMPUTED"
+      },
+      {
+        "id": "DP-N03",
+        "reference_characters": 59,
+        "hypothesis_characters": 59,
+        "edit_distance": 0,
+        "character_error_rate": 0.0,
+        "exact_match": true,
+        "status": "COMPUTED"
+      },
+      {
+        "id": "DP-N04",
+        "reference_characters": 65,
+        "hypothesis_characters": 65,
+        "edit_distance": 0,
+        "character_error_rate": 0.0,
+        "exact_match": true,
+        "status": "COMPUTED"
+      },
+      {
+        "id": "DP-N05",
+        "reference_characters": 51,
+        "hypothesis_characters": 51,
+        "edit_distance": 0,
+        "character_error_rate": 0.0,
+        "exact_match": true,
+        "status": "COMPUTED"
+      },
+      {
+        "id": "DP-N06",
+        "reference_characters": 56,
+        "hypothesis_characters": 56,
+        "edit_distance": 0,
+        "character_error_rate": 0.0,
+        "exact_match": true,
+        "status": "COMPUTED"
+      },
+      {
+        "id": "DP-U01",
+        "reference_characters": 16,
+        "hypothesis_characters": 16,
+        "edit_distance": 0,
+        "character_error_rate": 0.0,
+        "exact_match": true,
+        "status": "COMPUTED"
+      },
+      {
+        "id": "DP-U02",
+        "reference_characters": 12,
+        "hypothesis_characters": 12,
+        "edit_distance": 0,
+        "character_error_rate": 0.0,
+        "exact_match": true,
+        "status": "COMPUTED"
+      },
+      {
+        "id": "DP-U03",
+        "reference_characters": 6,
+        "hypothesis_characters": 8,
+        "edit_distance": 3,
+        "character_error_rate": 0.5,
+        "exact_match": false,
+        "status": "COMPUTED"
+      },
+      {
+        "id": "DP-U04",
+        "reference_characters": 20,
+        "hypothesis_characters": 20,
+        "edit_distance": 0,
+        "character_error_rate": 0.0,
+        "exact_match": true,
+        "status": "COMPUTED"
+      },
+      {
+        "id": "DP-U06",
+        "reference_characters": 21,
+        "hypothesis_characters": 21,
+        "edit_distance": 0,
+        "character_error_rate": 0.0,
+        "exact_match": true,
+        "status": "COMPUTED"
+      }
+    ]
+  },
+  "combined_classification": {
+    "confusion_matrix": {
+      "HIGH": {
+        "HIGH": 6,
+        "CAUTION": 0,
+        "NO_CLEAR_INDICATORS": 0,
+        "UNDETERMINED": 0,
+        "ERROR": 0
+      },
+      "CAUTION": {
+        "HIGH": 0,
+        "CAUTION": 5,
+        "NO_CLEAR_INDICATORS": 0,
+        "UNDETERMINED": 1,
+        "ERROR": 0
+      },
+      "NO_CLEAR_INDICATORS": {
+        "HIGH": 0,
+        "CAUTION": 0,
+        "NO_CLEAR_INDICATORS": 6,
+        "UNDETERMINED": 0,
+        "ERROR": 0
+      },
+      "UNDETERMINED": {
+        "HIGH": 0,
+        "CAUTION": 0,
+        "NO_CLEAR_INDICATORS": 0,
+        "UNDETERMINED": 5,
+        "ERROR": 0
+      }
+    },
+    "per_class": {
+      "HIGH": {
+        "support": 6,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "CAUTION": {
+        "support": 6,
+        "precision": 1.0,
+        "recall": 0.8333333333333334,
+        "f1": 0.9090909090909091
+      },
+      "NO_CLEAR_INDICATORS": {
+        "support": 6,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "UNDETERMINED": {
+        "support": 5,
+        "precision": 0.8333333333333334,
+        "recall": 1.0,
+        "f1": 0.9090909090909091
+      }
+    },
+    "macro_f1": 0.9545454545454546,
+    "high_recall": 1.0
+  },
+  "pipeline_latency_seconds_all_attempts": {
+    "timed_cases": 23,
+    "p50": 8.11522504198365,
+    "p95": 10.6927327089943
+  },
+  "pixel_region_accuracy": "NOT_EVALUATED; NO_PIXEL_GROUND_TRUTH",
+  "evidence_scope": "CONVERTED_TEXT_QUOTES; SOURCE_QUOTE_COVERAGE_IS_NOT_PIXEL_OR_ORIGINAL_OFFSET_ACCURACY",
+  "modality_human_review": "PENDING; TEXT_LABEL_REVIEW_DOES_NOT_APPROVE_IMAGE_QUALITY",
+  "paid_calls": 46,
+  "holdout_predictions": 0,
+  "input_support_activated": false,
+  "acceptance_status": "REQUIRES_HUMAN_REVIEW_NOT_PRODUCT_ACCEPTANCE",
+  "cases": [
+    {
+      "id": "DP-H01",
+      "expected": "HIGH",
+      "predicted": "HIGH",
+      "status": "COMPLETED",
+      "error_code": null,
+      "validated_quotes": 2,
+      "llm_quotes": 1,
+      "rule_quotes": 1,
+      "model_unavailable_or_rejected": false,
+      "mock_replay": false,
+      "source_expected_quotes_covered": 1,
+      "expected_quote_count": 1
+    },
+    {
+      "id": "DP-H02",
+      "expected": "HIGH",
+      "predicted": "HIGH",
+      "status": "COMPLETED",
+      "error_code": null,
+      "validated_quotes": 2,
+      "llm_quotes": 1,
+      "rule_quotes": 1,
+      "model_unavailable_or_rejected": false,
+      "mock_replay": false,
+      "source_expected_quotes_covered": 1,
+      "expected_quote_count": 1
+    },
+    {
+      "id": "DP-H03",
+      "expected": "HIGH",
+      "predicted": "HIGH",
+      "status": "COMPLETED",
+      "error_code": null,
+      "validated_quotes": 2,
+      "llm_quotes": 1,
+      "rule_quotes": 1,
+      "model_unavailable_or_rejected": false,
+      "mock_replay": false,
+      "source_expected_quotes_covered": 1,
+      "expected_quote_count": 1
+    },
+    {
+      "id": "DP-H04",
+      "expected": "HIGH",
+      "predicted": "HIGH",
+      "status": "COMPLETED",
+      "error_code": null,
+      "validated_quotes": 2,
+      "llm_quotes": 1,
+      "rule_quotes": 1,
+      "model_unavailable_or_rejected": false,
+      "mock_replay": false,
+      "source_expected_quotes_covered": 1,
+      "expected_quote_count": 1
+    },
+    {
+      "id": "DP-H05",
+      "expected": "HIGH",
+      "predicted": "HIGH",
+      "status": "COMPLETED",
+      "error_code": null,
+      "validated_quotes": 2,
+      "llm_quotes": 1,
+      "rule_quotes": 1,
+      "model_unavailable_or_rejected": false,
+      "mock_replay": false,
+      "source_expected_quotes_covered": 1,
+      "expected_quote_count": 1
+    },
+    {
+      "id": "DP-H06",
+      "expected": "HIGH",
+      "predicted": "HIGH",
+      "status": "COMPLETED",
+      "error_code": null,
+      "validated_quotes": 3,
+      "llm_quotes": 1,
+      "rule_quotes": 2,
+      "model_unavailable_or_rejected": false,
+      "mock_replay": false,
+      "source_expected_quotes_covered": 1,
+      "expected_quote_count": 1
+    },
+    {
+      "id": "DP-C01",
+      "expected": "CAUTION",
+      "predicted": "CAUTION",
+      "status": "COMPLETED",
+      "error_code": null,
+      "validated_quotes": 2,
+      "llm_quotes": 1,
+      "rule_quotes": 1,
+      "model_unavailable_or_rejected": false,
+      "mock_replay": false,
+      "source_expected_quotes_covered": 1,
+      "expected_quote_count": 1
+    },
+    {
+      "id": "DP-C02",
+      "expected": "CAUTION",
+      "predicted": "CAUTION",
+      "status": "COMPLETED",
+      "error_code": null,
+      "validated_quotes": 1,
+      "llm_quotes": 1,
+      "rule_quotes": 0,
+      "model_unavailable_or_rejected": false,
+      "mock_replay": false,
+      "source_expected_quotes_covered": 1,
+      "expected_quote_count": 1
+    },
+    {
+      "id": "DP-C03",
+      "expected": "CAUTION",
+      "predicted": "CAUTION",
+      "status": "COMPLETED",
+      "error_code": null,
+      "validated_quotes": 1,
+      "llm_quotes": 1,
+      "rule_quotes": 0,
+      "model_unavailable_or_rejected": false,
+      "mock_replay": false,
+      "source_expected_quotes_covered": 1,
+      "expected_quote_count": 1
+    },
+    {
+      "id": "DP-C04",
+      "expected": "CAUTION",
+      "predicted": "UNDETERMINED",
+      "status": "COMPLETED",
+      "error_code": null,
+      "validated_quotes": 0,
+      "llm_quotes": 0,
+      "rule_quotes": 0,
+      "model_unavailable_or_rejected": false,
+      "mock_replay": false,
+      "source_expected_quotes_covered": 0,
+      "expected_quote_count": 1
+    },
+    {
+      "id": "DP-C05",
+      "expected": "CAUTION",
+      "predicted": "CAUTION",
+      "status": "COMPLETED",
+      "error_code": null,
+      "validated_quotes": 1,
+      "llm_quotes": 1,
+      "rule_quotes": 0,
+      "model_unavailable_or_rejected": false,
+      "mock_replay": false,
+      "source_expected_quotes_covered": 1,
+      "expected_quote_count": 1
+    },
+    {
+      "id": "DP-C06",
+      "expected": "CAUTION",
+      "predicted": "CAUTION",
+      "status": "COMPLETED",
+      "error_code": null,
+      "validated_quotes": 1,
+      "llm_quotes": 1,
+      "rule_quotes": 0,
+      "model_unavailable_or_rejected": false,
+      "mock_replay": false,
+      "source_expected_quotes_covered": 1,
+      "expected_quote_count": 1
+    },
+    {
+      "id": "DP-N01",
+      "expected": "NO_CLEAR_INDICATORS",
+      "predicted": "NO_CLEAR_INDICATORS",
+      "status": "COMPLETED",
+      "error_code": null,
+      "validated_quotes": 0,
+      "llm_quotes": 0,
+      "rule_quotes": 0,
+      "model_unavailable_or_rejected": false,
+      "mock_replay": false,
+      "source_expected_quotes_covered": 0,
+      "expected_quote_count": 0
+    },
+    {
+      "id": "DP-N02",
+      "expected": "NO_CLEAR_INDICATORS",
+      "predicted": "NO_CLEAR_INDICATORS",
+      "status": "COMPLETED",
+      "error_code": null,
+      "validated_quotes": 0,
+      "llm_quotes": 0,
+      "rule_quotes": 0,
+      "model_unavailable_or_rejected": false,
+      "mock_replay": false,
+      "source_expected_quotes_covered": 0,
+      "expected_quote_count": 0
+    },
+    {
+      "id": "DP-N03",
+      "expected": "NO_CLEAR_INDICATORS",
+      "predicted": "NO_CLEAR_INDICATORS",
+      "status": "COMPLETED",
+      "error_code": null,
+      "validated_quotes": 0,
+      "llm_quotes": 0,
+      "rule_quotes": 0,
+      "model_unavailable_or_rejected": false,
+      "mock_replay": false,
+      "source_expected_quotes_covered": 0,
+      "expected_quote_count": 0
+    },
+    {
+      "id": "DP-N04",
+      "expected": "NO_CLEAR_INDICATORS",
+      "predicted": "NO_CLEAR_INDICATORS",
+      "status": "COMPLETED",
+      "error_code": null,
+      "validated_quotes": 0,
+      "llm_quotes": 0,
+      "rule_quotes": 0,
+      "model_unavailable_or_rejected": false,
+      "mock_replay": false,
+      "source_expected_quotes_covered": 0,
+      "expected_quote_count": 0
+    },
+    {
+      "id": "DP-N05",
+      "expected": "NO_CLEAR_INDICATORS",
+      "predicted": "NO_CLEAR_INDICATORS",
+      "status": "COMPLETED",
+      "error_code": null,
+      "validated_quotes": 0,
+      "llm_quotes": 0,
+      "rule_quotes": 0,
+      "model_unavailable_or_rejected": false,
+      "mock_replay": false,
+      "source_expected_quotes_covered": 0,
+      "expected_quote_count": 0
+    },
+    {
+      "id": "DP-N06",
+      "expected": "NO_CLEAR_INDICATORS",
+      "predicted": "NO_CLEAR_INDICATORS",
+      "status": "COMPLETED",
+      "error_code": null,
+      "validated_quotes": 0,
+      "llm_quotes": 0,
+      "rule_quotes": 0,
+      "model_unavailable_or_rejected": false,
+      "mock_replay": false,
+      "source_expected_quotes_covered": 0,
+      "expected_quote_count": 0
+    },
+    {
+      "id": "DP-U01",
+      "expected": "UNDETERMINED",
+      "predicted": "UNDETERMINED",
+      "status": "COMPLETED",
+      "error_code": null,
+      "validated_quotes": 0,
+      "llm_quotes": 0,
+      "rule_quotes": 0,
+      "model_unavailable_or_rejected": false,
+      "mock_replay": false,
+      "source_expected_quotes_covered": 0,
+      "expected_quote_count": 0
+    },
+    {
+      "id": "DP-U02",
+      "expected": "UNDETERMINED",
+      "predicted": "UNDETERMINED",
+      "status": "COMPLETED",
+      "error_code": null,
+      "validated_quotes": 0,
+      "llm_quotes": 0,
+      "rule_quotes": 0,
+      "model_unavailable_or_rejected": false,
+      "mock_replay": false,
+      "source_expected_quotes_covered": 0,
+      "expected_quote_count": 0
+    },
+    {
+      "id": "DP-U03",
+      "expected": "UNDETERMINED",
+      "predicted": "UNDETERMINED",
+      "status": "COMPLETED",
+      "error_code": null,
+      "validated_quotes": 0,
+      "llm_quotes": 0,
+      "rule_quotes": 0,
+      "model_unavailable_or_rejected": false,
+      "mock_replay": false,
+      "source_expected_quotes_covered": 0,
+      "expected_quote_count": 0
+    },
+    {
+      "id": "DP-U04",
+      "expected": "UNDETERMINED",
+      "predicted": "UNDETERMINED",
+      "status": "COMPLETED",
+      "error_code": null,
+      "validated_quotes": 0,
+      "llm_quotes": 0,
+      "rule_quotes": 0,
+      "model_unavailable_or_rejected": false,
+      "mock_replay": false,
+      "source_expected_quotes_covered": 0,
+      "expected_quote_count": 0
+    },
+    {
+      "id": "DP-U06",
+      "expected": "UNDETERMINED",
+      "predicted": "UNDETERMINED",
+      "status": "COMPLETED",
+      "error_code": null,
+      "validated_quotes": 0,
+      "llm_quotes": 0,
+      "rule_quotes": 0,
+      "model_unavailable_or_rejected": false,
+      "mock_replay": false,
+      "source_expected_quotes_covered": 0,
+      "expected_quote_count": 0
+    }
+  ],
+  "model": "gpt-6-luna",
+  "reasoning_effort": "low",
+  "prior_paid_calls": 87,
+  "cumulative_paid_calls": 133,
+  "max_retries": 0,
+  "output_token_reservation": 117760,
+  "usage": {
+    "input_tokens": 30417,
+    "output_tokens": 5681,
+    "total_tokens": 36098
+  },
+  "request_rows": [
+    {
+      "case_id": "DP-H01",
+      "stage": "CONVERSION",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 412,
+        "output_tokens": 109,
+        "total_tokens": 521
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-H01",
+      "stage": "ANALYSIS",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 913,
+        "output_tokens": 128,
+        "total_tokens": 1041
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-H02",
+      "stage": "CONVERSION",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 408,
+        "output_tokens": 61,
+        "total_tokens": 469
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-H02",
+      "stage": "ANALYSIS",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 912,
+        "output_tokens": 141,
+        "total_tokens": 1053
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-H03",
+      "stage": "CONVERSION",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 397,
+        "output_tokens": 105,
+        "total_tokens": 502
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-H03",
+      "stage": "ANALYSIS",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 911,
+        "output_tokens": 148,
+        "total_tokens": 1059
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-H04",
+      "stage": "CONVERSION",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 383,
+        "output_tokens": 100,
+        "total_tokens": 483
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-H04",
+      "stage": "ANALYSIS",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 910,
+        "output_tokens": 172,
+        "total_tokens": 1082
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-H05",
+      "stage": "CONVERSION",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 408,
+        "output_tokens": 114,
+        "total_tokens": 522
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-H05",
+      "stage": "ANALYSIS",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 916,
+        "output_tokens": 151,
+        "total_tokens": 1067
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-H06",
+      "stage": "CONVERSION",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 397,
+        "output_tokens": 115,
+        "total_tokens": 512
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-H06",
+      "stage": "ANALYSIS",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 916,
+        "output_tokens": 155,
+        "total_tokens": 1071
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-C01",
+      "stage": "CONVERSION",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 426,
+        "output_tokens": 115,
+        "total_tokens": 541
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-C01",
+      "stage": "ANALYSIS",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 920,
+        "output_tokens": 250,
+        "total_tokens": 1170
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-C02",
+      "stage": "CONVERSION",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 444,
+        "output_tokens": 132,
+        "total_tokens": 576
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-C02",
+      "stage": "ANALYSIS",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 921,
+        "output_tokens": 188,
+        "total_tokens": 1109
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-C03",
+      "stage": "CONVERSION",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 426,
+        "output_tokens": 119,
+        "total_tokens": 545
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-C03",
+      "stage": "ANALYSIS",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 920,
+        "output_tokens": 154,
+        "total_tokens": 1074
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-C04",
+      "stage": "CONVERSION",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 415,
+        "output_tokens": 62,
+        "total_tokens": 477
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-C04",
+      "stage": "ANALYSIS",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 913,
+        "output_tokens": 310,
+        "total_tokens": 1223
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-C05",
+      "stage": "CONVERSION",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 433,
+        "output_tokens": 119,
+        "total_tokens": 552
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-C05",
+      "stage": "ANALYSIS",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 920,
+        "output_tokens": 361,
+        "total_tokens": 1281
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-C06",
+      "stage": "CONVERSION",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 433,
+        "output_tokens": 131,
+        "total_tokens": 564
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-C06",
+      "stage": "ANALYSIS",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 922,
+        "output_tokens": 221,
+        "total_tokens": 1143
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-N01",
+      "stage": "CONVERSION",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 441,
+        "output_tokens": 108,
+        "total_tokens": 549
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-N01",
+      "stage": "ANALYSIS",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 917,
+        "output_tokens": 93,
+        "total_tokens": 1010
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-N02",
+      "stage": "CONVERSION",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 426,
+        "output_tokens": 70,
+        "total_tokens": 496
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-N02",
+      "stage": "ANALYSIS",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 921,
+        "output_tokens": 62,
+        "total_tokens": 983
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-N03",
+      "stage": "CONVERSION",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 448,
+        "output_tokens": 77,
+        "total_tokens": 525
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-N03",
+      "stage": "ANALYSIS",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 928,
+        "output_tokens": 83,
+        "total_tokens": 1011
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-N04",
+      "stage": "CONVERSION",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 448,
+        "output_tokens": 114,
+        "total_tokens": 562
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-N04",
+      "stage": "ANALYSIS",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 920,
+        "output_tokens": 88,
+        "total_tokens": 1008
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-N05",
+      "stage": "CONVERSION",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 433,
+        "output_tokens": 118,
+        "total_tokens": 551
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-N05",
+      "stage": "ANALYSIS",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 919,
+        "output_tokens": 89,
+        "total_tokens": 1008
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-N06",
+      "stage": "CONVERSION",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 448,
+        "output_tokens": 73,
+        "total_tokens": 521
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-N06",
+      "stage": "ANALYSIS",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 924,
+        "output_tokens": 79,
+        "total_tokens": 1003
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-U01",
+      "stage": "CONVERSION",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 351,
+        "output_tokens": 131,
+        "total_tokens": 482
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-U01",
+      "stage": "ANALYSIS",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 904,
+        "output_tokens": 91,
+        "total_tokens": 995
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-U02",
+      "stage": "CONVERSION",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 340,
+        "output_tokens": 51,
+        "total_tokens": 391
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-U02",
+      "stage": "ANALYSIS",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 901,
+        "output_tokens": 94,
+        "total_tokens": 995
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-U03",
+      "stage": "CONVERSION",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 333,
+        "output_tokens": 125,
+        "total_tokens": 458
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-U03",
+      "stage": "ANALYSIS",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 896,
+        "output_tokens": 85,
+        "total_tokens": 981
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-U04",
+      "stage": "CONVERSION",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 365,
+        "output_tokens": 88,
+        "total_tokens": 453
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-U04",
+      "stage": "ANALYSIS",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 903,
+        "output_tokens": 119,
+        "total_tokens": 1022
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-U06",
+      "stage": "CONVERSION",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 369,
+        "output_tokens": 98,
+        "total_tokens": 467
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    },
+    {
+      "case_id": "DP-U06",
+      "stage": "ANALYSIS",
+      "http_attempts": 1,
+      "usage": {
+        "input_tokens": 906,
+        "output_tokens": 84,
+        "total_tokens": 990
+      },
+      "http_status": 200,
+      "usage_exceeds_output_cap": false
+    }
+  ],
+  "checkpoint_closed": true,
+  "journal_checksum": "6afc4d4bd27bdbc021cf2457887f0fd9f326e1bca096af115843d3cb1d7bcba4",
+  "executed_source_revision": "511abc1ca277db2555a920192861824f7e82ad74",
+  "authorization": "User: 이미지 23개 추가 최대 46회 승인 (2026-10-30)",
+  "same_physical_machine": true,
+  "production_image_upload_acceptance": false
+}

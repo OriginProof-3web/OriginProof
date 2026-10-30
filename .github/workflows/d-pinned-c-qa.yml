@@ -17,6 +17,8 @@ on:
       - "fixtures/finals/v5_d_browser_connected.cjs"
       - "fixtures/synthetic/v5_d_connected_smoke_policy.json"
       - "fixtures/finals/test_v5_d_connected_smoke_budget.py"
+      - "fixtures/finals/v5_d_document_live.py"
+      - "fixtures/finals/test_v5_d_document_live.py"
       - "fixtures/finals/test_v5_d_g07_runner.py"
       - "fixtures/finals/w5_p0_api_qa.py"
       - "fixtures/finals/w5_projection_qa.py"
@@ -110,9 +112,10 @@ jobs:
         if: matrix.suite == 'stage'
         run: |
           .venv/bin/ruff check fixtures/finals/v5_d_connected_smoke.py fixtures/finals/v5_d_run_connected_smoke.py fixtures/finals/test_v5_d_connected_smoke_budget.py
+          .venv/bin/ruff check fixtures/finals/v5_d_document_live.py fixtures/finals/test_v5_d_document_live.py
           node --check fixtures/finals/v5_d_browser_connected.cjs
           PYTHONPATH="$PWD/fixtures/finals:$PWD/apps/api/src:$PWD/packages/python:$PWD/services/analyzer/src:$PWD/services/indexer/src" .venv/bin/python -m pytest -q -o addopts= \
-            fixtures/finals/test_v5_d_connected_smoke_budget.py
+            fixtures/finals/test_v5_d_connected_smoke_budget.py fixtures/finals/test_v5_d_document_live.py
       - name: Preserve actual failures and test counts
         if: always()
         uses: actions/upload-artifact@v4
