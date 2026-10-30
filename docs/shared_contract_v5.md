@@ -140,7 +140,7 @@ SignedSubmission은 signing_request_id와 signature만 전달합니다. 서버�
 
 ## 7. 분석·보고서의 공통 경계
 
-input_ref는 소유권·유효기간 검사를 마친 입력 객체 ID입니다. 텍스트 수락 `/v3/inputs`는 합성 검사용 opt-in으로 추가했고 기본 비활성입니다. 최종 허용 형식은 V5-Q01에서 선정하며 이미지/PDF/녹음을 활성화하지 않습니다. 선택 verification_session_id의 소유권·24시간 유효성을 확인한 C 검증 사본을 집계하고 D가 발행 결과를 정하지 못하도록 검사합니다. Decisions API는 포함하지 않습니다.
+input_ref는 소유권·유효기간 검사를 마친 입력 객체 ID입니다. `/v3/inputs`는 V5-Q01 결정(#92·#100)에 따라 `TEXT`(`TextInputRequest`)와 한 장짜리 문서 사진 `DOCUMENT_IMAGE`(`originproof_core.wallet_inputs.DocumentImageInputRequest`, PNG·JPEG·WebP, 5MB·4000×3000 이하)를 받습니다. 각각 `API_WALLET_TEXT_INPUT_ENABLED`·`API_WALLET_IMAGE_INPUT_ENABLED`로 켜며 기본은 꺼짐입니다. 꺼진 형식은 409 `INPUT_SUPPORT_UNDECIDED`, 형식·signature·크기·픽셀 검사 실패는 422 `MALFORMED_INPUT`입니다. 사진은 D 변환기가 판독한 글자만 분석기와 C 근거 대조에 쓰고 보고서 한계에 `CONVERSION_ACCURACY_NOT_VERIFIED`를 붙입니다. 근거 위치는 판독문 기준 글자 위치이며 사진의 픽셀 영역이 아닙니다. 원본 사진의 보관·삭제는 텍스트와 같고, PDF·녹음은 활성화하지 않습니다. 선택 verification_session_id의 소유권·24시간 유효성을 확인한 C 검증 사본을 집계하고 D가 발행 결과를 정하지 못하도록 검사합니다. Decisions API는 포함하지 않습니다.
 
 AnalysisJob은 QUEUED/RUNNING/COMPLETED/FAILED/CANCELLED/EXPIRED입니다. 보고서 위험 수준은 HIGH/CAUTION/NO_CLEAR_INDICATORS/UNDETERMINED입니다. 발행 검사를 실행하지 않았으면 verification=null과 verification_not_run_reason을 남깁니다. NO_CLEAR_INDICATORS는 발행 진위나 행동 안전을 보증하지 않습니다.
 

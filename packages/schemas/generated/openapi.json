@@ -1003,6 +1003,39 @@
         "title": "DocumentDraftRequest",
         "type": "object"
       },
+      "DocumentImageInputRequest": {
+        "additionalProperties": false,
+        "description": "One-page document photo (#92). The server checks MIME, signature, size and pixels.",
+        "properties": {
+          "image_base64": {
+            "maxLength": 7340032,
+            "minLength": 1,
+            "title": "Image Base64",
+            "type": "string"
+          },
+          "image_media_type": {
+            "enum": [
+              "image/png",
+              "image/jpeg",
+              "image/webp"
+            ],
+            "title": "Image Media Type",
+            "type": "string"
+          },
+          "kind": {
+            "const": "DOCUMENT_IMAGE",
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "image_media_type",
+          "image_base64"
+        ],
+        "title": "DocumentImageInputRequest",
+        "type": "object"
+      },
       "DocumentIssue": {
         "additionalProperties": false,
         "properties": {
@@ -5570,7 +5603,22 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TextInputRequest"
+                "discriminator": {
+                  "mapping": {
+                    "DOCUMENT_IMAGE": "#/components/schemas/DocumentImageInputRequest",
+                    "TEXT": "#/components/schemas/TextInputRequest"
+                  },
+                  "propertyName": "kind"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/TextInputRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DocumentImageInputRequest"
+                  }
+                ],
+                "title": "Body"
               }
             }
           },
