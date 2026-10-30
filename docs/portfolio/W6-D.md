@@ -1,5 +1,7 @@
 # 2026-10-30 D 마무리 후속
 
+- 후속 정리: 기존 결과/이미지 두 건·규칙을 유료0으로 대조하고 [A/C 검토 자료와 최종 RC 준비·리허설 미실행 표](../qa/v5-d-review-and-rc-prep-20261030.md)를 작성했습니다. 오래된 D 인계3곳에 최신 근거를 연결하고 PR 리뷰 요청·#110 D 상태 갱신을 진행합니다. 모델·정답·원본·실측 수치는 유지하며 사람 승인/실제 다른 장비·리허설 결과는 만들지 않습니다.
+
 - 담당 D 여인준 `yijun0330`, Codex 검토·수정·실행 보조. 시작 `phase/W6` `5f7135b`, 작업 `codex/v5-w6-d-final-audit`. [상세 인계](../qa/v5-d-final-audit-20261030.md)·[수치/검증 SHA](../qa/v5-d-final-audit-20261030.json).
 - #110의 #106~#109 소비/실패 리뷰와 #98 사후 확인을 등록하고 예산 문구를 실제 실행으로 정정했습니다. 이미지 전용 lifespan 누락은 D가 재현·한 줄 수정·40 PASS로 [#112](https://github.com/OriginProof-3web/OriginProof/pull/112)에 공유했습니다. C의 API·모델·보관 구현을 새 D 기능으로 합산하지 않습니다.
 - #111에서 인계된 Git 환경 상속 위험은 fixture commit과 runner Git/child 경계를 함께 고쳤고, 다른 합성 저장소 HEAD/index 불변을 포함해28 PASS입니다. 외부 Foundry vendor Ruff 제외도 반영했습니다.
