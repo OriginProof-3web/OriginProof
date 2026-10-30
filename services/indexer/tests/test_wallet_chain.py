@@ -10,7 +10,7 @@ from eth_abi import encode
 from eth_utils import keccak
 from infrastructure.blockchain.errors import BlockchainDependencyError
 from infrastructure.blockchain.wallet_rpc import WalletRpc, signature
-from originproof_indexer.wallet_projection import WalletProjection, cursors, journal
+from originproof_indexer.wallet_projection import LOG_CHUNK_SIZE, WalletProjection, cursors, journal
 from sqlalchemy import create_engine, insert, select
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -516,3 +516,91 @@ async def test_log_transaction_must_belong_to_canonical_block(setup):
     head = await rpc.snapshot()
     with pytest.raises(BlockchainDependencyError):
         await rpc.logs(1, head)
+
+
+class LongWalletRpc:
+    chain_id = 11155111
+    address = ADDRESS
+    deployment_block = 12001755
+    deployment_hash = H1
+    head = deployment_block + 100_123
+
+    def __init__(self):
+        self.ranges = []
+        self.fail_at = None
+        self.events = list(range(self.deployment_block, self.head + 1, 997))
+
+    async def block(self, tag):
+        number = int(tag, 16)
+        return block(number, "0x" + f"{number:064x}")
+
+    async def snapshot(self):
+        return await self.block(hex(self.head))
+
+    async def logs(self, start, head):
+        end = int(head["number"], 16)
+        self.ranges.append((start, end))
+        if end - start + 1 > 50_000:
+            raise RuntimeError("-32005 query exceeds 50000 blocks")
+        if len(self.ranges) == self.fail_at:
+            raise RuntimeError("chunk RPC failed")
+        return [make_log(number=n, block_hash=(await self.block(hex(n)))["hash"])
+                for n in self.events if start <= n <= end]
+
+
+async def test_wallet_projection_chunks_from_empty_checkpoint():
+    rpc = LongWalletRpc()
+    engine = create_engine("sqlite://")
+    try:
+        store = WalletProjection(engine, rpc, confirmations=2)
+        store.initialize()
+        assert store.checkpoint() is None
+        # Demonstrate that the old single request exceeds the provider limit.
+        with pytest.raises(RuntimeError, match="-32005"):
+            await rpc.logs(rpc.deployment_block, await rpc.snapshot())
+        rpc.ranges.clear()
+        confirmed = rpc.head - store.confirmations + 1
+        expected = [n for n in rpc.events if n <= confirmed]
+        assert await store.sync() == len(expected)
+        assert store.checkpoint() == (confirmed, (await rpc.block(hex(confirmed)))["hash"])
+        assert rpc.ranges[0][0] == rpc.deployment_block
+        assert rpc.ranges[-1][1] == confirmed
+        assert all(0 < end - start + 1 <= LOG_CHUNK_SIZE <= 2_000
+                   for start, end in rpc.ranges)
+        assert all(right[0] == left[1] + 1
+                   for left, right in zip(rpc.ranges, rpc.ranges[1:], strict=False))
+        with engine.connect() as conn:
+            assert list(conn.execute(select(journal.c.block_number)).scalars()) == expected
+    finally:
+        engine.dispose()
+
+
+async def test_wallet_projection_resumes_after_chunk_failure():
+    rpc = LongWalletRpc()
+    rpc.fail_at = 4
+    engine = create_engine("sqlite://")
+    try:
+        store = WalletProjection(engine, rpc, confirmations=2)
+        store.initialize()
+        with pytest.raises(RuntimeError, match="chunk RPC failed"):
+            await store.sync()
+        saved = rpc.deployment_block + 3 * LOG_CHUNK_SIZE - 1
+        assert store.checkpoint() == (saved, (await rpc.block(hex(saved)))["hash"])
+        with engine.connect() as conn:
+            assert list(conn.execute(select(journal.c.block_number)).scalars()) == [
+                n for n in rpc.events if n <= saved
+            ]
+        rpc.fail_at = None
+        rpc.ranges.clear()
+        reopened = WalletProjection(engine, rpc, confirmations=2)
+        confirmed = rpc.head - reopened.confirmations + 1
+        assert await reopened.sync() == len([n for n in rpc.events if saved < n <= confirmed])
+        assert rpc.ranges[0][0] == saved + 1
+        assert reopened.checkpoint() == (confirmed, (await rpc.block(hex(confirmed)))["hash"])
+        with engine.connect() as conn:
+            assert list(conn.execute(select(journal.c.block_number)).scalars()) == [
+                n for n in rpc.events if n <= confirmed
+            ]
+        assert await reopened.sync() == 0
+    finally:
+        engine.dispose()
