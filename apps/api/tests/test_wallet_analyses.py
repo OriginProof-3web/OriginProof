@@ -416,6 +416,46 @@ async def test_account_parallel_and_window_limits_prevent_duplicate_work(wallet)
     ).status_code == 429
 
 
+async def test_exempt_test_account_skips_window_limit_but_not_parallel_guard(wallet):
+    w = wallet
+    w.app.state.settings.wallet_text_input_enabled = True
+    w.app.state.settings.analysis_limit_exempt_usernames = ["i"]
+    for i in range(7):
+        value = await input_ref(w)
+        response = await w.client.post(
+            "/v3/analyses", json={"request_id": f"req_exempt_{i}", "input_ref": value}
+        )
+        assert response.status_code == 202, response.text
+        await settle(w)
+    started, release = asyncio.Event(), asyncio.Event()
+
+    async def delayed(text):
+        started.set()
+        await release.wait()
+        return report(text)
+
+    w.app.state.analysis_processor = delayed
+    slow = await input_ref(w)
+    await w.client.post("/v3/analyses", json={"request_id": "req_slow", "input_ref": slow})
+    await asyncio.wait_for(started.wait(), timeout=2)
+    busy = await w.client.post(
+        "/v3/analyses", json={"request_id": "req_busy", "input_ref": await input_ref(w)}
+    )
+    assert busy.status_code == 429
+    release.set()
+    await settle(w)
+    w.app.state.analysis_processor = processor
+    w.who["name"] = "recipient"
+    for i in range(5):
+        value = await input_ref(w)
+        await w.client.post("/v3/analyses", json={"request_id": f"req_r_{i}", "input_ref": value})
+        await settle(w)
+    blocked = await w.client.post(
+        "/v3/analyses", json={"request_id": "req_r_6", "input_ref": await input_ref(w)}
+    )
+    assert blocked.status_code == 429
+
+
 async def test_restart_timeout_and_late_completion_keep_failure(wallet, monkeypatch):
     w = wallet
     w.app.state.settings.wallet_text_input_enabled = True
