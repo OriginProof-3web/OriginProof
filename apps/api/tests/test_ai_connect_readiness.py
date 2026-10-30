@@ -4,6 +4,7 @@ import asyncio
 import base64
 import hashlib
 from pathlib import Path
+from unittest.mock import AsyncMock
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -212,3 +213,43 @@ async def test_production_image_converter_fails_closed_without_openai(monkeypatc
     with pytest.raises(AnalyzerError) as raised:
         await openai_document_converter(None, 10)
     assert raised.value.code == AnalyzerErrorCode.PROVIDER_UNAVAILABLE
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+async def test_image_only_lifespan_cleans_expired_originals_and_runs_maintenance(
+    wallet, monkeypatch, enabled
+):
+    import originproof_api.main as composition
+    from originproof_api.wallet_database import WalletInputRow
+    from sqlalchemy.orm import Session
+
+    database = wallet.app.state.database
+    monkeypatch.setattr(database, "dispose", AsyncMock(), raising=False)
+    started = asyncio.Event()
+
+    async def background(app, stop):
+        started.set()
+        await stop.wait()
+
+    monkeypatch.setattr(composition, "maintenance", background)
+    settings = wallet.app.state.settings.model_copy(
+        update={
+            "wallet_registry_address": None,
+            "wallet_text_input_enabled": False,
+            "wallet_demo_email_enabled": False,
+            "wallet_image_input_enabled": enabled,
+        }
+    )
+    with Session(wallet.engine) as db:
+        db.add(WalletInputRow(
+            input_id="inp_expired_photo", account_id="acct_i", kind="DOCUMENT_IMAGE",
+            original=b"synthetic expired original", accepted_at=0, expires_at=1,
+        ))
+        db.commit()
+    app = create_app(database=database, settings=settings)
+    async with app.router.lifespan_context(app):
+        await asyncio.sleep(0)
+        assert started.is_set() is enabled
+        with Session(wallet.engine) as db:
+            original = db.get(WalletInputRow, "inp_expired_photo").original
+            assert (original is None) is enabled
