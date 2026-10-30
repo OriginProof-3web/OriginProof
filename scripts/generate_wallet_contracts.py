@@ -79,6 +79,14 @@ OPERATIONS = [
     ("post", "/v3/operations/{operation_id}/reconcile", None, "OperationView", 202, "owner"),
     ("get", "/v3/documents/{document_id}", None, "DocumentView", 200, "public"),
     ("post", "/v3/verifications", "VerificationRequest", "VerificationResult", 200, "public"),
+    (
+        "post",
+        "/v3/document-lookups",
+        "DocumentLookupRequest",
+        "DocumentLookupResult",
+        200,
+        "public",
+    ),
     ("post", "/v3/analyses", "AnalysisRequest", "AnalysisJob", 202, "owner"),
     ("get", "/v3/analyses/{analysis_id}", None, "AnalysisJob", 200, "owner"),
     ("delete", "/v3/analyses/{analysis_id}", None, None, 204, "owner"),
@@ -149,7 +157,7 @@ def generate_schemas() -> None:
             operation["responses"][str(status)]["content"] = {
                 "application/json": {"schema": {"$ref": f"#/components/schemas/{response}"}}
             }
-        if path == "/v3/verifications":
+        if path in ("/v3/verifications", "/v3/document-lookups"):
             operation["security"] = [{}, {"sessionCookie": []}]
         for code in (401, 403, 404, 409, 410, 422, 429, 503):
             operation["responses"][str(code)] = {

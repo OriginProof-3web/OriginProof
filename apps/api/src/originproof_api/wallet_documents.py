@@ -24,6 +24,7 @@ from originproof_core.wallet_contract import (
     VerificationRequest,
     VerificationResult,
 )
+from originproof_core.wallet_inputs import DocumentLookupRequest, DocumentLookupResult
 from originproof_core.wallet_signatures import (
     CONTENT_SCHEMAS,
     SIGNATURE_SCHEMA,
@@ -543,7 +544,10 @@ async def verify_document(
     request: Request,
     identity: Annotated[tuple | None, Depends(optional_session)],
 ):
-    service = runtime(request)
+    return await run_verification(runtime(request), body, identity)
+
+
+async def run_verification(service, body, identity):
     chain, issuer, key, unavailable = None, None, None, False
     try:
         chain = await service.rpc("document", body.document_id, body.version)
@@ -616,3 +620,63 @@ async def verify_document(
         )
         await service.commit(db)
     return result
+
+@router.post("/document-lookups", response_model=DocumentLookupResult)
+async def lookup_document(
+    body: DocumentLookupRequest,
+    request: Request,
+    identity: Annotated[tuple | None, Depends(optional_session)],
+):
+    """Track B (#88): match only records this service still retains; the request is not stored."""
+    service = runtime(request)
+    expected = body.key.model_dump()
+    async with service.database.session_factory() as db:
+        # shortcut: filters one issuer's retained rows in Python; add indexed key columns
+        # before an issuer keeps thousands of documents.
+        rows = await db.scalars(
+            select(WalletDocumentRow).where(
+                WalletDocumentRow.chain_id == service.domain.chain_id,
+                WalletDocumentRow.verifying_contract == service.domain.verifying_contract,
+                WalletDocumentRow.issuer_id == body.issuer_id,
+                WalletDocumentRow.retain_until > now(),
+            )
+        )
+        versions = {}
+        for row in rows:
+            if all(row.content.get(name) == value for name, value in expected.items()):
+                versions.setdefault(row.document_id, []).append(row.version)
+    ids = sorted(versions)
+    if not ids:
+        return DocumentLookupResult(
+            lookup_status="UNVERIFIED",
+            match_count=0,
+            document_ids=[],
+            reason_codes=["NO_MATCHING_RETAINED_RECORD"],
+        )
+    if len(ids) > 1:
+        return DocumentLookupResult(
+            lookup_status="AMBIGUOUS",
+            match_count=len(ids),
+            document_ids=ids[:10],
+            reason_codes=["MULTIPLE_RECORDS_MATCH"],
+        )
+    matched = versions[ids[0]]
+    # The matched fields are part of the content, so this is at most PARTIAL_COMPARISON.
+    verification = await run_verification(
+        service,
+        VerificationRequest(
+            request_id=body.request_id,
+            document_id=ids[0],
+            version=max(matched),
+            scope="PROTECTED_FIELDS",
+            candidate=expected,
+        ),
+        identity,
+    )
+    return DocumentLookupResult(
+        lookup_status="MATCHED",
+        match_count=1,
+        document_ids=ids,
+        verification=verification,
+        reason_codes=["OLDER_VERSIONS_ALSO_MATCH"] if len(matched) > 1 else [],
+    )

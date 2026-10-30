@@ -548,6 +548,102 @@
       "title": "DocumentImageInputRequest",
       "type": "object"
     },
+    "DocumentLookupRequest": {
+      "additionalProperties": false,
+      "description": "Track B (#88): find a published record from a message that carries no document ID.",
+      "properties": {
+        "issuer_id": {
+          "pattern": "^0x[0-9a-f]{64}$",
+          "title": "Issuer Id",
+          "type": "string"
+        },
+        "key": {
+          "discriminator": {
+            "mapping": {
+              "OFFICIAL_DOCUMENT": "#/$defs/OfficialLookupKey",
+              "PAYMENT_REQUEST": "#/$defs/PaymentLookupKey"
+            },
+            "propertyName": "notice_type"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/PaymentLookupKey"
+            },
+            {
+              "$ref": "#/$defs/OfficialLookupKey"
+            }
+          ],
+          "title": "Key"
+        },
+        "request_id": {
+          "pattern": "^req_[A-Za-z0-9_-]{1,124}$",
+          "title": "Request Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "request_id",
+        "issuer_id",
+        "key"
+      ],
+      "title": "DocumentLookupRequest",
+      "type": "object"
+    },
+    "DocumentLookupResult": {
+      "additionalProperties": false,
+      "description": "UNVERIFIED means no retained record matched; it never means the message is fake.",
+      "properties": {
+        "document_ids": {
+          "items": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "maxItems": 10,
+          "title": "Document Ids",
+          "type": "array"
+        },
+        "lookup_status": {
+          "enum": [
+            "MATCHED",
+            "UNVERIFIED",
+            "AMBIGUOUS"
+          ],
+          "title": "Lookup Status",
+          "type": "string"
+        },
+        "match_count": {
+          "minimum": 0,
+          "title": "Match Count",
+          "type": "integer"
+        },
+        "reason_codes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reason Codes",
+          "type": "array"
+        },
+        "verification": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VerificationResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "lookup_status",
+        "match_count",
+        "document_ids",
+        "reason_codes"
+      ],
+      "title": "DocumentLookupResult",
+      "type": "object"
+    },
     "DocumentView": {
       "additionalProperties": false,
       "properties": {
@@ -965,6 +1061,28 @@
       "title": "OfficialContent",
       "type": "object"
     },
+    "OfficialLookupKey": {
+      "additionalProperties": false,
+      "properties": {
+        "document_number": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Document Number",
+          "type": "string"
+        },
+        "notice_type": {
+          "const": "OFFICIAL_DOCUMENT",
+          "title": "Notice Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "notice_type",
+        "document_number"
+      ],
+      "title": "OfficialLookupKey",
+      "type": "object"
+    },
     "OnboardingView": {
       "additionalProperties": false,
       "properties": {
@@ -1200,6 +1318,41 @@
         "due_at"
       ],
       "title": "PaymentContent",
+      "type": "object"
+    },
+    "PaymentLookupKey": {
+      "additionalProperties": false,
+      "description": "Values a recipient can read off a payment message without a code or QR.",
+      "properties": {
+        "amount_minor": {
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991,
+          "title": "Amount Minor",
+          "type": "integer"
+        },
+        "currency": {
+          "pattern": "^[A-Z]{3}$",
+          "title": "Currency",
+          "type": "string"
+        },
+        "notice_type": {
+          "const": "PAYMENT_REQUEST",
+          "title": "Notice Type",
+          "type": "string"
+        },
+        "payee_account_number": {
+          "pattern": "^[0-9]{6,32}$",
+          "title": "Payee Account Number",
+          "type": "string"
+        }
+      },
+      "required": [
+        "notice_type",
+        "amount_minor",
+        "currency",
+        "payee_account_number"
+      ],
+      "title": "PaymentLookupKey",
       "type": "object"
     },
     "ProposalRequest": {
