@@ -48,6 +48,8 @@ api_env() {
   export API_SIGNER_DIRECTORY="$RUN/secrets" API_PROJECTION_ENABLED=true
   export API_WALLET_DEMO_EMAIL_ENABLED=true API_WALLET_TEXT_INPUT_ENABLED=true
   export API_WALLET_IMAGE_INPUT_ENABLED=true API_SIGNUP_ENABLED=true API_WALLET_RELAY_ENABLED=false
+  # 실제 AI 확인용 합성 계정만 10분 5건 제한에서 뺀다(#116 이후 적용, 그 전 서버는 이 값을 무시).
+  export API_ANALYSIS_LIMIT_EXEMPT_USERNAMES='["rc-ai-tester@example.invalid"]'
   [ -f "$RUN/secrets/email-secret" ] || (umask 077; openssl rand -base64 32 > "$RUN/secrets/email-secret")
   API_WALLET_EMAIL_SECRET="$(cat "$RUN/secrets/email-secret")"; export API_WALLET_EMAIL_SECRET
   # shellcheck disable=SC1091
@@ -105,17 +107,23 @@ first_setup() {
   "${UVR[@]}" python scripts/fixtures/wallet_demo_flow.py --chain-target anvil --api "$API" --rpc-url "$RPC" \
     --registry "$API_WALLET_REGISTRY_ADDRESS" --manifest "$MANIFEST" --credentials "$RUN/secrets/test-accounts.json" \
     --signer rpc --approver1 $APPROVER1 --approver2 $APPROVER2 --institution $INSTITUTION | tee "$RUN/logs/demo.log"
-  # /health/ready는 recipient 역할 계정도 있어야 200이라, 합성 개인 계정을 가입 API로 하나 만든다.
+  ensure_accounts
+  write_samples
+}
+
+# /health/ready는 recipient 계정도 있어야 200이라 개인 계정을 만들고, 실제 AI 확인용 계정도 만든다.
+# 가입 API로 만들며 이미 있으면(409) 그대로 둔다.
+ensure_accounts() {
   "${UVR[@]}" python - "$RUN" "$API" <<'PY'
 import json, sys
 import httpx
 run, api = sys.argv[1:3]
 password = json.load(open(f"{run}/secrets/test-accounts.json"))["password"]
-body = {"kind": "personal", "email": "rc-viewer@example.invalid", "password": password, "terms_accepted": True}
-response = httpx.post(f"{api}/v1/auth/register", json=body, timeout=10)
-assert response.status_code in (201, 409), response.text
+for email in ("rc-viewer@example.invalid", "rc-ai-tester@example.invalid"):
+    body = {"kind": "personal", "email": email, "password": password, "terms_accepted": True}
+    response = httpx.post(f"{api}/v1/auth/register", json=body, timeout=10)
+    assert response.status_code in (201, 409), response.text
 PY
-  write_samples
 }
 
 write_samples() {
@@ -159,10 +167,11 @@ case "${1:-}" in
     mkdir -p "$RUN/logs" "$RUN/secrets"; chmod 700 "$RUN/secrets"
     llm_env
     start_db; start_chain
-    if [ -f "$RUN/wallet.env" ]; then api_env; start_api; else first_setup; fi
+    if [ -f "$RUN/wallet.env" ]; then api_env; start_api; ensure_accounts; else first_setup; fi
     echo; status
     echo; say "로그인 계정 v5_bank · 비밀번호: $RUN/secrets/test-accounts.json 의 password 값"
     say "개인 회원 rc-viewer@example.invalid · 비밀번호 같음"
+    say "실제 AI 확인 계정 rc-ai-tester@example.invalid · 비밀번호 같음 · 10분 5건 제한 없음(#116 반영 시)"
     say "검증용 붙여넣기 문장: $RUN/verify-samples.txt" ;;
   status) status ;;
   down) down ;;
