@@ -38,6 +38,8 @@ Identity = Annotated[tuple, Depends(current_session)]
 async def challenge(body: KeyChallengeRequest, request: Request, identity: Identity):
     service = runtime(request)
     account = service.authorize(request, identity, "issuer")
+    if await service.rpc("is_approver", body.signer):
+        raise HTTPException(409, "SIGNER_IS_APPROVER")
     async with service.database.session_factory() as db:
         await service.lock_account(db, account)
         retry = await service.signing_retry(db, account, "KeyProof", body)
@@ -122,6 +124,8 @@ async def proposal_view(service, row):
 async def propose(body: ProposalRequest, request: Request, identity: Identity):
     service = runtime(request)
     account, _ = await service.operator(request, identity)
+    if await service.rpc("is_approver", body.proposal.signer):
+        raise HTTPException(409, "SIGNER_IS_APPROVER")
     async with service.database.session_factory() as db:
         await service.lock_account(db, account)
         retry = await db.scalar(
