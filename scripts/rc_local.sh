@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # W6 RC 개인 재현용 로컬 실행: 합성 DB(Docker)·Anvil·Registry·API·웹 프록시를 띄우고 시연 데이터를 넣는다.
-# 사용: scripts/rc_local.sh up | status | down | purge
+# 사용: scripts/rc_local.sh up | status | down | purge | set-key | clear-key
 # 개인 .env는 읽기만 될 뿐 고치지 않고, 설정은 아래 환경 변수로 넘긴다(환경 변수가 .env보다 우선).
 # 포트는 RC_PG_PORT·RC_RPC_PORT·RC_API_PORT·RC_WEB_PORT로 바꿀 수 있다.
+# 기본 AI는 mock(유료 호출 없음). 실제 AI는 팀이 정한 사람만: set-key 로 키를 넣고 RC_LLM=openai ... up
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
@@ -15,6 +16,7 @@ WEB_PORT=${RC_WEB_PORT:-8790}
 RPC="http://127.0.0.1:$RPC_PORT"
 API="http://127.0.0.1:$API_PORT"
 MANIFEST="$PWD/packages/contracts/deployments/31337.wallet.local.json"
+KEY_FILE="$RUN/secrets/openai.key"
 # Anvil 기본 공개 시험 계정(실제 자산 없음): 0 배포, 1~3 승인자, 4 합성 기관 지갑
 DEPLOYER=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 APPROVER1=0x70997970C51812dc3A010C7d01b50e0d17dc79C8
@@ -24,14 +26,21 @@ INSTITUTION=0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65
 
 export UV_PROJECT_ENVIRONMENT=.uv-venv
 export PYTHONPATH=apps/api/src:packages/python:services/analyzer/src:services/indexer/src
-export LLM_PROVIDER=mock
-export OPENAI_API_KEY=
 UVR=(uv run --all-packages --all-groups --frozen)
 
 say() { printf '• %s\n' "$*"; }
 die() { printf '✕ %s\n' "$*" >&2; exit 1; }
 alive() { [ -f "$RUN/$1.pid" ] && kill -0 "$(cat "$RUN/$1.pid")" 2>/dev/null; }
 wait_for() { for _ in $(seq 1 60); do eval "$1" >/dev/null 2>&1 && return 0; sleep 1; done; die "$2"; }
+
+llm_env() {
+  if [ "${RC_LLM:-mock}" = openai ]; then
+    [ -s "$KEY_FILE" ] || die "키 파일이 없어요: scripts/rc_local.sh set-key 로 먼저 넣으세요"
+    OPENAI_API_KEY="$(cat "$KEY_FILE")"; export OPENAI_API_KEY LLM_PROVIDER=openai
+  else
+    export LLM_PROVIDER=mock OPENAI_API_KEY=
+  fi
+}
 
 api_env() {
   export API_DATABASE_URL="postgresql+asyncpg://originproof:originproof@127.0.0.1:$PG_PORT/originproof"
@@ -61,8 +70,13 @@ start_chain() {
 }
 
 start_api() {
+  # 실행 중인 API의 AI 모드가 이번 요청과 다르면 API만 다시 켠다.
+  if alive api && [ "$(cat "$RUN/api.mode" 2>/dev/null)" != "$LLM_PROVIDER" ]; then
+    kill "$(cat "$RUN/api.pid")"; rm -f "$RUN/api.pid"; sleep 2
+  fi
   alive api || { nohup "${UVR[@]}" uvicorn originproof_api.main:app --host 127.0.0.1 --port "$API_PORT" \
-    --workers 1 --no-proxy-headers > "$RUN/logs/api.log" 2>&1 & echo $! > "$RUN/api.pid"; }
+    --workers 1 --no-proxy-headers > "$RUN/logs/api.log" 2>&1 & echo $! > "$RUN/api.pid"; \
+    echo "$LLM_PROVIDER" > "$RUN/api.mode"; }
   wait_for "curl -sf $API/health/live" "API가 켜지지 않았어요(logs/api.log)"
   alive web || { (cd apps/web-v5 && OP5_PROXY_PORT="$WEB_PORT" OP5_UPSTREAM="$API" \
     nohup node 개발/op5-proxy.mjs > "$RUN/logs/web.log" 2>&1 & echo $! > "$RUN/web.pid"); }
@@ -130,6 +144,7 @@ status() {
     "$(curl -s -o /dev/null -m 5 -w '%{http_code}' "$API/health/ready")"
   printf '웹      %s  http://127.0.0.1:%s/business.html?mode=api\n' \
     "$(curl -s -o /dev/null -m 3 -w '%{http_code}' "http://127.0.0.1:$WEB_PORT/business.html")" "$WEB_PORT"
+  if alive api; then printf 'AI      %s\n' "$(cat "$RUN/api.mode" 2>/dev/null)"; else printf 'AI      -\n'; fi
 }
 
 down() {
@@ -142,6 +157,7 @@ case "${1:-}" in
   up)
     for t in docker uv anvil cast forge node curl openssl; do command -v $t >/dev/null || die "$t 이(가) 없어요"; done
     mkdir -p "$RUN/logs" "$RUN/secrets"; chmod 700 "$RUN/secrets"
+    llm_env
     start_db; start_chain
     if [ -f "$RUN/wallet.env" ]; then api_env; start_api; else first_setup; fi
     echo; status
@@ -153,5 +169,13 @@ case "${1:-}" in
   purge)
     down; docker rm -f "$PG_NAME" >/dev/null 2>&1 || true; rm -rf "$RUN" "$MANIFEST"
     say "재현 환경을 모두 지웠어요" ;;
-  *) echo "사용: scripts/rc_local.sh up | status | down | purge"; exit 2 ;;
+  set-key)
+    mkdir -p "$RUN/secrets"; chmod 700 "$RUN/secrets"
+    printf 'OpenAI API 키를 붙여 넣고 Enter (화면에 보이지 않아요): '; IFS= read -rs key; echo
+    case "$key" in sk-*) ;; *) die "sk- 로 시작하는 키가 아니에요";; esac
+    (umask 077; printf '%s' "$key" > "$KEY_FILE")
+    say "저장했어요(이 컴퓨터에만, 0600). 실제 AI로 켜기: RC_LLM=openai scripts/rc_local.sh up" ;;
+  clear-key)
+    rm -f "$KEY_FILE"; say "키 파일을 지웠어요. 다음 up부터 mock입니다" ;;
+  *) echo "사용: scripts/rc_local.sh up | status | down | purge | set-key | clear-key"; exit 2 ;;
 esac

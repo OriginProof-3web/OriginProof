@@ -63,7 +63,7 @@ scripts/rc_local.sh up
 - 합성 계정, 그리고 기관 신청 → 2-of-3 승인 → 안내문 v1(154,000원)·v2(120,000원) 발행 → 검증
 - 화면에 붙여 넣을 검증 문장 `build/rc-local/verify-samples.txt`
 
-개인 `.env`는 고치지 않습니다. AI는 `LLM_PROVIDER=mock`(규칙 검사만)으로 강제해 **유료 호출이 없습니다**. 포트가 이미 쓰이고 있으면 `RC_PG_PORT`·`RC_RPC_PORT`·`RC_API_PORT`·`RC_WEB_PORT`로 바꿉니다(예: `RC_API_PORT=18100 scripts/rc_local.sh up`). 웹 포트를 바꾸면 아래 주소의 8790도 같이 바꿉니다.
+개인 `.env`는 고치지 않습니다. AI는 `LLM_PROVIDER=mock`(규칙 검사만)으로 강제해 **유료 호출이 없습니다**. 실제 AI 모드(`set-key`, `RC_LLM=openai`)는 팀이 정한 담당자만 씁니다. 개인 재현에서는 쓰지 않습니다. 포트가 이미 쓰이고 있으면 `RC_PG_PORT`·`RC_RPC_PORT`·`RC_API_PORT`·`RC_WEB_PORT`로 바꿉니다(예: `RC_API_PORT=18100 scripts/rc_local.sh up`). 웹 포트를 바꾸면 아래 주소의 8790도 같이 바꿉니다.
 
 끝에 아래처럼 나오면 성공입니다.
 
