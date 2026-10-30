@@ -323,7 +323,8 @@ async def analysis(body: AnalysisRequest, request: Request, identity: Identity):
                 )
             )
         )
-        if any(row.status in ACTIVE for row in recent) or len(recent) >= 5:
+        exempt = account.username in service.settings.analysis_limit_exempt_usernames
+        if any(row.status in ACTIVE for row in recent) or (len(recent) >= 5 and not exempt):
             raise HTTPException(429, "ANALYSIS_LIMIT", headers={"Retry-After": "600"})
         verification = None
         if body.verification_session_id:

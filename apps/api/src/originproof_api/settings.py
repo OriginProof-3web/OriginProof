@@ -45,6 +45,8 @@ class Settings(BaseSettings):
     wallet_text_input_enabled: bool = False
     wallet_image_input_enabled: bool = False
     signup_enabled: bool = False
+    # Synthetic test accounts only (C real-AI check); others keep the 5-per-10-minute limit.
+    analysis_limit_exempt_usernames: list[str] = []
     wallet_relay_enabled: bool = False
 
     model_config = SettingsConfigDict(
