@@ -37,7 +37,7 @@ make v5-wallet-seed
 | `API_WALLET_TEXT_INPUT_ENABLED` | 텍스트 입력은 #92에서 결정됐습니다. `make db-upgrade` 뒤에 `true`로 바꾸고 `make api-reload` 합니다. 기본값은 `false`로 둡니다. `mvp-up`이 migration 전에 API를 띄우므로, 처음부터 켜 두면 기동 정리 단계가 없는 테이블을 조회해 실패합니다 |
 | `LLM_PROVIDER` | API가 분석기(`PhishingAnalyzer`)를 직접 실행합니다. 기본 `mock`은 유료 호출 없이 규칙 근거만 쓰고 `LLM_ANALYSIS_UNAVAILABLE`을 표시합니다. `openai`와 `OPENAI_API_KEY`를 넣으면 **분석 1건마다 유료 호출**이 발생합니다 |
 | `API_WALLET_IMAGE_INPUT_ENABLED` | 문서 사진 입력. 텍스트와 같은 순서로 켭니다. 켜면 `/v3/inputs`만 본문 상한이 약 7MiB로 늘어납니다. 사진 판독은 `LLM_PROVIDER=openai`와 키가 있을 때만 하며(분석 1건에 판독 1회 + 분석 1회 유료 호출), mock이면 `PROVIDER_UNAVAILABLE`로 실패합니다 |
-| `API_SIGNUP_ENABLED` | `POST /v1/auth/register`(합성 회원가입). 기본 `false`. 개인은 `.invalid` 이메일만, 기관은 명부 기관 ID와 그 기관 도메인(예: `bank.example.invalid`)만 받습니다. 가입 뒤 기존 `/v1/auth/login`으로 로그인합니다 |
+| `API_SIGNUP_ENABLED` | `POST /v1/auth/register`(합성 회원가입). 기본 `false`. 개인만 받고 `.invalid` 이메일만 허용합니다. 기관 가입은 403 `BUSINESS_SIGNUP_DISABLED`이며, 기관 계정은 운영자가 발급합니다. 가입 뒤 기존 `/v1/auth/login`으로 로그인합니다 |
 | `API_WALLET_RELAY_ENABLED` | 기본 `false`(기관 지갑 직접 제출). 서버는 기관 개인키를 보관하지 않습니다. |
 
 설정을 바꾸면 `make api-reload`로 API를 다시 읽힙니다.
