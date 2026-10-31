@@ -1,4 +1,4 @@
-"""Opt-in synthetic sign-up (blocks 14): reserved .invalid mail only, then normal login."""
+"""Opt-in synthetic sign-up (blocks 14): personal .invalid mail only, then normal login."""
 
 import pytest
 from httpx import ASGITransport, AsyncClient
@@ -24,27 +24,13 @@ async def client(wallet):
     return build
 
 
-async def test_personal_and_business_signup_then_login(client):
+async def test_personal_signup_then_login(client):
     async with client() as api:
         personal = await api.post("/v1/auth/register", json=PERSONAL)
         assert personal.status_code == 201, personal.text
         assert personal.json()["role"] == "recipient"
         assert personal.json()["username"] == "someone@example.invalid"
         assert "password" not in personal.text and "set-cookie" not in personal.headers
-        business = await api.post(
-            "/v1/auth/register",
-            json=PERSONAL
-            | {
-                "kind": "business",
-                "email": "staff2@bank.example.invalid",
-                "issuer_id": "iss_origin_mock_bank",
-            },
-        )
-        assert business.status_code == 201, business.text
-        assert (business.json()["role"], business.json()["issuer_id"]) == (
-            "issuer",
-            "iss_origin_mock_bank",
-        )
         login = await api.post(
             "/v1/auth/login",
             json={"username": "SOMEONE@example.invalid", "password": PERSONAL["password"]},
@@ -64,12 +50,13 @@ async def test_personal_and_business_signup_then_login(client):
     "change,status,code",
     [
         ({"email": "real.person@gmail.com"}, 422, "SYNTHETIC_EMAIL_REQUIRED"),
+        ({"email": "a@example.invalid.evil.com"}, 422, "SYNTHETIC_EMAIL_REQUIRED"),
+        ({"email": "a@@example.invalid"}, 422, "SYNTHETIC_EMAIL_REQUIRED"),
+        ({"email": "a@b@example.invalid"}, 422, "SYNTHETIC_EMAIL_REQUIRED"),
+        ({"email": "\u0000a@example.invalid"}, 422, "SYNTHETIC_EMAIL_REQUIRED"),
+        ({"role": "operator"}, 422, None),
         ({"password": "onlyletters"}, 422, "WEAK_PASSWORD"),
         ({"issuer_id": "iss_origin_mock_bank"}, 422, "MALFORMED_INPUT"),
-        ({"kind": "business", "issuer_id": "iss_origin_mock_bank"}, 422,
-         "SYNTHETIC_ROSTER_MISMATCH"),
-        ({"kind": "business", "email": "a@bank.example.invalid", "issuer_id": "iss_unknown"}, 422,
-         "SYNTHETIC_ROSTER_MISMATCH"),
         ({"terms_accepted": False}, 422, None),
         ({"password": "short1"}, 422, None),
     ],
@@ -80,6 +67,30 @@ async def test_signup_rejections(client, change, status, code):
         assert response.status_code == status, response.text
         if code:
             assert response.json()["detail"] == code
+
+
+@pytest.mark.parametrize(
+    "issuer_id,email",
+    [
+        ("iss_origin_mock_bank", "staff2@bank.example.invalid"),
+        ("iss_origin_mock_office", "staff2@office.example.invalid"),
+        (None, "staff2@bank.example.invalid"),
+        ("iss_unknown", "someone@example.invalid"),
+    ],
+)
+async def test_business_signup_never_creates_an_issuer(client, issuer_id, email):
+    # Roster mail is not proof of employment: no approval means no issuer authority.
+    body = PERSONAL | {"kind": "business", "email": email, "issuer_id": issuer_id}
+    async with client() as api:
+        response = await api.post("/v1/auth/register", json=body)
+        assert (response.status_code, response.json()["detail"]) == (
+            403,
+            "BUSINESS_SIGNUP_DISABLED",
+        )
+        login = await api.post(
+            "/v1/auth/login", json={"username": email, "password": PERSONAL["password"]}
+        )
+        assert login.status_code == 401, login.text
 
 
 async def test_signup_is_off_by_default(client):

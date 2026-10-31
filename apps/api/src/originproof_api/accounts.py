@@ -145,30 +145,26 @@ async def login(body: LoginInput, request: Request, response: Response) -> Accou
 
 @router.post("/register", response_model=RegisteredView, status_code=201)
 async def register(body: RegisterInput, request: Request) -> RegisteredView:
-    """Opt-in synthetic sign-up: only reserved .invalid mail, so no real personal data."""
-    from .wallet_onboarding import ROSTER  # local import: wallet_onboarding imports this module
+    """Opt-in synthetic sign-up: personal only, with reserved .invalid mail.
 
+    Issuer accounts carry publishing and key authority, so operators issue them.
+    """
     if not request.app.state.settings.signup_enabled:
         raise HTTPException(409, "SIGNUP_DISABLED")
-    email = body.email.strip().casefold()
-    match = re.fullmatch(r"[^@\s]+@([a-z0-9-]+(?:\.[a-z0-9-]+)+)", email)
-    domain = match.group(1) if match else ""
     if body.kind == "business":
-        # Staff of a roster institution sign up with that institution's synthetic domain.
-        entry = ROSTER.get(body.issuer_id or "")
-        if entry is None or domain != entry[1]:
-            raise HTTPException(422, "SYNTHETIC_ROSTER_MISMATCH")
-    elif body.issuer_id is not None:
+        raise HTTPException(403, "BUSINESS_SIGNUP_DISABLED")
+    if body.issuer_id is not None:
         raise HTTPException(422, "MALFORMED_INPUT")
-    elif not domain.endswith(".invalid"):
+    email = body.email.strip().casefold()
+    if not re.fullmatch(r"[^@\s\x00-\x1f\x7f]+@[a-z0-9-]+(?:\.[a-z0-9-]+)*\.invalid", email):
         raise HTTPException(422, "SYNTHETIC_EMAIL_REQUIRED")
     if not (re.search(r"[A-Za-z]", body.password) and re.search(r"[0-9]", body.password)):
         raise HTTPException(422, "WEAK_PASSWORD")
     view = RegisteredView(
         account_id=f"acct_{uuid4().hex}",
         username=email,
-        role="issuer" if body.kind == "business" else "recipient",
-        issuer_id=body.issuer_id if body.kind == "business" else None,
+        role="recipient",
+        issuer_id=None,
     )
     hashed = await run_in_threadpool(password_hash, body.password)
     async with request.app.state.database.session_factory() as db:
