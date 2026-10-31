@@ -4,6 +4,7 @@ All observations use a hash-pinned canonical block. Projection is never read her
 The supplied ABI is the compiled Registry ABI, not a second contract definition.
 """
 
+import asyncio
 from itertools import count
 
 import httpx
@@ -217,16 +218,24 @@ class WalletRpc:
             # Bound every caller, including proposal reconciliation and projection catch-up.
             raw = []
             end = quantity(block["number"])
-            for first in range(start, end + 1, 200):
-                last = min(first + 199, end)
-                page = await self.rpc("eth_getLogs", [{
-                    "address": self.address, "fromBlock": hex(first), "toBlock": hex(last),
-                }])
-                if not isinstance(page, list):
-                    raise ValueError("invalid log list")
-                if any(not first <= quantity(log["blockNumber"]) <= last for log in page):
-                    raise ValueError("event outside requested page")
-                raw.extend(page)
+            for batch in range(start, end + 1, 200 * 16):
+                starts = list(range(batch, min(batch + 200 * 16, end + 1), 200))
+                # Bound in-flight reads too; serial history scans exceed the API's 10s budget.
+                pages = await asyncio.gather(*(
+                    self.rpc("eth_getLogs", [{
+                        "address": self.address, "fromBlock": hex(first),
+                        "toBlock": hex(min(first + 199, end)),
+                    }]) for first in starts
+                ), return_exceptions=True)
+                for first, page in zip(starts, pages, strict=True):
+                    if isinstance(page, BaseException):
+                        raise page
+                    if not isinstance(page, list):
+                        raise ValueError("invalid log list")
+                    last = min(first + 199, end)
+                    if any(not first <= quantity(log["blockNumber"]) <= last for log in page):
+                        raise ValueError("event outside requested page")
+                    raw.extend(page)
             result, seen, blocks = [], set(), {}
             for log in raw:
                 decoded = self.decode_log(log)

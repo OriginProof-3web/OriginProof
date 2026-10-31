@@ -1,5 +1,6 @@
 """Provider-window regression at the real WalletRpc/Reconciler boundary (synthetic RPC)."""
 
+import asyncio
 import json
 
 import httpx
@@ -78,3 +79,30 @@ async def test_failed_or_inconsistent_page_never_returns_partial_history(fault):
     async with httpx.AsyncClient(transport=httpx.MockTransport(oracle.handle)) as client:
         with pytest.raises(BlockchainDependencyError):
             await WalletReconciler(rpc_for(client)).proposal(PID)
+
+
+async def test_page_parallelism_is_bounded_and_cancellation_drains_requests():
+    oracle = LimitedOracle(4001)
+    active, peak = 0, 0
+
+    async def handle(request):
+        nonlocal active, peak
+        if json.loads(request.content)["method"] != "eth_getLogs":
+            return oracle.handle(request)
+        active += 1
+        peak = max(peak, active)
+        try:
+            await asyncio.sleep(0.01)
+            return oracle.handle(request)
+        finally:
+            active -= 1
+
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as client:
+        rpc = rpc_for(client)
+        head = await rpc.snapshot()
+        await rpc.logs(1, head)
+        assert peak == 16 and active == 0 and len(oracle.ranges) == 21
+        oracle.ranges.clear()
+        with pytest.raises(TimeoutError):
+            await asyncio.wait_for(rpc.logs(1, head), timeout=0.001)
+        assert active == 0
