@@ -14,6 +14,9 @@ from eth_utils import keccak, to_normalized_address
 
 from .errors import BlockchainConfigurationError, BlockchainDependencyError
 
+LOG_BLOCK_SPAN = 2_000
+LOG_BATCH_PAGES = 4
+
 
 def abi_type(field):
     if field["type"] == "tuple":
@@ -218,13 +221,14 @@ class WalletRpc:
             # Bound every caller, including proposal reconciliation and projection catch-up.
             raw = []
             end = quantity(block["number"])
-            for batch in range(start, end + 1, 200 * 16):
-                starts = list(range(batch, min(batch + 200 * 16, end + 1), 200))
+            for batch in range(start, end + 1, LOG_BLOCK_SPAN * LOG_BATCH_PAGES):
+                stop = min(batch + LOG_BLOCK_SPAN * LOG_BATCH_PAGES, end + 1)
+                starts = list(range(batch, stop, LOG_BLOCK_SPAN))
                 # Bound in-flight reads too; serial history scans exceed the API's 10s budget.
                 pages = await asyncio.gather(*(
                     self.rpc("eth_getLogs", [{
                         "address": self.address, "fromBlock": hex(first),
-                        "toBlock": hex(min(first + 199, end)),
+                        "toBlock": hex(min(first + LOG_BLOCK_SPAN - 1, end)),
                     }]) for first in starts
                 ), return_exceptions=True)
                 for first, page in zip(starts, pages, strict=True):
@@ -232,7 +236,7 @@ class WalletRpc:
                         raise page
                     if not isinstance(page, list):
                         raise ValueError("invalid log list")
-                    last = min(first + 199, end)
+                    last = min(first + LOG_BLOCK_SPAN - 1, end)
                     if any(not first <= quantity(log["blockNumber"]) <= last for log in page):
                         raise ValueError("event outside requested page")
                     raw.extend(page)

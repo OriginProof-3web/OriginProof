@@ -29,14 +29,14 @@ class LimitedOracle(Oracle):
         query = payload["params"][0]
         start, end = int(query["fromBlock"], 16), int(query["toBlock"], 16)
         self.ranges.append((start, end))
-        if end - start + 1 > 200 or (self.fault == "rpc" and start > 200):
+        if end - start + 1 > 2000 or (self.fault == "rpc" and start > 2000):
             return httpx.Response(200, json={
                 "jsonrpc": "2.0", "id": payload["id"],
                 "error": {"code": -32005, "message": "provider range limit"},
             })
         response = super().handle(request)
         body = response.json()
-        if self.fault == "outside_page" and start > 200:
+        if self.fault == "outside_page" and start > 2000:
             body["result"] = self.logs[:1]
         if self.fault == "duplicate" and start == 1:
             body["result"] *= 2
@@ -58,31 +58,31 @@ async def test_proposal_history_above_50000_blocks_uses_bounded_rpc_requests():
     async with httpx.AsyncClient(transport=httpx.MockTransport(oracle.handle)) as client:
         result = await WalletReconciler(rpc_for(client)).proposal(PID)
     assert result["approvals"] == [OTHER, SENDER] and result["executed"] is True
-    assert oracle.ranges == [(start, min(start + 199, 100_001))
-                             for start in range(1, 100_002, 200)]
+    assert oracle.ranges == [(start, min(start + 1999, 100_001))
+                             for start in range(1, 100_002, 2000)]
 
 
-@pytest.mark.parametrize("head", [200, 201, 400, 401])
+@pytest.mark.parametrize("head", [2000, 2001, 4000, 4001])
 async def test_event_window_boundaries_have_no_gaps_or_duplicate_events(head):
     oracle = LimitedOracle(head)
     async with httpx.AsyncClient(transport=httpx.MockTransport(oracle.handle)) as client:
         rpc = rpc_for(client)
         logs = await rpc.logs(1, await rpc.snapshot())
     assert len(logs) == len(oracle.logs)
-    assert oracle.ranges == [(start, min(start + 199, head))
-                             for start in range(1, head + 1, 200)]
+    assert oracle.ranges == [(start, min(start + 1999, head))
+                             for start in range(1, head + 1, 2000)]
 
 
 @pytest.mark.parametrize("fault", ["rpc", "outside_page", "duplicate", "reorg"])
 async def test_failed_or_inconsistent_page_never_returns_partial_history(fault):
-    oracle = LimitedOracle(401, fault)
+    oracle = LimitedOracle(4001, fault)
     async with httpx.AsyncClient(transport=httpx.MockTransport(oracle.handle)) as client:
         with pytest.raises(BlockchainDependencyError):
             await WalletReconciler(rpc_for(client)).proposal(PID)
 
 
 async def test_page_parallelism_is_bounded_and_cancellation_drains_requests():
-    oracle = LimitedOracle(4001)
+    oracle = LimitedOracle(40001)
     active, peak = 0, 0
 
     async def handle(request):
@@ -101,7 +101,7 @@ async def test_page_parallelism_is_bounded_and_cancellation_drains_requests():
         rpc = rpc_for(client)
         head = await rpc.snapshot()
         await rpc.logs(1, head)
-        assert peak == 16 and active == 0 and len(oracle.ranges) == 21
+        assert peak == 4 and active == 0 and len(oracle.ranges) == 21
         oracle.ranges.clear()
         with pytest.raises(TimeoutError):
             await asyncio.wait_for(rpc.logs(1, head), timeout=0.001)
