@@ -156,7 +156,7 @@ async def register(body: RegisterInput, request: Request) -> RegisteredView:
     if body.issuer_id is not None:
         raise HTTPException(422, "MALFORMED_INPUT")
     email = body.email.strip().casefold()
-    if not re.fullmatch(r"[^@\s]+@[a-z0-9-]+(?:\.[a-z0-9-]+)*\.invalid", email):
+    if not re.fullmatch(r"[^@\s\x00-\x1f\x7f]+@[a-z0-9-]+(?:\.[a-z0-9-]+)*\.invalid", email):
         raise HTTPException(422, "SYNTHETIC_EMAIL_REQUIRED")
     if not (re.search(r"[A-Za-z]", body.password) and re.search(r"[0-9]", body.password)):
         raise HTTPException(422, "WEAK_PASSWORD")

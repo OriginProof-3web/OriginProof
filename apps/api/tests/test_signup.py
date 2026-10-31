@@ -50,6 +50,11 @@ async def test_personal_signup_then_login(client):
     "change,status,code",
     [
         ({"email": "real.person@gmail.com"}, 422, "SYNTHETIC_EMAIL_REQUIRED"),
+        ({"email": "a@example.invalid.evil.com"}, 422, "SYNTHETIC_EMAIL_REQUIRED"),
+        ({"email": "a@@example.invalid"}, 422, "SYNTHETIC_EMAIL_REQUIRED"),
+        ({"email": "a@b@example.invalid"}, 422, "SYNTHETIC_EMAIL_REQUIRED"),
+        ({"email": "\u0000a@example.invalid"}, 422, "SYNTHETIC_EMAIL_REQUIRED"),
+        ({"role": "operator"}, 422, None),
         ({"password": "onlyletters"}, 422, "WEAK_PASSWORD"),
         ({"issuer_id": "iss_origin_mock_bank"}, 422, "MALFORMED_INPUT"),
         ({"terms_accepted": False}, 422, None),
