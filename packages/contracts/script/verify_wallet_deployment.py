@@ -43,12 +43,15 @@ async def verify():
 
     async def response(res):
         await res.aread()
-        body = res.json()
-        trace.append({
+        entry = {
             "method": json.loads(res.request.content)["method"],
             "http_status": res.status_code,
-            "rpc_error_code": (body.get("error") or {}).get("code"),
-        })
+            "rpc_error_code": None,
+        }
+        trace.append(entry)  # preserve HTTP status even when a provider returns HTML
+        body = res.json()
+        if isinstance(body, dict) and isinstance(body.get("error"), dict):
+            entry["rpc_error_code"] = body["error"].get("code")
 
     result = {
         "date_utc": datetime.now(UTC).isoformat(),

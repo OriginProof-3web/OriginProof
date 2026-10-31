@@ -81,3 +81,9 @@ git diff --check
 - B/C: 공개 원본 export 이후 문서 전체 검증, 두 번째 provider의 전체 검사·운영 RPC 확정이 남습니다.
 - 팀/D: 다른 실제 노트북에서 같은 RC SHA·환경 fingerprint 재현, 같은 RC 전체 리허설3회·소유자 리뷰·W6 수용 판정이 남습니다.
 - 이번 배포 조회 3회와 같은 장비의 격리 폴더를 위 팀 수용 근거로 대체하지 않습니다.
+
+## 2026-10-31 — C/D 리뷰 반영
+
+C의 비차단 의견을 반영해 JSON 파싱 전에 메서드·HTTP 상태를 trace에 남깁니다. 비JSON HTML 429/502에서도 실패와 상태가 기록되고, 응답 본문·URL·키는 출력하지 않습니다. 신규2개를 포함한 관련 guard/manifest/승인자 검사 **65 PASS**, Ruff·diff PASS. 과거10-27 공개 RPC 증거는 그대로 보존했으며 이번 보완은 네트워크 없는 MockTransport 검증입니다.
+
+C/D의 기술 검토와 D의 10-30 독립 배포 조회3/3 PASS는 #102 리뷰 및 #113 보고서에 있습니다. GitHub APPROVED나 원본 전체 대조/다른 장비/RC 리허설 완료로 확대하지 않습니다. C가 정정한 기관 metadata 원본 경로는 신청 기관 로그인 후 `GET /v3/issuer-applications/{application_id}`의 `metadata`와 `metadata_hash`입니다. 10-30 C가 A에게 실제 시연 DB·원본 export를 요청했으며 아직 자료가 인계됐다는 근거는 없습니다.

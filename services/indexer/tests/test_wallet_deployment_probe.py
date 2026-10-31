@@ -3,11 +3,14 @@
 import json
 from types import SimpleNamespace
 
+import httpx
 import pytest
 import verify_wallet_deployment as probe
 
 
-@pytest.mark.parametrize("fault", [None, "genesis", "approvers", "write", "provider"])
+@pytest.mark.parametrize(
+    "fault", [None, "genesis", "approvers", "write", "provider", "http_429", "http_502"]
+)
 async def test_probe_reports_failures_without_writes_or_rpc_credentials(
     tmp_path, monkeypatch, capsys, fault
 ):
@@ -32,6 +35,14 @@ async def test_probe_reports_failures_without_writes_or_rpc_credentials(
         {}, SimpleNamespace(tx_hash="0xtx", creation_bytecode=b"\x60")
     ))
 
+    original_client = httpx.AsyncClient
+    transport = httpx.MockTransport(lambda req: httpx.Response(
+        429 if fault == "http_429" else 502, text="<html>SECRET provider error</html>"
+    ))
+    monkeypatch.setattr(probe.httpx, "AsyncClient", lambda **kw: original_client(
+        transport=transport, **kw
+    ))
+
     class Rpc:
         def __init__(self, client, url, **kw):
             self.client, self.url = client, url
@@ -47,6 +58,8 @@ async def test_probe_reports_failures_without_writes_or_rpc_credentials(
             await rpc.client.post(rpc.url, json={"method": "eth_sendRawTransaction"})
         if fault == "provider":
             raise ValueError("https://rpc.invalid/SECRET")
+        if fault in {"http_429", "http_502"}:
+            await rpc.client.post(rpc.url, json={"method": "eth_getCode"})
         return [] if fault == "approvers" else approvers
 
     monkeypatch.setattr(probe, "WalletRpc", Rpc)
@@ -58,3 +71,7 @@ async def test_probe_reports_failures_without_writes_or_rpc_credentials(
     assert report["writes"] == 0
     assert len(report["attempts"]) == (3 if fault is None else 1)
     assert report["attempts"][0]["status"] == ("PASS" if fault is None else "FAIL")
+    if fault in {"http_429", "http_502"}:
+        assert report["attempts"][0]["rpc_calls"] == [{
+            "method": "eth_getCode", "http_status": int(fault[5:]), "rpc_error_code": None,
+        }]
