@@ -1,0 +1,112 @@
+{
+  "source_sha": "05fdf6ca87810cd549e82322df044dd8860eb4df",
+  "scope": "public transaction signature and current Registry; no original bytes comparison",
+  "publications": [
+    {
+      "tx_hash": "0x394f0cce482c61269c8d3bf1d3e95202b3d717b7bfa3f03e18197d20b61a1f88",
+      "block_number": 12001995,
+      "block_hash": "0x71dfb6864aead0acca5f8fbc6f99c572b3854fece1e6e5748d44760ba8c0ac05",
+      "message": {
+        "action": 1,
+        "issuerId": "0x9d6e623a821f35508c0c970540013aa75041537806d71a2e318ac7ca5358a217",
+        "docKey": "0xf0d0ce847644e2316b386eb884ca870dd6159a4cb886d5feb0d899e39e2b1a8c",
+        "documentId": "0x2bc2f605c8b185bc9b1d5d9ed2560a62ccd4e2a6338574c3925752b63c07e8a9",
+        "version": 1,
+        "keyId": "0x364524c24dee0bf93a7f5657a374a4485907fef312259e85f773dad2b13de574",
+        "originalHash": "0xf26cc7161a46363f6c97030b105be9d6ab07b19fa74ed7fa36ba8c335c09a768",
+        "protectedHash": "0xeead4d5ce1c670b762eb1bbe5266f8bcb98cdc1d933a6256bade04b78bc392ac",
+        "contentSchema": "0x6d5e6ba9932463c01f2e104c5a6938d42a1452acd79b9f6581760dc400206886",
+        "signatureSchema": "0xf4bd1f52e8b2d7d25f437fd4c465fa850b19a255da060c865bfc4d6ce34e0bde",
+        "originalHashAlgorithm": 1,
+        "protectedHashAlgorithm": 1,
+        "issuedAt": 1793066193,
+        "expiresAt": 1795658191,
+        "nonce": "0",
+        "deadline": 1793066493
+      },
+      "signature": "0x035c8556c384ba0506c3182c2dcd3606a5a55ef8d1dd16c58d4be45d96711c411cd7d20cf15e87939d9d889283ff0d647c169665c40cf5a0e7562ae10ed83f371b",
+      "recovered_signer": "0x2c972c6c390c7742bfd070bc57ddab539235d161",
+      "key_signer_matches": true,
+      "receipt_status": 1,
+      "canonical_transaction_position_verified": true,
+      "current_document": {
+        "chain_id": "11155111",
+        "verifying_contract": "0xe540bf29622afff40174b76992b016112f372a2e",
+        "block_number": "12003149",
+        "block_hash": "0xbd33ff154ffc194f942553b9bde6c8757496fd88abdd9a9a64595f0c309c8ee7",
+        "document": {
+          "document_id": "0x2bc2f605c8b185bc9b1d5d9ed2560a62ccd4e2a6338574c3925752b63c07e8a9",
+          "issuer_id": "0x9d6e623a821f35508c0c970540013aa75041537806d71a2e318ac7ca5358a217",
+          "doc_key": "0xf0d0ce847644e2316b386eb884ca870dd6159a4cb886d5feb0d899e39e2b1a8c",
+          "key_id": "0x364524c24dee0bf93a7f5657a374a4485907fef312259e85f773dad2b13de574",
+          "version": 1,
+          "latest_version": 2,
+          "state": "SUPERSEDED",
+          "warnings": [],
+          "original_hash": "0xf26cc7161a46363f6c97030b105be9d6ab07b19fa74ed7fa36ba8c335c09a768",
+          "protected_hash": "0xeead4d5ce1c670b762eb1bbe5266f8bcb98cdc1d933a6256bade04b78bc392ac",
+          "content_schema": "0x6d5e6ba9932463c01f2e104c5a6938d42a1452acd79b9f6581760dc400206886",
+          "issued_at": 1793066193,
+          "expires_at": 1795658191,
+          "original_available": false
+        },
+        "published_at": 1793066208,
+        "published_block": "12001995"
+      }
+    },
+    {
+      "tx_hash": "0xf7d6b418e9b0f766ee8f985069324ade216e9e87914c060f907e4c67bcb3542d",
+      "block_number": 12001997,
+      "block_hash": "0x80e408b0cd579a0aaf01b2e28cf625e076012e2b911dd1296c1367036039e6f4",
+      "message": {
+        "action": 1,
+        "issuerId": "0x9d6e623a821f35508c0c970540013aa75041537806d71a2e318ac7ca5358a217",
+        "docKey": "0xf0d0ce847644e2316b386eb884ca870dd6159a4cb886d5feb0d899e39e2b1a8c",
+        "documentId": "0x2bc2f605c8b185bc9b1d5d9ed2560a62ccd4e2a6338574c3925752b63c07e8a9",
+        "version": 2,
+        "keyId": "0x364524c24dee0bf93a7f5657a374a4485907fef312259e85f773dad2b13de574",
+        "originalHash": "0xe3e9189173199880f9dde0ac1a3290e264c35649de43f3698256921cd835569c",
+        "protectedHash": "0x55293cf5cd49272c60373dfe83dad56fec30eebd393106d34b8306509371ef61",
+        "contentSchema": "0x6d5e6ba9932463c01f2e104c5a6938d42a1452acd79b9f6581760dc400206886",
+        "signatureSchema": "0xf4bd1f52e8b2d7d25f437fd4c465fa850b19a255da060c865bfc4d6ce34e0bde",
+        "originalHashAlgorithm": 1,
+        "protectedHashAlgorithm": 1,
+        "issuedAt": 1793066216,
+        "expiresAt": 1795658214,
+        "nonce": "1",
+        "deadline": 1793066516
+      },
+      "signature": "0xf2b432585b6dc7fc3cb608245c2eeb2e88695c918d97424daaf8dd54b7f2e55b6c9dab0470c0dbd2fdd3630326d68f625f2834e96942066be5ed427a757011681b",
+      "recovered_signer": "0x2c972c6c390c7742bfd070bc57ddab539235d161",
+      "key_signer_matches": true,
+      "receipt_status": 1,
+      "canonical_transaction_position_verified": true,
+      "current_document": {
+        "chain_id": "11155111",
+        "verifying_contract": "0xe540bf29622afff40174b76992b016112f372a2e",
+        "block_number": "12003149",
+        "block_hash": "0xbd33ff154ffc194f942553b9bde6c8757496fd88abdd9a9a64595f0c309c8ee7",
+        "document": {
+          "document_id": "0x2bc2f605c8b185bc9b1d5d9ed2560a62ccd4e2a6338574c3925752b63c07e8a9",
+          "issuer_id": "0x9d6e623a821f35508c0c970540013aa75041537806d71a2e318ac7ca5358a217",
+          "doc_key": "0xf0d0ce847644e2316b386eb884ca870dd6159a4cb886d5feb0d899e39e2b1a8c",
+          "key_id": "0x364524c24dee0bf93a7f5657a374a4485907fef312259e85f773dad2b13de574",
+          "version": 2,
+          "latest_version": 2,
+          "state": "ACTIVE",
+          "warnings": [],
+          "original_hash": "0xe3e9189173199880f9dde0ac1a3290e264c35649de43f3698256921cd835569c",
+          "protected_hash": "0x55293cf5cd49272c60373dfe83dad56fec30eebd393106d34b8306509371ef61",
+          "content_schema": "0x6d5e6ba9932463c01f2e104c5a6938d42a1452acd79b9f6581760dc400206886",
+          "issued_at": 1793066216,
+          "expires_at": 1795658214,
+          "original_available": false
+        },
+        "published_at": 1793066232,
+        "published_block": "12001997"
+      }
+    }
+  ],
+  "writes": 0,
+  "service_api_calls": 0
+}
