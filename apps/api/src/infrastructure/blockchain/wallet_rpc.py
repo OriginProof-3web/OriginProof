@@ -213,12 +213,20 @@ class WalletRpc:
     async def logs(self, start, block):
         if not self.deployment_block <= start <= quantity(block["number"]):
             raise BlockchainConfigurationError("invalid event range")
-        raw = await self.rpc("eth_getLogs", [{
-            "address": self.address, "fromBlock": hex(start), "toBlock": block["number"],
-        }])
         try:
-            if not isinstance(raw, list):
-                raise ValueError("invalid log list")
+            # Bound every caller, including proposal reconciliation and projection catch-up.
+            raw = []
+            end = quantity(block["number"])
+            for first in range(start, end + 1, 200):
+                last = min(first + 199, end)
+                page = await self.rpc("eth_getLogs", [{
+                    "address": self.address, "fromBlock": hex(first), "toBlock": hex(last),
+                }])
+                if not isinstance(page, list):
+                    raise ValueError("invalid log list")
+                if any(not first <= quantity(log["blockNumber"]) <= last for log in page):
+                    raise ValueError("event outside requested page")
+                raw.extend(page)
             result, seen, blocks = [], set(), {}
             for log in raw:
                 decoded = self.decode_log(log)
