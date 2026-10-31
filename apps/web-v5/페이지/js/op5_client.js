@@ -451,9 +451,22 @@
     return { connect: connect, sign: sign, keyProof: keyProof, publish: publish, revoke: revoke, submitTx: submitTx, typedData: typedData };
   }
 
-  /* ---------------- 첨부 업로드 자리 ----------------
-     계약(d0111d8)에는 이미지·PDF·음성 업로드 경로가 없음(POST /v3/inputs 는 kind TEXT 만).
-     계약이 생기면 이 함수 안에서 그 경로로 보내고 { ok:true, input_ref } 를 돌려주면 됨. 지금은 보내지 않음. */
+  /* ---------------- 첨부: 문서 사진 → DOCUMENT_IMAGE 입력(#92) ----------------
+     POST /v3/inputs 가 kind DOCUMENT_IMAGE(PNG·JPEG·WebP, 5MB 이하, image_base64)를 받는다(서버 기본 꺼짐 → 409 INPUT_SUPPORT_UNDECIDED).
+     여기서는 파일을 base64 로 바꿔 돌려주기만 하고, 보내기는 api_adapter.check(…, { image }) 가 한다. PDF·음성은 받지 않는다. */
+  var IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+  function uploadAttachment(file) {
+    var name = file && typeof file.name === 'string' ? file.name : '';
+    if (!file || IMAGE_TYPES.indexOf(file.type) < 0) return Promise.resolve({ ok: false, code: 'UNSUPPORTED_INPUT', name: name, text: '문서 사진(PNG·JPG·WebP)만 보낼 수 있어요.' });
+    if (file.size > 5 * 1024 * 1024) return Promise.resolve({ ok: false, code: 'MALFORMED_INPUT', name: name, text: '사진이 5MB보다 커요.' });
+    return new Promise(function (resolve) {
+      var fr = new FileReader();
+      fr.onload = function () { var u = String(fr.result || ''); resolve({ ok: true, name: name, image: { media_type: file.type, base64: u.slice(u.indexOf(',') + 1) } }); };
+      fr.onerror = function () { resolve({ ok: false, code: 'MALFORMED_INPUT', name: name, text: '사진 파일을 읽지 못했어요.' }); };
+      fr.readAsDataURL(file);
+    });
+  }
+
   // Connection captions follow received reports; prepared RAG is not a connection signal.
   function analysisCaption(answer) {
     if (answer && answer.sample) return '규칙·AI 위험 분석 · 예시 응답';
@@ -463,11 +476,6 @@
     if (limits.indexOf('MOCK_REPLAY_NOT_MODEL_PERFORMANCE') >= 0) return '규칙·AI 위험 분석 · 기록 응답';
     return '규칙·AI 위험 분석 · 서버 보고서';
   }
-  function uploadAttachment(file) {
-    var name = file && typeof file.name === 'string' ? file.name : '';
-    return Promise.resolve({ ok: false, code: 'UPLOAD_NOT_CONNECTED', name: name, text: '첨부 업로드는 아직 연결 전이에요(서버 계약에 업로드 경로가 없어요).' });
-  }
-
   Hk.op5 = {
     uploadAttachment: uploadAttachment,
     analysisCaption: analysisCaption,

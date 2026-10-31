@@ -7,6 +7,7 @@ import { api as scopedApi, verifyRead, requestId } from "../../api-client.js";
 import type { ProofView, ProofContent, OperationView } from "../api-types.generated";
 
 import type { FinalsVerificationResult } from "../core-types.generated";
+import { parseWholeNumber } from "./candidate-number.mjs";
 type Action = "verify" | "compare" | "consume" | "history";
 type Proof = { id: string; issuer: string; type: "PAYMENT_REQUEST" | "OFFICIAL_DOCUMENT"; issued: string; expires: string; fields: Record<string, string> };
 type Entry = { id: string; proof: string; action: string; summary: string; time: string };
@@ -94,7 +95,10 @@ export default function UserWorkspace({lifecycleEnabled=false,apiPrefix}: {lifec
   async function compare(event: FormEvent) {
     event.preventDefault();if(!proof||pending.current)return;pending.current=true;const token=++generation.current;setBusy(true);setError("");
     try {
-      const candidate=Object.fromEntries(Object.entries(values).filter(([,value])=>value.trim()).map(([key,value])=>[key,["amount_minor","version"].includes(key)?Number(value):value.trim()]));
+      const filled=Object.entries(values).filter(([,value])=>value.trim());
+      const invalid=filled.find(([key,value])=>["amount_minor","version"].includes(key)&&parseWholeNumber(value)===null);
+      if(invalid){setError(`${fieldNames[invalid[0]]}은(는) 숫자로만 넣어 주세요.`);return;}
+      const candidate=Object.fromEntries(filled.map(([key,value])=>[key,["amount_minor","version"].includes(key)?parseWholeNumber(value):value.trim()]));
       const verdict: FinalsVerificationResult=await api(`/v2/proofs/${encodeURIComponent(proof.id)}/verify`,{request_id:requestId(),candidate});
       if(token!==generation.current)return;
       setResult(verdict);setMessage(`${verdict.verification_status} · ${verdict.scope} · ${verdict.reason_codes?.join(" · ")}`);

@@ -310,7 +310,7 @@ function showLanding(){window.location.href="index.html"}
     files.forEach((x,i)=>{const li=el("li","file");const th=el("span","thumb");
       if(x.url){const im=document.createElement("img");im.src=x.url;im.alt="";th.append(im)}else th.textContent=x.kind==="PDF"?"PDF":x.kind==="음성"?"WAV":"TXT";
       // 입력 검사 결과(js/op5_media.js): 보낼 수 있음 / 인식 부족 / 미지원 / 손상
-      const c=x.check,st=!c?"검사 중…":c.state==="ok"?c.title+" · 서버 전송은 연결 전":(c.state==="low"?"인식 부족: ":c.state==="unsupported"?"미지원: ":"실패: ")+c.title;
+      const c=x.check,st=!c?"검사 중…":c.state==="ok"?c.title:(c.state==="low"?"인식 부족: ":c.state==="unsupported"?"미지원: ":"실패: ")+c.title;
       const b=el("div");b.append(el("div","fname",x.file.name),el("span",c&&(c.state==="unsupported"||c.state==="failed")?"fmeta err":"fmeta",x.kind+" · "+size(x.file.size)+" · "+st));
       const del=el("button","fdel","✕");del.type="button";del.setAttribute("aria-label",x.file.name+" 빼기");del.addEventListener("click",()=>{if(x.url)URL.revokeObjectURL(x.url);files.splice(i,1);renderFiles()});
       li.append(th,b,del);fileList.append(li)});
@@ -329,7 +329,9 @@ function showLanding(){window.location.href="index.html"}
         if(c.kind==="DOCUMENT_IMAGE"&&c.state!=="failed"&&c.state!=="unsupported")x.url=URL.createObjectURL(f);
         renderFiles();
         const head=c.state==="ok"?"「"+f.name+"」 "+c.title+".":(c.state==="low"?"「"+f.name+"」 인식이 부족할 수 있어요 — ":c.state==="unsupported"?"「"+f.name+"」 아직 받을 수 없는 파일이에요 — ":"「"+f.name+"」 파일에 문제가 있어요 — ")+(c.state==="ok"?"":c.title+".");
-        add("ai",head+" "+c.advice+(c.state==="ok"?" (사진 글자 읽기는 서버 업로드 경로가 생기면 연결돼요. 지금은 서버로 보내지 않았어요.)":""));
+        add("ai",head+" "+c.advice);
+        // 보낼 수 있는 문서 사진이면 js/op5_connect.js 가 '이 사진 확인하기' 단추를 붙인다(DOCUMENT_IMAGE 입력)
+        if(c.kind==="DOCUMENT_IMAGE"&&(c.state==="ok"||c.state==="low"))dispatchEvent(new CustomEvent("op5:image",{detail:{file:f}}));
       });
     });
     renderFiles();

@@ -166,7 +166,7 @@ test('business.html 은 스크립트 연결 줄만 더함, 사이드바·번들�
   for (const id of ['composer', 'chatThread', 'staffList']) assert.ok(HTML.includes('id="' + id + '"'));
   SCRIPTS.forEach(f => assert.ok(fs.existsSync(path.join(WEB, f)), f));
   assert.equal(sha(fs.readFileSync(path.join(WEB, 'business.bundle.js'))), '0a329cb58e6430f910fcd6b2b2a6ae2509ea5bf66ad16342d83194199e97bc45');
-  assert.equal(sha(fs.readFileSync(path.join(WEB, 'sidebar.bundle.js'))), '74222a3ab62779066b0bbb159fd41c674b9fd21c03d10f614e35b8eb160161eb');
+  assert.equal(sha(fs.readFileSync(path.join(WEB, 'sidebar.bundle.js'))), 'b1fedcbf96f3073fe214e605a21b537b926646bebb706670abbd5bf0053ba09b');
   assert.equal(sha(fs.readFileSync(path.join(WEB, 'business-workspace.css'))), '4c105ee44ae27b0966e02ba9216878ad77180488dd4d58a2e1824211bd50afb1');
 });
 
@@ -183,4 +183,45 @@ test('연결 스크립트는 기존 CSS 클래스만 쓰고, 인라인 스타일
     if (cls.delete('t-')) ['ok','fail','caution','info','none','pending','offline'].forEach(c => cls.add('t-' + c));
     for (const c of cls) assert.ok(new RegExp('\\.' + c + '(?![\\w-])').test(style), '없는 클래스: ' + c);
   }
+});
+
+test('기관 메뉴: 온보딩·공동승인·긴급 정지·네트워크가 계약 경로로 간다', async () => {
+  const APP = 'app_1', PID = '0x' + 'ab'.repeat(32), ISS = '0x' + 'cd'.repeat(32), TX = '0x' + 'ef'.repeat(32);
+  const V = { application_id: APP, roster_matched: true, email_verified: false, internally_approved: false, metadata: {}, metadata_hash: 'x' };
+  const OP = { operation_id: 'op_1', status: 'SUBMITTED', next_action: 'WAIT' };
+  const f = fakeFetch((url, init) => {
+    const m = init.method || 'GET';
+    if (url === '/api/v1/auth/me') return { status: 200, body: { account_id: 'a', username: 'u', role: 'issuer', issuer_id: 'iss_origin_mock_bank', csrf_token: 'c' } };
+    if (url === '/api/v1/chain/network') return { status: 200, body: { chain_target: 'anvil', chain_id: 31337, rpc_fallback_configured: false, approver_nodes: [{ role: 'approver_1', label: '승인 노드 #1', notice: 'n' }] } };
+    if (url === '/api/v1/issuer/status') return { status: 200, body: { issuer_id: 'i', status: 'ACTIVE', chain_id: 31337 } };
+    if (url === '/api/v1/issuer-applications/mine') return { status: 200, body: { application_id: APP, issuer_name: 'Origin Mock Bank', status: 'APPROVED' } };
+    if (url.endsWith('/demo-inbox')) return { status: 200, body: { code: '123456', expires_at: 1 } };
+    if (url.startsWith('/api/v3/issuer-applications/')) return { status: m === 'POST' && url.endsWith('email-codes') ? 201 : 200, body: V };
+    if (url === '/api/v3/proposals/' + PID) return { status: 200, body: { proposal_id: PID, status: 'PENDING', approvals: ['0x1'], threshold: 2, proposal: {} } };
+    if (/\/(approvals|transactions|suspensions)$/.test(url)) return { status: 202, body: OP };
+    if (url.startsWith('/health/') || url.startsWith('/api/health/')) return { status: 200, body: { status: 'ok' } };
+    return null;
+  });
+  const d = build('?mode=api', f);
+  load(d); await sleep(20);
+  vm.runInContext('selectAction("status")', d.win); await sleep(120);
+  const press = async label => { const b = d.doc.querySelectorAll('#chatThread button').filter(x => x.textContent === label).pop(); assert.ok(b, '단추 없음: ' + label); d.doc._dispatch(b, new Ev('click')); await sleep(30); };
+  const posted = u => f.calls.filter(c => c.url === '/api' + u && c.init.method === 'POST').map(c => JSON.parse(c.body));
+  assert.match(d.doc.getElementById('chatThread').textContent, /anvil · 체인 31337/);
+  const B = '/v3/issuer-applications/' + APP;
+  await press('업무 메일 코드 받기'); enter(d, 'staff@bank.example.invalid'); await sleep(40);
+  assert.deepEqual(posted(B + '/email-codes'), [{ email: 'staff@bank.example.invalid' }]);
+  await press('데모 받은편지함 보기'); assert.match(d.doc.getElementById('chatThread').textContent, /확인 코드 123456/);
+  await press('메일 코드 확인'); enter(d, '123456'); await sleep(40);
+  assert.deepEqual(posted(B + '/email-verifications'), [{ code: '123456' }]);
+  await press('내부 승인하기(지정된 다른 계정)'); enter(d, '시험 승인'); await sleep(40);
+  assert.deepEqual(posted(B + '/internal-approvals'), [{ decision: 'APPROVE', reason: '시험 승인' }]);
+  await press('공동승인 제안 조회'); enter(d, PID); await sleep(40);
+  assert.match(d.doc.getElementById('chatThread').textContent, /상태 PENDING · 승인 1\/2/);
+  await press('승인 거래 알리기'); enter(d, TX); await sleep(40);
+  const a = posted('/v3/proposals/' + PID + '/approvals'); assert.equal(a[0].tx_hash, TX); assert.match(a[0].request_id, /^req_/);
+  await press('실행 거래 알리기'); enter(d, TX); await sleep(40);
+  assert.equal(posted('/v3/proposals/' + PID + '/transactions')[0].tx_hash, TX);
+  await press('긴급 정지 거래 알리기'); enter(d, ISS); await sleep(40); enter(d, TX); await sleep(40);
+  assert.equal(posted('/v3/issuers/' + ISS + '/suspensions')[0].tx_hash, TX);
 });

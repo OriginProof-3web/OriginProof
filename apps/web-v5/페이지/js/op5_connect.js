@@ -272,13 +272,13 @@
   /* ---------------- 입력 → 결과 ---------------- */
   var running = {};       // 같은 모드·같은 글이 진행 중이면 다시 보내지 않음
   var awaiting = null;    // 말풍선이 입력을 기다리는 중(초안·거래 해시·철회·주소)
-  function check(text) {
+  function check(text, image) {
     var key = conn.mode() + '|' + text;
     if (running[key]) { say('같은 내용을 이미 확인하고 있어요. 결과가 나오면 여기에 보여 드려요.'); return running[key]; }
     if (hint) hint.textContent = 'Enter 보내기 · Shift+Enter 줄바꿈 · ' + (isApi() ? '실서버 모드(' + getBase() + ')' : '예시 모드(예시 응답)');
     resetStaff(isApi() ? '직원 7명이 실제 응답이 온 순서대로 표시해요.' : '예시 모드: 예시 응답을 직원 순서대로 보여 줘요.');
     var api = isApi();
-    var p = conn.check(text, { onStaff: api ? chipObs : null }).then(function (a) {
+    var p = conn.check(text, { onStaff: api ? chipObs : null, image: image || null }).then(function (a) {
       return new Promise(function (resolve) {
         animateStaff(Array.isArray(a.staff) ? a.staff : [], function () {
           var n = $('staffNote');
@@ -303,6 +303,22 @@
     userMsg(T.maskPersonal(v.text));
     return check(v.text);
   }
+  // 오른쪽 패널에 올린 문서 사진(검사 통과) → AI 말풍선의 기존 모양 단추로 DOCUMENT_IMAGE 분석
+  window.addEventListener('op5:image', function (e) {
+    var file = e.detail && e.detail.file;
+    if (!file) return;
+    var r = aiMsg();
+    r.para(null, ['「' + file.name + '」 사진의 글자를 읽어 확인할 수 있어요.', isApi() ? '사진은 서버로 보내져 글자를 읽은 뒤 분석해요(서버가 사진 입력을 켜 두어야 해요).' : '예시 모드에서는 사진을 보내지 않아요. 실서버 모드에서 확인할 수 있어요.']);
+    if (!isApi()) return;
+    r.btn('이 사진 확인하기', function (x) {
+      x.dataset.done = '1';
+      return O.uploadAttachment(file).then(function (u) {
+        if (!u.ok) { say(u.text); return; }
+        userMsg('[문서 사진] ' + file.name);
+        return check('[문서 사진] ' + file.name, u.image);
+      });
+    });
+  });
   function ask(kind, prompt, handle, mask) {
     awaiting = { kind: kind, handle: handle, mask: mask };
     var r = aiMsg();
@@ -416,11 +432,11 @@
     box.append(el('b', null, '기관 활성화 · 2-of-3 공동승인' + (ex ? ' (예시 진행)' : '')));
     APPROVERS.forEach(function (a, i) {
       var row = el('div', 'op-gov-row');
-      var st = ex ? (i === 0 ? ['서명 완료 1/3', 't-ok'] : i === 1 ? ['서명 완료 2/3 → 기관 활성화', 't-ok'] : ['대기 (정족수 달성으로 불필요)', 't-none']) : ['승인 현황 연결 전', 't-offline'];
+      var st = ex ? (i === 0 ? ['서명 완료 1/3', 't-ok'] : i === 1 ? ['서명 완료 2/3 → 기관 활성화', 't-ok'] : ['대기 (정족수 달성으로 불필요)', 't-none']) : ['제안 번호로 조회', 't-none'];
       row.append(el('span', 'op-gov-n', a.n), el('span', 'op-gov-who', a.who), el('span', 'op-chip ' + st[1], st[0]), el('span', 'op-body', a.what));
       box.append(row);
     });
-    box.append(el('p', 'op-foot', '서로 다른 3곳 중 2곳이 각자 지갑으로 서명해야 기관이 활성화돼요. 긴급 정지는 1곳 단독, 재활성화·키 교체는 2-of-3이에요.' + (ex ? ' 기관 이름은 역할 모델이며 실제 기관이 참여한 것은 아니에요.' : ' 실제 승인 현황(/v3/proposals) 화면은 아직 연결 전이에요.')));
+    box.append(el('p', 'op-foot', '서로 다른 3곳 중 2곳이 각자 지갑으로 서명해야 기관이 활성화돼요. 긴급 정지는 1곳 단독, 재활성화·키 교체는 2-of-3이에요.' + (ex ? ' 기관 이름은 역할 모델이며 실제 기관이 참여한 것은 아니에요.' : ' 실제 승인 현황은 로그인한 기관·운영자 계정에서 제안 번호로 조회해요.')));
     r.box.append(box); toBottom();
   }
   function roiPanel(r) {
@@ -436,6 +452,104 @@
     row.append(el('span', 'op-badge', 'EIP-712 기관 서명'), el('span', 'op-badge', '가스비: 지금은 기관 지갑이 부담 · 중계자 대납(Relayer)은 향후 확장'), el('span', 'op-badge', '기대 효과(설명): 비대면 금융사고 자율배상·면책 판단 때 증빙 자료로 활용'));
     r.box.append(row);
     r.para(null, ['기관 지갑이 서명한 뒤 그 지갑에서 거래를 직접 보내고 가스비도 내요. 서버 중계자(Relayer)가 대신 보내고 가스비를 내는 방식은 지금 꺼져 있어요(향후 확장).']);
+  }
+
+  /* ---------------- 기관 온보딩·공동승인·긴급 정지(말풍선 단추) ----------------
+     계약: docs/api/v5_c_runtime.md 'A: 화면에서 사용할 순서'. 서명·거래는 각자 지갑에서 하고 서버에는 거래 해시만 알린다. */
+  var HEX32 = /^0x[0-9a-f]{64}$/;
+  function networkPara(r) {
+    var p = r.para('체인 네트워크(/v1/chain/network)', ['확인 중…']);
+    return client.get('/v1/chain/network').then(function (res) {
+      if (res.status !== 200 || !res.data) return r.set(p, '체인 네트워크(/v1/chain/network)', errLines(res));
+      var nodes = Array.isArray(res.data.approver_nodes) ? res.data.approver_nodes : [];
+      r.set(p, '체인 네트워크(/v1/chain/network)', [String(res.data.chain_target) + ' · 체인 ' + String(res.data.chain_id) + ' · 예비 RPC ' + (res.data.rpc_fallback_configured ? '있음' : '없음')].concat(nodes.map(function (n) { return String(n.label); })));
+    });
+  }
+  function onboardingLines(v) {
+    return ['명부 일치 ' + (v.roster_matched ? '예' : '아니오') + ' · 메일 확인 ' + (v.email_verified ? '완료' : '전') + ' · 내부 승인 ' + (v.internally_approved ? '완료' : '전')];
+  }
+  function onboardingCall(title, method, path, body) {
+    var rr = aiMsg(); var p = rr.para(title, ['보내는 중…']);
+    return client.write(method, path, body, { requestId: false }).then(function (res) {
+      if (res.status < 200 || res.status >= 300 || !res.data) return rr.set(p, title, errLines(res));
+      rr.set(p, title, onboardingLines(res.data));
+    });
+  }
+  function onboardingButtons(r, id) {
+    var base = '/v3/issuer-applications/' + encodeURIComponent(id);
+    r.btn('온보딩 상태 보기', function () {
+      var rr = aiMsg(); var p = rr.para('온보딩 상태', ['확인 중…']);
+      return client.get(base).then(function (res) { rr.set(p, '온보딩 상태', res.status === 200 && res.data ? onboardingLines(res.data) : errLines(res)); });
+    });
+    r.btn('업무 메일 코드 받기', function () {
+      ask('email', '기관 업무 메일 주소(합성 기관 도메인)를 입력칸에 넣고 보내 주세요.', function (t) { return onboardingCall('메일 코드 발급(email-codes)', 'POST', base + '/email-codes', { email: t.trim() }); });
+    });
+    r.btn('데모 받은편지함 보기', function () {
+      var rr = aiMsg(); var p = rr.para('데모 받은편지함(시연 전용)', ['확인 중…']);
+      return client.get(base + '/demo-inbox').then(function (res) {
+        if (res.status !== 200 || !res.data) return rr.set(p, '데모 받은편지함(시연 전용)', errLines(res));
+        rr.set(p, '데모 받은편지함(시연 전용)', [res.data.code ? '확인 코드 ' + String(res.data.code) : '유효한 코드가 없어요.']);
+      });
+    });
+    r.btn('메일 코드 확인', function () {
+      ask('code', '받은 확인 코드 6자리를 입력칸에 넣고 보내 주세요.', function (t) { return onboardingCall('메일 코드 확인(email-verifications)', 'POST', base + '/email-verifications', { code: t.trim() }); });
+    });
+    r.btn('내부 승인하기(지정된 다른 계정)', function () {
+      ask('approve', '승인 사유를 입력칸에 넣고 보내 주세요. 신청자 본인은 승인할 수 없어요.', function (t) { return onboardingCall('기관 내부 승인(internal-approvals)', 'POST', base + '/internal-approvals', { decision: 'APPROVE', reason: t.trim() }); });
+    });
+  }
+  // 거래 해시 알리기: 지갑에서 직접 보낸 거래를 서버에 알리고, 작업 번호로 이어 간다
+  function govTx(title, path) {
+    ask('govtx', '지갑에서 보낸 거래 해시(0x + 64자리)를 입력칸에 넣고 보내 주세요.', function (t) {
+      var h = O.parseTxHash(t);
+      if (!h.ok) return say(h.message);
+      var rr = aiMsg(); var p = rr.para(title, ['보내는 중…']);
+      return client.write('POST', path, { tx_hash: h.value }).then(function (res) {
+        if (res.status !== 202 && res.status !== 200) return rr.set(p, title, errLines(res));
+        return client.follow(res, 'governance').then(function (r2) {
+          var op = (r2 && r2.data) || res.data;
+          rr.set(p, title, ['작업 ' + String(op.operation_id) + ' · 상태 ' + String(op.status)]);
+          opButtons(rr, op);
+        });
+      });
+    });
+  }
+  function showProposal(id) {
+    var r = aiMsg(); var title = '공동승인 제안 ' + id.slice(0, 10) + '…';
+    var p = r.para(title, ['확인 중…']);
+    return client.get('/v3/proposals/' + id).then(function (res) {
+      if (res.status !== 200 || !res.data) return r.set(p, title, errLines(res));
+      var d = res.data, n = Array.isArray(d.approvals) ? d.approvals.length : 0;
+      r.set(p, title, ['상태 ' + String(d.status) + ' · 승인 ' + n + (d.threshold != null ? '/' + String(d.threshold) : '')]);
+      r.btn('승인 거래 알리기', function () { govTx('승인 거래 알림(approvals)', '/v3/proposals/' + id + '/approvals'); });
+      r.btn('실행 거래 알리기', function () { govTx('실행 거래 알림(transactions)', '/v3/proposals/' + id + '/transactions'); });
+    });
+  }
+  function governanceButtons(r, role) {
+    r.btn('공동승인 제안 조회', function () {
+      ask('proposal', '제안 번호(0x + 64자리)를 입력칸에 넣고 보내 주세요.', function (t) {
+        var id = t.trim().toLowerCase();
+        return HEX32.test(id) ? showProposal(id) : say('제안 번호 형식이 맞지 않아요(0x + 64자리).');
+      });
+    });
+    if (role === 'operator') r.btn('공동승인 제안 준비', function () {
+      ask('propose', '제안 JSON({proposal, key_proof_request_id})을 입력칸에 넣고 보내 주세요. request_id 는 화면이 붙여요.', function (t) {
+        var body; try { body = JSON.parse(t); } catch (e) { return say('JSON 형식이 맞지 않아요.'); }
+        if (!body || typeof body.proposal !== 'object') return say('proposal 항목이 필요해요.');
+        var rr = aiMsg(); var p = rr.para('공동승인 제안 준비(/v3/proposals)', ['보내는 중…']);
+        return client.write('POST', '/v3/proposals', { proposal: body.proposal, key_proof_request_id: body.key_proof_request_id || null }).then(function (res) {
+          if (res.status !== 201 || !res.data) return rr.set(p, '공동승인 제안 준비(/v3/proposals)', errLines(res));
+          rr.set(p, '공동승인 제안 준비(/v3/proposals)', ['제안 번호 ' + String(res.data.proposal_id) + ' · 상태 ' + String(res.data.status)]);
+        });
+      });
+    });
+    r.btn('긴급 정지 거래 알리기', function () {
+      ask('issuerid', '정지할 기관 ID(0x + 64자리)를 입력칸에 넣고 보내 주세요. 이어서 지갑에서 보낸 거래 해시를 받아요.', function (t) {
+        var id = t.trim().toLowerCase();
+        if (!HEX32.test(id)) return say('기관 ID 형식이 맞지 않아요(0x + 64자리).');
+        govTx('긴급 정지 알림(suspensions)', '/v3/issuers/' + id + '/suspensions');
+      });
+    });
   }
 
   function showStatus() {
@@ -459,6 +573,7 @@
     var pending = [client.health().then(function (x) {
       r.set(h, '서버 상태(/health/live · /health/ready)', ['live: ' + x.live.text + ' (' + x.live.code + ')', 'ready: ' + x.ready.text + ' (' + x.ready.code + ')']);
     })];
+    if (isApi()) pending.push(networkPara(r));
     pending.push(client.me().then(function (res) {
       if (res.status !== 200 || !res.data) {
         r.set(who, '로그인', errLines(res).concat(['로그인은 로그인 화면(login.html)에서 해요. 비밀번호는 이 대화에 쓰지 마세요.']));
@@ -468,13 +583,14 @@
       var me = res.data;
       r.set(who, '로그인', [String(me.username) + ' · 역할 ' + String(me.role) + (me.issuer_id ? ' · 기관 ' + String(me.issuer_id) : '')]);
       r.btn('로그아웃', function (x) { x.dataset.done = '1'; return client.logout().then(function (o) { say(o.status === 200 ? '로그아웃했어요.' : errLines(o).join(' ')); }); });
+      if (me.role === 'issuer' || me.role === 'operator') governanceButtons(r, me.role);
       if (me.role !== 'issuer') return;
       var iss = r.para('기관 상태(/v1/issuer/status · 신청)', ['확인 중…']);
       return Promise.all([client.get('/v1/issuer/status'), client.get('/v1/issuer-applications/mine')]).then(function (z) {
         var lines = [];
         if (z[0].status === 200 && z[0].data) lines.push('기관 ' + z[0].data.issuer_id + ' · 상태 ' + z[0].data.status + ' · 체인 ' + z[0].data.chain_id);
         else lines = lines.concat(errLines(z[0]));
-        if (z[1].status === 200 && z[1].data) lines.push('신청 ' + z[1].data.application_id + ' · ' + z[1].data.issuer_name + ' · ' + z[1].data.status);
+        if (z[1].status === 200 && z[1].data) { lines.push('신청 ' + z[1].data.application_id + ' · ' + z[1].data.issuer_name + ' · ' + z[1].data.status); onboardingButtons(r, String(z[1].data.application_id)); }
         else if (z[1].status === 200) lines.push('기관 신청 기록이 없어요.');
         else lines = lines.concat(errLines(z[1]));
         r.set(iss, '기관 상태(/v1/issuer/status · 신청)', lines);
@@ -630,6 +746,13 @@
     return client.get(path).then(function (res) {
       if (res.status !== 200 || !res.data) return r.set(p, title, errLines(res));
       var d = res.data;
+      if (d.document_id && d.state) r.btn('검증 자료 보기(verification-material)', function () {
+        var mr = aiMsg(); var mp = mr.para('검증 자료 ' + title, ['확인 중…']);
+        return client.get(path + '/verification-material').then(function (m) {
+          if (m.status !== 200 || !m.data) return mr.set(mp, '검증 자료 ' + title, errLines(m));
+          mr.set(mp, '검증 자료 ' + title, Object.keys(m.data).map(function (k) { var v = m.data[k]; return k + ': ' + (v && typeof v === 'object' ? JSON.stringify(v).slice(0, 200) : String(v).slice(0, 200)); }));
+        });
+      });
       if (d.document_id && d.state) r.set(p, title, ['상태 ' + d.state + ' · 버전 ' + d.version + '/' + d.latest_version + (d.warnings && d.warnings.length ? ' · 경고 ' + d.warnings.join(', ') : '') + ' · 원본 ' + (d.original_available ? '있음' : '없음')]);
       else if (d.analysis_id) r.set(p, title, [d.analysis_id + ' · ' + d.status + (d.error_code ? ' · 코드 ' + d.error_code : '')]);
       else r.set(p, title, [JSON.stringify(d).slice(0, 400)]);

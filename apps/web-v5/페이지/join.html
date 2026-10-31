@@ -64,7 +64,7 @@
       <div id="businessBox" class="hide">
         <div class="a-field"><label for="orgName">기관 이름</label><input id="orgName" autocomplete="organization" maxlength="120"></div>
         <div class="a-field"><label for="orgDept">담당 부서</label><input id="orgDept" maxlength="80"></div>
-        <p class="a-help" style="margin:0 0 6px">기관 회원은 이런 순서로 활성화돼요(서버 계약 기준).</p>
+        <p class="a-help" style="margin:0 0 6px">기관 계정은 운영자가 발급해요. 발급 뒤 이런 순서로 활성화돼요(서버 계약 기준).</p>
         <ol class="a-steps">
           <li>기관 신청 접수 (<code>POST /v1/issuer-applications</code>)</li>
           <li>업무 이메일 확인 코드 (<code>/v3/issuer-applications/{id}/email-codes</code>)</li>
@@ -181,10 +181,22 @@
           else keyNote=" AI 키는 저장하지 않았어요(이 기기에 남지 않음).";
         }else keyNote=" AI 키는 나중에 넣을 수 있어요.";
       }
+      // POST /v1/auth/register 는 개인만 받는다. 메일 도메인만으로 직원 권한을 줄 수 없어 기관 계정은 운영자가 발급한다(서버는 403 BUSINESS_SIGNUP_DISABLED).
+      // 계정 이름은 서버가 이메일로 정한다(로그인도 이메일로).
+      const ERR={SIGNUP_DISABLED:"이 서버는 회원가입을 켜 두지 않았어요. 계정은 운영자가 발급해요.",SYNTHETIC_EMAIL_REQUIRED:"시연용 서비스라 실제 메일은 받지 않아요. 끝이 .invalid 인 메일(예: me@example.invalid)로 가입해 주세요.",BUSINESS_SIGNUP_DISABLED:"기관 회원은 가입으로 만들 수 없어요. 계정은 운영자가 발급해요.",WEAK_PASSWORD:"비밀번호는 영문과 숫자를 섞어 주세요.",ACCOUNT_EXISTS:"이미 가입된 이메일이에요. 로그인해 주세요.",MALFORMED_INPUT:"입력 형식을 확인해 주세요.",RATE_LIMITED:"시도가 많아 잠시 막혔어요. 잠시 뒤 다시 해 주세요."};
+      if(biz){$("password").value="";$("password2").value="";show("info","기관 계정은 가입으로 만들 수 없고 운영자가 발급해요. 입력한 내용은 서버로 보내지 않았어요. 계정을 받은 뒤 위 순서대로 기관을 활성화해요.");return}
+      if(!/^https?:$/.test(location.protocol)){$("password").value="";$("password2").value="";show("info","입력 내용을 확인했어요. 서버에 연결되지 않아 계정은 만들지 않았어요."+keyNote);return}
+      let r,code="";
+      try{
+        const ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),15000);
+        r=await fetch("/api/v1/auth/register",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({kind:"personal",email,password:pw,terms_accepted:true}),signal:ctl.signal});
+        clearTimeout(t);
+      }catch(_){show("err","서버에 연결하지 못했어요. 잠시 뒤 다시 해 주세요.");return}
       // 키·비밀번호 칸은 바로 비운다(화면·메모리에 오래 두지 않음)
       $("apiKey").value="";$("password").value="";$("password2").value="";
-      // 공개 회원가입 API는 서버에 아직 없다(계정은 운영자·seed가 만듦). 서버로 보내지 않고 정직하게 알린다.
-      show("info",(kind()==="business"?"기관 회원 가입 신청 내용을 확인했어요. ":"개인 회원 가입 내용을 확인했어요. ")+"다만 계정을 만드는 서버 기능이 아직 연결 전이라 계정은 운영자가 발급해요."+keyNote+(kind()==="business"?" 기관 활성화는 위 5단계를 거쳐요.":""));
+      if(r.status===201){show("ok","개인 회원으로 가입했어요. 로그인할 때 계정 이름 자리에 이메일("+email+")을 넣어 주세요."+keyNote);sync();return}
+      try{const d=await r.json();code=typeof d.detail==="string"?d.detail:""}catch(_){}
+      show("err",ERR[code]||(r.status===404||r.status===405?"이 서버에는 회원가입 기능이 없어요. 계정은 운영자가 발급해요.":r.status===429?ERR.RATE_LIMITED:"가입하지 못했어요(HTTP "+r.status+")."));
       sync();
     }catch(err){show("err",err&&err.message?err.message:"처리하지 못했어요.")}
     finally{btn.disabled=false}

@@ -384,11 +384,11 @@ test('입력 검증: 발행 초안·철회·거래 해시·연결 주소', () =>
   assert.equal(O.RE.ana.test('ana_x/../y'), false);
 });
 
-test('첨부 업로드 자리: 계약에 경로가 없어 보내지 않고 연결 전', async () => {
+test('첨부: PNG·JPEG·WebP 만 받고 5MB 초과·다른 형식은 서버로 보내지 않음', async () => {
   const Hk = load();
-  const r = await Hk.op5.uploadAttachment({ name: 'a.png' });
-  assert.equal(r.ok, false);
-  assert.equal(r.code, 'UPLOAD_NOT_CONNECTED');
+  for (const file of [{ name: 'a.pdf', type: 'application/pdf', size: 10 }, { name: 'b.png', type: 'image/png', size: 6 * 1024 * 1024 }, { name: 'c.png' }]) {
+    assert.equal((await Hk.op5.uploadAttachment(file)).ok, false);
+  }
 });
 
 

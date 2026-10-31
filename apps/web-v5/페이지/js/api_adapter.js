@@ -698,6 +698,30 @@
     return 'req_jjin_' + s;
   }
 
+  /* Track B(#88): 검증 코드 없는 문자에서 기관·금액·계좌(또는 공문 번호)를 읽어 POST /v3/document-lookups 본문을 만든다.
+     기관 ID = identifier_hash("iss_…")(keccak256). 합성 명부(wallet_onboarding.ROSTER) 두 곳만 안다. 못 읽으면 null(보내지 않음). */
+  var LOOKUP_ISSUERS = [
+    { re: /origin\s*mock\s*bank|iss_origin_mock_bank/i, id: '0x9d6e623a821f35508c0c970540013aa75041537806d71a2e318ac7ca5358a217' },
+    { re: /origin\s*mock\s*office|iss_origin_mock_office/i, id: '0xa079131abb1c9fafcee45cedda0cb5ae9a0aa8d8e2f3112e1ad0e85da89a9bbe' }
+  ];
+  function lookupKey(text) {
+    var s = String(text || '');
+    var iss = LOOKUP_ISSUERS.filter(function (x) { return x.re.test(s); });
+    if (iss.length !== 1) return null;
+    var doc = s.match(/(?:공문|문서)\s*번호\s*[:：]?\s*([A-Za-z0-9가-힣_-]{1,120})/);
+    if (doc) return { issuer_id: iss[0].id, key: { notice_type: 'OFFICIAL_DOCUMENT', document_number: doc[1] } };
+    var amt = s.match(/([0-9][0-9,]{0,20})\s*원/);
+    var acc = s.match(/(?:계좌|입금)[^0-9]{0,15}([0-9][0-9-]{5,45})/);
+    if (!amt || !acc) return null;
+    var minor = Number(amt[1].replace(/,/g, '')), digits = acc[1].replace(/-/g, '');
+    if (!Number.isSafeInteger(minor) || minor <= 0 || !/^[0-9]{6,32}$/.test(digits)) return null;
+    return { issuer_id: iss[0].id, key: { notice_type: 'PAYMENT_REQUEST', amount_minor: minor, currency: 'KRW', payee_account_number: digits } };
+  }
+  var LOOKUP_WHY = {
+    UNVERIFIED: '문자에서 읽은 기관·금액·계좌로 찾았지만 보관 중인 발행 기록과 맞는 것이 없어요. 가짜라는 뜻은 아니니 기관 공식 번호로 직접 확인해 주세요.',
+    AMBIGUOUS: '문자에서 읽은 값과 맞는 발행 기록이 여러 개라 하나로 정하지 않았어요. 검증 링크나 문서 번호로 다시 확인해 주세요.'
+  };
+
   /* ---------------- ApiAdapter ---------------- */
   function createApiAdapter(opts) {
     var c = makeCaller(opts);
@@ -750,9 +774,26 @@
       });
     }
 
+    // Track B: 코드 없는 문자 → POST /v3/document-lookups. 읽을 값이 없거나 경로가 없으면 기존처럼 'none'
+    function lookup(text, log) {
+      var k = lookupKey(text);
+      if (!k) return Promise.resolve({ kind: 'none' });
+      var body = { request_id: rid(), issuer_id: k.issuer_id, key: k.key };
+      log.push({ label: '보낸 요청', value: 'POST /v3/document-lookups · request_id ' + body.request_id + ' · ' + k.key.notice_type });
+      return c.call('POST', '/v3/document-lookups', body, ms).then(function (res) {
+        var d = res.data || {};
+        if (!res.error && (res.status === 404 || res.status === 405)) { log.push({ label: '원본 찾기', value: '경로 없음 · HTTP ' + res.status }); return { kind: 'none' }; }
+        if (res.error || res.status !== 200 || typeof d.lookup_status !== 'string') return { kind: 'error', err: errorInfo(res), res: res };
+        log.push({ label: '원본 찾기', value: d.lookup_status + ' · 일치 ' + str(d.match_count) + '건' + (d.reason_codes && d.reason_codes.length ? ' · ' + d.reason_codes.join(', ') : '') });
+        if (d.lookup_status === 'MATCHED' && d.verification && typeof d.verification.verification_status === 'string') return { kind: 'result', api: 'v3', data: d.verification, res: res, lookup: d.lookup_status };
+        return { kind: 'none', lookup: d.lookup_status, why: LOOKUP_WHY[d.lookup_status] || '' };
+      });
+    }
+
     // AI: POST /v3/inputs -> POST /v3/analyses -> GET /v3/analyses/{id} 폴링. 로그인 없이 부르면 401 → 연결 전
     // onIntake: /v3/inputs 답이 오는 순간 접수 직원 말풍선을 넘김(직원 패널은 도착 순서대로 갱신)
-    function analyze(text, log, onIntake) {
+    // image: { media_type, base64 } 이면 글 대신 문서 사진(DOCUMENT_IMAGE, #92)으로 접수
+    function analyze(text, log, onIntake, image) {
       var offline = function (code, why) {
         return { ai: { obs: obs('ai', 'common.not_connected', code), why: why }, intake: obs('intake', 'common.not_connected', code) };
       };
@@ -767,9 +808,16 @@
         if (known) e.why = AI_HTTP[d.detail] + (res.status === 429 && res.retryAfter ? ' ' + res.retryAfter + '초 뒤에 다시 해 보세요.' : '');
         return { ai: { obs: obs('ai', e.key, e.line2), why: e.why }, intake: step === '입력' ? obs('intake', e.key, e.line2) : null };
       };
-      var masked = T().maskPersonal(text);
-      log.push({ label: '보낸 요청', value: 'POST /v3/inputs · 개인정보를 가린 글 ' + masked.length + '자' });
-      return c.call('POST', '/v3/inputs', { kind: 'TEXT', text: masked }, ms).then(function (res) {
+      var input;
+      if (image) {
+        input = { kind: 'DOCUMENT_IMAGE', image_media_type: image.media_type, image_base64: image.base64 };
+        log.push({ label: '보낸 요청', value: 'POST /v3/inputs · 문서 사진 ' + image.media_type + ' ' + Math.round(image.base64.length * 3 / 4 / 1024) + 'KB' });
+      } else {
+        var masked = T().maskPersonal(text);
+        input = { kind: 'TEXT', text: masked };
+        log.push({ label: '보낸 요청', value: 'POST /v3/inputs · 개인정보를 가린 글 ' + masked.length + '자' });
+      }
+      return c.call('POST', '/v3/inputs', input, ms).then(function (res) {
         if (res.error || res.status !== 201 || !res.data || !res.data.input_ref) {
           var x0 = fromErr(res, '입력');
           if (onIntake) onIntake(x0.intake);
@@ -880,7 +928,8 @@
         x.body = '이 확인 기능은 아직 연결 전이에요.' + (v.why ? ' ' + v.why : '');
       });
       if (v.kind === 'none') axes.slice(0, 3).forEach(function (x) {
-        x.status = '확인할 수 없음'; x.tone = 'none'; x.icon = 'dash'; x.body = '검증 링크가 없어 공식 기록과 맞춰 볼 수 없어요.';
+        x.status = '확인할 수 없음'; x.tone = 'none'; x.icon = 'dash';
+        x.body = v.why || (p.image ? '사진에서는 검증 링크를 읽지 않아 공식 기록과 맞춰 볼 수 없어요.' : '검증 링크가 없어 공식 기록과 맞춰 볼 수 없어요.');
       });
 
       var conclusion;
@@ -896,7 +945,7 @@
       } else if (v.kind === 'error') {
         conclusion = { badge: { tone: 'pending', icon: 'question', text: '판단 보류' }, text: '서버 응답을 받지 못해 판단을 보류했어요.' + (v.err.why ? ' ' + v.err.why : '') };
       } else if (v.kind === 'none') {
-        conclusion = { badge: { tone: 'none', icon: 'dash', text: '확인할 수 없음' }, text: '공식 기록으로 확인할 수 없는 문자예요.' };
+        conclusion = { badge: { tone: 'none', icon: 'dash', text: '확인할 수 없음' }, text: v.why || '공식 기록으로 확인할 수 없는 문자예요.' };
       } else {
         conclusion = { badge: { tone: 'offline', icon: 'plug', text: '연결 전' }, text: v.reason === 'NO_PROOF_ID_IN_LINK'
           ? '검증 링크는 찾았지만 링크 안에 Proof ID가 없어 공식 기록을 확인하지 못했어요.'
@@ -904,7 +953,7 @@
       }
 
       var details = [{ label: '연결 방식', value: typeof c.opts.base === 'string' ? '5안 연결 ' + c.opts.base + ' (로그인 쿠키·CSRF)' : (c.opts.viaProxy ? '중계 프로그램 /api → ' : '직접 → ') + c.serverUrl }];
-      details.push({ label: '입력 종류', value: p.structured ? '항목 입력(JSON)' : (p.first ? (p.first.type === 'proof' ? 'Proof ID 가 든 문자' : '검증 링크가 든 문자') : '문자') });
+      details.push({ label: '입력 종류', value: p.image ? '문서 사진' : p.structured ? '항목 입력(JSON)' : (p.first ? (p.first.type === 'proof' ? 'Proof ID 가 든 문자' : '검증 링크가 든 문자') : (v.lookup ? '코드 없는 문자(원본 찾기 ' + v.lookup + ')' : '문자')) });
       if (p.structured && p.ignored.length) details.push({ label: '보내지 않은 키', value: p.ignored.join(', ') });
       // 찾은 링크·Proof ID: 첫 번째만 쓰고, 나머지는 '더 찾은 … (쓰지 않음)'으로 자세히에만(adapter.js refDetails)
       if (!p.structured && p.refs.length) details = details.concat(Hk.refDetails({ refs: p.refs }));
@@ -957,7 +1006,8 @@
     function check(text, opts) {
       opts = opts || {};
       var p;
-      try { p = parse(text); } catch (e) { return Promise.reject(e); }
+      if (opts.image) p = { structured: false, first: null, refs: [], image: true };   // 문서 사진: 검증 링크를 읽을 글이 없음
+      else try { p = parse(text); } catch (e) { return Promise.reject(e); }
       var log = [];
       var order = [];
       var emit = function (o) {
@@ -973,10 +1023,11 @@
         vP = verify({ structured: false, proofId: p.first.proofId, documentId: '', candidate: {} }, log);
       }
       else if (p.first) vP = Promise.resolve({ kind: 'offline', reason: 'NO_PROOF_ID_IN_LINK', why: '첫 번째 링크 안에 Proof ID가 없어 검증을 요청하지 않았어요.' });
-      else vP = Promise.resolve({ kind: 'none' });
+      else if (p.image) vP = Promise.resolve({ kind: 'none' });
+      else vP = lookup(text, log);
       var aP = p.structured
         ? Promise.resolve({ ai: { obs: obs('ai', 'ai.none', 'NO_TEXT'), why: '항목 입력에는 문자 원문이 없어 AI 분석은 하지 않았어요.' } })
-        : analyze(text, log, emit);
+        : analyze(text, log, emit, opts.image);
       var vDone = vP.then(function (v) {
         var four = fourOf(v, p.structured ? p : { candidate: {} });
         ['ledger', 'signature', 'original', 'status'].forEach(function (s) { emit(four[s]); });
@@ -1000,5 +1051,5 @@
   Hk.DEMO_TERM = DEMO_TERM;
   Hk.demoTermRows = demoTermRows;
   Hk.api = { mapV1: mapV1, mapV3: mapV3, mapAnalysisJob: mapAnalysisJob, isLoopback: isLoopback, READY_MSG: READY_MSG, errorInfo: errorInfo, makeCaller: makeCaller, rid: rid,
-    evidenceSpans: evidenceSpans, SPAN_WHY: SPAN_WHY, AI_FAIL: AI_FAIL, AI_HTTP: AI_HTTP };
+    lookupKey: lookupKey, evidenceSpans: evidenceSpans, SPAN_WHY: SPAN_WHY, AI_FAIL: AI_FAIL, AI_HTTP: AI_HTTP };
 })();
