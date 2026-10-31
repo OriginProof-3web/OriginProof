@@ -4,6 +4,7 @@ All observations use a hash-pinned canonical block. Projection is never read her
 The supplied ABI is the compiled Registry ABI, not a second contract definition.
 """
 
+import asyncio
 from itertools import count
 
 import httpx
@@ -12,6 +13,9 @@ from eth_abi.exceptions import DecodingError, EncodingError
 from eth_utils import keccak, to_normalized_address
 
 from .errors import BlockchainConfigurationError, BlockchainDependencyError
+
+LOG_BLOCK_SPAN = 2_000
+LOG_BATCH_PAGES = 4
 
 
 def abi_type(field):
@@ -213,12 +217,29 @@ class WalletRpc:
     async def logs(self, start, block):
         if not self.deployment_block <= start <= quantity(block["number"]):
             raise BlockchainConfigurationError("invalid event range")
-        raw = await self.rpc("eth_getLogs", [{
-            "address": self.address, "fromBlock": hex(start), "toBlock": block["number"],
-        }])
         try:
-            if not isinstance(raw, list):
-                raise ValueError("invalid log list")
+            # Bound every caller, including proposal reconciliation and projection catch-up.
+            raw = []
+            end = quantity(block["number"])
+            for batch in range(start, end + 1, LOG_BLOCK_SPAN * LOG_BATCH_PAGES):
+                stop = min(batch + LOG_BLOCK_SPAN * LOG_BATCH_PAGES, end + 1)
+                starts = list(range(batch, stop, LOG_BLOCK_SPAN))
+                # Bound in-flight reads too; serial history scans exceed the API's 10s budget.
+                pages = await asyncio.gather(*(
+                    self.rpc("eth_getLogs", [{
+                        "address": self.address, "fromBlock": hex(first),
+                        "toBlock": hex(min(first + LOG_BLOCK_SPAN - 1, end)),
+                    }]) for first in starts
+                ), return_exceptions=True)
+                for first, page in zip(starts, pages, strict=True):
+                    if isinstance(page, BaseException):
+                        raise page
+                    if not isinstance(page, list):
+                        raise ValueError("invalid log list")
+                    last = min(first + LOG_BLOCK_SPAN - 1, end)
+                    if any(not first <= quantity(log["blockNumber"]) <= last for log in page):
+                        raise ValueError("event outside requested page")
+                    raw.extend(page)
             result, seen, blocks = [], set(), {}
             for log in raw:
                 decoded = self.decode_log(log)
