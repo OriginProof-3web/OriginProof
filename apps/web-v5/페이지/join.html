@@ -170,14 +170,14 @@
     for(const [id,t] of need)if(!$(id).checked)return show("err","[필수] "+t),$(id).focus();
     if(!$("agree").checked)return show("err","맨 아래 '확인함'을 체크해야 가입이 완료돼요."),$("agree").focus();
     const btn=$("submit");btn.disabled=true;
-    let keyNote="";
+    let keyNote="",keyToSave="";
     try{
       if(kind()==="personal"){
         const key=$("apiKey").value.trim();
         if(key){
           const bad=V.check(provider(),key);if(bad){show("err",bad);$("apiKey").focus();return}
           if(!$("keyRisk").checked){show("err","API 키를 넣으려면 키 관리 책임 안내에 동의해 주세요.");$("keyRisk").focus();return}
-          if($("saveKey").checked){const r=await V.save(provider(),key,pw);keyNote=" AI 키("+r.name+" "+r.hint+")는 이 기기에 암호화해서 저장했어요.";}
+          if($("saveKey").checked)keyToSave=key;     // 가입이 된 뒤에만 저장한다(실패한 비밀번호로 암호화한 키를 남기지 않음)
           else keyNote=" AI 키는 저장하지 않았어요(이 기기에 남지 않음).";
         }else keyNote=" AI 키는 나중에 넣을 수 있어요.";
       }
@@ -185,16 +185,16 @@
       // 계정 이름은 서버가 이메일로 정한다(로그인도 이메일로).
       const ERR={SIGNUP_DISABLED:"이 서버는 회원가입을 켜 두지 않았어요. 계정은 운영자가 발급해요.",SYNTHETIC_EMAIL_REQUIRED:"시연용 서비스라 실제 메일은 받지 않아요. 끝이 .invalid 인 메일(예: me@example.invalid)로 가입해 주세요.",BUSINESS_SIGNUP_DISABLED:"기관 회원은 가입으로 만들 수 없어요. 계정은 운영자가 발급해요.",WEAK_PASSWORD:"비밀번호는 영문과 숫자를 섞어 주세요.",ACCOUNT_EXISTS:"이미 가입된 이메일이에요. 로그인해 주세요.",MALFORMED_INPUT:"입력 형식을 확인해 주세요.",RATE_LIMITED:"시도가 많아 잠시 막혔어요. 잠시 뒤 다시 해 주세요."};
       if(biz){$("password").value="";$("password2").value="";show("info","기관 계정은 가입으로 만들 수 없고 운영자가 발급해요. 입력한 내용은 서버로 보내지 않았어요. 계정을 받은 뒤 위 순서대로 기관을 활성화해요.");return}
-      if(!/^https?:$/.test(location.protocol)){$("password").value="";$("password2").value="";show("info","입력 내용을 확인했어요. 서버에 연결되지 않아 계정은 만들지 않았어요."+keyNote);return}
+      if(!/^https?:$/.test(location.protocol)){$("apiKey").value="";$("password").value="";$("password2").value="";show("info","입력 내용을 확인했어요. 서버에 연결되지 않아 계정은 만들지 않았어요."+(keyToSave?" AI 키는 저장하지 않았어요.":keyNote));return}
       let r,code="";
       try{
         const ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),15000);
         r=await fetch("/api/v1/auth/register",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({kind:"personal",email,password:pw,terms_accepted:true}),signal:ctl.signal});
         clearTimeout(t);
-      }catch(_){show("err","서버에 연결하지 못했어요. 잠시 뒤 다시 해 주세요.");return}
+      }catch(_){$("apiKey").value="";$("password").value="";$("password2").value="";show("err","서버에 연결하지 못했어요. 잠시 뒤 다시 해 주세요. 입력한 비밀번호와 키는 지웠어요.");return}
       // 키·비밀번호 칸은 바로 비운다(화면·메모리에 오래 두지 않음)
       $("apiKey").value="";$("password").value="";$("password2").value="";
-      if(r.status===201){show("ok","개인 회원으로 가입했어요. 로그인할 때 계정 이름 자리에 이메일("+email+")을 넣어 주세요."+keyNote);sync();return}
+      if(r.status===201){if(keyToSave){try{const k=await V.save(provider(),keyToSave,pw);keyNote=" AI 키("+k.name+" "+k.hint+")는 이 기기에 암호화해서 저장했어요."}catch(_){keyNote=" AI 키는 저장하지 못했어요. 로그인 뒤 다시 넣어 주세요."}}show("ok","개인 회원으로 가입했어요. 로그인할 때 계정 이름 자리에 이메일("+email+")을 넣어 주세요."+keyNote);sync();return}
       try{const d=await r.json();code=typeof d.detail==="string"?d.detail:""}catch(_){}
       show("err",ERR[code]||(r.status===404||r.status===405?"이 서버에는 회원가입 기능이 없어요. 계정은 운영자가 발급해요.":r.status===429?ERR.RATE_LIMITED:"가입하지 못했어요(HTTP "+r.status+")."));
       sync();

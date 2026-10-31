@@ -72,4 +72,7 @@ test('가입 화면: 기관 가입은 서버로 보내지 않고 개인만 보�
   assert.match(join, /kind:"personal",email,password:pw,terms_accepted:true/);
   assert.doesNotMatch(join, /kind:biz|issuer_id:/);
   assert.match(join, /if\(biz\)\{[^}]*운영자가 발급/);
+  // AI 키는 가입이 된 뒤에만 저장하고(실패한 비밀번호로 암호화한 키를 남기지 않음), 연결 실패에도 키·비밀번호 칸을 비움
+  assert.ok(join.indexOf('V.save(') > join.indexOf('r.status===201'));
+  assert.match(join, /catch\(_\)\{\$\("apiKey"\)\.value="";\$\("password"\)\.value="";\$\("password2"\)\.value="";show\("err","서버에 연결하지/);
 });

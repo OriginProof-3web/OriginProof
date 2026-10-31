@@ -609,7 +609,7 @@
     function callBase(method, path, body, ms) {
       var headers = { Accept: 'application/json' };
       if (body != null) headers['Content-Type'] = 'application/json';
-      var needCsrf = method !== 'GET' && path !== '/v1/auth/login' && path !== '/v3/verifications' && path !== '/v1/mvp/card-notices/verify';
+      var needCsrf = method !== 'GET' && path !== '/v1/auth/login' && path !== '/v3/verifications' && path !== '/v3/document-lookups' && path !== '/v1/mvp/card-notices/verify';
       var pre = needCsrf && typeof opts.csrf === 'function' ? Promise.resolve().then(opts.csrf) : Promise.resolve(null);
       return pre.then(function (token) {
         if (needCsrf && typeof opts.csrf === 'function' && !token) return { status: 401, data: { detail: 'AUTH_REQUIRED' }, local: true };
@@ -704,22 +704,113 @@
     { re: /origin\s*mock\s*bank|iss_origin_mock_bank/i, id: '0x9d6e623a821f35508c0c970540013aa75041537806d71a2e318ac7ca5358a217' },
     { re: /origin\s*mock\s*office|iss_origin_mock_office/i, id: '0xa079131abb1c9fafcee45cedda0cb5ae9a0aa8d8e2f3112e1ad0e85da89a9bbe' }
   ];
+  /* 값을 고를 수 없으면 null(조회 안 함). 맞을 것 같은 일부 숫자를 보내지 않음: 틀린 값의 UNVERIFIED·다른 값의 MATCHED 모두 사실과 달라짐. */
+  var LOOKUP_UNIT = '십백천만억조';
+  var LOOKUP_RE = {
+    hidden: /[­​-‏‪-‮⁠-⁤﻿]/,
+    hangulAmount: new RegExp('(?:^|[^가-힣])[일이삼사오육칠팔구' + LOOKUP_UNIT + ']*[' + LOOKUP_UNIT + '][ \\t]?원'),
+    foreignBefore: /(?:₩|￦|\$|€|¥|£|KRW|USD|EUR|JPY)[ \t]*$/i,
+    foreignAfter: /^[ \t]*(?:KRW|USD|EUR|JPY|달러|유로|위안|파운드|엔(?![가-힣]))/i,
+    unitAfter: new RegExp('^[ \\t]?[' + LOOKUP_UNIT + '][0-9,' + LOOKUP_UNIT + ' \\t]*원'),
+    unitBefore: new RegExp('[' + LOOKUP_UNIT + '][ \\t]?$'),
+    signBefore: /(?:[-−–—+△▲±~∼〜～]|\([-−+]\))[ \t]*$/,
+    gluedBefore: /[A-Za-z_,.\/#]$/,
+    approxBefore: /(?:약|최대|최소|최고|최저|대략|평균)[ \t]*$/,
+    rangeAfter: /^[ \t]*(?:이상|이하|미만|초과|내외|가량|정도|상당|안팎|부터|까지|[-~∼〜～])/,
+    wonEnd: /^(?:정|을|이|은|의|으로|입니다|이며|이고|이니|이므로|이에요|예요|임)?(?![가-힣A-Za-z0-9])/,
+    won: /^[ \t ]*원/,
+    amount: /^(?:[1-9][0-9]*|[1-9][0-9]{0,2}(?:,[0-9]{3})+)$/,
+    payLabel: /(?:납부|납입|결제|청구|입금|이체|송금)[ \t]*(?:금액|액)[ \t]*(?:은|는|이|:|：|=)?[ \t]*$/,
+    feeLabel: /(?:수수료|부가세|부가가치세|할인|연체료|가산금|이자|배송비)(?:[ \t]*(?:금액|액))?[ \t]*(?:은|는|이|:|：|=)?[ \t]*$/,
+    accountLabel: /계좌(?:[ \t]*번호)?([^0-9]{0,15})$/,
+    depositLabel: /입금[ \t]*[:：]?[ \t]*$/,
+    notAccountGap: /문의|상담|연락|전화|콜센터|고객|아님|아닌|말고|이전|변경|잔액|만료|기한|일자/,
+    gluedLeft: /[A-Za-z0-9_\-−–—－.,\/#]$/,
+    gluedRight: /^(?:[A-Za-z_\-−–—－\/#]|[.,][0-9])/
+  };
+  function lookupDistinct(list) { return list.filter(function (x, i) { return list.indexOf(x) === i; }); }
+  // 돌려줌: 금액(원) · 고를 수 없으면 null. found: 금액처럼 보이는 것이 하나라도 있으면 true(공문 판단에 씀)
+  function lookupAmount(s) {
+    var R = LOOKUP_RE, re = /[0-9](?:[0-9,.]*[0-9])?/g, m, bad = R.hangulAmount.test(s), pay = [], fee = [], other = [];
+    while ((m = re.exec(s))) {
+      var before = s.slice(0, m.index), after = s.slice(m.index + m[0].length);
+      if (R.foreignBefore.test(before) || R.foreignAfter.test(after) || R.unitAfter.test(after)) { bad = true; continue; }
+      var won = R.won.exec(after);
+      if (!won) continue;
+      var rest = after.slice(won[0].length), n = Number(m[0].replace(/,/g, ''));
+      if (!R.amount.test(m[0]) || !Number.isSafeInteger(n) || R.unitBefore.test(before) || R.signBefore.test(before) || R.gluedBefore.test(before) ||
+        R.approxBefore.test(before) || R.rangeAfter.test(rest) || !R.wonEnd.test(rest)) { bad = true; continue; }
+      (R.payLabel.test(before) ? pay : R.feeLabel.test(before) ? fee : other).push(n);
+    }
+    var found = bad || pay.length + fee.length + other.length > 0;
+    pay = lookupDistinct(pay); other = lookupDistinct(other);
+    var value = null;
+    if (!bad) {
+      // 납부 표시가 하나면 수수료처럼 용도가 적힌 금액만 함께 허용, 표시가 없으면 금액이 한 가지이고 용도 금액이 없을 때만
+      if (pay.length === 1 && other.every(function (x) { return x === pay[0]; })) value = pay[0];
+      else if (!pay.length && !fee.length && other.length === 1) value = other[0];
+    }
+    return { value: value, found: found };
+  }
+  function lookupNotAccount(token, digits) {
+    var mm = +digits.slice(4, 6), dd = +digits.slice(6, 8);
+    if (/^(?:19|20)[0-9]{6}$/.test(digits) && /^[0-9]{4}-?[0-9]{1,2}-?[0-9]{1,2}$/.test(token) && mm >= 1 && mm <= 12 && dd >= 1 && dd <= 31) return true;   // 날짜
+    if (/^(?:19|20)[0-9]{2}-[0-9]{1,2}-[0-9]{1,2}$/.test(token)) return true;
+    if (/^01[016789][0-9]{7,8}$/.test(digits) || /^0(?:2|[3-6][1-5]|70|50[0-9])[0-9]{7,8}$/.test(digits) || /^1[5-9][0-9]{6}$/.test(digits)) return true;   // 전화
+    return /^[0-9]{6}-[1-8][0-9]{6}$/.test(token) || /^[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{4}$/.test(token);   // 주민번호·카드번호 모양은 보내지 않음
+  }
+  function lookupAccount(s) {
+    var R = LOOKUP_RE, re = /[0-9][0-9-]*[0-9]/g, m, labelled = [], all = [];
+    while ((m = re.exec(s))) {
+      var t = m[0], digits = t.replace(/-/g, ''), before = s.slice(0, m.index), after = s.slice(m.index + t.length);
+      if (digits.length < 6 || R.won.test(after)) continue;
+      var a = R.accountLabel.exec(before);
+      var isLabel = (a && !R.notAccountGap.test(a[1])) || R.depositLabel.test(before);
+      var notAcc = lookupNotAccount(t, digits);
+      var glued = R.gluedLeft.test(before) || R.gluedRight.test(after);
+      if (isLabel && (notAcc || glued || digits.length > 32)) return null;
+      if (notAcc) continue;
+      all.push(digits);
+      if (isLabel) labelled.push(digits);
+    }
+    labelled = lookupDistinct(labelled); all = lookupDistinct(all);
+    return labelled.length === 1 && all.length === 1 ? labelled[0] : null;
+  }
+  // 돌려줌: undefined(공문 번호 표시 없음) · null(표시는 있으나 값을 못 정함) · 문자열
+  function lookupDocNumber(s) {
+    var re = /(?:공문|문서)[ \t]*번호/g, m, out = [];
+    while ((m = re.exec(s))) {
+      var after = s.slice(m.index + m[0].length).replace(/^\s*(?:는|은|:|：|=)?\s*/, '');
+      var raw = /^[^\s,;()\[\]{}<>"'「」『』]*/.exec(after)[0];
+      var token = raw.replace(/\.$/, '').replace(/(?:입니다|이에요|이며|이고|으로|로|을|를|임)$/, '');
+      if (!/^[A-Za-z0-9가-힣][A-Za-z0-9가-힣_\-\/.]{0,119}$/.test(token) || !/[0-9]/.test(token)) return null;
+      // '문서번호 2026 17' 처럼 띄어 쓴 번호일 수 있으면 앞 조각만 쓰지 않음(날짜는 제외)
+      var next = /^\s+([0-9A-Za-z][0-9A-Za-z_\-\/.]*)(?=\s|$)/.exec(after.slice(raw.length));
+      if (next && !/^(?:19|20)[0-9]{2}[-.\/][0-9]{1,2}[-.\/][0-9]{1,2}$/.test(next[1])) return null;
+      out.push(token);
+    }
+    if (!out.length) return undefined;
+    out = lookupDistinct(out);
+    return out.length === 1 ? out[0] : null;
+  }
   function lookupKey(text) {
     var s = String(text || '');
     var iss = LOOKUP_ISSUERS.filter(function (x) { return x.re.test(s); });
     if (iss.length !== 1) return null;
-    var doc = s.match(/(?:공문|문서)\s*번호\s*[:：]?\s*([A-Za-z0-9가-힣_-]{1,120})/);
-    if (doc) return { issuer_id: iss[0].id, key: { notice_type: 'OFFICIAL_DOCUMENT', document_number: doc[1] } };
-    var amt = s.match(/([0-9][0-9,]{0,20})\s*원/);
-    var acc = s.match(/(?:계좌|입금)[^0-9]{0,15}([0-9][0-9-]{5,45})/);
-    if (!amt || !acc) return null;
-    var minor = Number(amt[1].replace(/,/g, '')), digits = acc[1].replace(/-/g, '');
-    if (!Number.isSafeInteger(minor) || minor <= 0 || !/^[0-9]{6,32}$/.test(digits)) return null;
-    return { issuer_id: iss[0].id, key: { notice_type: 'PAYMENT_REQUEST', amount_minor: minor, currency: 'KRW', payee_account_number: digits } };
+    if (LOOKUP_RE.hidden.test(s) || /\p{Nd}/u.test(s.replace(/[0-9]/g, ''))) return null;   // 전각·보이지 않는 글자가 숫자를 가르면 일부만 읽게 됨
+    var amount = lookupAmount(s), doc = lookupDocNumber(s);
+    if (doc !== undefined) {
+      // 공문 번호와 납부 정보가 함께 있으면 번호만 맞춰 보고 다른 계좌를 놓칠 수 있어 고르지 않음
+      if (doc === null || amount.found || /계좌|입금/.test(s)) return null;
+      return { issuer_id: iss[0].id, key: { notice_type: 'OFFICIAL_DOCUMENT', document_number: doc } };
+    }
+    var digits = lookupAccount(s);
+    if (amount.value === null || digits === null) return null;
+    return { issuer_id: iss[0].id, key: { notice_type: 'PAYMENT_REQUEST', amount_minor: amount.value, currency: 'KRW', payee_account_number: digits } };
   }
   var LOOKUP_WHY = {
-    UNVERIFIED: '문자에서 읽은 기관·금액·계좌로 찾았지만 보관 중인 발행 기록과 맞는 것이 없어요. 가짜라는 뜻은 아니니 기관 공식 번호로 직접 확인해 주세요.',
-    AMBIGUOUS: '문자에서 읽은 값과 맞는 발행 기록이 여러 개라 하나로 정하지 않았어요. 검증 링크나 문서 번호로 다시 확인해 주세요.'
+    UNVERIFIED: '문자에서 읽은 값으로 찾았지만 보관 중인 발행 기록과 맞는 것이 없어요. 가짜라는 뜻은 아니니 기관 공식 번호로 직접 확인해 주세요.',
+    AMBIGUOUS: '문자에서 읽은 값과 맞는 발행 기록이 여러 개라 하나로 정하지 않았어요. 기관 공식 번호나 검증 링크로 다시 확인해 주세요.'
   };
 
   /* ---------------- ApiAdapter ---------------- */
@@ -786,7 +877,8 @@
         if (res.error || res.status !== 200 || typeof d.lookup_status !== 'string') return { kind: 'error', err: errorInfo(res), res: res };
         log.push({ label: '원본 찾기', value: d.lookup_status + ' · 일치 ' + str(d.match_count) + '건' + (d.reason_codes && d.reason_codes.length ? ' · ' + d.reason_codes.join(', ') : '') });
         if (d.lookup_status === 'MATCHED' && d.verification && typeof d.verification.verification_status === 'string') return { kind: 'result', api: 'v3', data: d.verification, res: res, lookup: d.lookup_status };
-        return { kind: 'none', lookup: d.lookup_status, why: LOOKUP_WHY[d.lookup_status] || '' };
+        if (!Object.prototype.hasOwnProperty.call(LOOKUP_WHY, d.lookup_status)) return { kind: 'error', err: { key: 'common.held_error', line2: 'UPSTREAM_SCHEMA_MISMATCH', why: '서버 응답 모양이 예상과 달라요.' }, res: res };
+        return { kind: 'none', lookup: d.lookup_status, why: LOOKUP_WHY[d.lookup_status] };
       });
     }
 
@@ -923,6 +1015,11 @@
         statusAxis(four.status, holdExtra),
         aiAxis(ai, a.ai.quote || '', a.ai.unran, a.ai.why || '')
       ];
+      // 원본 찾기 MATCHED 는 문자에서 읽은 항목만 맞춘 것(서버 PARTIAL_COMPARISON): 문자 전체가 그 안내문이라고 말하지 않음
+      if (v.lookup === 'MATCHED') {
+        if (axes[0].tone === 'ok') axes[0].body = '문자에서 읽은 항목과 맞는 발행 기록과 기관 서명이 있어요. 문자 전체가 그 안내문이라는 뜻은 아니에요.';
+        if (axes[2].tone === 'ok') axes[2].body = '찾은 발행 기록은 지금 유효해요. 문자의 나머지 내용은 확인하지 않았어요.';
+      }
       if (four.original.noBasis) axes[1].body = '이 확인 기능은 아직 연결 전이에요. 받은 문자에서 비교할 항목을 뽑지 않아 원본과 맞춰 볼 근거가 없어요.';
       if (v.kind === 'offline') axes.slice(0, 3).forEach(function (x) {
         x.body = '이 확인 기능은 아직 연결 전이에요.' + (v.why ? ' ' + v.why : '');
@@ -988,7 +1085,7 @@
         sample: false,
         assumption: 'OriginProof 서버 응답을 웹_설계.md 4.1·1.8 표대로 옮겼어요. 판정 값은 서버가 준 그대로이고, 응답에 없는 값은 지어내지 않았어요.',
         verification_status: vs,
-        input: { kind: 'message', text: T().maskPersonal(text) },     // = 서버에 보낸 글(근거 위치의 기준 글)
+        input: p.image ? { kind: 'image', text: '' } : { kind: 'message', text: T().maskPersonal(text) },     // = 서버에 보낸 글(근거 위치의 기준 글)
         ai_report: a.ai.report || null,                                // 계약 AnalysisReport 중 화면용(cleanReport). 형광펜·근거 줄에 씀
         ref: p.first || null,
         // 체인에서 직접 확인(js/chain_check.js)이 비교할 서버 값: v3 응답의 document·chain_id·verifying_contract 만. 없으면 null

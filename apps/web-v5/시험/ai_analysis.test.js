@@ -149,7 +149,7 @@ function page(job) {
   e('div', { id: 'dropZone' }, aside); e('input', { id: 'fileInput' }, aside); e('ul', { id: 'fileList' }, aside); e('div', { id: 'sideScrim' }, app);
   win.matchMedia = q => ({ matches: /reduce/.test(q), addEventListener() {} });
   win.fetch = fakeFetch((url, init) => {
-    if (url === '/api/v1/auth/me') return { status: 200, body: { csrf_token: 'fixture' } };
+    if (url === '/api/v1/auth/me') return { status: 200, body: { username: 'fixture', csrf_token: 'fixture' } };
     if (url === '/api/v3/inputs') return { status: 201, body: { input_ref: 'inp_ex', expires_at: 1 } };
     if (url === '/api/v3/analyses' && init.method === 'POST') return { status: 202, body: job };
     return { status: 404, body: { detail: 'Not Found' } };
