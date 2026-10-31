@@ -1,5 +1,5 @@
 'use strict';
-// T4 + lookup 결과 표시. /auth/me 401·오류에서도 조회가 나가고 AI 와 독립 표시되는지. 화면 시험은 DOM 대역(브라우저 미검증)
+// 원본 찾기는 회원만 + lookup 결과 표시. 화면 시험은 가짜 DOM(브라우저 아님)
 const test = require('node:test'); const assert = require('node:assert/strict');
 const { load, adapter, page, sleep, REAL, Ev } = require('./_review_common.js');
 const MSG = '[Origin Mock Bank] 카드대금 154,000원을 입금계좌 001-234-567890 로 보내주세요';
@@ -8,15 +8,13 @@ const LOGOUT = { status: 401, body: { detail: 'AUTH_REQUIRED' } };
 const lk = (f) => f.calls.filter(c => c.url === '/api/v3/document-lookups');
 
 for (const [name, me] of [['/me=401', LOGOUT], ['/me=500', { status: 500, body: {} }], ['/me 네트워크 실패', { reject: 'x' }]]) {
-  test('T4 ' + name + ': 조회 1건 전송, 결과 표시, AI 는 따로 연결 전', async () => {
+  test('T4 ' + name + ': 비회원은 원본 찾기를 보내지 않고 로그인 안내', async () => {
     const { f, a } = adapter(load(), (u) => u === '/api/v1/auth/me' ? me : u === '/api/v3/document-lookups' ? { status: 200, body: REAL } : null);
     const r = await a.check(MSG, {});
-    assert.equal(lk(f).length, 1);
-    assert.equal(lk(f)[0].init.headers['X-CSRF-Token'], undefined);
-    assert.equal(r.verification_status, 'INCONCLUSIVE');
-    assert.equal(r.axes.find(x => x.axis === 'official').tone !== 'pending', true);
-    assert.equal(r.axes.find(x => x.axis === 'status').status, '유효');
-    assert.equal(r.axes.find(x => x.axis === 'ai').status, 'AI 분석 연결 전');
+    assert.equal(lk(f).length, 0);
+    assert.match(JSON.stringify(r.axes), /회원만 쓸 수 있어요/);
+    assert.doesNotMatch(JSON.stringify(r.details), /보낸 요청[^}]*document-lookups/);
+    assert.notEqual(r.axes.find(x => x.axis === 'status').status, '유효');
   });
 }
 test('T4 로그인 상태: 조회 전송, AI 입력도 CSRF 를 그대로 붙임(회귀)', async () => {
@@ -25,11 +23,10 @@ test('T4 로그인 상태: 조회 전송, AI 입력도 CSRF 를 그대로 붙임
   assert.equal(lk(f).length, 1);
   assert.equal(f.calls.find(c => c.url === '/api/v3/inputs').init.headers['X-CSRF-Token'], 'tok');
 });
-test('T4 비로그인 UNVERIFIED: 가짜라 하지 않고 AI 와 독립', async () => {
-  const { a } = adapter(load(), (u) => u === '/api/v1/auth/me' ? LOGOUT : u === '/api/v3/document-lookups' ? { status: 200, body: { lookup_status: 'UNVERIFIED', match_count: 0, document_ids: [], reason_codes: ['NO_MATCHING_RETAINED_RECORD'] } } : null);
+test('T4 회원 UNVERIFIED: 가짜라 하지 않음', async () => {
+  const { a } = adapter(load(), (u) => u === '/api/v1/auth/me' ? ME_OK : u === '/api/v3/document-lookups' ? { status: 200, body: { lookup_status: 'UNVERIFIED', match_count: 0, document_ids: [], reason_codes: ['NO_MATCHING_RETAINED_RECORD'] } } : null);
   const r = await a.check(MSG, {});
   assert.match(r.conclusion.text, /가짜라는 뜻은 아니/);
-  assert.equal(r.axes.find(x => x.axis === 'ai').status, 'AI 분석 연결 전');
 });
 test('T4 화면(가짜 DOM): 비회원은 로그인 확인 뒤 예시 모드로 돌아가 조회가 나가지 않음(op5_auth.js 설계)', async () => {
   const d = page((u) => u === '/api/v1/auth/me' ? LOGOUT : u === '/api/v3/document-lookups' ? { status: 200, body: REAL } : { status: 404, body: { detail: 'Not Found' } });

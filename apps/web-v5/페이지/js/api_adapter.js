@@ -609,7 +609,7 @@
     function callBase(method, path, body, ms) {
       var headers = { Accept: 'application/json' };
       if (body != null) headers['Content-Type'] = 'application/json';
-      var needCsrf = method !== 'GET' && path !== '/v1/auth/login' && path !== '/v3/verifications' && path !== '/v3/document-lookups' && path !== '/v1/mvp/card-notices/verify';
+      var needCsrf = method !== 'GET' && path !== '/v1/auth/login' && path !== '/v3/verifications' && path !== '/v1/mvp/card-notices/verify';
       var pre = needCsrf && typeof opts.csrf === 'function' ? Promise.resolve().then(opts.csrf) : Promise.resolve(null);
       return pre.then(function (token) {
         if (needCsrf && typeof opts.csrf === 'function' && !token) return { status: 401, data: { detail: 'AUTH_REQUIRED' }, local: true };
@@ -870,8 +870,10 @@
       var k = lookupKey(text);
       if (!k) return Promise.resolve({ kind: 'none' });
       var body = { request_id: rid(), issuer_id: k.issuer_id, key: k.key };
-      log.push({ label: '보낸 요청', value: 'POST /v3/document-lookups · request_id ' + body.request_id + ' · ' + k.key.notice_type });
       return c.call('POST', '/v3/document-lookups', body, ms).then(function (res) {
+        // 원본 찾기는 회원만: 로그인이 확인되지 않으면 요청을 보내지 않음(callBase 의 CSRF 확인). 서버는 공개 경로라 이 화면에서 막음
+        if (res.local) { log.push({ label: '원본 찾기', value: '로그인 필요 · 보내지 않음' }); return { kind: 'none', why: '원본 찾기는 로그인한 회원만 쓸 수 있어요. 문자는 서버로 보내지 않았어요.' }; }
+        log.push({ label: '보낸 요청', value: 'POST /v3/document-lookups · request_id ' + body.request_id + ' · ' + k.key.notice_type });
         var d = res.data || {};
         if (!res.error && (res.status === 404 || res.status === 405)) { log.push({ label: '원본 찾기', value: '경로 없음 · HTTP ' + res.status }); return { kind: 'none' }; }
         if (res.error || res.status !== 200 || typeof d.lookup_status !== 'string') return { kind: 'error', err: errorInfo(res), res: res };
