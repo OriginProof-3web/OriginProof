@@ -9,7 +9,7 @@ from eth_utils import keccak
 from infrastructure.blockchain.errors import BlockchainDependencyError
 from infrastructure.blockchain.wallet_reconciliation import WalletReconciler
 from infrastructure.blockchain.wallet_rpc import WalletRpc
-from test_wallet_chain import ABI, ADDRESS, CODE, H1, H2, block
+from test_wallet_chain import ABI, ADDRESS, CODE, H1, H2, block, make_log
 from test_wallet_reconciliation import OTHER, PID, PROPOSAL, SENDER, Oracle, proposal_logs
 
 
@@ -65,10 +65,14 @@ async def test_proposal_history_above_50000_blocks_uses_bounded_rpc_requests():
 @pytest.mark.parametrize("head", [2000, 2001, 4000, 4001])
 async def test_event_window_boundaries_have_no_gaps_or_duplicate_events(head):
     oracle = LimitedOracle(head)
+    numbers = [n for n in (2, 2000, 2001, 4000, 4001) if n <= head]
+    oracle.logs = [make_log(number=n, block_hash=H2) for n in reversed(numbers)]
+    for n in numbers:
+        oracle.blocks[hex(n)] = block(n, H2)
     async with httpx.AsyncClient(transport=httpx.MockTransport(oracle.handle)) as client:
         rpc = rpc_for(client)
         logs = await rpc.logs(1, await rpc.snapshot())
-    assert len(logs) == len(oracle.logs)
+    assert [int(log["blockNumber"], 16) for log in logs] == numbers
     assert oracle.ranges == [(start, min(start + 1999, head))
                              for start in range(1, head + 1, 2000)]
 
