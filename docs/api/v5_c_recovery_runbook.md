@@ -68,7 +68,7 @@ C 앱 조립점은 `originproof_api.main.create_app(wallet_chain=..., analysis_p
 | 인계 | 실제 구현이 준비되면 확인할 것 |
 | --- | --- |
 | B → C | WalletRegistry 구현·ABI/manifest/주소, 같은 canonical block과 과거 키 이력, 실제 calldata/receipt/event 대조·재조회; 현재 Protocol의 실제 반환 모델로 연결 |
-| D → C | async processor가 공통 AnalysisReport를 반환, 실제 quote/Unicode 위치·refusal/timeout 등 안전한 code, 모델이 발행 verification을 정하지 않음; 입력/모델·전송 예산 결정 뒤 연결 |
+| D → C | **연결함(W6):** 생산 `app`이 D `PhishingAnalyzer`를 `analysis_processor`로 받습니다. 공급자는 `LLM_PROVIDER`로 고르며 기본은 mock(규칙만)입니다. 반환 보고서는 API가 `ground_report`로 원문 위치를 다시 대조합니다 |
 | C → A | 현재 앱 OpenAPI·wallet-contract.ts·v3 detail 오류·서명/Operation 재조회·보관 만료, 실제 지갑 서명/거절과 두 보관 선택 UI; [API 인계](v5_c_runtime.md) 사용 |
 | 공동 → RC | 같은 코드/lockfile·migration·배포·계정·합성 자료로 전체 수용표, G07 원인/최종 재검사, 다른 PC와 서비스 API 밖 검증·리허설을 기록 |
 

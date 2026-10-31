@@ -160,3 +160,27 @@ W3/W4/W5/W6/후보 560/568/601/650/659 PASS입니다. 임시 PostgreSQL 16.4의 
 실제 PostgreSQL·API 프로세스 복구 7개, 정식 migration 적용 DB 선택 검사 1개가 통과했고,
 migration head의 `alembic check`와 0006 downgrade 뒤 재적용도 차이가 없었습니다.
 Registry/receipt는 합성입니다. Claude가 수정·검사를 수행했으며 사람의 재리뷰는 미확인입니다.
+
+## 2026-10-27 분석기 생산 연결 (블록 8·10)
+
+`PhishingAnalyzer`(D #75~#101)를 생산 `app`의 `analysis_processor`로 연결했습니다. 공급자는 기존 `LLM_PROVIDER` 설정을 그대로 쓰고, 기본값 mock은 규칙 근거만 돌려줍니다. `create_app()`의 기본값(None)은 그대로라 검사·fixture는 계속 명시적으로 주입합니다. 연결을 위해 API에 analyzer workspace 의존성을 추가했고(`uv.lock` 2줄, 버전 변경 없음), `api.Dockerfile`에 analyzer 소스 복사를 넣었습니다. 텍스트 입력은 migration 순서 문제로 기본값 false를 유지하고, runbook에 켜는 절차를 적었습니다.
+
+AI(Codex, claude-opus-5-5)가 사용자님 지시로 구현·검사·기록했습니다. D 리뷰(analyzer 의존 방향·lock)는 PR에서 요청합니다.
+
+## 2026-10-27 문서 사진 입력 계약 (블록 11)
+
+`/v3/inputs`가 `DOCUMENT_IMAGE`를 받습니다(기본 꺼짐). 형식 검사는 D `SemanticInput`을, 판독은 D `document_image_to_text`를, 판독문 분석과 위치 대조는 D `analyze_conversion`과 C `ground_report`를 재사용했습니다. 새 요청 모델은 `originproof_core/wallet_inputs.py`에 두었습니다. 처음에는 `wallet_contract.py`에 넣었는데, #100의 동결 평가 후보가 그 파일의 sha256을 고정하고 있어 D 검사가 실패했고, 그래서 파일을 분리했습니다(평가 기록은 건드리지 않음). 이미지가 켜졌을 때만 `/v3/inputs` 본문 상한을 늘립니다. 근거 위치는 판독문 글자 기준이며 픽셀 영역과 판독문 전체 표시는 후속입니다.
+
+AI(Codex, claude-opus-5-5)가 사용자님 지시로 구현·검사·기록했습니다.
+
+## 2026-10-27 Track B 원본 찾기 (#88)
+
+검증 코드가 없는 문자에서 읽은 기관·금액·계좌(또는 공문 번호)로 보관 중인 발행 기록을 찾는 `POST /v3/document-lookups`를 추가했습니다. 일치하는 기록이 없으면 `UNVERIFIED`, 여럿이면 `AMBIGUOUS`이고, 하나면 기존 검증 흐름을 `run_verification`으로 떼어 내 그대로 실행합니다. 부분 일치를 VERIFIED로 올리지 않습니다. v5 content에 수신자 정보가 없어 수신자 해시 키는 넣지 않았고, 발송일 범위와 분석기 자동 추출 연결은 후속입니다.
+
+AI(Codex, claude-opus-5-5)가 사용자님 지시로 구현·검사·기록했습니다.
+
+## 2026-10-27 합성 회원가입 (블록 14)
+
+`POST /v1/auth/register`를 추가했습니다(`API_SIGNUP_ENABLED`, 기본 꺼짐). 개인 회원은 `recipient`, 기관 회원은 합성 명부의 기관 ID를 가진 `issuer`로 만들어 기존 기관 신청 흐름을 그대로 탑니다. 실제 개인정보를 받지 않도록 예약 도메인 `.invalid`(기관은 명부 도메인)만 허용했습니다. 비밀번호는 기존 PBKDF2 해시와 로그인 요청 제한을 재사용합니다. 계획에 있던 약관 동의 기록 저장(migration)과 탈퇴 API는 합성 도메인 한정이라 생략했습니다.
+
+AI(Codex, claude-opus-5-5)가 사용자님 지시로 구현·검사·기록했습니다.

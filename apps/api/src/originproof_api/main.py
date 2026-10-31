@@ -10,6 +10,11 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from infrastructure.blockchain import JsonRpcBlockchainReader
 from infrastructure.blockchain.wallet_deployment import WalletRegistryConnector
+from openai import AsyncOpenAI
+from originproof_analyzer.errors import AnalyzerError, AnalyzerErrorCode
+from originproof_analyzer.media_converters import document_image_to_text
+from originproof_analyzer.phishing import PhishingAnalyzer
+from originproof_analyzer.settings import AnalyzerSettings
 from originproof_core import (
     BlockchainReader,
     DependencyUnavailableError,
@@ -84,6 +89,7 @@ def create_app(
     settings: Settings | None = None,
     wallet_chain=None,
     analysis_processor=None,
+    image_converter=None,
 ) -> FastAPI:
     app_settings = settings or Settings()
     app_database = database or Database(app_settings.database_url)
@@ -94,6 +100,7 @@ def create_app(
         wallet_enabled = (
             app_settings.wallet_registry_address
             or app_settings.wallet_text_input_enabled
+            or app_settings.wallet_image_input_enabled
             or app_settings.wallet_demo_email_enabled
         )
         maintenance_task = wallet_client = None
@@ -155,6 +162,7 @@ def create_app(
     app.state.settings = app_settings
     app.state.wallet_runtime = WalletRuntime(app_database, app_settings, wallet_chain)
     app.state.analysis_processor = analysis_processor
+    app.state.image_converter = image_converter
     app.state.analysis_tasks = set()
     app.state.analysis_worker_error = None
     app.state.projection = SyncView(
@@ -223,4 +231,26 @@ def create_app(
     return app
 
 
-app = create_app()
+async def openai_document_converter(artifact, remaining):
+    """D's opt-in photo reader; mock or a missing key fails closed instead of guessing text."""
+    settings = AnalyzerSettings()
+    if settings.llm_provider != "openai" or settings.openai_api_key is None:
+        raise AnalyzerError(AnalyzerErrorCode.PROVIDER_UNAVAILABLE)
+    async with (
+        httpx.AsyncClient(trust_env=False, follow_redirects=False) as http,
+        AsyncOpenAI(
+            api_key=settings.openai_api_key.get_secret_value(),
+            base_url="https://api.openai.com/v1",
+            max_retries=0,
+            http_client=http,
+        ) as client,
+    ):
+        return await document_image_to_text(
+            artifact, settings=settings, client=client, enabled=True, remaining_seconds=remaining
+        )
+
+
+# Production composition: LLM_PROVIDER picks the provider (default mock: rules only, no paid call).
+app = create_app(
+    analysis_processor=PhishingAnalyzer(), image_converter=openai_document_converter
+)

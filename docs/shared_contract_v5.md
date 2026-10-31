@@ -125,16 +125,32 @@ SignedSubmission은 signing_request_id와 signature만 전달합니다. 서버�
 | --- | --- |
 | 401/403 | 세션 없음 / 역할·서명자·체인 승인 권한 불일치 |
 | 404 | 문서/작업 미존재 또는 타인 비공개 객체 |
-| 409 | REQUEST_ID_CONFLICT, VERSION_CONFLICT, NONCE_ALREADY_USED, PROPOSAL_STALE, DUPLICATE_APPROVAL |
+| 409 | REQUEST_ID_CONFLICT, VERSION_CONFLICT, NONCE_ALREADY_USED, PROPOSAL_STALE, DUPLICATE_APPROVAL, SIGNER_IS_APPROVER (체인 승인자는 기관 signer로 등록 불가) |
 | 410 | SIGNATURE_EXPIRED, PROPOSAL_EXPIRED, RESULT_EXPIRED, ORIGINAL_UNAVAILABLE |
 | 422 | MALFORMED_INPUT, DOCUMENT_ID_MISMATCH, CONTENT_SCHEMA_MISMATCH, ORIGINAL_HASH_MISMATCH, PROTECTED_HASH_MISMATCH, SIGNATURE_SCHEMA_UNSUPPORTED, DIRECT_TX_MISMATCH |
 | 429/503 | 요청 제한(retry_after_seconds) / 제출용 의존성 장애 |
 
+`/v3/key-challenges`와 `/v3/proposals`는 체인 `is_approver(signer)`가 참이면
+409 `SIGNER_IS_APPROVER`, 조회 실패이면 503 `WALLET_REGISTRY_UNAVAILABLE`로 거부합니다.
+문서 작업 reconcile은 거래 검색 실패를 기록하고, 어댑터 `snapshot()`의 블록 timestamp로
+기한을 판단합니다. 만료 시 `issuer(id, block)`·`document(id, version, block)`에 동일 블록을
+전달하며 두 조회 성공·nonce 미소비·문서 조건 충족 시에만 예약을 해제합니다.
+
 조회 검사 중 RPC 장애는 HTTP 오류로 가짜/변조 판정을 만들지 않고 200 INCONCLUSIVE·UNAVAILABLE 체크로 응답합니다. error 구조는 `detail`, 선택 request_id/retry_after_seconds, field_paths이며 원본·계좌·서명 요청 전체를 오류/로그에 복제하지 않습니다. 이미 tx를 제출했는지 불명확하면 503으로 단순 재시도를 유도하지 않고 기존 Operation을 조회하도록 합니다.
+
+### 6.1 코드 없는 문자의 원본 찾기 (Track B, #88)
+
+`POST /v3/document-lookups`(공개, 로그인 선택)는 검증 코드나 QR이 없는 문자에서 읽은 값으로, 이 서비스가 아직 보관 중인 발행 기록을 찾습니다. 요청 본문은 저장하지 않습니다.
+
+- 요청: `issuer_id`(문자가 주장하는 기관)와 `key`. 납부 안내는 `PAYMENT_REQUEST` + `amount_minor`·`currency`·`payee_account_number`(하이픈·공백 허용, 숫자만 비교)이고, 공문은 `OFFICIAL_DOCUMENT` + `document_number`(NFC·앞뒤 공백 정리)입니다. 모델은 `originproof_core.wallet_inputs`에 있습니다.
+- `UNVERIFIED`: 일치하는 보관 기록이 없습니다(`NO_MATCHING_RETAINED_RECORD`). **가짜라는 뜻이 아니고** 공식 발행 기록을 찾지 못했다는 뜻입니다. 보관 기간이 지난 기록도 여기에 해당합니다.
+- `AMBIGUOUS`: 둘 이상의 문서가 일치합니다(`MULTIPLE_RECORDS_MATCH`). 하나를 고르지 않고 `document_ids`(최대 10개)만 돌려줍니다. 사용자는 문서 ID로 `/v3/verifications`를 다시 할 수 있습니다.
+- `MATCHED`: 문서 하나가 일치하면 일치한 최신 버전에 대해 `/v3/verifications`와 같은 검증(`PROTECTED_FIELDS`, 입력한 값만 비교)을 실행해 `verification`에 담습니다. 일부 필드만 비교하므로 결과는 `PARTIAL_COMPARISON`·`INCONCLUSIVE`이고, 체인 상태(`ACTIVE`·`SUPERSEDED`·`REVOKED`)·서명·기관 상태는 그대로 검사합니다. 이전 버전도 일치하면 `OLDER_VERSIONS_ALSO_MATCH`를 붙입니다. 검증 세션이 저장되므로 분석 요청의 `verification_session_id`로 AI 결과와 함께 묶을 수 있습니다.
+- v5 보호 필드에는 수신자 정보가 없어서 이슈의 "수신자 해시"는 키에 넣지 않았습니다. 넣으려면 서명 content 계약을 바꿔야 하므로 별도 결정이 필요합니다. 발송일 범위도 이번 키에 넣지 않았습니다.
 
 ## 7. 분석·보고서의 공통 경계
 
-input_ref는 소유권·유효기간 검사를 마친 입력 객체 ID입니다. 텍스트 수락 `/v3/inputs`는 합성 검사용 opt-in으로 추가했고 기본 비활성입니다. 최종 허용 형식은 V5-Q01에서 선정하며 이미지/PDF/녹음을 활성화하지 않습니다. 선택 verification_session_id의 소유권·24시간 유효성을 확인한 C 검증 사본을 집계하고 D가 발행 결과를 정하지 못하도록 검사합니다. Decisions API는 포함하지 않습니다.
+input_ref는 소유권·유효기간 검사를 마친 입력 객체 ID입니다. `/v3/inputs`는 V5-Q01 결정(#92·#100)에 따라 `TEXT`(`TextInputRequest`)와 한 장짜리 문서 사진 `DOCUMENT_IMAGE`(`originproof_core.wallet_inputs.DocumentImageInputRequest`, PNG·JPEG·WebP, 5MB·4000×3000 이하)를 받습니다. 각각 `API_WALLET_TEXT_INPUT_ENABLED`·`API_WALLET_IMAGE_INPUT_ENABLED`로 켜며 기본은 꺼짐입니다. 꺼진 형식은 409 `INPUT_SUPPORT_UNDECIDED`, 형식·signature·크기·픽셀 검사 실패는 422 `MALFORMED_INPUT`입니다. 사진은 D 변환기가 판독한 글자만 분석기와 C 근거 대조에 쓰고 보고서 한계에 `CONVERSION_ACCURACY_NOT_VERIFIED`를 붙입니다. 근거 위치는 판독문 기준 글자 위치이며 사진의 픽셀 영역이 아닙니다. 원본 사진의 보관·삭제는 텍스트와 같고, PDF·녹음은 활성화하지 않습니다. 선택 verification_session_id의 소유권·24시간 유효성을 확인한 C 검증 사본을 집계하고 D가 발행 결과를 정하지 못하도록 검사합니다. Decisions API는 포함하지 않습니다.
 
 AnalysisJob은 QUEUED/RUNNING/COMPLETED/FAILED/CANCELLED/EXPIRED입니다. 보고서 위험 수준은 HIGH/CAUTION/NO_CLEAR_INDICATORS/UNDETERMINED입니다. 발행 검사를 실행하지 않았으면 verification=null과 verification_not_run_reason을 남깁니다. NO_CLEAR_INDICATORS는 발행 진위나 행동 안전을 보증하지 않습니다.
 

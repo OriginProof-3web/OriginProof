@@ -1,0 +1,77 @@
+{
+  "date_kst": "2026-10-31",
+  "role": "D",
+  "branch": "codex/v5-w6-d-final-audit",
+  "phase_basis": "f69f83e7170501e869c8944d55fff65b4ab444b0",
+  "phase_sync_commit": "907157a56721fcba8ba55e2f2919cc0b3d091241",
+  "C_review_source": "a758cf3a51d564f6347a24d77fd7735439f05cfa",
+  "checks": {
+    "K10_related": {
+      "tests": 116,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "junit_sha256": "821d1f8acaad6a1daf16f0c8af957d656b26df69709edf52aaca7591b1125625"
+    },
+    "C_stack_review": {
+      "tests": 53,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "junit_sha256": "69d8bf0a63cb4b2f2e2ebb2896f5cef148f24d552228939c0521a79a06ccf1ed"
+    },
+    "D_control": {
+      "tests": 105,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "junit_sha256": "f9b83e39abda47e8778f86fb3f9dbbcc02748a6023d71bf17b2cbb137877da04"
+    },
+    "D_stage_and_consumer": {
+      "tests": 74,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "junit_sha256": "9203e65a819a5b5a27b3b97ef00fa289c4a525476a38eb0827a82a8aeb9be44f"
+    }
+  },
+  "approvals": [
+    {
+      "pr": 106,
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/106#pullrequestreview-5714248840",
+      "state": "APPROVED",
+      "commit": "c180515893122ffe4b75dab1745c2502466d8b23"
+    },
+    {
+      "pr": 107,
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/107#pullrequestreview-5714249312",
+      "state": "APPROVED",
+      "commit": "2b2849e1698a8577837e85df376a086b116a67b2"
+    },
+    {
+      "pr": 108,
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/108#pullrequestreview-5714249844",
+      "state": "APPROVED",
+      "commit": "5a4eb638945dc80107cac8c7486022f33746e68c"
+    },
+    {
+      "pr": 109,
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/109#pullrequestreview-5714250316",
+      "state": "APPROVED",
+      "commit": "a758cf3a51d564f6347a24d77fd7735439f05cfa"
+    }
+  ],
+  "analysis_behavior_changed": false,
+  "new_K10_regression_cases": 6,
+  "K10_status": "MINIMAL_SPACING_REPORT_NOT_REPRODUCED_EXACT_FAILED_INPUT_NEEDED",
+  "new_paid_calls": 0,
+  "cumulative_paid_calls": 133,
+  "portfolio_merge": {
+    "exit_code": 0,
+    "conflict_markers": 0,
+    "both_contribution_records_preserved": true
+  },
+  "final_RC_accepted": false,
+  "tested_phishing_tests_sha256": "6a3edca79b518dc9baab3f04be26febfb55445441aff53a7668ec146009d1766",
+  "unchanged_frozen_phishing_source_sha256": "52f9e1103799310e03216894bad12f558432975dbcb1cab6d5d9f2db8844580f"
+}

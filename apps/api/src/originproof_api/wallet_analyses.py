@@ -1,10 +1,14 @@
 """Owned analysis jobs and retention; input selection and real analyzer remain explicit."""
 
 import asyncio
+import base64
+from io import BytesIO
 from typing import Annotated
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
+from originproof_analyzer.converted_inputs import analyze_conversion, prepare_conversion
+from originproof_analyzer.inputs import SemanticInput
 from originproof_core.wallet_contract import (
     AnalysisJob,
     AnalysisList,
@@ -14,6 +18,9 @@ from originproof_core.wallet_contract import (
     TextInputRequest,
     VerificationResult,
 )
+from originproof_core.wallet_inputs import DocumentImageInputRequest
+from PIL import Image
+from pydantic import Field
 from sqlalchemy import BigInteger, and_, cast, delete, or_, select, update
 
 from .accounts import current_session
@@ -33,6 +40,35 @@ from .wallet_runtime import now, runtime
 router = APIRouter(prefix="/v3", tags=["wallet analyses"])
 Identity = Annotated[tuple, Depends(current_session)]
 ACTIVE = ("QUEUED", "RUNNING")
+InputRequest = Annotated[TextInputRequest | DocumentImageInputRequest, Field(discriminator="kind")]
+
+
+def input_enabled(settings, kind):
+    # kind is TEXT or DOCUMENT_IMAGE: the request model and stored rows allow nothing else.
+    if kind == "TEXT":
+        return settings.wallet_text_input_enabled
+    return settings.wallet_image_input_enabled
+
+
+def image_format(data):
+    """(MIME type, file extension); stored bytes already passed SemanticInput at upload."""
+    with Image.open(BytesIO(data)) as image:
+        return Image.MIME[image.format], image.format.lower()
+
+
+async def image_report(converter, processor, data, remaining):
+    """Converter reads the photo; the analyzer and C grounding only ever see the read text."""
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + remaining
+    artifact = SemanticInput(
+        image_base64=base64.b64encode(data).decode(), image_media_type=image_format(data)[0]
+    )
+    converted = await converter(artifact, min(remaining, 180))
+    left = deadline - loop.time()
+    if left <= 0:
+        raise TimeoutError
+    result = await analyze_conversion(converted, processor, remaining_seconds=min(left, 180))
+    return ground_report(result.report, prepare_conversion(converted).text)
 
 
 def view(row):
@@ -141,8 +177,9 @@ async def process(app, analysis_id):
         if row is None or row.status != "QUEUED":
             return
         artifact = await db.get(WalletInputRow, row.input_id)
-        text = (
-            artifact.original.decode("utf-8")
+        kind = artifact.kind
+        data = (
+            artifact.original
             if (artifact.original is not None and now() < artifact.expires_at)
             else None
         )
@@ -154,13 +191,19 @@ async def process(app, analysis_id):
     try:
         if remaining <= 0:
             raise TimeoutError
-        if text is None:
+        if data is None:
             error = "INPUT_EXPIRED"
-        elif processor is None:
+        elif processor is None or (kind != "TEXT" and app.state.image_converter is None):
             error = "ANALYZER_UNAVAILABLE"
-        else:
+        elif kind == "TEXT":
+            text = data.decode("utf-8")
             value = await asyncio.wait_for(processor(text), timeout=remaining)
             report = ground_report(value, text)
+        else:
+            report = await asyncio.wait_for(
+                image_report(app.state.image_converter, processor, data, remaining),
+                timeout=remaining,
+            )
     except TimeoutError:
         error = "ANALYSIS_TIMEOUT"
     except asyncio.CancelledError:
@@ -208,18 +251,27 @@ def launch(app, analysis_id):
 
 
 @router.post("/inputs", response_model=InputReceipt, status_code=201)
-async def input_text(body: TextInputRequest, request: Request, identity: Identity):
+async def input_text(body: InputRequest, request: Request, identity: Identity):
     service = runtime(request)
     account = service.authorize(request, identity)
-    if not service.settings.wallet_text_input_enabled:
+    if not input_enabled(service.settings, body.kind):
         raise HTTPException(409, "INPUT_SUPPORT_UNDECIDED")
-    if not body.text.strip():
-        raise HTTPException(422, "EMPTY_INPUT")
+    if body.kind == "TEXT":
+        if not body.text.strip():
+            raise HTTPException(422, "EMPTY_INPUT")
+        original = body.text.encode("utf-8")
+    else:
+        try:
+            SemanticInput(image_base64=body.image_base64, image_media_type=body.image_media_type)
+        except ValueError:
+            # Validation details may echo untrusted image metadata; keep only the code.
+            raise HTTPException(422, "MALFORMED_INPUT") from None
+        original = base64.b64decode(body.image_base64, validate=True)
     row = WalletInputRow(
         input_id=f"inp_{uuid4().hex}",
         account_id=account.account_id,
-        kind="TEXT",
-        original=body.text.encode("utf-8"),
+        kind=body.kind,
+        original=original,
         accepted_at=now(),
         expires_at=now() + 3600,
     )
@@ -255,7 +307,7 @@ async def analysis(body: AnalysisRequest, request: Request, identity: Identity):
         )
         if artifact is None or artifact.account_id != account.account_id:
             raise HTTPException(404, "INPUT_NOT_FOUND")
-        if artifact.kind != "TEXT" or not service.settings.wallet_text_input_enabled:
+        if not input_enabled(service.settings, artifact.kind):
             raise HTTPException(409, "INPUT_SUPPORT_UNDECIDED")
         if artifact.original is None or now() >= artifact.expires_at:
             raise HTTPException(410, "INPUT_EXPIRED")
@@ -404,10 +456,15 @@ async def original(analysis_id: str, request: Request, identity: Identity):
             or (artifact.original is None or now() >= artifact.expires_at)
         ):
             raise HTTPException(410, "ORIGINAL_UNAVAILABLE")
+        media, extension = (
+            ("text/plain; charset=utf-8", "txt")
+            if artifact.kind == "TEXT"
+            else image_format(artifact.original)
+        )
         return Response(
             artifact.original,
-            media_type="text/plain; charset=utf-8",
-            headers={"Content-Disposition": f'attachment; filename="{analysis_id}.txt"'},
+            media_type=media,
+            headers={"Content-Disposition": f'attachment; filename="{analysis_id}.{extension}"'},
         )
 
 

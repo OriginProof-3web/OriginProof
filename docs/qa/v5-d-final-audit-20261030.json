@@ -1,0 +1,577 @@
+{
+  "date_kst": "2026-10-30",
+  "role": "D",
+  "plan_version": "5.1",
+  "shared_contract_version": "v5-shared-0.2",
+  "phase_basis": "5f7135b",
+  "integration_basis": "d0111d8",
+  "status": "D_INDEPENDENT_WORK_RECORDED_FINAL_RC_ACCEPTANCE_PENDING",
+  "reviewed_c_stack": "09d3da9fb65b777193981c303b61b4b215bb1a6a",
+  "review_environment": {
+    "method": "git archive without .git/.env/key; existing venv on same machine",
+    "patches": [
+      "D image-only lifecycle a3a6500",
+      "D G07 git environment f671d99",
+      "A #105 current ai_analysis.test.js for Node only"
+    ],
+    "not_final_integrated_rc": true
+  },
+  "checks": {
+    "git_isolation": {
+      "tests": 28,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "junit_sha256": "bc57943f24a44c5e235d7e0118491c7520106876f2bd98c7be4a47ecc192520e"
+    },
+    "image_maintenance": {
+      "tests": 40,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "junit_sha256": "b2f6418c7ef5fbe18fdd3c653a4050fac838647c6a72fc6942a1c5c74838da98"
+    },
+    "patched_c_stack_and_d": {
+      "tests": 201,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "junit_sha256": "f9053bafea4e8b2dd672a16b3287cba7337b2930812c7f7dfd3043a56b3157cd"
+    },
+    "image_budget_offline": {
+      "tests": 7,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "junit_sha256": "dc066b54e40633b4b8cc21688947b4c8673a9cfbadfdec1cb0554ef6a1750171"
+    },
+    "web_c_stack_with_A105": {
+      "passed": 127,
+      "skipped": 5,
+      "failures": 0,
+      "log_sha256": "90490ca5669f0e40eb82ce04713ee3cbebedeb8fc7bd8f9bc1fcde47b67c0d7f"
+    },
+    "B_probe_and_deployment_guards": {
+      "tests": 63,
+      "failures": 0,
+      "errors": 0,
+      "junit_sha256": "d5ac8063ac1f227e998f1fd19e52ccda1b6c97715076cc617293547cd5a0f945"
+    }
+  },
+  "reviews": [
+    {
+      "pr": 106,
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/106#pullrequestreview-5712169264",
+      "state": "COMMENTED",
+      "commit": "c180515893122ffe4b75dab1745c2502466d8b23"
+    },
+    {
+      "pr": 107,
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/107#pullrequestreview-5712169451",
+      "state": "CHANGES_REQUESTED",
+      "commit": "1b77635eadcebeff239c2c4dd3d8e97ef98ca795"
+    },
+    {
+      "pr": 108,
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/108#pullrequestreview-5712169612",
+      "state": "COMMENTED",
+      "commit": "9c2891775854e8582622ec5e7af1097175826d28"
+    },
+    {
+      "pr": 109,
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/109#pullrequestreview-5712169837",
+      "state": "COMMENTED",
+      "commit": "09d3da9fb65b777193981c303b61b4b215bb1a6a"
+    },
+    {
+      "pr": 98,
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/98#pullrequestreview-5712169989",
+      "state": "COMMENTED",
+      "commit": "456f73b26268c6252b2a10890be2416429c0a42b"
+    },
+    {
+      "pr": 102,
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/102#pullrequestreview-5712283091",
+      "state": "COMMENTED",
+      "commit": "5fb349619d6ab297abaf43e43c0c11a7e742a565"
+    },
+    {
+      "pr": 111,
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/111#pullrequestreview-5712283336",
+      "state": "COMMENTED",
+      "commit": "d21d4c3e23a6a182c5fe940a3c39af9c3e8e52e6"
+    }
+  ],
+  "acceptance": [
+    {
+      "id": "V5-F01",
+      "final_rc_accepted": false,
+      "status": "SUPPORTING_EVIDENCE_ONLY_FINAL_RC_PENDING",
+      "evidence": "Previous fixed-source evidence and supporting regression; not accepted on an integrated final RC"
+    },
+    {
+      "id": "V5-F02",
+      "final_rc_accepted": false,
+      "status": "SUPPORTING_EVIDENCE_ONLY_FINAL_RC_PENDING",
+      "evidence": "Previous fixed-source evidence and supporting regression; not accepted on an integrated final RC"
+    },
+    {
+      "id": "V5-F03",
+      "final_rc_accepted": false,
+      "status": "SUPPORTING_EVIDENCE_ONLY_FINAL_RC_PENDING",
+      "evidence": "Previous fixed-source evidence and supporting regression; not accepted on an integrated final RC"
+    },
+    {
+      "id": "V5-F04",
+      "final_rc_accepted": false,
+      "status": "SUPPORTING_EVIDENCE_ONLY_FINAL_RC_PENDING",
+      "evidence": "Previous fixed-source evidence and supporting regression; not accepted on an integrated final RC"
+    },
+    {
+      "id": "V5-F05",
+      "final_rc_accepted": false,
+      "status": "SUPPORTING_EVIDENCE_ONLY_FINAL_RC_PENDING",
+      "evidence": "Previous fixed-source evidence and supporting regression; not accepted on an integrated final RC"
+    },
+    {
+      "id": "V5-F06",
+      "final_rc_accepted": false,
+      "status": "SUPPORTING_EVIDENCE_ONLY_FINAL_RC_PENDING",
+      "evidence": "Previous fixed-source evidence and supporting regression; not accepted on an integrated final RC"
+    },
+    {
+      "id": "V5-F07",
+      "final_rc_accepted": false,
+      "status": "SUPPORTING_EVIDENCE_ONLY_FINAL_RC_PENDING",
+      "evidence": "Previous fixed-source evidence and supporting regression; not accepted on an integrated final RC"
+    },
+    {
+      "id": "V5-F08",
+      "final_rc_accepted": false,
+      "status": "SUPPORTING_EVIDENCE_ONLY_FINAL_RC_PENDING",
+      "evidence": "Previous fixed-source evidence and supporting regression; not accepted on an integrated final RC"
+    },
+    {
+      "id": "V5-F09",
+      "final_rc_accepted": false,
+      "status": "SUPPORTING_EVIDENCE_ONLY_FINAL_RC_PENDING",
+      "evidence": "Previous fixed-source evidence and supporting regression; not accepted on an integrated final RC"
+    },
+    {
+      "id": "V5-F10",
+      "final_rc_accepted": false,
+      "status": "SUPPORTING_EVIDENCE_ONLY_FINAL_RC_PENDING",
+      "evidence": "Previous fixed-source evidence and supporting regression; not accepted on an integrated final RC"
+    },
+    {
+      "id": "V5-F11",
+      "final_rc_accepted": false,
+      "status": "SUPPORTING_EVIDENCE_ONLY_FINAL_RC_PENDING",
+      "evidence": "Previous fixed-source evidence and supporting regression; not accepted on an integrated final RC"
+    },
+    {
+      "id": "V5-F12",
+      "final_rc_accepted": false,
+      "status": "SUPPORTING_EVIDENCE_ONLY_FINAL_RC_PENDING",
+      "evidence": "Previous fixed-source evidence and supporting regression; not accepted on an integrated final RC"
+    },
+    {
+      "id": "V5-F13",
+      "final_rc_accepted": false,
+      "status": "SUPPORTING_EVIDENCE_ONLY_FINAL_RC_PENDING",
+      "evidence": "Previous fixed-source evidence and supporting regression; not accepted on an integrated final RC"
+    },
+    {
+      "id": "V5-F14",
+      "final_rc_accepted": false,
+      "status": "SUPPORTING_EVIDENCE_ONLY_FINAL_RC_PENDING",
+      "evidence": "23 actual synthetic development image pipelines; API/converted-text grounding regression. Product UI image flow not accepted"
+    },
+    {
+      "id": "V5-F15",
+      "final_rc_accepted": false,
+      "status": "SUPPORTING_EVIDENCE_ONLY_FINAL_RC_PENDING",
+      "evidence": "23 actual synthetic development image pipelines; API/converted-text grounding regression. Product UI image flow not accepted"
+    },
+    {
+      "id": "V5-F16",
+      "final_rc_accepted": false,
+      "status": "SUPPORTING_EVIDENCE_ONLY_FINAL_RC_PENDING",
+      "evidence": "Previous fixed-source evidence and supporting regression; not accepted on an integrated final RC"
+    },
+    {
+      "id": "V5-F17",
+      "final_rc_accepted": false,
+      "status": "SUPPORTING_EVIDENCE_ONLY_FINAL_RC_PENDING",
+      "evidence": "Previous fixed-source evidence and supporting regression; not accepted on an integrated final RC"
+    },
+    {
+      "id": "V5-F18",
+      "final_rc_accepted": false,
+      "status": "SUPPORTING_EVIDENCE_ONLY_FINAL_RC_PENDING",
+      "evidence": "Previous fixed-source evidence and supporting regression; not accepted on an integrated final RC"
+    },
+    {
+      "id": "V5-F19",
+      "final_rc_accepted": false,
+      "status": "SUPPORTING_EVIDENCE_ONLY_FINAL_RC_PENDING",
+      "evidence": "Previous fixed-source evidence and supporting regression; not accepted on an integrated final RC"
+    },
+    {
+      "id": "V5-F20",
+      "final_rc_accepted": false,
+      "status": "SUPPORTING_EVIDENCE_ONLY_FINAL_RC_PENDING",
+      "evidence": "Public deployment/constructor/runtime read 3 PASS; full original/signature package missing"
+    },
+    {
+      "id": "V5-F21",
+      "final_rc_accepted": false,
+      "status": "SUPPORTING_EVIDENCE_ONLY_FINAL_RC_PENDING",
+      "evidence": "Final RC, other physical machine, three full rehearsals and submission evidence missing"
+    }
+  ],
+  "paid_calls_before": 87,
+  "new_image_calls": 46,
+  "cumulative_calls": 133,
+  "unresolved": [
+    "C review/merge of #112 with #107 and integration of #102~#109",
+    "A web image/Track B/signup connection and #100/#101 post review",
+    "A/C exact Sepolia original/signature/content/metadata export",
+    "different physical laptop with same final RC",
+    "three full rehearsals and submission files on same final RC",
+    "A/C image quality and mismatch review"
+  ],
+  "public_deployment_read": {
+    "tool_source": "5fb349619d6ab297abaf43e43c0c11a7e742a565",
+    "tool": "packages/contracts/script/verify_wallet_deployment.py",
+    "passes": 3,
+    "attempts": 3,
+    "writes": 0,
+    "service_api_calls": 0,
+    "scope": "CANONICAL_DEPLOYMENT_CONSTRUCTOR_APPROVERS_RUNTIME_ONLY_NOT_ORIGINAL_DOCUMENT_COMPARISON",
+    "evidence": {
+      "date_utc": "2026-10-30T12:22:20.333930+00:00",
+      "source_sha": "511abc1ca277db2555a920192861824f7e82ad74",
+      "python": "3.13.7",
+      "manifest_sha256": "eebd5b1d2b21e17c29b625262dd34cb42c0a3f86b14ba5851600596a2373668c",
+      "local_creation_bytecode_matches_manifest": true,
+      "creation_bytecode_keccak": "0x29dce02df8543025399d557f899b962ad9fc0f3ade02056271ea6ff9a913889f",
+      "chain_id": 11155111,
+      "registry": "0xe540bf29622afff40174b76992b016112f372a2e",
+      "deployment_tx": "0x9e40ba5f455da2a583989d24255c324230bdb804255e249f35cf256f4866a4bc",
+      "deployment_block": 12001755,
+      "deployment_block_hash": "0xf7996737093412ac2d0f7ce64d5f016a60879567a1c456cf7563c8e8e4beaea2",
+      "runtime_code_hash": "0x3c4d2045eabed02ce1f4703f30874607950f91ff5a70f58b93357ea031840476",
+      "attempts": [
+        {
+          "status": "PASS",
+          "head_number": 12026645,
+          "head_hash": "0x42e4386fbd7da0968b0b49322c699adf06492f0a3f59dda28af25c840a7f1606",
+          "approvers": [
+            "0x4f12cb684fbd76962a85e5bc66fe769597aeca2a",
+            "0xe5d0531ef3c419a5acfb3774b731a2d239ecb240",
+            "0x2efd70f041fe1b400125e8b99029c5fa0af4eb1c"
+          ],
+          "rpc_calls": [
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_chainId",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getCode",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getTransactionByHash",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getTransactionReceipt",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getCode",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_chainId",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getCode",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            }
+          ]
+        },
+        {
+          "status": "PASS",
+          "head_number": 12026645,
+          "head_hash": "0x42e4386fbd7da0968b0b49322c699adf06492f0a3f59dda28af25c840a7f1606",
+          "approvers": [
+            "0x4f12cb684fbd76962a85e5bc66fe769597aeca2a",
+            "0xe5d0531ef3c419a5acfb3774b731a2d239ecb240",
+            "0x2efd70f041fe1b400125e8b99029c5fa0af4eb1c"
+          ],
+          "rpc_calls": [
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_chainId",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getCode",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getTransactionByHash",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getTransactionReceipt",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getCode",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_chainId",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getCode",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            }
+          ]
+        },
+        {
+          "status": "PASS",
+          "head_number": 12026646,
+          "head_hash": "0xafd4b2fb8a89711edc56a5f37644a2adae2a808fa50a0e94fd45230f4cc2d034",
+          "approvers": [
+            "0x4f12cb684fbd76962a85e5bc66fe769597aeca2a",
+            "0xe5d0531ef3c419a5acfb3774b731a2d239ecb240",
+            "0x2efd70f041fe1b400125e8b99029c5fa0af4eb1c"
+          ],
+          "rpc_calls": [
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_chainId",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getCode",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getTransactionByHash",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getTransactionReceipt",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getCode",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_chainId",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getCode",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            }
+          ]
+        }
+      ],
+      "writes": 0,
+      "service_api_calls": 0
+    }
+  },
+  "preservation": {
+    "prior_private_json_count": 7,
+    "all_prior_json_hashes_unchanged": true,
+    "original_workspace_untouched": true,
+    "original_D_branch": "codex/v5-w6-d-service-readiness",
+    "original_D_head": "cc09ebf6b7c3890e18c7a5503a4dae7a79cf43f6"
+  },
+  "same_qa_head_supporting_acceptance": {
+    "qa_sha": "a034c9a318085a2aff710341c4de3ab8278f8192",
+    "status": "SUPPORTING_SUITES_PASS_ACCEPTANCE_BLOCKED",
+    "passed": 112,
+    "paid_calls": 0,
+    "summary_sha256": "6b5d5e2cdb491c8d5e987b4ae0ae0482f66845d306cf296434a00984d4479c76",
+    "final_rc_accepted": false
+  }
+}

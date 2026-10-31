@@ -44,6 +44,9 @@ def test_d_grounding_rejects_all_invalid_consumer_replays_including_overlap(case
     [
         ("보안 담당입니다. 인증번호를 알려주세요.", "CREDENTIAL_REQUEST", "HIGH"),
         ("원격제어 앱을 설치해 주세요.", "REMOTE_CONTROL_REQUEST", "HIGH"),
+        ("원격지원 앱을 설치해 주세요.", "REMOTE_CONTROL_REQUEST", "HIGH"),
+        ("원격 지원 앱을 설치해주세요.", "REMOTE_CONTROL_REQUEST", "HIGH"),
+        ("보안 점검을 위해 원격지원 앱을 실행하십시오.", "REMOTE_CONTROL_REQUEST", "HIGH"),
         ("지금 아래 계좌로 송금하세요.", "URGENT_TRANSFER", "HIGH"),
         ("변경된 계좌로 입금해 주세요.", "ACCOUNT_CHANGE", "CAUTION"),
         ("은행에 확인하지 마세요.", "BLOCK_OFFICIAL_CHECK", "HIGH"),
@@ -63,9 +66,12 @@ def test_rule_needs_a_concerning_action_and_preserves_original_ranges(text, rule
     [
         "기관에서는 인증번호를 요청하지 않습니다.",
         "원격제어 앱을 설치하지 마세요.",
+        "원격지원 앱을 설치하지 마세요.",
+        "원격 지원 앱 설치 안내입니다.",
         "비밀번호와 인증번호라는 단어만으로는 판단할 수 없습니다.",
         '사기 예방 예시: "인증번호를 알려주세요"라는 문구를 무시하세요.',
         "피싱 교육 사례: ‘원격제어 앱을 설치해 주세요’는 사기 예시입니다.",
+        "피싱 교육 사례: ‘원격지원 앱을 설치해 주세요’는 사기 예시입니다.",
         "자료 설명에서 지금, 송금, 계좌 단어를 각각 사용합니다.",
         "사기 예방을 위해 공식 은행에 확인하세요.",
     ],

@@ -1003,6 +1003,39 @@
         "title": "DocumentDraftRequest",
         "type": "object"
       },
+      "DocumentImageInputRequest": {
+        "additionalProperties": false,
+        "description": "One-page document photo (#92). The server checks MIME, signature, size and pixels.",
+        "properties": {
+          "image_base64": {
+            "maxLength": 7340032,
+            "minLength": 1,
+            "title": "Image Base64",
+            "type": "string"
+          },
+          "image_media_type": {
+            "enum": [
+              "image/png",
+              "image/jpeg",
+              "image/webp"
+            ],
+            "title": "Image Media Type",
+            "type": "string"
+          },
+          "kind": {
+            "const": "DOCUMENT_IMAGE",
+            "title": "Kind",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "image_media_type",
+          "image_base64"
+        ],
+        "title": "DocumentImageInputRequest",
+        "type": "object"
+      },
       "DocumentIssue": {
         "additionalProperties": false,
         "properties": {
@@ -1043,6 +1076,101 @@
           "version"
         ],
         "title": "DocumentIssue",
+        "type": "object"
+      },
+      "DocumentLookupRequest": {
+        "additionalProperties": false,
+        "description": "Track B (#88): find a published record from a message that carries no document ID.",
+        "properties": {
+          "issuer_id": {
+            "pattern": "^0x[0-9a-f]{64}$",
+            "title": "Issuer Id",
+            "type": "string"
+          },
+          "key": {
+            "discriminator": {
+              "mapping": {
+                "OFFICIAL_DOCUMENT": "#/components/schemas/OfficialLookupKey",
+                "PAYMENT_REQUEST": "#/components/schemas/PaymentLookupKey"
+              },
+              "propertyName": "notice_type"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/PaymentLookupKey"
+              },
+              {
+                "$ref": "#/components/schemas/OfficialLookupKey"
+              }
+            ],
+            "title": "Key"
+          },
+          "request_id": {
+            "pattern": "^req_[A-Za-z0-9_-]{1,124}$",
+            "title": "Request Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "issuer_id",
+          "key"
+        ],
+        "title": "DocumentLookupRequest",
+        "type": "object"
+      },
+      "DocumentLookupResult": {
+        "additionalProperties": false,
+        "description": "UNVERIFIED means no retained record matched; it never means the message is fake.",
+        "properties": {
+          "document_ids": {
+            "items": {
+              "pattern": "^0x[0-9a-f]{64}$",
+              "type": "string"
+            },
+            "maxItems": 10,
+            "title": "Document Ids",
+            "type": "array"
+          },
+          "lookup_status": {
+            "enum": [
+              "MATCHED",
+              "UNVERIFIED",
+              "AMBIGUOUS"
+            ],
+            "title": "Lookup Status",
+            "type": "string"
+          },
+          "match_count": {
+            "minimum": 0.0,
+            "title": "Match Count",
+            "type": "integer"
+          },
+          "reason_codes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Reason Codes",
+            "type": "array"
+          },
+          "verification": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/originproof_core__wallet_contract__VerificationResult"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "lookup_status",
+          "match_count",
+          "document_ids",
+          "reason_codes"
+        ],
+        "title": "DocumentLookupResult",
         "type": "object"
       },
       "DocumentView": {
@@ -1932,6 +2060,28 @@
         "title": "OfficialDocument",
         "type": "object"
       },
+      "OfficialLookupKey": {
+        "additionalProperties": false,
+        "properties": {
+          "document_number": {
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Document Number",
+            "type": "string"
+          },
+          "notice_type": {
+            "const": "OFFICIAL_DOCUMENT",
+            "title": "Notice Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "notice_type",
+          "document_number"
+        ],
+        "title": "OfficialLookupKey",
+        "type": "object"
+      },
       "OnboardingView": {
         "additionalProperties": false,
         "properties": {
@@ -2109,6 +2259,41 @@
           "target_ref"
         ],
         "title": "PaymentIssue",
+        "type": "object"
+      },
+      "PaymentLookupKey": {
+        "additionalProperties": false,
+        "description": "Values a recipient can read off a payment message without a code or QR.",
+        "properties": {
+          "amount_minor": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 9007199254740991.0,
+            "title": "Amount Minor",
+            "type": "integer"
+          },
+          "currency": {
+            "pattern": "^[A-Z]{3}$",
+            "title": "Currency",
+            "type": "string"
+          },
+          "notice_type": {
+            "const": "PAYMENT_REQUEST",
+            "title": "Notice Type",
+            "type": "string"
+          },
+          "payee_account_number": {
+            "pattern": "^[0-9]{6,32}$",
+            "title": "Payee Account Number",
+            "type": "string"
+          }
+        },
+        "required": [
+          "notice_type",
+          "amount_minor",
+          "currency",
+          "payee_account_number"
+        ],
+        "title": "PaymentLookupKey",
         "type": "object"
       },
       "PaymentRequest": {
@@ -2558,6 +2743,91 @@
           "label"
         ],
         "title": "RecipientView",
+        "type": "object"
+      },
+      "RegisterInput": {
+        "additionalProperties": false,
+        "properties": {
+          "email": {
+            "maxLength": 120,
+            "minLength": 3,
+            "title": "Email",
+            "type": "string"
+          },
+          "issuer_id": {
+            "anyOf": [
+              {
+                "maxLength": 128,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issuer Id"
+          },
+          "kind": {
+            "enum": [
+              "personal",
+              "business"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 256,
+            "minLength": 8,
+            "title": "Password",
+            "type": "string"
+          },
+          "terms_accepted": {
+            "const": true,
+            "title": "Terms Accepted",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "kind",
+          "email",
+          "password",
+          "terms_accepted"
+        ],
+        "title": "RegisterInput",
+        "type": "object"
+      },
+      "RegisteredView": {
+        "properties": {
+          "account_id": {
+            "title": "Account Id",
+            "type": "string"
+          },
+          "issuer_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Issuer Id"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          },
+          "username": {
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "account_id",
+          "username",
+          "role",
+          "issuer_id"
+        ],
+        "title": "RegisteredView",
         "type": "object"
       },
       "RevokeDraftRequest": {
@@ -3747,6 +4017,54 @@
           }
         },
         "summary": "Me",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/v1/auth/register": {
+      "post": {
+        "description": "Opt-in synthetic sign-up: only reserved .invalid mail, so no real personal data.",
+        "operationId": "register_v1_auth_register_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisteredView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "Register",
         "tags": [
           "auth"
         ]
@@ -5429,6 +5747,54 @@
         ]
       }
     },
+    "/v3/document-lookups": {
+      "post": {
+        "description": "Track B (#88): match only records this service still retains; the request is not stored.",
+        "operationId": "lookup_document_v3_document_lookups_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DocumentLookupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentLookupResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "Lookup Document",
+        "tags": [
+          "wallet documents"
+        ]
+      }
+    },
     "/v3/documents/{document_id}": {
       "get": {
         "operationId": "get_document_v3_documents__document_id__get",
@@ -5570,7 +5936,22 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/TextInputRequest"
+                "discriminator": {
+                  "mapping": {
+                    "DOCUMENT_IMAGE": "#/components/schemas/DocumentImageInputRequest",
+                    "TEXT": "#/components/schemas/TextInputRequest"
+                  },
+                  "propertyName": "kind"
+                },
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/TextInputRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/DocumentImageInputRequest"
+                  }
+                ],
+                "title": "Body"
               }
             }
           },
