@@ -98,7 +98,7 @@
         if (q.contrast < 25) return r(K, 'low', 'LOW_RECOGNITION', '글자와 배경이 비슷해 흐리게 보여요', '밝은 곳에서 다시 찍거나 화면 밝기를 올려 캡처해 주세요.', size);
         if (q.sharp < 40) return r(K, 'low', 'LOW_RECOGNITION', '사진이 흐려서 글자를 못 읽을 수 있어요', '흔들리지 않게 다시 찍어 주세요.', size);
         if (orient > 1) return r(K, 'ok', 'READY_ROTATED', '보낼 수 있어요(사진이 돌아가 있어요)', '읽을 때 방향을 바로잡아요. 바로 세워 찍으면 더 정확해요.', size);
-        return r(K, 'ok', 'READY', '읽을 준비가 됐어요', '서버 연결 뒤 글자를 읽어 확인해요.', size);
+        return r(K, 'ok', 'READY', '읽을 준비가 됐어요', '실서버 모드에서 글자를 읽어 확인해요.', size);
       });
     });
   }

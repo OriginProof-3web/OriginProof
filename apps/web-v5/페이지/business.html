@@ -235,7 +235,7 @@ html[data-theme="light"]{--z-fact:#4b55c9;--z-fact-bg:#f1f2ff;--z-fact-line:#c9c
         <input type="file" id="fileInput" multiple accept="image/png,image/jpeg,image/webp,.txt" hidden>
         <button type="button" class="add-btn" id="addFileBtn">＋ 파일 추가</button>
         <ul class="file-list" id="fileList"></ul>
-        <p class="pcard-note">첨부는 이 브라우저 안에만 있어요. 받는 입력은 글과 사진 두 가지예요. 서버 업로드·사진 글자 읽기는 아직 연결 전이에요.</p>
+        <p class="pcard-note">첨부는 이 브라우저 안에 있어요. 받는 입력은 글과 사진 두 가지예요. 문서 사진은 실서버 모드에서 단추를 눌렀을 때만 서버로 보내요.</p>
       </div>
     </section>
     </div>
@@ -302,17 +302,17 @@ function showLanding(){window.location.href="index.html"}
   /* ---------- 오른쪽 패널: 파일 끌어 놓기·직접 추가 ---------- */
   const MAX=20*1024*1024,OK=/^(image\/(png|jpeg|webp)|text\/plain)$/;
   const fileInput=document.getElementById("fileInput"),fileList=document.getElementById("fileList"),fileCount=document.getElementById("fileCount"),drop=document.getElementById("dropZone");
-  const files=[];
+  const files=[];let attachSeq=0;
   const size=b=>b<1024?b+"B":b<1048576?(b/1024).toFixed(0)+"KB":(b/1048576).toFixed(1)+"MB";
   const kind=f=>f.type.startsWith("image/")?"이미지":f.type==="application/pdf"?"PDF":f.type.includes("wav")||/\.wav$/i.test(f.name)?"음성":f.type==="text/plain"?"텍스트":"기타";
   function renderFiles(){
     fileList.replaceChildren();fileCount.textContent=files.length+"개";
-    files.forEach((x,i)=>{const li=el("li","file");const th=el("span","thumb");
+    files.forEach((x,i)=>{const li=el("li","file");li.dataset.attachId=x.id;const th=el("span","thumb");
       if(x.url){const im=document.createElement("img");im.src=x.url;im.alt="";th.append(im)}else th.textContent=x.kind==="PDF"?"PDF":x.kind==="음성"?"WAV":"TXT";
       // 입력 검사 결과(js/op5_media.js): 보낼 수 있음 / 인식 부족 / 미지원 / 손상
-      const c=x.check,st=!c?"검사 중…":c.state==="ok"?c.title+" · 서버 전송은 연결 전":(c.state==="low"?"인식 부족: ":c.state==="unsupported"?"미지원: ":"실패: ")+c.title;
+      const c=x.check,st=!c?"검사 중…":c.state==="ok"?c.title:(c.state==="low"?"인식 부족: ":c.state==="unsupported"?"미지원: ":"실패: ")+c.title;
       const b=el("div");b.append(el("div","fname",x.file.name),el("span",c&&(c.state==="unsupported"||c.state==="failed")?"fmeta err":"fmeta",x.kind+" · "+size(x.file.size)+" · "+st));
-      const del=el("button","fdel","✕");del.type="button";del.setAttribute("aria-label",x.file.name+" 빼기");del.addEventListener("click",()=>{if(x.url)URL.revokeObjectURL(x.url);files.splice(i,1);renderFiles()});
+      const del=el("button","fdel","✕");del.type="button";del.setAttribute("aria-label",x.file.name+" 빼기");del.addEventListener("click",()=>{if(x.url)URL.revokeObjectURL(x.url);files.splice(i,1);renderFiles();dispatchEvent(new CustomEvent("op5:image-removed",{detail:{id:x.id}}))});
       li.append(th,b,del);fileList.append(li)});
     note.textContent=files.length?"첨부 "+files.length+"개 · 오른쪽 패널에서 볼 수 있어요":"";
   }
@@ -321,15 +321,17 @@ function showLanding(){window.location.href="index.html"}
     const errs=[];
     [...list].forEach(f=>{
       if(f.size>MAX&&!window.OP5Media){errs.push(f.name+": 20MB 초과");return}
-      if(files.some(x=>x.file.name===f.name&&x.file.size===f.size))return;
-      const x={file:f,kind:kind(f),url:null,check:null};files.push(x);
+      if(files.some(x=>x.file.name===f.name&&x.file.size===f.size&&x.file.lastModified===f.lastModified))return;
+      const x={id:"att_"+(++attachSeq),file:f,kind:kind(f),url:null,check:null};files.push(x);
       if(!window.OP5Media){x.check={state:"unsupported",title:"검사 도구를 불러오지 못했어요"};return}
       // 문서 사진·음성은 서버에 보내기 전에 먼저 검사하고, 결과를 쉬운 말로 알려 준다(지어낸 판독 결과 없음)
-      window.OP5Media.inspect(f).then(c=>{x.check=c;x.kind=KIND[c.kind]||x.kind;
+      window.OP5Media.inspect(f).then(c=>{if(!files.includes(x))return;x.check=c;x.kind=KIND[c.kind]||x.kind;
         if(c.kind==="DOCUMENT_IMAGE"&&c.state!=="failed"&&c.state!=="unsupported")x.url=URL.createObjectURL(f);
         renderFiles();
         const head=c.state==="ok"?"「"+f.name+"」 "+c.title+".":(c.state==="low"?"「"+f.name+"」 인식이 부족할 수 있어요 — ":c.state==="unsupported"?"「"+f.name+"」 아직 받을 수 없는 파일이에요 — ":"「"+f.name+"」 파일에 문제가 있어요 — ")+(c.state==="ok"?"":c.title+".");
-        add("ai",head+" "+c.advice+(c.state==="ok"?" (사진 글자 읽기는 서버 업로드 경로가 생기면 연결돼요. 지금은 서버로 보내지 않았어요.)":""));
+        add("ai",head+" "+c.advice);
+        // 보낼 수 있는 문서 사진이면 js/op5_connect.js 가 '이 사진 확인하기' 단추를 붙인다(DOCUMENT_IMAGE 입력)
+        if(c.kind==="DOCUMENT_IMAGE"&&(c.state==="ok"||c.state==="low"))dispatchEvent(new CustomEvent("op5:image",{detail:{file:f,id:x.id}}));
       });
     });
     renderFiles();

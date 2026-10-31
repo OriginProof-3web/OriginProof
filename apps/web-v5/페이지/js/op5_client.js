@@ -56,7 +56,11 @@
     CHALLENGE_ALREADY_USED: '이미 쓴 키 증명 요청이에요.', SIGNER_ALREADY_USED: '이미 쓰인 지갑 주소예요.', NOT_SUBMITTED: '아직 제출되지 않은 작업이에요.',
     ANALYSIS_TIMEOUT: '분석 시간(180초)이 지나 멈췄어요.', WORKER_STOPPED: '분석 작업자가 멈췄어요.', PROCESS_RESTARTED: '서버가 다시 시작돼 분석이 실패 처리됐어요.',
     REQUEST_TOO_LARGE: '보낸 내용이 너무 커요.',
-    DEMO_EMAIL_NOT_ENABLED: '데모 메일이 켜져 있지 않아요.', DEMO_EMAIL_SECRET_NOT_CONFIGURED: '데모 메일 설정이 없어요.'
+    DEMO_EMAIL_NOT_ENABLED: '데모 메일이 켜져 있지 않아요.', DEMO_EMAIL_SECRET_NOT_CONFIGURED: '데모 메일 설정이 없어요.',
+    SELF_APPROVAL_FORBIDDEN: '신청자 본인은 내부 승인을 할 수 없어요.', INTERNAL_APPROVER_REQUIRED: '이 계정은 이 기관의 지정된 승인자가 아니에요.',
+    EMAIL_CODE_INVALID: '확인 코드가 맞지 않아요.', DEMO_EMAIL_DOMAIN_MISMATCH: '이 기관의 합성 도메인 메일 주소가 아니에요.',
+    EMAIL_VERIFICATION_REQUIRED: '신청자의 메일 확인이 먼저 끝나야 해요.', ALREADY_DECIDED: '이미 내부 승인 결정이 끝났어요.',
+    PROPOSAL_NOT_FOUND: '제안을 찾지 못했어요.', ISSUER_NOT_FOUND: '기관을 찾지 못했어요.'
   };
   var STATUS_TEXT = {
     400: '요청 형식이 맞지 않아요.', 401: '로그인이 필요해요.', 403: '권한이 없거나 로그인 확인값이 맞지 않아요.', 404: '찾지 못했어요.',
@@ -82,6 +86,8 @@
   function explain(res, opt) {
     opt = opt || {};
     if (!res) return { ok: false, status: 0, code: 'NO_RESPONSE', text: '응답이 없어요.' };
+    if (res.error === 'network' && res.detail === 'SampleMode') return { ok: false, status: 0, code: 'SAMPLE_MODE', text: '예시 모드로 바뀌어 서버에 보내지 않았어요.' };
+    if (res.error === 'bad_shape') return { ok: false, status: res.status, code: 'UPSTREAM_SCHEMA_MISMATCH', text: '서버 응답이 작업 형식과 맞지 않아요. 기존 작업부터 다시 조회해 주세요.', uncertain: true };
     if (res.error === 'timeout') return { ok: false, status: 0, code: 'TIMEOUT', text: '서버가 제한 시간 안에 답하지 않았어요. 처리됐을 수도 있으니 다시 보내기 전에 상태를 먼저 확인해 주세요.', uncertain: true };
     if (res.error === 'network') {
       var fileMode = opt.fileMode === true;
@@ -178,6 +184,9 @@
     return fail('주소는 같은 출처 경로(예: /api) 또는 이 컴퓨터 주소(예: http://127.0.0.1:8000)만 받아요.');
   }
 
+  var OP_STATUS = ['PENDING_SUBMISSION', 'SUBMITTED', 'CONFIRMED', 'FAILED', 'UNKNOWN'];
+  function isOperation(x, id) { return !!x && typeof x === 'object' && RE.op.test(str(x.operation_id)) && OP_STATUS.indexOf(x.status) >= 0 && (id == null || x.operation_id === id); }
+
   /* ---------------- 서버 도우미 ---------------- */
   /* opts: { fetch, base('/api'), timeoutMs, opStore(sessionStorage 꼴), fileMode } */
   function createClient(opts) {
@@ -214,7 +223,8 @@
         var e = say(res);
         res.request_id = rid;
         res.uncertain = !!e.uncertain;
-        if (res.uncertain && rid) keepId[key] = rid; else delete keepId[key];
+        // 503 도 서버가 작업을 먼저 저장한 뒤 체인 조회에서 낼 수 있어 같은 번호로 재시도함(wallet_governance.py:273-274)
+        if ((res.uncertain || res.status === 503) && rid) keepId[key] = rid; else delete keepId[key];
         delete inflight[key];
         return res;
       }, function (err) { delete inflight[key]; throw err; });
@@ -266,17 +276,25 @@
       list.unshift({ operation_id: op.operation_id, request_id: str(op.request_id).slice(0, 130), kind: str(kind).slice(0, 20), status: str(op.status).slice(0, 30), next_action: str(op.next_action).slice(0, 20), at: Date.now() });
       try { if (opts.opStore) opts.opStore.setItem(OPS_KEY, JSON.stringify(list.slice(0, 30))); } catch (e) { /* 저장 실패해도 화면은 계속 */ }
     }
-    function operation(id) { return RE.op.test(String(id)) ? get('/v3/operations/' + id) : Promise.resolve({ status: 0, error: 'bad_id' }); }
-    function reconcile(id) { return RE.op.test(String(id)) ? write('POST', '/v3/operations/' + id + '/reconcile', null, { requestId: false }) : Promise.resolve({ status: 0, error: 'bad_id' }); }
-    /* 작업 결과 다루기: UNKNOWN 이면 다시 보내지 않고 reconcile 로 기존 거래부터 조회(계약 4번) */
+    /* 성공 응답도 계약 OperationView 모양(같은 작업 번호·상태 값)일 때만 믿음. 아니면 error='bad_shape' */
+    function checkOp(res, id) {
+      if (res && !res.error && res.status >= 200 && res.status < 300 && !isOperation(res.data, id)) res.error = 'bad_shape';
+      return res;
+    }
+    function operation(id) { return RE.op.test(String(id)) ? get('/v3/operations/' + id).then(function (r) { return checkOp(r, id); }) : Promise.resolve({ status: 0, error: 'bad_id' }); }
+    function reconcile(id) { return RE.op.test(String(id)) ? write('POST', '/v3/operations/' + id + '/reconcile', null, { requestId: false }).then(function (r) { return checkOp(r, id); }) : Promise.resolve({ status: 0, error: 'bad_id' }); }
+    /* 작업 결과 다루기: UNKNOWN 이면 다시 보내지 않고 reconcile 로 기존 거래부터 조회(계약 4번).
+       복구 조회가 실패하면 reconcileFailed=true, before 에 기존 작업(저장된 UNKNOWN 은 그대로) */
     function follow(res, kind) {
-      if (!res || res.status < 200 || res.status >= 300 || !res.data) return Promise.resolve(res);
+      if (!res || res.status < 200 || res.status >= 300) return Promise.resolve(res);
+      if (checkOp(res).error) return Promise.resolve(res);
       track(res.data, kind);
       if (res.data.status !== 'UNKNOWN') return Promise.resolve(res);
       return reconcile(res.data.operation_id).then(function (r2) {
-        if (r2.status >= 200 && r2.status < 300 && r2.data) track(r2.data, kind);
         r2.reconciled = true;
         r2.before = res.data;
+        if (!r2.error && r2.status >= 200 && r2.status < 300) track(r2.data, kind);
+        else r2.reconcileFailed = true;
         return r2;
       });
     }
@@ -368,7 +386,13 @@
       });
     }
     function opResult(step, r2, first) {
-      if (!r2 || r2.status < 200 || r2.status >= 300) return fromRes(step, r2 || first);
+      if (r2 && r2.reconcileFailed) {
+        var failed = fromRes(step, r2);
+        failed.text = '작업 ' + str(r2.before.operation_id) + ' · 상태 ' + str(r2.before.status) + ' · 복구 조회를 하지 못했어요. 거래를 다시 보내지 말고 같은 작업을 다시 조회해 주세요. ' + failed.text;
+        failed.data.op = r2.before;
+        return failed;
+      }
+      if (!r2 || r2.error || r2.status < 200 || r2.status >= 300) return fromRes(step, r2 || first);
       var op = r2.data || {};
       var t = '작업 ' + str(op.operation_id) + ' · 상태 ' + str(op.status) + ' · 다음 ' + str(op.next_action);
       if (r2.reconciled) t = '응답이 UNKNOWN 이라 다시 보내지 않고 복구 조회(reconcile)했어요. ' + t;
@@ -451,9 +475,22 @@
     return { connect: connect, sign: sign, keyProof: keyProof, publish: publish, revoke: revoke, submitTx: submitTx, typedData: typedData };
   }
 
-  /* ---------------- 첨부 업로드 자리 ----------------
-     계약(d0111d8)에는 이미지·PDF·음성 업로드 경로가 없음(POST /v3/inputs 는 kind TEXT 만).
-     계약이 생기면 이 함수 안에서 그 경로로 보내고 { ok:true, input_ref } 를 돌려주면 됨. 지금은 보내지 않음. */
+  /* ---------------- 첨부: 문서 사진 → DOCUMENT_IMAGE 입력(#92) ----------------
+     POST /v3/inputs 가 kind DOCUMENT_IMAGE(PNG·JPEG·WebP, 5MB 이하, image_base64)를 받는다(서버 기본 꺼짐 → 409 INPUT_SUPPORT_UNDECIDED).
+     여기서는 파일을 base64 로 바꿔 돌려주기만 하고, 보내기는 api_adapter.check(…, { image }) 가 한다. PDF·음성은 받지 않는다. */
+  var IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+  function uploadAttachment(file) {
+    var name = file && typeof file.name === 'string' ? file.name : '';
+    if (!file || IMAGE_TYPES.indexOf(file.type) < 0) return Promise.resolve({ ok: false, code: 'UNSUPPORTED_INPUT', name: name, text: '문서 사진(PNG·JPG·WebP)만 보낼 수 있어요.' });
+    if (file.size > 5 * 1024 * 1024) return Promise.resolve({ ok: false, code: 'MALFORMED_INPUT', name: name, text: '사진이 5MB보다 커요.' });
+    return new Promise(function (resolve) {
+      var fr = new FileReader();
+      fr.onload = function () { var u = String(fr.result || ''); resolve({ ok: true, name: name, image: { media_type: file.type, base64: u.slice(u.indexOf(',') + 1) } }); };
+      fr.onerror = function () { resolve({ ok: false, code: 'MALFORMED_INPUT', name: name, text: '사진 파일을 읽지 못했어요.' }); };
+      fr.readAsDataURL(file);
+    });
+  }
+
   // Connection captions follow received reports; prepared RAG is not a connection signal.
   function analysisCaption(answer) {
     if (answer && answer.sample) return '규칙·AI 위험 분석 · 예시 응답';
@@ -463,11 +500,6 @@
     if (limits.indexOf('MOCK_REPLAY_NOT_MODEL_PERFORMANCE') >= 0) return '규칙·AI 위험 분석 · 기록 응답';
     return '규칙·AI 위험 분석 · 서버 보고서';
   }
-  function uploadAttachment(file) {
-    var name = file && typeof file.name === 'string' ? file.name : '';
-    return Promise.resolve({ ok: false, code: 'UPLOAD_NOT_CONNECTED', name: name, text: '첨부 업로드는 아직 연결 전이에요(서버 계약에 업로드 경로가 없어요).' });
-  }
-
   Hk.op5 = {
     uploadAttachment: uploadAttachment,
     analysisCaption: analysisCaption,

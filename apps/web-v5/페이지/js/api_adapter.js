@@ -698,6 +698,121 @@
     return 'req_jjin_' + s;
   }
 
+  /* Track B(#88): 검증 코드 없는 문자에서 기관·금액·계좌(또는 공문 번호)를 읽어 POST /v3/document-lookups 본문을 만든다.
+     기관 ID = identifier_hash("iss_…")(keccak256). 합성 명부(wallet_onboarding.ROSTER) 두 곳만 안다. 못 읽으면 null(보내지 않음). */
+  var LOOKUP_ISSUERS = [
+    { re: /origin\s*mock\s*bank|iss_origin_mock_bank/i, id: '0x9d6e623a821f35508c0c970540013aa75041537806d71a2e318ac7ca5358a217' },
+    { re: /origin\s*mock\s*office|iss_origin_mock_office/i, id: '0xa079131abb1c9fafcee45cedda0cb5ae9a0aa8d8e2f3112e1ad0e85da89a9bbe' }
+  ];
+  /* 값을 고를 수 없으면 null(조회 안 함). 맞을 것 같은 일부 숫자를 보내지 않음: 틀린 값의 UNVERIFIED·다른 값의 MATCHED 모두 사실과 달라짐. */
+  var LOOKUP_UNIT = '십백천만억조';
+  var LOOKUP_RE = {
+    hidden: /[­​-‏‪-‮⁠-⁤﻿]/,
+    hangulAmount: new RegExp('(?:^|[^가-힣])[일이삼사오육칠팔구' + LOOKUP_UNIT + ']*[' + LOOKUP_UNIT + '][ \\t]?원'),
+    foreignBefore: /(?:₩|￦|\$|€|¥|£|KRW|USD|EUR|JPY)[ \t]*$/i,
+    foreignAfter: /^[ \t]*(?:KRW|USD|EUR|JPY|달러|유로|위안|파운드|엔(?![가-힣]))/i,
+    unitAfter: new RegExp('^[ \\t]?[' + LOOKUP_UNIT + '][0-9,' + LOOKUP_UNIT + ' \\t]*원'),
+    unitBefore: new RegExp('[' + LOOKUP_UNIT + '][ \\t]?$'),
+    signBefore: /(?:[-−–—+△▲±~∼〜～]|\([-−+]\))[ \t]*$/,
+    gluedBefore: /[A-Za-z_,.\/#]$/,
+    approxBefore: /(?:약|최대|최소|최고|최저|대략|평균)[ \t]*$/,
+    rangeAfter: /^[ \t]*(?:이상|이하|미만|초과|내외|가량|정도|상당|안팎|부터|까지|[-~∼〜～])/,
+    wonEnd: /^(?:정|을|이|은|의|으로|입니다|이며|이고|이니|이므로|이에요|예요|임)?(?![가-힣A-Za-z0-9])/,
+    won: /^[ \t ]*원/,
+    amount: /^(?:[1-9][0-9]*|[1-9][0-9]{0,2}(?:,[0-9]{3})+)$/,
+    payLabel: /(?:납부|납입|결제|청구|입금|이체|송금)[ \t]*(?:금액|액)[ \t]*(?:은|는|이|:|：|=)?[ \t]*$/,
+    feeLabel: /(?:수수료|부가세|부가가치세|할인|연체료|가산금|이자|배송비)(?:[ \t]*(?:금액|액))?[ \t]*(?:은|는|이|:|：|=)?[ \t]*$/,
+    accountLabel: /계좌(?:[ \t]*번호)?([^0-9]{0,15})$/,
+    depositLabel: /입금[ \t]*[:：]?[ \t]*$/,
+    notAccountGap: /문의|상담|연락|전화|콜센터|고객|아님|아닌|말고|이전|변경|잔액|만료|기한|일자/,
+    gluedLeft: /[A-Za-z0-9_\-−–—－.,\/#]$/,
+    gluedRight: /^(?:[A-Za-z_\-−–—－\/#]|[.,][0-9])/
+  };
+  function lookupDistinct(list) { return list.filter(function (x, i) { return list.indexOf(x) === i; }); }
+  // 돌려줌: 금액(원) · 고를 수 없으면 null. found: 금액처럼 보이는 것이 하나라도 있으면 true(공문 판단에 씀)
+  function lookupAmount(s) {
+    var R = LOOKUP_RE, re = /[0-9](?:[0-9,.]*[0-9])?/g, m, bad = R.hangulAmount.test(s), pay = [], fee = [], other = [];
+    while ((m = re.exec(s))) {
+      var before = s.slice(0, m.index), after = s.slice(m.index + m[0].length);
+      if (R.foreignBefore.test(before) || R.foreignAfter.test(after) || R.unitAfter.test(after)) { bad = true; continue; }
+      var won = R.won.exec(after);
+      if (!won) continue;
+      var rest = after.slice(won[0].length), n = Number(m[0].replace(/,/g, ''));
+      if (!R.amount.test(m[0]) || !Number.isSafeInteger(n) || R.unitBefore.test(before) || R.signBefore.test(before) || R.gluedBefore.test(before) ||
+        R.approxBefore.test(before) || R.rangeAfter.test(rest) || !R.wonEnd.test(rest)) { bad = true; continue; }
+      (R.payLabel.test(before) ? pay : R.feeLabel.test(before) ? fee : other).push(n);
+    }
+    var found = bad || pay.length + fee.length + other.length > 0;
+    pay = lookupDistinct(pay); other = lookupDistinct(other);
+    var value = null;
+    if (!bad) {
+      // 납부 표시가 하나면 수수료처럼 용도가 적힌 금액만 함께 허용, 표시가 없으면 금액이 한 가지이고 용도 금액이 없을 때만
+      if (pay.length === 1 && other.every(function (x) { return x === pay[0]; })) value = pay[0];
+      else if (!pay.length && !fee.length && other.length === 1) value = other[0];
+    }
+    return { value: value, found: found };
+  }
+  function lookupNotAccount(token, digits) {
+    var mm = +digits.slice(4, 6), dd = +digits.slice(6, 8);
+    if (/^(?:19|20)[0-9]{6}$/.test(digits) && /^[0-9]{4}-?[0-9]{1,2}-?[0-9]{1,2}$/.test(token) && mm >= 1 && mm <= 12 && dd >= 1 && dd <= 31) return true;   // 날짜
+    if (/^(?:19|20)[0-9]{2}-[0-9]{1,2}-[0-9]{1,2}$/.test(token)) return true;
+    if (/^01[016789][0-9]{7,8}$/.test(digits) || /^0(?:2|[3-6][1-5]|70|50[0-9])[0-9]{7,8}$/.test(digits) || /^1[5-9][0-9]{6}$/.test(digits)) return true;   // 전화
+    return /^[0-9]{6}-[1-8][0-9]{6}$/.test(token) || /^[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{4}$/.test(token);   // 주민번호·카드번호 모양은 보내지 않음
+  }
+  function lookupAccount(s) {
+    var R = LOOKUP_RE, re = /[0-9][0-9-]*[0-9]/g, m, labelled = [], all = [];
+    while ((m = re.exec(s))) {
+      var t = m[0], digits = t.replace(/-/g, ''), before = s.slice(0, m.index), after = s.slice(m.index + t.length);
+      if (digits.length < 6 || R.won.test(after)) continue;
+      var a = R.accountLabel.exec(before);
+      var isLabel = (a && !R.notAccountGap.test(a[1])) || R.depositLabel.test(before);
+      var notAcc = lookupNotAccount(t, digits);
+      var glued = R.gluedLeft.test(before) || R.gluedRight.test(after);
+      if (isLabel && (notAcc || glued || digits.length > 32)) return null;
+      if (notAcc) continue;
+      all.push(digits);
+      if (isLabel) labelled.push(digits);
+    }
+    labelled = lookupDistinct(labelled); all = lookupDistinct(all);
+    return labelled.length === 1 && all.length === 1 ? labelled[0] : null;
+  }
+  // 돌려줌: undefined(공문 번호 표시 없음) · null(표시는 있으나 값을 못 정함) · 문자열
+  function lookupDocNumber(s) {
+    var re = /(?:공문|문서)[ \t]*번호/g, m, out = [];
+    while ((m = re.exec(s))) {
+      var after = s.slice(m.index + m[0].length).replace(/^\s*(?:는|은|:|：|=)?\s*/, '');
+      var raw = /^[^\s,;()\[\]{}<>"'「」『』]*/.exec(after)[0];
+      var token = raw.replace(/\.$/, '').replace(/(?:입니다|이에요|이며|이고|으로|로|을|를|임)$/, '');
+      if (!/^[A-Za-z0-9가-힣][A-Za-z0-9가-힣_\-\/.]{0,119}$/.test(token) || !/[0-9]/.test(token)) return null;
+      // '문서번호 2026 17' 처럼 띄어 쓴 번호일 수 있으면 앞 조각만 쓰지 않음(날짜는 제외)
+      var next = /^\s+([0-9A-Za-z][0-9A-Za-z_\-\/.]*)(?=\s|$)/.exec(after.slice(raw.length));
+      if (next && !/^(?:19|20)[0-9]{2}[-.\/][0-9]{1,2}[-.\/][0-9]{1,2}$/.test(next[1])) return null;
+      out.push(token);
+    }
+    if (!out.length) return undefined;
+    out = lookupDistinct(out);
+    return out.length === 1 ? out[0] : null;
+  }
+  function lookupKey(text) {
+    var s = String(text || '');
+    var iss = LOOKUP_ISSUERS.filter(function (x) { return x.re.test(s); });
+    if (iss.length !== 1) return null;
+    if (LOOKUP_RE.hidden.test(s) || /\p{Nd}/u.test(s.replace(/[0-9]/g, ''))) return null;   // 전각·보이지 않는 글자가 숫자를 가르면 일부만 읽게 됨
+    var amount = lookupAmount(s), doc = lookupDocNumber(s);
+    if (doc !== undefined) {
+      // 공문 번호와 납부 정보가 함께 있으면 번호만 맞춰 보고 다른 계좌를 놓칠 수 있어 고르지 않음
+      if (doc === null || amount.found || /계좌|입금/.test(s)) return null;
+      return { issuer_id: iss[0].id, key: { notice_type: 'OFFICIAL_DOCUMENT', document_number: doc } };
+    }
+    var digits = lookupAccount(s);
+    if (amount.value === null || digits === null) return null;
+    return { issuer_id: iss[0].id, key: { notice_type: 'PAYMENT_REQUEST', amount_minor: amount.value, currency: 'KRW', payee_account_number: digits } };
+  }
+  var LOOKUP_WHY = {
+    UNVERIFIED: '문자에서 읽은 값으로 찾았지만 보관 중인 발행 기록과 맞는 것이 없어요. 가짜라는 뜻은 아니니 기관 공식 번호로 직접 확인해 주세요.',
+    AMBIGUOUS: '문자에서 읽은 값과 맞는 발행 기록이 여러 개라 하나로 정하지 않았어요. 기관 공식 번호나 검증 링크로 다시 확인해 주세요.'
+  };
+
   /* ---------------- ApiAdapter ---------------- */
   function createApiAdapter(opts) {
     var c = makeCaller(opts);
@@ -750,9 +865,29 @@
       });
     }
 
+    // Track B: 코드 없는 문자 → POST /v3/document-lookups. 읽을 값이 없거나 경로가 없으면 기존처럼 'none'
+    function lookup(text, log) {
+      var k = lookupKey(text);
+      if (!k) return Promise.resolve({ kind: 'none' });
+      var body = { request_id: rid(), issuer_id: k.issuer_id, key: k.key };
+      return c.call('POST', '/v3/document-lookups', body, ms).then(function (res) {
+        // 원본 찾기는 회원만: 로그인이 확인되지 않으면 요청을 보내지 않음(callBase 의 CSRF 확인). 서버는 공개 경로라 이 화면에서 막음
+        if (res.local) { log.push({ label: '원본 찾기', value: '로그인 필요 · 보내지 않음' }); return { kind: 'none', why: '원본 찾기는 로그인한 회원만 쓸 수 있어요. 문자는 서버로 보내지 않았어요.' }; }
+        log.push({ label: '보낸 요청', value: 'POST /v3/document-lookups · request_id ' + body.request_id + ' · ' + k.key.notice_type });
+        var d = res.data || {};
+        if (!res.error && (res.status === 404 || res.status === 405)) { log.push({ label: '원본 찾기', value: '경로 없음 · HTTP ' + res.status }); return { kind: 'none' }; }
+        if (res.error || res.status !== 200 || typeof d.lookup_status !== 'string') return { kind: 'error', err: errorInfo(res), res: res };
+        log.push({ label: '원본 찾기', value: d.lookup_status + ' · 일치 ' + str(d.match_count) + '건' + (d.reason_codes && d.reason_codes.length ? ' · ' + d.reason_codes.join(', ') : '') });
+        if (d.lookup_status === 'MATCHED' && d.verification && typeof d.verification.verification_status === 'string') return { kind: 'result', api: 'v3', data: d.verification, res: res, lookup: d.lookup_status };
+        if (!Object.prototype.hasOwnProperty.call(LOOKUP_WHY, d.lookup_status)) return { kind: 'error', err: { key: 'common.held_error', line2: 'UPSTREAM_SCHEMA_MISMATCH', why: '서버 응답 모양이 예상과 달라요.' }, res: res };
+        return { kind: 'none', lookup: d.lookup_status, why: LOOKUP_WHY[d.lookup_status] };
+      });
+    }
+
     // AI: POST /v3/inputs -> POST /v3/analyses -> GET /v3/analyses/{id} 폴링. 로그인 없이 부르면 401 → 연결 전
     // onIntake: /v3/inputs 답이 오는 순간 접수 직원 말풍선을 넘김(직원 패널은 도착 순서대로 갱신)
-    function analyze(text, log, onIntake) {
+    // image: { media_type, base64 } 이면 글 대신 문서 사진(DOCUMENT_IMAGE, #92)으로 접수
+    function analyze(text, log, onIntake, image) {
       var offline = function (code, why) {
         return { ai: { obs: obs('ai', 'common.not_connected', code), why: why }, intake: obs('intake', 'common.not_connected', code) };
       };
@@ -767,9 +902,16 @@
         if (known) e.why = AI_HTTP[d.detail] + (res.status === 429 && res.retryAfter ? ' ' + res.retryAfter + '초 뒤에 다시 해 보세요.' : '');
         return { ai: { obs: obs('ai', e.key, e.line2), why: e.why }, intake: step === '입력' ? obs('intake', e.key, e.line2) : null };
       };
-      var masked = T().maskPersonal(text);
-      log.push({ label: '보낸 요청', value: 'POST /v3/inputs · 개인정보를 가린 글 ' + masked.length + '자' });
-      return c.call('POST', '/v3/inputs', { kind: 'TEXT', text: masked }, ms).then(function (res) {
+      var input;
+      if (image) {
+        input = { kind: 'DOCUMENT_IMAGE', image_media_type: image.media_type, image_base64: image.base64 };
+        log.push({ label: '보낸 요청', value: 'POST /v3/inputs · 문서 사진 ' + image.media_type + ' ' + Math.round(image.base64.length * 3 / 4 / 1024) + 'KB' });
+      } else {
+        var masked = T().maskPersonal(text);
+        input = { kind: 'TEXT', text: masked };
+        log.push({ label: '보낸 요청', value: 'POST /v3/inputs · 개인정보를 가린 글 ' + masked.length + '자' });
+      }
+      return c.call('POST', '/v3/inputs', input, ms).then(function (res) {
         if (res.error || res.status !== 201 || !res.data || !res.data.input_ref) {
           var x0 = fromErr(res, '입력');
           if (onIntake) onIntake(x0.intake);
@@ -875,12 +1017,18 @@
         statusAxis(four.status, holdExtra),
         aiAxis(ai, a.ai.quote || '', a.ai.unran, a.ai.why || '')
       ];
+      // 원본 찾기 MATCHED 는 문자에서 읽은 항목만 맞춘 것(서버 PARTIAL_COMPARISON): 문자 전체가 그 안내문이라고 말하지 않음
+      if (v.lookup === 'MATCHED') {
+        if (axes[0].tone === 'ok') axes[0].body = '문자에서 읽은 항목과 맞는 발행 기록과 기관 서명이 있어요. 문자 전체가 그 안내문이라는 뜻은 아니에요.';
+        if (axes[2].tone === 'ok') axes[2].body = '찾은 발행 기록은 지금 유효해요. 문자의 나머지 내용은 확인하지 않았어요.';
+      }
       if (four.original.noBasis) axes[1].body = '이 확인 기능은 아직 연결 전이에요. 받은 문자에서 비교할 항목을 뽑지 않아 원본과 맞춰 볼 근거가 없어요.';
       if (v.kind === 'offline') axes.slice(0, 3).forEach(function (x) {
         x.body = '이 확인 기능은 아직 연결 전이에요.' + (v.why ? ' ' + v.why : '');
       });
       if (v.kind === 'none') axes.slice(0, 3).forEach(function (x) {
-        x.status = '확인할 수 없음'; x.tone = 'none'; x.icon = 'dash'; x.body = '검증 링크가 없어 공식 기록과 맞춰 볼 수 없어요.';
+        x.status = '확인할 수 없음'; x.tone = 'none'; x.icon = 'dash';
+        x.body = v.why || (p.image ? '사진에서는 검증 링크를 읽지 않아 공식 기록과 맞춰 볼 수 없어요.' : '검증 링크가 없어 공식 기록과 맞춰 볼 수 없어요.');
       });
 
       var conclusion;
@@ -896,7 +1044,7 @@
       } else if (v.kind === 'error') {
         conclusion = { badge: { tone: 'pending', icon: 'question', text: '판단 보류' }, text: '서버 응답을 받지 못해 판단을 보류했어요.' + (v.err.why ? ' ' + v.err.why : '') };
       } else if (v.kind === 'none') {
-        conclusion = { badge: { tone: 'none', icon: 'dash', text: '확인할 수 없음' }, text: '공식 기록으로 확인할 수 없는 문자예요.' };
+        conclusion = { badge: { tone: 'none', icon: 'dash', text: '확인할 수 없음' }, text: v.why || '공식 기록으로 확인할 수 없는 문자예요.' };
       } else {
         conclusion = { badge: { tone: 'offline', icon: 'plug', text: '연결 전' }, text: v.reason === 'NO_PROOF_ID_IN_LINK'
           ? '검증 링크는 찾았지만 링크 안에 Proof ID가 없어 공식 기록을 확인하지 못했어요.'
@@ -904,7 +1052,7 @@
       }
 
       var details = [{ label: '연결 방식', value: typeof c.opts.base === 'string' ? '5안 연결 ' + c.opts.base + ' (로그인 쿠키·CSRF)' : (c.opts.viaProxy ? '중계 프로그램 /api → ' : '직접 → ') + c.serverUrl }];
-      details.push({ label: '입력 종류', value: p.structured ? '항목 입력(JSON)' : (p.first ? (p.first.type === 'proof' ? 'Proof ID 가 든 문자' : '검증 링크가 든 문자') : '문자') });
+      details.push({ label: '입력 종류', value: p.image ? '문서 사진' : p.structured ? '항목 입력(JSON)' : (p.first ? (p.first.type === 'proof' ? 'Proof ID 가 든 문자' : '검증 링크가 든 문자') : (v.lookup ? '코드 없는 문자(원본 찾기 ' + v.lookup + ')' : '문자')) });
       if (p.structured && p.ignored.length) details.push({ label: '보내지 않은 키', value: p.ignored.join(', ') });
       // 찾은 링크·Proof ID: 첫 번째만 쓰고, 나머지는 '더 찾은 … (쓰지 않음)'으로 자세히에만(adapter.js refDetails)
       if (!p.structured && p.refs.length) details = details.concat(Hk.refDetails({ refs: p.refs }));
@@ -939,7 +1087,7 @@
         sample: false,
         assumption: 'OriginProof 서버 응답을 웹_설계.md 4.1·1.8 표대로 옮겼어요. 판정 값은 서버가 준 그대로이고, 응답에 없는 값은 지어내지 않았어요.',
         verification_status: vs,
-        input: { kind: 'message', text: T().maskPersonal(text) },     // = 서버에 보낸 글(근거 위치의 기준 글)
+        input: p.image ? { kind: 'image', text: '' } : { kind: 'message', text: T().maskPersonal(text) },     // = 서버에 보낸 글(근거 위치의 기준 글)
         ai_report: a.ai.report || null,                                // 계약 AnalysisReport 중 화면용(cleanReport). 형광펜·근거 줄에 씀
         ref: p.first || null,
         // 체인에서 직접 확인(js/chain_check.js)이 비교할 서버 값: v3 응답의 document·chain_id·verifying_contract 만. 없으면 null
@@ -957,7 +1105,8 @@
     function check(text, opts) {
       opts = opts || {};
       var p;
-      try { p = parse(text); } catch (e) { return Promise.reject(e); }
+      if (opts.image) p = { structured: false, first: null, refs: [], image: true };   // 문서 사진: 검증 링크를 읽을 글이 없음
+      else try { p = parse(text); } catch (e) { return Promise.reject(e); }
       var log = [];
       var order = [];
       var emit = function (o) {
@@ -973,10 +1122,11 @@
         vP = verify({ structured: false, proofId: p.first.proofId, documentId: '', candidate: {} }, log);
       }
       else if (p.first) vP = Promise.resolve({ kind: 'offline', reason: 'NO_PROOF_ID_IN_LINK', why: '첫 번째 링크 안에 Proof ID가 없어 검증을 요청하지 않았어요.' });
-      else vP = Promise.resolve({ kind: 'none' });
+      else if (p.image) vP = Promise.resolve({ kind: 'none' });
+      else vP = lookup(text, log);
       var aP = p.structured
         ? Promise.resolve({ ai: { obs: obs('ai', 'ai.none', 'NO_TEXT'), why: '항목 입력에는 문자 원문이 없어 AI 분석은 하지 않았어요.' } })
-        : analyze(text, log, emit);
+        : analyze(text, log, emit, opts.image);
       var vDone = vP.then(function (v) {
         var four = fourOf(v, p.structured ? p : { candidate: {} });
         ['ledger', 'signature', 'original', 'status'].forEach(function (s) { emit(four[s]); });
@@ -1000,5 +1150,5 @@
   Hk.DEMO_TERM = DEMO_TERM;
   Hk.demoTermRows = demoTermRows;
   Hk.api = { mapV1: mapV1, mapV3: mapV3, mapAnalysisJob: mapAnalysisJob, isLoopback: isLoopback, READY_MSG: READY_MSG, errorInfo: errorInfo, makeCaller: makeCaller, rid: rid,
-    evidenceSpans: evidenceSpans, SPAN_WHY: SPAN_WHY, AI_FAIL: AI_FAIL, AI_HTTP: AI_HTTP };
+    lookupKey: lookupKey, evidenceSpans: evidenceSpans, SPAN_WHY: SPAN_WHY, AI_FAIL: AI_FAIL, AI_HTTP: AI_HTTP };
 })();
