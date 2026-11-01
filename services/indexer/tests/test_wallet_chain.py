@@ -284,6 +284,7 @@ async def test_page_rollback_preserves_checkpoint(setup):
         await store.sync()
         chain.blocks["0x3"], chain.head = block(3, H3), "0x3"
         chain.logs = [make_log(number=3, block_hash=H3)]
+        chain.receipt.update(blockNumber="0x3", blockHash=H3, logs=chain.logs)
         # Simulate inconsistent persisted data: insertion failure must undo cursor update.
         with engine.begin() as conn:
             conn.execute(
@@ -309,6 +310,7 @@ async def test_explicit_reorg_rewind_and_replay(setup):
         await store.sync()
         chain.blocks["0x2"] = block(2, H3)
         chain.logs = [make_log(block_hash=H3)]
+        chain.receipt.update(blockHash=H3, logs=chain.logs)
         with pytest.raises(ValueError, match="explicit rewind"):
             await store.sync()
         await store.rewind(1, H1)
@@ -331,6 +333,7 @@ async def test_automatic_reorg_recovery_rewinds_to_verified_ancestor(setup):
         # 이벤트가 있던 블록 2가 재조직으로 바뀜: 저장된 블록 2는 고아라서 배포 블록까지 되감는다
         chain.blocks["0x2"] = block(2, H3)
         chain.logs = [make_log(block_hash=H3)]
+        chain.receipt.update(blockHash=H3, logs=chain.logs)
         with pytest.raises(ValueError, match="explicit rewind"):
             await store.sync()
         assert await store.recover_reorg() == (1, H1)

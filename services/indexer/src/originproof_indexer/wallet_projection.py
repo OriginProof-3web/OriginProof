@@ -1,6 +1,7 @@
 """Deployment-isolated wallet event journal; never authoritative for current validity."""
 
 import json
+from functools import partial
 
 from sqlalchemy import BigInteger, Column, MetaData, String, Table, delete, insert, select, update
 
@@ -59,11 +60,22 @@ class WalletProjection:
             if old["hash"] != previous[1]:
                 raise ValueError("wallet reorg: explicit rewind required")
         start = self.rpc.deployment_block if previous is None else previous[0] + 1
-        if start > int(head["number"], 16):
-            return 0
-        logs = await self.rpc.logs(start, head)
-        await self.run(lambda: self._store(previous, head, logs))
-        return len(logs)
+        total = 0
+        for first in range(start, int(head["number"], 16) + 1, 128):
+            page = head if first + 127 >= int(head["number"], 16) else (
+                await self.rpc.block(hex(first + 127)))
+            # A successful empty log response alone is not evidence of a complete page.
+            logs = await self.rpc.logs(first, page)
+            await self.rpc.verify_logs(first, page, logs)
+            await self.rpc.check(head)
+            if previous is not None:
+                old = await self.rpc.block(hex(previous[0]))
+                if old["hash"] != previous[1]:
+                    raise ValueError("wallet reorg during sync; explicit rewind required")
+            await self.run(partial(self._store, previous, page, logs))
+            previous = (int(page["number"], 16), page["hash"])
+            total += len(logs)
+        return total
 
     def _store(self, previous, head, logs):
         # Compare-and-swap makes a competing worker roll back its entire page.

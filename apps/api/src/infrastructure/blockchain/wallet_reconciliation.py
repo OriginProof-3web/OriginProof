@@ -22,7 +22,7 @@ class WalletReconciler:
         block = await self.rpc.snapshot()
         return await self._proposal_at(proposal_id, block)
 
-    async def _proposal_at(self, proposal_id, block):
+    async def _proposal_at(self, proposal_id, block, logs=None):
         raw = await self.rpc.call("getProposal", [hex_bytes(proposal_id, 32)], block)
         if raw is None:
             return None
@@ -36,7 +36,8 @@ class WalletReconciler:
         )
         require(calculated == hex_bytes(proposal_id, 32), "proposal ID/tuple mismatch")
         proposal = named(field["components"], value)
-        logs = await self.rpc.logs(self.rpc.deployment_block, block)
+        if logs is None:
+            logs = await self.rpc.logs(self.rpc.deployment_block, block)
         approvals, created, execution, last_approval = [], None, None, None
         for log in logs:
             event = log["decoded"]
@@ -313,8 +314,11 @@ class WalletReconciler:
             )
         else:
             proposal_id = args["proposalId"]
-        old = await self._proposal_at(proposal_id, receipt)
-        latest = await self._proposal_at(proposal_id, current)
+        logs = await self.rpc.logs(self.rpc.deployment_block, current)
+        receipt_logs = [log for log in logs
+                        if quantity(log["blockNumber"]) <= quantity(receipt["number"])]
+        old = await self._proposal_at(proposal_id, receipt, receipt_logs)
+        latest = await self._proposal_at(proposal_id, current, logs)
         require(old is not None and latest is not None, "proposal absent after successful mutation")
         require(
             old["proposal"] == latest["proposal"]

@@ -6,6 +6,7 @@ The supplied ABI is the compiled Registry ABI, not a second contract definition.
 
 import asyncio
 from itertools import count
+from weakref import WeakKeyDictionary
 
 import httpx
 from eth_abi import decode, encode
@@ -16,6 +17,19 @@ from .errors import BlockchainConfigurationError, BlockchainDependencyError
 
 LOG_BLOCK_SPAN = 2_000
 LOG_BATCH_PAGES = 4
+_CLIENT_LIMITS = WeakKeyDictionary()
+
+
+async def parallel(calls):
+    """Fail fast and drain siblings on both dependency failure and cancellation."""
+    tasks = [asyncio.create_task(call) for call in calls]
+    try:
+        return await asyncio.gather(*tasks)
+    finally:
+        for task in tasks:
+            if not task.done():
+                task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
 
 
 def abi_type(field):
@@ -75,6 +89,8 @@ class WalletRpc:
         except (TypeError, ValueError) as exc:
             raise BlockchainConfigurationError("invalid wallet deployment") from exc
         self.client, self.url = client, rpc_url
+        self.limit = (asyncio.Semaphore(LOG_BATCH_PAGES) if client is None else
+                      _CLIENT_LIMITS.setdefault(client, asyncio.Semaphore(LOG_BATCH_PAGES)))
         self.chain_id = chain_id
         self.deployment_block, self.deployment_hash = deployment_block, deployment_hash
         self.runtime_code_hash = runtime_code_hash
@@ -92,9 +108,10 @@ class WalletRpc:
     async def rpc(self, method, params):
         request_id = next(self.ids)
         try:
-            response = await self.client.post(self.url, json={
-                "jsonrpc": "2.0", "id": request_id, "method": method, "params": params,
-            })
+            async with self.limit:
+                response = await self.client.post(self.url, json={
+                    "jsonrpc": "2.0", "id": request_id, "method": method, "params": params,
+                })
             response.raise_for_status()
             body = response.json()
             if (not isinstance(body, dict) or body.get("jsonrpc") != "2.0"
@@ -108,8 +125,10 @@ class WalletRpc:
                     raise _CallReverted(data)
                 raise ValueError("RPC error")
             return body["result"]
-        except (httpx.HTTPError, TypeError, ValueError) as exc:
-            raise BlockchainDependencyError("wallet RPC unavailable or invalid response") from exc
+        except (httpx.HTTPError, TypeError, ValueError, RecursionError):
+            pass
+        # Raise outside the handler: provider URLs must not survive in exception chains.
+        raise BlockchainDependencyError("wallet RPC unavailable or invalid response")
 
     async def block(self, number):
         result = await self.rpc("eth_getBlockByNumber", [number, False])
@@ -225,15 +244,13 @@ class WalletRpc:
                 stop = min(batch + LOG_BLOCK_SPAN * LOG_BATCH_PAGES, end + 1)
                 starts = list(range(batch, stop, LOG_BLOCK_SPAN))
                 # Bound in-flight reads too; serial history scans exceed the API's 10s budget.
-                pages = await asyncio.gather(*(
+                pages = await parallel(
                     self.rpc("eth_getLogs", [{
                         "address": self.address, "fromBlock": hex(first),
                         "toBlock": hex(min(first + LOG_BLOCK_SPAN - 1, end)),
                     }]) for first in starts
-                ), return_exceptions=True)
+                )
                 for first, page in zip(starts, pages, strict=True):
-                    if isinstance(page, BaseException):
-                        raise page
                     if not isinstance(page, list):
                         raise ValueError("invalid log list")
                     last = min(first + LOG_BLOCK_SPAN - 1, end)
@@ -241,6 +258,14 @@ class WalletRpc:
                         raise ValueError("event outside requested page")
                     raw.extend(page)
             result, seen, blocks = [], set(), {}
+            numbers = sorted({quantity(log["blockNumber"]) for log in raw})
+            for offset in range(0, len(numbers), LOG_BATCH_PAGES):
+                batch = numbers[offset:offset + LOG_BATCH_PAGES]
+                headers = await parallel(self.block(hex(number)) for number in batch)
+                for number, canonical in zip(batch, headers, strict=True):
+                    if not isinstance(canonical["transactions"], list):
+                        raise ValueError("invalid canonical transaction list")
+                    blocks[number] = (canonical["hash"], set(canonical["transactions"]))
             for log in raw:
                 decoded = self.decode_log(log)
                 number = quantity(log["blockNumber"])
@@ -248,11 +273,6 @@ class WalletRpc:
                 if not start <= number <= quantity(block["number"]) or position in seen:
                     raise ValueError("event range or duplicate")
                 seen.add(position)
-                if number not in blocks:
-                    canonical = await self.block(hex(number))
-                    if not isinstance(canonical["transactions"], list):
-                        raise ValueError("invalid canonical transaction list")
-                    blocks[number] = (canonical["hash"], set(canonical["transactions"]))
                 block_hash, transactions = blocks[number]
                 if block_hash != log["blockHash"]:
                     raise ValueError("orphan log")
@@ -264,6 +284,52 @@ class WalletRpc:
                                                 quantity(x["logIndex"])))
         except (KeyError, TypeError, ValueError) as exc:
             raise BlockchainDependencyError("invalid canonical wallet logs") from exc
+
+    async def verify_logs(self, start, head, logs):
+        """Cross-check log completeness with every canonical transaction receipt in a page."""
+        found = []
+        try:
+            for first in range(start, quantity(head["number"]) + 1, LOG_BATCH_PAGES):
+                headers = await parallel(self.block(hex(number)) for number in range(
+                    first, min(first + LOG_BATCH_PAGES, quantity(head["number"]) + 1)))
+                for header in headers:
+                    transactions = header["transactions"]
+                    if (not isinstance(transactions, list)
+                            or len(set(transactions)) != len(transactions)):
+                        raise ValueError("invalid canonical transactions")
+                    for offset in range(0, len(transactions), LOG_BATCH_PAGES):
+                        batch = transactions[offset:offset + LOG_BATCH_PAGES]
+                        receipts = await parallel(self.rpc("eth_getTransactionReceipt", [tx])
+                                                  for tx in batch)
+                        pairs = enumerate(zip(batch, receipts, strict=True), offset)
+                        for index, (tx, receipt) in pairs:
+                            hex_bytes(tx, 32)
+                            if (receipt["transactionHash"] != tx
+                                    or receipt["blockHash"] != header["hash"]
+                                    or receipt["blockNumber"] != header["number"]
+                                    or quantity(receipt["transactionIndex"]) != index
+                                    or quantity(receipt["status"]) not in (0, 1)
+                                    or not isinstance(receipt["logs"], list)
+                                    or (receipt["status"] == "0x0" and receipt["logs"])):
+                                raise ValueError("inconsistent canonical receipt")
+                            for log in receipt["logs"]:
+                                if (log["transactionHash"] != tx
+                                        or log["blockHash"] != header["hash"]
+                                        or log["blockNumber"] != header["number"]):
+                                    raise ValueError("inconsistent receipt log")
+                                if to_normalized_address(log["address"]) == self.address:
+                                    self.decode_log(log)
+                                    found.append(log)
+                    await self.check(header)
+            fields = ("address", "topics", "data", "blockNumber", "blockHash",
+                      "transactionHash", "logIndex")
+            def identity(log):
+                return tuple(str(log[field]).lower() for field in fields)
+            if sorted(map(identity, found)) != sorted(map(identity, logs)):
+                raise ValueError("incomplete wallet event page")
+            await self.check(head)
+        except (KeyError, TypeError, ValueError) as exc:
+            raise BlockchainDependencyError("wallet log completeness unavailable") from exc
 
     async def transaction_evidence(self, tx_hash):
         """Return actual calldata/receipt evidence, never an echoed intent or confirmation.

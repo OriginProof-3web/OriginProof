@@ -112,5 +112,8 @@ class FailoverWalletRpc:
     async def logs(self, start, block):
         return await self._read("logs", start, block)
 
+    async def verify_logs(self, start, block, logs):
+        return await self._read("verify_logs", start, block, logs)
+
     async def transaction_evidence(self, tx_hash):
         return await self._read("transaction_evidence", tx_hash)
