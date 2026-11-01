@@ -37,7 +37,10 @@
   // 예시 모드의 마지막 안전장치: 진행 중이던 흐름이 전환 뒤 이어져도 서버로 나가지 않음(op5_auth.js 의 로그인 확인은 별도)
   var fetchFn = scene ? S.fetchFor(scene) : function (u, i) {
     if (!isApi()) { var e = new Error('sample mode'); e.name = 'SampleMode'; return Promise.reject(e); }
-    return window.fetch(u, i);
+    return window.fetch(u, i).then(function (r) {
+      if (r && r.status === 401 && !/\/auth\/login$/.test(String(u)) && Hk.auth && Hk.auth.expired) Hk.auth.expired();
+      return r;
+    });
   };
   var ethFn = scene ? function () { return S.ethereum(scene); } : function () { return window.ethereum; };
   var client, wallet, conn;
@@ -60,6 +63,10 @@
   }
   rebuild();
   function isApi() { return conn.mode() === 'api'; }
+  function paintHint() { if (hint) hint.textContent = 'Enter 보내기 · Shift+Enter 줄바꿈 · ' + (isApi() ? '실서버 모드(' + getBase() + ')' : '예시 모드(예시 응답)'); }
+  if (isApi()) paintHint();
+  if (Hk.auth && Hk.auth.checked) Hk.auth.checked.then(function () { if (isApi()) paintHint(); });
+  Hk.op5live = function () { return !scene && isApi(); };   // 시연 버튼이 실서버 모드인지 볼 때 씀
 
   /* ---------------- 말풍선 (기존 모양 그대로) ---------------- */
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
@@ -286,7 +293,7 @@
   function check(text, image, att) {
     var key = conn.mode() + '|' + (att ? att.id : text);   // 같은 이름의 다른 사진을 하나로 합치지 않음
     if (running[key]) { say('같은 내용을 이미 확인하고 있어요. 결과가 나오면 여기에 보여 드려요.'); return running[key]; }
-    if (hint) hint.textContent = 'Enter 보내기 · Shift+Enter 줄바꿈 · ' + (isApi() ? '실서버 모드(' + getBase() + ')' : '예시 모드(예시 응답)');
+    paintHint();
     resetStaff(isApi() ? '직원 7명이 실제 응답이 온 순서대로 표시해요.' : '예시 모드: 예시 응답을 직원 순서대로 보여 줘요.');
     var api = isApi();
     var onStaff = api ? function (o) { if (att && o && o.bubble_key === 'intake.received') att.received = true; chipObs(o); } : null;
@@ -467,6 +474,7 @@
       if (conn.setMode(to) !== to) return;   // 비회원 거절 등은 op5_auth.js 가 안내함
       x.dataset.done = '1';
       if (before !== to) dropAsk('모드 변경');
+      paintHint();
       say(to === 'api' ? '실서버 모드로 바꿨어요. 연결 주소 ' + getBase() + ' 로 보내요.' : '예시 모드로 바꿨어요. 서버에 보내지 않고 예시 응답만 보여요.');
     }, true);
   }

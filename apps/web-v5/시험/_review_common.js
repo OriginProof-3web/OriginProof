@@ -22,14 +22,14 @@ function adapter(Hk, route) {
 const HTML = fs.readFileSync(path.join(WEB, 'business.html'), 'utf8');
 const SCRIPTS = [...HTML.matchAll(/<script src="((?:data|js)\/[^"]+)"><\/script>/g)].map(m => m[1]);
 const INLINE = (() => { const i = HTML.indexOf('function selectAction'); return HTML.slice(HTML.lastIndexOf('<script>', i) + 8, HTML.indexOf('</script>', i)); })();
-function page(route, extra) {
-  const d = makeDom('?mode=api');
+function page(route, extra, search) {
+  const d = makeDom(search === undefined ? '?mode=api' : search);
   const { win, doc, El } = d;
   const e = (tag, attrs, parent) => { const n = new El(tag, doc); Object.entries(attrs || {}).forEach(([k, v]) => (k === 'class' ? (n.className = v) : n.setAttribute(k, v))); if (parent) parent.append(n); return n; };
   const app = e('div', { class: 'app', id: 'app' }, doc.body);
   e('div', { id: 'sidebar-root' }, app);
   const main = e('main', {}, app);
-  e('button', { id: 'themeBtn' }, main);
+  e('button', { id: 'themeBtn' }, main); e('div', { id: 'presetBar' }, main); e('button', { id: 'authBtn' }, main);
   const sc = e('section', { id: 'chatScroll' }, main);
   e('div', { id: 'chatEmpty' }, e('div', { id: 'chatThread' }, sc));
   const form = e('form', { id: 'composer' }, main);

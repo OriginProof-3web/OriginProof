@@ -32,28 +32,45 @@
     if (form.requestSubmit) form.requestSubmit(); else form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
   }
 
+  function live() { return !!(window.Hk && window.Hk.op5live && window.Hk.op5live()); }
+  function member() { return !!(window.Hk && window.Hk.auth && window.Hk.auth.state.member); }
+  function bubble(tag, title, lines) {
+    var thread = document.getElementById('chatThread'), empty = document.getElementById('chatEmpty');
+    if (empty) empty.remove();
+    var m = el('div', 'msg msg-ai'), w = el('div', 'who'), bub = el('div', 'bubble');
+    w.append(el('i', null, ''), el('span', null, 'OriginProof AI'), el('span', 'tag-offline', tag));
+    var para = el('p');
+    para.append(el('b', null, title));
+    lines.forEach(function (t) { para.append(el('br'), document.createTextNode(t)); });
+    bub.append(para); m.append(w, bub); thread.append(m);
+    var sc = document.getElementById('chatScroll'); if (sc) sc.scrollTop = sc.scrollHeight;
+  }
+
   bar.append(el('span', 'preset-title', '시연'));
   LIVE.forEach(function (p) {
     var t = textOf(p.id);
     if (!t) return;
     var b = el('button', 'preset', p.label);
     b.type = 'button'; b.title = p.tip;
-    b.addEventListener('click', function () { send(t); });
+    b.addEventListener('click', function () {
+      // 예시 자료의 ID는 실서버에 없어 '기록 없음'으로 잘못 나온다. 미등록 사칭만 실서버에서도 그 결과가 맞다.
+      if (live() && p.id !== 'unregistered') {
+        bubble('예시 자료', '시연 · ' + p.label, ['이 버튼은 예시 자료라 실서버 기록과 맞지 않아 보내지 않았어요. 예시 모드에서 볼 수 있어요.', '실서버로 확인하려면 기관이 발행한 문자를 입력칸에 붙여 넣어 주세요.']);
+        return;
+      }
+      send(t);
+    });
     bar.append(b);
   });
   SERVER.forEach(function (p) {
     var b = el('button', 'preset preset-server', p.label);
     b.type = 'button'; b.title = '실서버·체인 연결 뒤 재현';
     b.addEventListener('click', function () {
-      var thread = document.getElementById('chatThread'), empty = document.getElementById('chatEmpty');
-      if (empty) empty.remove();
-      var m = el('div', 'msg msg-ai'), w = el('div', 'who'), bub = el('div', 'bubble');
-      w.append(el('i', null, ''), el('span', null, 'OriginProof AI'), el('span', 'tag-offline', '실서버 필요'));
-      var para = el('p');
-      para.append(el('b', null, '공격 시나리오 · ' + p.label), el('br'), document.createTextNode(p.why), el('br'),
-        document.createTextNode('이 장면은 서버와 체인(Anvil 또는 Sepolia)을 켜고 로그인한 뒤 실제 응답으로만 보여 드려요. 예시 결과를 지어내지 않았어요.'));
-      bub.append(para); m.append(w, bub); thread.append(m);
-      var sc = document.getElementById('chatScroll'); if (sc) sc.scrollTop = sc.scrollHeight;
+      if (live() && member()) {
+        bubble('설명', '공격 시나리오 · ' + p.label, [p.why, '이 장면은 DB·계정·지갑을 직접 건드려야 해서 이 버튼으로 실행하지 않아요. 예시 결과를 지어내지 않았어요.']);
+        return;
+      }
+      bubble('실서버 필요', '공격 시나리오 · ' + p.label, [p.why, '이 장면은 서버와 체인(Anvil 또는 Sepolia)을 켜고 로그인한 뒤 실제 응답으로만 보여 드려요. 예시 결과를 지어내지 않았어요.']);
     });
     bar.append(b);
   });

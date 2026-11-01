@@ -824,8 +824,8 @@
 
     // 검증: v3(문서 ID가 있을 때) -> 연결 전 신호면 v1 -> 그래도 없으면 연결 전
     function verify(p, log) {
-      var tryV1 = function (v3note) {
-        if (!p.proofId) return Promise.resolve({ kind: 'offline', why: v3note || '', reason: v3note ? 'V3_NOT_CONNECTED' : 'NO_PROOF_ID' });
+      var tryV1 = function (v3note, chainDown) {
+        if (!p.proofId) return Promise.resolve({ kind: 'offline', why: v3note || '', reason: chainDown ? 'CHAIN_UNAVAILABLE' : v3note ? 'V3_NOT_CONNECTED' : 'NO_PROOF_ID', chainDown: !!chainDown });
         // confidence: 필수 칸(0~1), 판정에는 쓰이지 않음(verification.py). 항목 입력은 사람이 직접 넣은 값이라 1,
         // 자유 문자는 항목을 뽑지 않아 0 + missing_fields 에 7개 항목 전부(models.py CardPaymentNoticeCandidate)
         var cand = p.structured ? { confidence: 1 } : { confidence: 0, missing_fields: V1_FIELDS.slice() };
@@ -853,8 +853,8 @@
           return tryV1('v3 검증은 장부 설정이 없어 연결 전이에요.');
         }
         if (!res.error && res.status === 200 && d.verification_status === 'INCONCLUSIVE' && has(d.reason_codes, 'CHAIN_UNAVAILABLE')) {
-          log.push({ label: 'v3 검증', value: '연결 전 · INCONCLUSIVE + CHAIN_UNAVAILABLE · session ' + str(d.session_id) });
-          return tryV1('v3 검증은 장부 연결부가 없어 연결 전이에요.');
+          log.push({ label: 'v3 검증', value: '체인 연결 실패 · INCONCLUSIVE + CHAIN_UNAVAILABLE · session ' + str(d.session_id) });
+          return tryV1('체인에 연결하지 못해 공식 기록을 확인하지 못했어요. 일시적인 장애일 수 있으니 잠시 뒤 다시 확인해 주세요.', true);
         }
         if (!res.error && (res.status === 404 || res.status === 405)) {
           log.push({ label: 'v3 검증', value: '경로 없음 · HTTP ' + res.status });
@@ -1024,6 +1024,7 @@
       }
       if (four.original.noBasis) axes[1].body = '이 확인 기능은 아직 연결 전이에요. 받은 문자에서 비교할 항목을 뽑지 않아 원본과 맞춰 볼 근거가 없어요.';
       if (v.kind === 'offline') axes.slice(0, 3).forEach(function (x) {
+        if (v.chainDown) { x.status = '확인 불가'; x.tone = 'none'; x.icon = 'dash'; x.body = v.why; return; }
         x.body = '이 확인 기능은 아직 연결 전이에요.' + (v.why ? ' ' + v.why : '');
       });
       if (v.kind === 'none') axes.slice(0, 3).forEach(function (x) {
@@ -1045,6 +1046,8 @@
         conclusion = { badge: { tone: 'pending', icon: 'question', text: '판단 보류' }, text: '서버 응답을 받지 못해 판단을 보류했어요.' + (v.err.why ? ' ' + v.err.why : '') };
       } else if (v.kind === 'none') {
         conclusion = { badge: { tone: 'none', icon: 'dash', text: '확인할 수 없음' }, text: v.why || '공식 기록으로 확인할 수 없는 문자예요.' };
+      } else if (v.chainDown) {
+        conclusion = { badge: { tone: 'pending', icon: 'question', text: '판단 보류' }, text: v.why };
       } else {
         conclusion = { badge: { tone: 'offline', icon: 'plug', text: '연결 전' }, text: v.reason === 'NO_PROOF_ID_IN_LINK'
           ? '검증 링크는 찾았지만 링크 안에 Proof ID가 없어 공식 기록을 확인하지 못했어요.'
