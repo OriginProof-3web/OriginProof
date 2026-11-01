@@ -56,6 +56,8 @@ class El extends Target {
   setAttribute(k, v) { if (this._attrs[k] !== String(v)) { this._attrs[k] = String(v); mut(); } }
   getAttribute(k) { return k in this._attrs ? this._attrs[k] : null; }
   get childNodes() { return this.children; }
+  get parentNode() { return this.parent; }
+  insertBefore(n, ref) { n.parent = this; this.children.splice(this.children.indexOf(ref), 0, n); mut(); return n; }
   get textContent() { return this.children.map(c => c.textContent).join(''); }
   set textContent(v) { this.children.forEach(c => (c.parent = null)); this.children = []; if (v !== '' && v != null) { const t = new TextNode(v); t.parent = this; this.children.push(t); } mut(); }
   append(...ns) { for (let n of ns) { if (typeof n === 'string') n = new TextNode(n); if (n.parent) n.parent.children = n.parent.children.filter(c => c !== n); n.parent = this; this.children.push(n); mut(); } }

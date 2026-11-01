@@ -10,7 +10,7 @@ from sqlalchemy import select, text
 from .database import AccountRow
 from .projection import running_views
 
-REVISION = "20261016_0009"
+REVISION = "20261101_0010"
 
 
 async def check_ready(app):

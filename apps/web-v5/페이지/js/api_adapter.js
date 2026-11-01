@@ -10,7 +10,7 @@
    - 응답 -> 화면은 웹_설계.md 4.1 직원별 대응표·1.8 칸별 상태대로만 옮김. 판정(verification_status 등)은 다시 계산하지 않음.
    - 근거: docs/_A1_엔드포인트_조사.md (v1 card-notices/verify 만 지금 쓸 수 있음, v3 는 기본 구성에서 연결 전).
    - fetch·시간·주소는 밖에서 받음(시험: tools/api_adapter.test.js 가 가짜 fetch 를 넣음).
-   - 화면에 바로 보이는 글에는 영문 코드를 넣지 않고, 코드는 직원 말풍선 2줄(line2)과 '자세히'(details)에만 넣음. */
+   - 화면에 바로 보이는 글에는 영문 코드를 넣지 않고, 코드는 직원 말풍선 2줄(line2)과 '기술 증명 보기'(details)에만 넣음. */
 (function () {
   'use strict';
   var Hk = (window.Hk = window.Hk || {});
@@ -32,7 +32,7 @@
     'common.held_expired': ['입력 보관 시간이 지나 보류', '보류'],
     'ledger.recorded': ['발행 기록 있음', '확인됨'],
     'ledger.recorded_noblock': ['발행 기록 있음', '확인됨'],
-    'ledger.not_found': ['장부에 이 기관/문서 기록이 없어요', '경고'],
+    'ledger.not_found': ['장부에 이 기관/문서 기록이 없어요', '정보'],
     'ledger.unreachable': ['장부에 연결 못 함, 판단 보류', '보류'],
     'ledger.not_run': ['앞 단계에서 멈춰 확인 안 함', '해당 없음'],
     'signature.match': ['기관 서명과 일치', '확인됨'],
@@ -135,7 +135,7 @@
     var keys = [L.bubble_key, S.bubble_key];
     var s;
     if (keys.indexOf('common.not_connected') >= 0) s = AX_OFFLINE;
-    else if (L.bubble_key === 'ledger.not_found') s = { status: '기록 없음', tone: 'fail', icon: 'warn', body: '장부에서 이 기관 또는 이 문서의 발행 기록을 찾지 못했어요.' };
+    else if (L.bubble_key === 'ledger.not_found') s = { status: '기록 없음', tone: 'none', icon: 'question', body: '장부에서 이 기관 또는 이 문서의 발행 기록을 찾지 못했어요.' };
     else if (S.bubble_key === 'signature.mismatch') s = { status: '서명 불일치', tone: 'fail', icon: 'warn', body: '서명이 등록된 기관의 서명과 달라요.' };
     else if (bestHold(keys)) s = axHeld(bestHold(keys), holdExtra);
     else if (kind(L.bubble_key) === 'not_run' || kind(S.bubble_key) === 'not_run') s = AX_NOT_RUN;
@@ -194,7 +194,7 @@
   /* ---------------- 1.8 검증 엔진 결과 문장 ---------------- */
   var VS = {
     VERIFIED: { text: "검증 엔진 기준으로 발행 기록·서명·원본이 맞아요. 지금도 유효한지는 '현재 상태' 칸을 보세요.", badge: { tone: 'info', icon: 'info', text: '발행 기록 확인' } },
-    NOT_REGISTERED: { text: '장부에서 등록된 발행 기록을 찾지 못했어요.', badge: { tone: 'fail', icon: 'warn', text: '기록 없음' } },
+    NOT_REGISTERED: { text: '장부에서 등록된 발행 기록을 찾지 못했어요. 가짜라는 뜻은 아니에요.', badge: { tone: 'none', icon: 'question', text: '기록 없음' } },
     TAMPERED: { text: '원본과 다른 곳이 있어요.', badge: { tone: 'fail', icon: 'warn', text: '원본과 다름' } },
     INCONCLUSIVE: { text: '일부를 확인하지 못해 판단을 보류했어요.', badge: { tone: 'pending', icon: 'question', text: '판단 보류' } },
     ERROR: { text: '검증 중 오류가 나서 결과를 만들지 못했어요.', badge: { tone: 'pending', icon: 'question', text: '결과 없음' } }
@@ -202,7 +202,7 @@
   /* 시연 표기 대응표(감사 T1 재작업, 3회차 멘토 명령 1 프리셋 ③). 이 상수가 대응의 유일한 출처.
      - 검증 엔진 값(verification_status)은 바꾸지 않음. 엔진에 UNVERIFIED 값은 없음(웹_설계.md 1.8: 5개만 정의).
      - 멘토 시연 대본의 'UNVERIFIED' = 엔진 NOT_REGISTERED(예: reason_codes ISSUER_NOT_FOUND).
-     - 영문 코드라 화면에 바로 보이는 글에는 넣지 않고 '자세히'(details)에만 넣음(sample_tool.py (f), 재디자인_설계.md '자세히(영문 코드·내부값)').
+     - 영문 코드라 화면에 바로 보이는 글에는 넣지 않고 '기술 증명 보기'(details)에만 넣음(sample_tool.py (f), 재디자인_설계.md '기술 증명 보기(영문 코드·내부값)').
        바로 보이는 표기는 위 VS 의 한국어('기록 없음')를 그대로 씀. */
   var DEMO_TERM = { NOT_REGISTERED: 'UNVERIFIED' };
   function demoTermRows(vs) {
@@ -430,7 +430,7 @@
     if (s === 'FAILED') {
       var f = Object.prototype.hasOwnProperty.call(AI_FAIL, ec) ? AI_FAIL[ec] : null;
       if (f) return { obs: obs('ai', f[0], ec), why: f[1] };
-      return { obs: obs('ai', 'common.held_error', ec || 'FAILED'), why: ec ? '화면이 모르는 실패 코드예요. 자세히에서 코드를 확인하세요.' : '' };
+      return { obs: obs('ai', 'common.held_error', ec || 'FAILED'), why: ec ? '화면이 모르는 실패 코드예요. 기술 증명 보기에서 코드를 확인하세요.' : '' };
     }
     if (s === 'EXPIRED') return { obs: obs('ai', 'ai.result_expired', 'EXPIRED') };
     if (s === 'CANCELLED') return { obs: obs('ai', 'ai.cancelled', 'CANCELLED') };
@@ -1037,11 +1037,12 @@
       var vs = v.kind === 'result' ? v.data.verification_status : null;
       if (v.kind === 'result') {
         var m = VS[vs];
-        conclusion = m ? { badge: m.badge, text: m.text } : { badge: { tone: 'none', icon: 'dash', text: '쉬운 설명 없음' }, text: '쉬운 설명이 없는 결과예요. 자세히에서 값을 확인하세요.' };
+        conclusion = m ? { badge: m.badge, text: m.text } : { badge: { tone: 'none', icon: 'dash', text: '쉬운 설명 없음' }, text: '쉬운 설명이 없는 결과예요. 기술 증명 보기에서 값을 확인하세요.' };
         // 1.8 합성 규칙 1: 발행 기록이 확인돼도 현재 상태 칸에 문제가 있으면 그 칸 배지를 앞에
         var sAx = axes[2];
         if (vs === 'VERIFIED' && (sAx.tone === 'fail' || sAx.tone === 'caution')) conclusion.badge = { tone: sAx.tone, icon: sAx.icon, text: sAx.status };
-        if (vs === 'TAMPERED' || vs === 'NOT_REGISTERED' || axes.some(function (x) { return x.axis !== 'ai' && x.tone === 'fail'; })) next = NEXT_BAD;
+        if (vs === 'TAMPERED' || axes.some(function (x) { return x.axis !== 'ai' && x.tone === 'fail'; })) next = NEXT_BAD;
+        if (vs === 'NOT_REGISTERED') next = '기관 대표번호나 공식 앱으로 확인하세요. 기록이 없다는 것만으로 가짜라고 판단할 수 없어요.';
       } else if (v.kind === 'error') {
         conclusion = { badge: { tone: 'pending', icon: 'question', text: '판단 보류' }, text: '서버 응답을 받지 못해 판단을 보류했어요.' + (v.err.why ? ' ' + v.err.why : '') };
       } else if (v.kind === 'none') {
@@ -1057,7 +1058,7 @@
       var details = [{ label: '연결 방식', value: typeof c.opts.base === 'string' ? '5안 연결 ' + c.opts.base + ' (로그인 쿠키·CSRF)' : (c.opts.viaProxy ? '중계 프로그램 /api → ' : '직접 → ') + c.serverUrl }];
       details.push({ label: '입력 종류', value: p.image ? '문서 사진' : p.structured ? '항목 입력(JSON)' : (p.first ? (p.first.type === 'proof' ? 'Proof ID 가 든 문자' : '검증 링크가 든 문자') : (v.lookup ? '코드 없는 문자(원본 찾기 ' + v.lookup + ')' : '문자')) });
       if (p.structured && p.ignored.length) details.push({ label: '보내지 않은 키', value: p.ignored.join(', ') });
-      // 찾은 링크·Proof ID: 첫 번째만 쓰고, 나머지는 '더 찾은 … (쓰지 않음)'으로 자세히에만(adapter.js refDetails)
+      // 찾은 링크·Proof ID: 첫 번째만 쓰고, 나머지는 '더 찾은 … (쓰지 않음)'으로 기술 증명 보기에만(adapter.js refDetails)
       if (!p.structured && p.refs.length) details = details.concat(Hk.refDetails({ refs: p.refs }));
       if (!p.structured && !p.refs.length) details.push({ label: '찾은 검증 링크·Proof ID', value: '없음' });
       if (v.kind === 'offline') details.push({ label: '검증 연결 상태', value: 'common.not_connected · ' + v.reason + (v.why ? ' · ' + v.why : '') });
@@ -1075,6 +1076,10 @@
           if (d.document) details.push({ label: 'document', value: 'state=' + str(d.document.state) + ' · warnings=' + (d.document.warnings || []).join('|') + ' · key_id=' + str(d.document.key_id) + ' · version=' + str(d.document.version) + '/' + str(d.document.latest_version) });
           details.push({ label: 'block_number', value: str(d.block_number) || '없음' });
         }
+        ['document_id', 'original_hash', 'protected_hash', 'block_hash', 'verifying_contract', 'signature', 'tx_hash'].forEach(function (key) {
+          var value = d[key] != null ? d[key] : d.document && d.document[key];
+          details.push({ label: key, value: value == null || value === '' ? '제공되지 않음' : str(value) });
+        });
         details.push({ label: 'session_id · request_id', value: str(d.session_id) + ' · ' + str(d.request_id || (v.res && v.res.requestId) || '') });
         if (v.v3note) details.push({ label: 'v3 검증', value: v.v3note + ' 그래서 v1 결과를 씀' });
         details.push({ label: '쉬운 설명', value: VS[vs] ? VS[vs].text : '쉬운 설명 없음' });
@@ -1098,6 +1103,7 @@
         conclusion: conclusion,
         axes: axes,
         next_action: { text: next },
+        proof_links: v.kind === 'result' && Hk.chain && /^0x[0-9a-fA-F]{40}$/.test(v.data.verifying_contract || '') ? Hk.chain.explorerLinks(String(v.data.chain_id), v.data.verifying_contract, null) : [],
         details: details,
         staff: staff
       };
@@ -1120,7 +1126,7 @@
       var vP;
       if (p.structured) { emit(obs('intake', 'intake.fixture', '')); vP = verify(p, log); }
       else if (p.first && p.first.proofId) {
-        // 자유 문자: 첫 참조(Proof ID 또는 링크 안 Proof ID) 하나만 v1 검증에 보냄. 두 번째 이후 참조는 보내지 않고 자세히에만.
+        // 자유 문자: 첫 참조(Proof ID 또는 링크 안 Proof ID) 하나만 v1 검증에 보냄. 두 번째 이후 참조는 보내지 않고 기술 증명 보기에만.
         // 문자에서 비교 항목은 뽑지 않음 → 후보 항목 0개, 원본 일치 칸은 fourOf 에서 "연결 전"(근거 없음)
         vP = verify({ structured: false, proofId: p.first.proofId, documentId: '', candidate: {} }, log);
       }

@@ -1472,7 +1472,7 @@ window.SAMPLE_DATA = [
   "sample": true,
   "label": "예시",
   "button_label": "미등록 기관 사칭",
-  "assumption": "A 화면 실제 결과에 없는 경우입니다. 장부에 없는 기관 이름으로 보낸 문자를 4.1 표 값(ledger.not_found, *.no_source, ai.high)으로 조합한 예시입니다. 멘토 명령의 'UNVERIFIED'는 코드 값이 아니어서 검증 엔진 값 NOT_REGISTERED(ISSUER_NOT_FOUND)로 옮겼습니다. 시연 표기 UNVERIFIED는 js/api_adapter.js 의 DEMO_TERM 대응표로 이어 '자세히'의 '시연 표기' 행에 보여 줍니다.",
+  "assumption": "A 화면 실제 결과에 없는 경우입니다. 장부에 없는 기관 이름으로 보낸 문자를 4.1 표 값(ledger.not_found, *.no_source, ai.high)으로 조합한 예시입니다. 멘토 명령의 'UNVERIFIED'는 코드 값이 아니어서 검증 엔진 값 NOT_REGISTERED(ISSUER_NOT_FOUND)로 옮겼습니다. 시연 표기 UNVERIFIED는 js/api_adapter.js 의 DEMO_TERM 대응표로 이어 '기술 증명 보기'의 '시연 표기' 행에 보여 줍니다.",
   "history": {
    "date": "2026-10-21",
    "title": "미환급금 신청 안내 문자",

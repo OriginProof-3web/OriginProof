@@ -10,6 +10,12 @@ const API = '?mode=api';
 const ready = async d => { await sleep(10); };
 const inputs = f => posted(f, /\/v3\/inputs$/);
 
+function outsideTech(node) {
+  if (node.tagName === 'DETAILS') return '';
+  if (!node.childNodes || !node.childNodes.length) return node.textContent || '';
+  return Array.from(node.childNodes).map(outsideTech).join('');
+}
+
 /* ---------- T5 ---------- */
 test('T5-1 예시 모드 기관 상태 메뉴: 페이지 로드 뒤 서버 요청 0건', async () => {
   const f = serverDouble({});
@@ -61,7 +67,7 @@ test('T5-5 저장된 작업 복구 단추: 예시 모드에서 조회·reconcile
   const n = f.calls.length;
   menu(d, 'operations'); await sleep(30);
   await press(d, /^작업 상태 조회 op_1/);
-  await press(d, /^복구 조회\(reconcile\) op_1/);
+  await press(d, /^복구 조회 op_1/);
   assert.deepEqual(reqs(f).slice(n), []);
 });
 test('T5-6 전수 훑기: 실서버에서 만든 모든 단추를 예시 모드 전환 뒤 눌러도 요청 0건', async () => {
@@ -308,11 +314,11 @@ for (const [name, rec, code] of [
     enter(d, TX); await sleep(30);
     const t = threadText(d);
     assert.ok(!/undefined/.test(t), '화면에 undefined');
-    assert.match(t, /작업 op_1 · 상태 UNKNOWN/);
-    assert.ok(!/op_2/.test(t));
+    assert.match(t, /작업 op_1 · 상태 확인 중/);
+    assert.ok(!/op_2/.test(outsideTech(d.doc.getElementById('chatThread'))));
     assert.match(t, code);
     assert.ok(find(d, '작업 상태 조회 op_1'), '재조회 단추 없음');
-    assert.ok(find(d, '복구 조회(reconcile) op_1'), '복구 단추 없음');
+    assert.ok(find(d, '복구 조회 op_1'), '복구 단추 없음');
     const saved = JSON.parse(d.win.sessionStorage.getItem('op5.ops.v1'));
     assert.equal(saved[0].operation_id, 'op_1'); assert.equal(saved[0].status, 'UNKNOWN');
     assert.equal(posted(f, /\/approvals$/).length, 1, '다시 보내면 안 됨');
@@ -324,8 +330,8 @@ test('T7-2 복구 단추 재시도 → 같은 작업 reconcile, 성공하면 CON
   await ready(d);
   await approveAsk(d);
   enter(d, TX); await sleep(30);
-  await press(d, '복구 조회(reconcile) op_1');
-  assert.match(threadText(d), /복구 조회 op_1상태 CONFIRMED/);
+  await press(d, '복구 조회 op_1');
+  assert.match(threadText(d), /복구 조회 op_1상태 확인됨/);
   assert.equal(posted(f, /op_1\/reconcile$/).length, 2);
   assert.equal(posted(f, /\/approvals$/).length, 1);
 });
@@ -334,10 +340,10 @@ test('T7-3 복구 단추 실패: 새 말풍선에도 재조회 단추, 저장 �
   const d = build(API, f, win => win.sessionStorage.setItem('op5.ops.v1', JSON.stringify([{ operation_id: 'op_1', request_id: 'r', kind: 'publish', status: 'UNKNOWN', next_action: 'RECONCILE', at: 1 }])));
   await ready(d);
   menu(d, 'operations'); await sleep(30);
-  const before = buttons(d).filter(b => b.textContent === '복구 조회(reconcile) op_1').length;
-  await press(d, '복구 조회(reconcile) op_1');
+  const before = buttons(d).filter(b => b.textContent === '복구 조회 op_1').length;
+  await press(d, '복구 조회 op_1');
   assert.ok(!/undefined/.test(threadText(d)));
-  assert.ok(buttons(d).filter(b => b.textContent === '복구 조회(reconcile) op_1').length > before, '새 말풍선에 복구 단추 없음');
+  assert.ok(buttons(d).filter(b => b.textContent === '복구 조회 op_1').length > before, '새 말풍선에 복구 단추 없음');
   assert.equal(JSON.parse(d.win.sessionStorage.getItem('op5.ops.v1'))[0].status, 'UNKNOWN');
 });
 const SR = { signing_request_id: 'wsr_1', primary_type: 'Publish', domain: { name: 'OriginProof', version: '1', chainId: 1, verifyingContract: '0x' + '22'.repeat(20) }, expected_signer: '0x' + '11'.repeat(20), message: { a: 1 } };
@@ -365,7 +371,7 @@ test('T7-4 지갑 거래 알림(signing-requests) UNKNOWN + reconcile 503: 재�
   const t = threadText(d);
   assert.ok(!/undefined/.test(t));
   assert.match(t, /WALLET_REGISTRY_UNAVAILABLE/);
-  const n = buttons(d).filter(b => b.textContent === '복구 조회(reconcile) op_1').length;
+  const n = buttons(d).filter(b => b.textContent === '복구 조회 op_1').length;
   assert.ok(n >= 1, '복구 단추 없음');
   enter(d, TX); await sleep(30);
   assert.equal(posted(f, /signing-requests\/wsr_1\/transactions$/).length, 1, 'UNKNOWN 뒤 거래 해시를 다시 보내면 안 됨');

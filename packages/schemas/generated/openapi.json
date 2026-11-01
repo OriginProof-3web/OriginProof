@@ -41,6 +41,85 @@
         "title": "AccountView",
         "type": "object"
       },
+      "AiKeyInput": {
+        "additionalProperties": false,
+        "properties": {
+          "key": {
+            "format": "password",
+            "title": "Key",
+            "type": "string",
+            "writeOnly": true
+          },
+          "provider": {
+            "enum": [
+              "openai",
+              "anthropic"
+            ],
+            "title": "Provider",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "key"
+        ],
+        "title": "AiKeyInput",
+        "type": "object"
+      },
+      "AiKeyView": {
+        "properties": {
+          "analyses": {
+            "default": 0,
+            "title": "Analyses",
+            "type": "integer"
+          },
+          "hint": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hint"
+          },
+          "input_tokens": {
+            "default": 0,
+            "title": "Input Tokens",
+            "type": "integer"
+          },
+          "output_tokens": {
+            "default": 0,
+            "title": "Output Tokens",
+            "type": "integer"
+          },
+          "provider": {
+            "anyOf": [
+              {
+                "enum": [
+                  "openai",
+                  "anthropic"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Provider"
+          },
+          "storage_enabled": {
+            "title": "Storage Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "storage_enabled"
+        ],
+        "title": "AiKeyView",
+        "type": "object"
+      },
       "AnalysisEvidence": {
         "additionalProperties": false,
         "properties": {
@@ -3918,6 +3997,103 @@
         "summary": "Audit Events",
         "tags": [
           "operations"
+        ]
+      }
+    },
+    "/v1/auth/ai-key": {
+      "delete": {
+        "operationId": "delete_key_v1_auth_ai_key_delete",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiKeyView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "Delete Key",
+        "tags": [
+          "auth"
+        ]
+      },
+      "get": {
+        "operationId": "read_key_v1_auth_ai_key_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiKeyView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "Read Key",
+        "tags": [
+          "auth"
+        ]
+      },
+      "post": {
+        "operationId": "save_key_v1_auth_ai_key_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AiKeyInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AiKeyView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "Save Key",
+        "tags": [
+          "auth"
         ]
       }
     },

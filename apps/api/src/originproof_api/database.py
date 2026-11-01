@@ -11,6 +11,7 @@ from sqlalchemy import (
     Boolean,
     DateTime,
     ForeignKey,
+    LargeBinary,
     String,
     UniqueConstraint,
     func,
@@ -58,6 +59,21 @@ class AccountRow(Base):
     password_hash: Mapped[str] = mapped_column(String(256), nullable=False)
     role: Mapped[str] = mapped_column(String(16), nullable=False)
     issuer_id: Mapped[str | None] = mapped_column(String(128))
+
+
+class AccountAiKeyRow(Base):
+    __tablename__ = "account_ai_keys"
+
+    account_id: Mapped[str] = mapped_column(
+        String(64), ForeignKey("accounts.account_id", ondelete="CASCADE"), primary_key=True
+    )
+    provider: Mapped[str] = mapped_column(String(16), nullable=False)
+    nonce: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    ciphertext: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    hint: Mapped[str] = mapped_column(String(4), nullable=False)
+    input_tokens: Mapped[int] = mapped_column(BigInteger, default=0, nullable=False)
+    output_tokens: Mapped[int] = mapped_column(BigInteger, default=0, nullable=False)
+    analyses: Mapped[int] = mapped_column(BigInteger, default=0, nullable=False)
 
 
 class SessionRow(Base):

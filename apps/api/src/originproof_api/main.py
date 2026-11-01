@@ -11,9 +11,11 @@ from fastapi.responses import JSONResponse
 from infrastructure.blockchain import JsonRpcBlockchainReader
 from infrastructure.blockchain.wallet_deployment import WalletRegistryConnector
 from openai import AsyncOpenAI
+from originproof_analyzer import anthropic_provider
 from originproof_analyzer.errors import AnalyzerError, AnalyzerErrorCode
 from originproof_analyzer.media_converters import document_image_to_text
 from originproof_analyzer.phishing import PhishingAnalyzer
+from originproof_analyzer.providers import OpenAILLMProvider
 from originproof_analyzer.settings import AnalyzerSettings
 from originproof_core import (
     BlockchainReader,
@@ -25,6 +27,8 @@ from originproof_core import (
 from originproof_core.ports import IssuerRecord, KeyRecord
 
 from .accounts import router as auth_router
+from .ai_keys import router as ai_keys_router
+from .ai_keys import usage_hook
 from .applications import router as applications_router
 from .chain_management import router as chain_router
 from .chain_network import router as chain_network_router
@@ -90,6 +94,7 @@ def create_app(
     wallet_chain=None,
     analysis_processor=None,
     image_converter=None,
+    member_ai=None,
 ) -> FastAPI:
     app_settings = settings or Settings()
     app_database = database or Database(app_settings.database_url)
@@ -163,6 +168,7 @@ def create_app(
     app.state.wallet_runtime = WalletRuntime(app_database, app_settings, wallet_chain)
     app.state.analysis_processor = analysis_processor
     app.state.image_converter = image_converter
+    app.state.member_ai = member_ai
     app.state.analysis_tasks = set()
     app.state.analysis_worker_error = None
     app.state.projection = SyncView(
@@ -173,6 +179,7 @@ def create_app(
     )
     app.include_router(projection_router)
     app.include_router(auth_router)
+    app.include_router(ai_keys_router)
     app.include_router(applications_router)
     app.include_router(operations_router)
     app.include_router(chain_router)
@@ -250,7 +257,63 @@ async def openai_document_converter(artifact, remaining):
         )
 
 
+def member_ai(provider, key, usage):
+    """Per-job (analysis, photo reader) bound to the member's key; clients close with the job."""
+    if provider == "anthropic":
+        settings = anthropic_provider.AnthropicSettings()
+
+        async def analyze_claude(text):
+            async with anthropic_provider.member_client(key, usage_hook(usage)) as client:
+                provider_ = anthropic_provider.AnthropicLLMProvider(settings, client)
+                return await PhishingAnalyzer(provider_)(text)
+
+        async def convert_claude(artifact, remaining):
+            async with anthropic_provider.member_client(key, usage_hook(usage)) as client:
+                return await anthropic_provider.document_image_to_text(
+                    artifact, settings=settings, client=client, remaining_seconds=remaining
+                )
+
+        return analyze_claude, convert_claude
+
+    settings = AnalyzerSettings(llm_provider="openai", openai_api_key=key)
+
+    def gpt_http():
+        return httpx.AsyncClient(
+            trust_env=False, follow_redirects=False, event_hooks={"response": [usage_hook(usage)]}
+        )
+
+    def gpt_client(http):
+        return AsyncOpenAI(
+            api_key=key, base_url="https://api.openai.com/v1", max_retries=0, http_client=http
+        )
+
+    async def analyze_gpt(text):
+        async with (
+            gpt_http() as http,
+            gpt_client(http) as client,
+        ):
+            provider_ = OpenAILLMProvider(settings, async_client=client)
+            return await PhishingAnalyzer(provider_)(text)
+
+    async def convert_gpt(artifact, remaining):
+        async with (
+            gpt_http() as http,
+            gpt_client(http) as client,
+        ):
+            return await document_image_to_text(
+                artifact,
+                settings=settings,
+                client=client,
+                enabled=True,
+                remaining_seconds=remaining,
+            )
+
+    return analyze_gpt, convert_gpt
+
+
 # Production composition: LLM_PROVIDER picks the provider (default mock: rules only, no paid call).
 app = create_app(
-    analysis_processor=PhishingAnalyzer(), image_converter=openai_document_converter
+    analysis_processor=PhishingAnalyzer(),
+    image_converter=openai_document_converter,
+    member_ai=member_ai,
 )

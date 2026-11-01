@@ -171,7 +171,7 @@ async function render(job, text) {
   return zone;
 }
 
-test('화면: HIGH 예시 → 형광펜 2곳(글자 일치), 근거 줄에 규칙 검사/AI 모델 칩 구분, 규칙 번호', async () => {
+test('화면: HIGH 예시 → 형광펜 2곳(글자 일치), 근거 줄에 출처 칩 구분, 규칙 번호는 기술 증명 안', async () => {
   const zone = await render(EX.jobs.HIGH, EX.text);
   const marks = zone.querySelectorAll('mark');
   log('형광펜', marks.map(m => JSON.stringify(m.textContent) + ' title=' + m.getAttribute('title')).join(' | '));
@@ -180,7 +180,11 @@ test('화면: HIGH 예시 → 형광펜 2곳(글자 일치), 근거 줄에 규�
   rows.forEach(r => log('줄', r));
   const chips = zone.querySelectorAll('.op-row .op-chip').map(c => c.className + ' ' + c.textContent);
   assert.ok(chips.includes('op-chip t-info 규칙 검사') && chips.includes('op-chip t-none AI 모델'), chips.join(' / '));
-  assert.ok(rows.some(r => r.includes('규칙 번호 R_OTP_REQUEST')) && rows.some(r => r.includes('규칙 번호 L_REMOTE_APP')));
+  assert.doesNotMatch(zone.textContent, /규칙 번호|R_OTP_REQUEST|L_REMOTE_APP/);
+  const tech = zone.parentNode.parentNode.querySelector('details.op-proof');
+  assert.ok(tech); assert.equal(tech.getAttribute('open'), null);
+  assert.match(tech.textContent, /규칙 번호 R_OTP_REQUEST/);
+  assert.match(tech.textContent, /규칙 번호 L_REMOTE_APP/);
 });
 
 test('화면: ANALYZER_UNAVAILABLE → AI 칸 "AI 분석 연결 전", 형광펜 없음', async () => {
@@ -216,6 +220,9 @@ test('화면: 위치가 틀린 근거가 섞여도 깨지지 않고 맞는 곳�
   const zone = await render(job, EX.text);
   assert.equal(zone.querySelectorAll('mark').length, 2);
   const rows = zone.querySelectorAll('.op-row').map(r => r.textContent);
-  assert.ok(rows.some(r => /X_REV.*위치 앞뒤가 바뀜/.test(r)) && rows.some(r => /X_OUT.*위치가 글 길이를 넘음/.test(r)));
+  assert.ok(rows.some(r => /위치 앞뒤가 바뀜/.test(r)) && rows.some(r => /위치가 글 길이를 넘음/.test(r)));
+  assert.doesNotMatch(zone.textContent, /X_REV|X_OUT/);
+  const tech = zone.parentNode.parentNode.querySelector('details.op-proof');
+  assert.match(tech.textContent, /X_REV/); assert.match(tech.textContent, /X_OUT/);
   log('모양 틀린 근거(빈 quote) 안내', zone.querySelectorAll('.op-tech').map(p => p.textContent).filter(t => /모양이 틀린/.test(t)).join(''));
 });

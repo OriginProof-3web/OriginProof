@@ -36,6 +36,7 @@ test('세션이 끊기면 다시 불러오기 전에도 단추가 로그인으�
   let n = 0;
   const d = page(u => {
     if (u === '/api/v1/auth/me') return n++ ? { status: 401, body: { detail: 'AUTH_REQUIRED' } } : ME('issuer');
+    if (u === '/api/v1/auth/ai-key' && n < 2) return { status: 200, body: { provider: null, storage_enabled: true, input_tokens: 0, output_tokens: 0, analyses: 0 } };
     return { status: 401, body: { detail: 'AUTH_REQUIRED' } };
   });
   await sleep(10);

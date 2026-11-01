@@ -24,6 +24,7 @@ from pydantic import Field
 from sqlalchemy import BigInteger, and_, cast, delete, or_, select, update
 
 from .accounts import current_session
+from .ai_keys import member_ai_key, record_usage
 from .database import AuditEventRow, OperationRow
 from .operations import expired_wallet_audits, expired_wallet_operations, input_fingerprint
 from .wallet_database import (
@@ -177,7 +178,7 @@ async def process(app, analysis_id):
         if row is None or row.status != "QUEUED":
             return
         artifact = await db.get(WalletInputRow, row.input_id)
-        kind = artifact.kind
+        kind, account_id = artifact.kind, row.account_id
         data = (
             artifact.original
             if (artifact.original is not None and now() < artifact.expires_at)
@@ -186,14 +187,18 @@ async def process(app, analysis_id):
         row.status, row.started_at = "RUNNING", now()
         remaining = row.accepted_at + 180 - now()
         await service.commit(db)
-    processor = app.state.analysis_processor
+    processor, converter = app.state.analysis_processor, app.state.image_converter
     report, error = None, None
+    usage = {"input": 0, "output": 0}
     try:
         if remaining <= 0:
             raise TimeoutError
+        member = await member_ai_key(app, account_id) if app.state.member_ai else None
+        if member:
+            processor, converter = app.state.member_ai(*member, usage)
         if data is None:
             error = "INPUT_EXPIRED"
-        elif processor is None or (kind != "TEXT" and app.state.image_converter is None):
+        elif processor is None or (kind != "TEXT" and converter is None):
             error = "ANALYZER_UNAVAILABLE"
         elif kind == "TEXT":
             text = data.decode("utf-8")
@@ -201,7 +206,7 @@ async def process(app, analysis_id):
             report = ground_report(value, text)
         else:
             report = await asyncio.wait_for(
-                image_report(app.state.image_converter, processor, data, remaining),
+                image_report(converter, processor, data, remaining),
                 timeout=remaining,
             )
     except TimeoutError:
@@ -234,6 +239,10 @@ async def process(app, analysis_id):
             }
             else "ANALYZER_UNAVAILABLE"
         )
+    try:
+        await record_usage(app, account_id, usage)
+    except Exception:
+        pass  # A missed count must not leave the member's analysis unfinished.
     await finish(app, analysis_id, report, error)
 
 

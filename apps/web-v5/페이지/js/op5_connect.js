@@ -101,6 +101,7 @@
         (lines || []).forEach(function (l, i) { if (i) p.append(el('br')); p.append(document.createTextNode(String(l))); });
         toBottom();
       },
+      node: function (n) { b.append(n); toBottom(); },
       line: function (p, text) { if (p.childNodes.length) p.append(el('br')); p.append(document.createTextNode(String(text))); toBottom(); },
       // local=true: 서버를 부르지 않는 단추. 그 밖의 단추는 누르는 순간 모드를 다시 확인함(이전 말풍선·저장된 작업 포함)
       btn: function (label, fn, local) {
@@ -120,12 +121,12 @@
   }
   function say(text, title) { var r = aiMsg(); r.para(title || null, [text]); return r; }
   function codeLine(e) { return e && e.code ? '코드: ' + e.code + (e.status ? ' · HTTP ' + e.status : '') + (e.retryAfter != null ? ' · Retry-After ' + e.retryAfter + '초' : '') : ''; }
-  function errLines(res) { var e = client.say(res); return [e.text, codeLine(e)].filter(Boolean); }
+  function errLines(res, r) { var e = client.say(res); if (r) { technicalResponse(r, { status: res.status, error: res.error, data: res.data, diagnostic: codeLine(e) }); return [e.text.replace(/ \(확인할 항목:.*\)$/, '')]; } return [e.text, codeLine(e)].filter(Boolean); }
 
   /* ---------------- 오른쪽 직원 7칩 (기존 .st 모양) ---------------- */
   var IDS = ['intake', 'ledger', 'signature', 'original', 'status', 'ai', 'report'];
-  var LABEL = { wait: '대기', run: '확인 중', ok: '확인됨', off: '연결 전', bad: '문제 찾음' };
-  var CLS = { wait: 'st st-wait', run: 'st st-run', ok: 'st st-ok', off: 'st st-off', bad: 'st st-run' };
+  var LABEL = { wait: '대기', run: '확인 중', ok: '확인됨', info: '정보', off: '연결 전', bad: '문제 찾음' };
+  var CLS = { wait: 'st st-wait', run: 'st st-run', ok: 'st st-ok', info: 'st st-wait', off: 'st st-off', bad: 'st st-run' };
   var firstWhere = null, finished = {};
   function rows() { return Array.prototype.slice.call(document.querySelectorAll('#staffList li.staff')); }
   function chip(id, state, where, final) {
@@ -145,8 +146,8 @@
     var n = $('staffNote'); if (n && note) n.textContent = note;
   }
   // 응답 모양 → 기존 칩 5가지. '보류'·'해당 없음' 칩은 화면에 없어(자리 없음) 대기 칩 + 아래 줄 사유 글로 보여 줌
-  function stateOf(tone) { return tone === 'ok' || tone === 'info' ? 'ok' : tone === 'fail' || tone === 'caution' ? 'bad' : tone === 'offline' ? 'off' : 'wait'; }
-  function chipObs(o) { if (o && IDS.indexOf(o.staff) >= 0) chip(o.staff, stateOf(o.tone), o.line1 || '', true); }
+  function stateOf(tone) { return tone === 'info' ? 'info' : tone === 'ok' ? 'ok' : tone === 'fail' || tone === 'caution' ? 'bad' : tone === 'offline' ? 'off' : 'wait'; }
+  function chipObs(o) { if (o && IDS.indexOf(o.staff) >= 0) chip(o.staff, stateOf(o.bubble_key === 'ledger.not_found' ? 'info' : o.tone), o.line1 || '', true); }
   function animateStaff(list, done) {
     var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches || !!scene;
     var i = 0;
@@ -163,7 +164,7 @@
 
   /* ---------------- 결과 그리기: 블록체인 결정 / AI 설명 두 구역 ---------------- */
   /* 4축 보고서(3회차 멘토링 C-4 4): 왼쪽 '블록체인 결정(사실)' / 오른쪽 'AI 위험 설명(맥락)'.
-     값은 응답(axes·ai_report) 그대로이고, 없는 값(수법 ID 등)은 지어내지 않고 '연결 전'으로 둔다. */
+     값은 응답(axes·ai_report) 그대로이고, 없는 값(수법 ID 등)은 지어내지 않는다. */
   function opRow(x) {
     var row = el('div', 'op-row');
     row.append(el('b', null, x.name), el('span', 'op-chip t-' + (x.tone || 'none'), x.status), el('span', 'op-body', x.body));
@@ -210,7 +211,7 @@
       if (!e || typeof e.quote !== 'string') return;
       var s = srcOf(e.source);
       zone.append(opRow({ name: '근거 ' + (i + 1), status: s[0], tone: s[1],
-        body: '“' + T.maskPersonal(e.quote).slice(0, 120) + '”' + (e.rule_id ? ' · 규칙 번호 ' + e.rule_id : '') + (why[i] ? ' · 위치 표시 안 함(' + (W[why[i]] || why[i]) + ')' : '') }));
+        body: '“' + T.maskPersonal(e.quote).slice(0, 120) + '”' + (why[i] ? ' · 위치 표시 안 함(' + (W[why[i]] || why[i]) + ')' : '') }));
     });
     if (rep && rep.dropped) zone.append(el('p', 'op-tech', '모양이 틀린 근거 ' + rep.dropped + '건은 그리지 않았어요.'));
   }
@@ -232,6 +233,7 @@
     zone.append(b, out);
   }
   function renderReport(r, a) {
+    var unregistered = a.verification_status === 'NOT_REGISTERED';
     var c = a.conclusion || { badge: { text: '', tone: 'none' }, text: '' };
     var axes = Array.isArray(a.axes) ? a.axes : [];
     var ai = axes.filter(function (x) { return x.axis === 'ai'; })[0];
@@ -242,11 +244,17 @@
     fact.append(el('span', 'op-zone-tag', 'Blockchain & Crypto Core'), el('h4', null, '블록체인 결정 · 사실'));
     // 종합 결론(사실+맥락)은 두 구역 위에 한 줄로
     var concl = el('p', 'op-concl');
-    concl.append(el('b', null, '종합 '), el('span', 'op-chip t-' + (c.badge.tone || 'none'), c.badge.text || '-'), document.createTextNode(' ' + (c.text || '')));
+    var headline = c.badge.text || '판단 보류';
+    if (a.verification_status === 'VERIFIED' && (headline === '발행 기록 확인' || headline === '기록 일치')) headline = '진짜';
+    concl.append(el('strong', 'op-chip t-' + (unregistered ? 'none' : c.badge.tone || 'none'), headline));
     r.box.append(concl);
-    axes.filter(function (x) { return x.axis !== 'ai'; }).forEach(function (x) { fact.append(opRow(x)); });
+    if (a.next_action && a.next_action.text) {
+      var action = r.para('다음 행동', [unregistered ? '기관 대표번호나 공식 앱으로 확인하세요. 기록이 없다는 것만으로 가짜라고 판단할 수 없어요.' : a.next_action.text]);
+      action.className = 'op-next';
+    }
+    r.para(null, [c.text || '']);
+    axes.filter(function (x) { return x.axis !== 'ai'; }).forEach(function (x) { fact.append(opRow(unregistered && x.axis === 'official' ? Object.assign({}, x, { tone: 'none' }) : x)); });
     fact.append(el('p', 'op-foot', '이 영역은 AI 없이 기관 서명과 블록체인 기록만으로 판정해요. ①공식 발행 ②원본 일치 ③현재 상태'));
-    chainButton(fact, a);
 
     var aiz = el('section', 'op-zone op-ai');
     aiz.setAttribute('aria-label', 'AI 위험 설명');
@@ -257,7 +265,7 @@
     evidenceRows(aiz, a, sp);
     if (text) aiz.append(el('p', 'op-tech', sp.spans.length ? '받은 글에서 위험 요구 문장을 칠했어요' : '받은 글'), markedText(text, sp.spans));
     var ids = a.ai_report && Array.isArray(a.ai_report.matched_technique_ids) ? a.ai_report.matched_technique_ids : null;
-    if (sp.spans.length || sp.skipped.some(function (s) { return s.reason !== 'NO_QUOTE'; })) aiz.append(el('p', 'op-tech', ids && ids.length ? '일치한 공개 피싱 수법: ' + ids.join(', ') : '공개 피싱 수법 ID: 수법 지식베이스(RAG) 연결 전'));
+    if (ids && ids.length) aiz.append(el('p', 'op-tech', '일치한 공개 피싱 수법: ' + ids.join(', ')));
     aiz.append(el('p', 'op-foot', (ai && ai.note ? ai.note + ' ' : '') + '이 영역은 규칙과 AI가 메시지가 요구하는 행동의 위험을 설명만 해요. 진위 판정과 분리돼요. 확률 숫자는 쓰지 않아요.'));
 
     wrap.append(fact, aiz);
@@ -267,23 +275,31 @@
   function renderAnswer(a) {
     var r = aiMsg();
     renderReport(r, a);
-    if (a.next_action && a.next_action.text) r.para('다음 행동', [a.next_action.text]);
-    if (a.sample) r.para(null, ['예시 응답이에요. ' + (a.assumption || '')]);
+    if (a.sample) r.para(null, ['예시 응답이에요.']);
     var files = attachedIds();
     var sent = files.filter(function (id) { return atts[id] && atts[id].received; }).length;
     if (sent) r.para(null, ['첨부 ' + sent + '개(문서 사진)는 서버로 보냈어요.']);
     if (files.length > sent) r.para(null, ['첨부 ' + (files.length - sent) + '개는 서버로 보내지 않았어요. 문서 사진은 \'이 사진 확인하기\' 단추를 눌렀을 때만 보내요.']);
     if (a.analysis_id && !a.analysis_deleted) {
-      r.para('보관', ['분석 번호 ' + a.analysis_id + ' · 상태 ' + (a.analysis_status || '-'), '보고서 ' + (retain.report ? '7일 보관' : '끝난 뒤 10분만 보관') + ' · 원본 ' + (retain.original ? '7일 보관' : '처리 직후 삭제')]);
+      r.para('보관', ['분석 상태: ' + ({ COMPLETED: '완료', FAILED: '실패', QUEUED: '대기 중', RUNNING: '처리 중' }[a.analysis_status] || '확인 필요'), '보고서 ' + (retain.report ? '7일 보관' : '끝난 뒤 10분만 보관') + ' · 원본 ' + (retain.original ? '7일 보관' : '처리 직후 삭제')]);
       if (a.analysis_status === 'COMPLETED') r.btn('보고서 받기', function () { return downloadReport(a.analysis_id); });
       if (retain.original && a.analysis_status === 'COMPLETED') r.btn('원본 받기', function () { return downloadOriginal(a.analysis_id); });
       r.btn('이 분석 지우기', function (x) { return removeAnalysis(a.analysis_id, x); });
     }
-    r.btn('자세히 보기', function (x) {
-      x.dataset.done = '1';
-      var d = aiMsg();
-      d.para('자세히', (a.details || []).map(function (row) { return row.label + ': ' + row.value; }));
-    }, true);
+    var tech = el('details', 'op-proof');
+    tech.append(el('summary', 'add-btn', '기술 증명 보기'));
+    if (a.sample && a.assumption) tech.append(el('p', 'op-tech', a.assumption));
+    if (a.analysis_id) tech.append(el('p', 'op-tech', '분석 번호: ' + a.analysis_id + ' · 상태: ' + (a.analysis_status || '-')));
+    (a.details || []).forEach(function (row) { tech.append(el('p', 'op-tech', row.label + ': ' + row.value)); });
+    tech.append(el('p', 'op-tech', '2-of-3 승인 기록: 이 결과 응답에는 제공되지 않았어요.'));
+    (a.proof_links || []).forEach(function (link) {
+      var anchor = el('a', null, link.label);
+      anchor.href = link.href; anchor.target = '_blank'; anchor.rel = 'noopener noreferrer'; tech.append(anchor);
+    });
+    var evidence = a.ai_report && a.ai_report.evidence || [];
+    evidence.forEach(function (e, i) { if (e && e.rule_id) tech.append(el('p', 'op-tech', '근거 ' + (i + 1) + ' · 규칙 번호 ' + e.rule_id)); });
+    chainButton(tech, a);
+    r.node(tech);
   }
 
   /* ---------------- 입력 → 결과 ---------------- */
@@ -304,7 +320,7 @@
           if (n) n.textContent = api ? '실제 응답이 온 순서대로 갱신했어요. 판정은 서버 값 그대로예요.' : '예시 응답이에요. 서버에 보내지 않았어요.';
           renderAnswer(a); resolve(a);
         });
-      });
+      }).then(function (x) { return api && member() ? reportUsage(x) : x; });
     }, function (e) {
       IDS.forEach(function (id) { chip(id, 'wait'); });
       say(e && e.userMessage ? e.userMessage : '입력을 확인하지 못했어요.');
@@ -348,7 +364,7 @@
   function canRetry(res) { var s = res.status; return !!res.error || !s || s === 400 || s === 422 || s === 429 || s >= 500; }
   function failInto(rr, p, title, res) {
     var again = canRetry(res);
-    rr.set(p, title, errLines(res).concat(again ? [againLine()] : []));
+    rr.set(p, title, errLines(res, rr).concat(again ? [againLine()] : []));
     return again ? KEEP : undefined;
   }
   // 오른쪽 패널에 올린 문서 사진(검사 통과) → AI 말풍선의 기존 모양 단추로 DOCUMENT_IMAGE 분석
@@ -419,7 +435,7 @@
   function downloadReport(id) {
     return client.report(id).then(function (res) {
       if (res.ignored) return say('지운 분석이라 늦게 온 응답은 버렸어요.');
-      if (res.status !== 200) return aiMsg().para('보고서 받기', errLines(res));
+      if (res.status !== 200) { var r = aiMsg(); return r.para('보고서 받기', errLines(res, r)); }
       save(id + '-report.json', JSON.stringify(res.data, null, 2), 'application/json');
       say('보고서를 내려받았어요(' + id + '-report.json).');
     });
@@ -427,7 +443,7 @@
   function downloadOriginal(id) {
     return client.original(id).then(function (res) {
       if (res.ignored) return say('지운 분석이라 늦게 온 응답은 버렸어요.');
-      if (res.status !== 200) return aiMsg().para('원본 받기', errLines(res));
+      if (res.status !== 200) { var r = aiMsg(); return r.para('원본 받기', errLines(res, r)); }
       save(id + '.txt', res.text || '', 'text/plain;charset=utf-8');
       say('원본을 내려받았어요(' + id + '.txt).');
     });
@@ -437,7 +453,8 @@
     if (btn) btn.dataset.done = '1';
     return client.removeAnalysis(id).then(function (res) {
       if (res.status === 204) return say('분석 ' + id + ' 를 지웠어요. 이 분석에 늦게 오는 응답은 쓰지 않고 버려요.');
-      aiMsg().para('지우기', errLines(res).concat(['이 화면에서는 지운 것으로 보고 늦은 응답을 버려요.']));
+      var r = aiMsg();
+      r.para('지우기', errLines(res, r).concat(['이 화면에서는 지운 것으로 보고 늦은 응답을 버려요.']));
     });
   }
   function retainButtons(r) {
@@ -445,17 +462,18 @@
     r.btn('보고서 보관 켜기/끄기', function () { retain.report = !retain.report; saveRetain(); r.set(p, '보관 선택(다음 분석부터)', [retainText()]); }, true);
     r.btn('원본 보관 켜기/끄기', function () { retain.original = !retain.original; saveRetain(); r.set(p, '보관 선택(다음 분석부터)', [retainText()]); }, true);
   }
-  function retainText() { return 'retain_report ' + (retain.report ? '켬(7일)' : '끔(끝난 뒤 10분)') + ' · retain_original ' + (retain.original ? '켬(7일)' : '끔(처리 직후 삭제)'); }
+  function retainText() { return '보고서 보관 ' + (retain.report ? '켬(7일)' : '끔(끝난 뒤 10분)') + ' · 원본 보관 ' + (retain.original ? '켬(7일)' : '끔(처리 직후 삭제)'); }
   function showAnalyses() {
     if (!isApi()) return exampleOnly('내 확인 기록(보관한 분석)');
     var r = aiMsg();
-    var p = r.para('내 확인 기록(GET /v3/analyses)', ['불러오는 중…']);
+    var p = r.para('내 확인 기록', ['불러오는 중…']);
     return client.listAnalyses().then(function (res) {
-      if (res.status !== 200 || !res.data || !Array.isArray(res.data.items)) return r.set(p, '내 확인 기록', errLines(res));
+      if (res.status !== 200 || !res.data || !Array.isArray(res.data.items)) return r.set(p, '내 확인 기록', errLines(res, r));
+      technicalResponse(r, res.data);
       var items = res.data.items.filter(function (x) { return x && O.RE.ana.test(String(x.analysis_id)) && !client.isDeleted(x.analysis_id); });
       if (!items.length) return r.set(p, '내 확인 기록', ['보관 중인 분석이 없어요. 보관을 켜고 분석하면 여기에 남아요(보고서 7일).']);
       r.set(p, '내 확인 기록', items.slice(0, 5).map(function (x) {
-        return x.analysis_id + ' · ' + x.status + ' · 보고서 ' + (x.retain_report ? '보관' : '-') + ' · 원본 ' + (x.retain_original ? '보관' : '-') + (x.result_expires_at ? ' · 보고서 기한 ' + when(x.result_expires_at) : '');
+        return x.analysis_id + ' · ' + koreanState(x.status) + ' · 보고서 ' + (x.retain_report ? '보관' : '-') + ' · 원본 ' + (x.retain_original ? '보관' : '-') + (x.result_expires_at ? ' · 보고서 기한 ' + when(x.result_expires_at) : '');
       }).concat(items.length > 5 ? ['… 외 ' + (items.length - 5) + '건'] : []));
       items.slice(0, 5).forEach(function (x) {
         if (x.retain_report) r.btn('보고서 받기 ' + x.analysis_id, function () { return downloadReport(x.analysis_id); });
@@ -523,11 +541,12 @@
      계약: docs/api/v5_c_runtime.md 'A: 화면에서 사용할 순서'. 서명·거래는 각자 지갑에서 하고 서버에는 거래 해시만 알린다. */
   var HEX32 = /^0x[0-9a-f]{64}$/;
   function networkPara(r) {
-    var p = r.para('체인 네트워크(/v1/chain/network)', ['확인 중…']);
+    var p = r.para('체인 네트워크', ['확인 중…']);
     return client.get('/v1/chain/network').then(function (res) {
-      if (res.status !== 200 || !res.data) return r.set(p, '체인 네트워크(/v1/chain/network)', errLines(res));
+      if (res.status !== 200 || !res.data) return r.set(p, '체인 네트워크', errLines(res, r));
+      technicalResponse(r, res.data);
       var nodes = Array.isArray(res.data.approver_nodes) ? res.data.approver_nodes : [];
-      r.set(p, '체인 네트워크(/v1/chain/network)', [String(res.data.chain_target) + ' · 체인 ' + String(res.data.chain_id) + ' · 예비 RPC ' + (res.data.rpc_fallback_configured ? '있음' : '없음')].concat(nodes.map(function (n) { return String(n.label); })));
+      r.set(p, '체인 네트워크', [koreanState(res.data.chain_target) + ' · 체인 ' + String(res.data.chain_id) + ' · 예비 RPC ' + (res.data.rpc_fallback_configured ? '있음' : '없음')].concat(nodes.map(function (n) { return String(n.label); })));
     });
   }
   function onboardingLines(v) {
@@ -537,6 +556,7 @@
     var rr = aiMsg(); var p = rr.para(title, ['보내는 중…']);
     return client.write(method, path, body, { requestId: false }).then(function (res) {
       if (res.status < 200 || res.status >= 300 || !res.data) return failInto(rr, p, title, res);
+      technicalResponse(rr, res.data);
       rr.set(p, title, onboardingLines(res.data));
     });
   }
@@ -552,7 +572,7 @@
       r.btn('내부 승인하기(지정된 다른 계정)', function () {
         ask('approve', '승인 사유(500자 이하)를 입력칸에 넣고 보내 주세요.', function (t) {
           if (t.trim().length > 500) return sayAgain('승인 사유는 500자 이하예요.');
-          return onboardingCall('기관 내부 승인(internal-approvals)', 'POST', base + '/internal-approvals', { decision: 'APPROVE', reason: t.trim() });
+          return onboardingCall('기관 내부 승인', 'POST', base + '/internal-approvals', { decision: 'APPROVE', reason: t.trim() });
         });
       });
       return;
@@ -561,26 +581,26 @@
     r.para(null, ['내부 승인은 이 기관의 지정된 다른 계정이 해요. 신청자 본인은 승인할 수 없어요.']);
     r.btn('온보딩 상태 보기', function () {
       var rr = aiMsg(); var p = rr.para('온보딩 상태', ['확인 중…']);
-      return client.get(base).then(function (res) { rr.set(p, '온보딩 상태', res.status === 200 && res.data ? onboardingLines(res.data) : errLines(res)); });
+      return client.get(base).then(function (res) { rr.set(p, '온보딩 상태', res.status === 200 && res.data ? onboardingLines(res.data) : errLines(res, rr)); });
     });
     r.btn('업무 메일 코드 받기', function () {
       ask('email', '기관 업무 메일 주소(합성 기관 도메인)를 입력칸에 넣고 보내 주세요.', function (t) {
         var m = t.trim();
         if (m.length > 254 || !/^[^\s@]+@[^\s@]+$/.test(m)) return sayAgain('메일 주소 형식이 맞지 않아요.');
-        return onboardingCall('메일 코드 발급(email-codes)', 'POST', base + '/email-codes', { email: m });
+        return onboardingCall('메일 코드 발급', 'POST', base + '/email-codes', { email: m });
       });
     });
     r.btn('데모 받은편지함 보기', function () {
       var rr = aiMsg(); var p = rr.para('데모 받은편지함(시연 전용)', ['확인 중…']);
       return client.get(base + '/demo-inbox').then(function (res) {
-        if (res.status !== 200 || !res.data) return rr.set(p, '데모 받은편지함(시연 전용)', errLines(res));
+        if (res.status !== 200 || !res.data) return rr.set(p, '데모 받은편지함(시연 전용)', errLines(res, rr));
         rr.set(p, '데모 받은편지함(시연 전용)', [res.data.code ? '확인 코드 ' + String(res.data.code) : '유효한 코드가 없어요.']);
       });
     });
     r.btn('메일 코드 확인', function () {
       ask('code', '받은 확인 코드 6자리를 입력칸에 넣고 보내 주세요.', function (t) {
         if (!/^[0-9]{6}$/.test(t.trim())) return sayAgain('확인 코드는 숫자 6자리예요.');
-        return onboardingCall('메일 코드 확인(email-verifications)', 'POST', base + '/email-verifications', { code: t.trim() });
+        return onboardingCall('메일 코드 확인', 'POST', base + '/email-verifications', { code: t.trim() });
       }, function () { return '확인 코드(화면에 표시하지 않음)'; });
     });
   }
@@ -593,10 +613,11 @@
       return client.write('POST', path, { tx_hash: h.value }).then(function (res) {
         if (res.status !== 202 && res.status !== 200) return failInto(rr, p, title, res);
         return client.follow(res, 'governance').then(function (r2) {
-          if (r2.error === 'bad_shape' && !r2.before) return rr.set(p, title, errLines(r2).concat(['거래를 다시 보내기 전에 작업 이력에서 먼저 확인해 주세요.']));
+          if (r2.error === 'bad_shape' && !r2.before) return rr.set(p, title, errLines(r2, rr).concat(['거래를 다시 보내기 전에 작업 이력에서 먼저 확인해 주세요.']));
           // 복구 조회가 실패하면 기존 작업 번호·UNKNOWN 을 그대로 두고 오류와 재조회 단추를 보여 줌
           var op = r2.reconcileFailed ? r2.before : r2.data;
-          rr.set(p, title, ['작업 ' + String(op.operation_id) + ' · 상태 ' + String(op.status)].concat(r2.reconcileFailed ? ['복구 조회를 하지 못했어요. 거래를 다시 보내지 말고 아래 단추로 같은 작업을 다시 조회해 주세요.'].concat(errLines(r2)) : []));
+          technicalResponse(rr, op);
+          rr.set(p, title, ['작업 ' + String(op.operation_id) + ' · 상태 ' + koreanState(op.status)].concat(r2.reconcileFailed ? ['복구 조회를 하지 못했어요. 거래를 다시 보내지 말고 아래 단추로 같은 작업을 다시 조회해 주세요.'].concat(errLines(r2, rr)) : []));
           opButtons(rr, op);
         });
       });
@@ -606,11 +627,12 @@
     var r = aiMsg(); var title = '공동승인 제안 ' + id.slice(0, 10) + '…';
     var p = r.para(title, ['확인 중…']);
     return client.get('/v3/proposals/' + id).then(function (res) {
-      if (res.status !== 200 || !res.data) return r.set(p, title, errLines(res));
+      if (res.status !== 200 || !res.data) return r.set(p, title, errLines(res, r));
+      technicalResponse(r, res.data);
       var d = res.data, n = Array.isArray(d.approvals) ? d.approvals.length : 0;
-      r.set(p, title, ['상태 ' + String(d.status) + ' · 승인 ' + n + (d.threshold != null ? '/' + String(d.threshold) : '')]);
-      r.btn('승인 거래 알리기', function () { govTx('승인 거래 알림(approvals)', '/v3/proposals/' + id + '/approvals'); });
-      r.btn('실행 거래 알리기', function () { govTx('실행 거래 알림(transactions)', '/v3/proposals/' + id + '/transactions'); });
+      r.set(p, title, ['상태 ' + koreanState(d.status) + ' · 승인 ' + n + (d.threshold != null ? '/' + String(d.threshold) : '')]);
+      r.btn('승인 거래 알리기', function () { govTx('승인 거래 알림', '/v3/proposals/' + id + '/approvals'); });
+      r.btn('실행 거래 알리기', function () { govTx('실행 거래 알림', '/v3/proposals/' + id + '/transactions'); });
     });
   }
   /* 서버 규칙(wallet_governance.py): 제안 조회·준비·승인·실행은 승인 지갑이 등록된 operator 만(:126·:250·:361, wallet_runtime.py:105-110).
@@ -626,10 +648,11 @@
       ask('propose', '제안 JSON({proposal, key_proof_request_id})을 입력칸에 넣고 보내 주세요. request_id 는 화면이 붙여요.', function (t) {
         var body; try { body = JSON.parse(t); } catch (e) { return sayAgain('JSON 형식이 맞지 않아요.'); }
         if (!body || typeof body.proposal !== 'object') return sayAgain('proposal 항목이 필요해요.');
-        var rr = aiMsg(); var p = rr.para('공동승인 제안 준비(/v3/proposals)', ['보내는 중…']);
+        var rr = aiMsg(); var p = rr.para('공동승인 제안 준비', ['보내는 중…']);
         return client.write('POST', '/v3/proposals', { proposal: body.proposal, key_proof_request_id: body.key_proof_request_id || null }).then(function (res) {
-          if (res.status !== 201 || !res.data) return failInto(rr, p, '공동승인 제안 준비(/v3/proposals)', res);
-          rr.set(p, '공동승인 제안 준비(/v3/proposals)', ['제안 번호 ' + String(res.data.proposal_id) + ' · 상태 ' + String(res.data.status)]);
+          if (res.status !== 201 || !res.data) return failInto(rr, p, '공동승인 제안 준비', res);
+          technicalResponse(rr, res.data);
+          rr.set(p, '공동승인 제안 준비', ['제안 번호 ' + String(res.data.proposal_id) + ' · 상태 ' + koreanState(res.data.status)]);
         });
       });
     });
@@ -637,15 +660,83 @@
       ask('issuerid', '정지할 기관 ID(0x + 64자리)를 입력칸에 넣고 보내 주세요. 이어서 지갑에서 보낸 거래 해시를 받아요.', function (t) {
         var id = t.trim().toLowerCase();
         if (!HEX32.test(id)) return sayAgain('기관 ID 형식이 맞지 않아요(0x + 64자리).');
-        govTx('긴급 정지 알림(suspensions)', '/v3/issuers/' + id + '/suspensions');
+        govTx('긴급 정지 알림', '/v3/issuers/' + id + '/suspensions');
       });
     });
   }
 
+  /* 왼쪽 메뉴의 내 AI 사용량(도움말 위): 이 서비스 분석에서 쓴 토큰만 센다. AI 회사 계정 전체 사용량은 아님 */
+  var AI_NAMES = { openai: 'GPT', anthropic: 'Claude' };
+  var usageLast = null;
+  function member() { return !!(Hk.auth && Hk.auth.state.member); }
+  function num(n) { return Number(n || 0).toLocaleString('ko-KR'); }
+  function paintUsage(d, left) {
+    var help = Array.prototype.filter.call(document.querySelectorAll('#sidebar-root button'), function (b) { return b.textContent.trim() === '도움말'; })[0];
+    var old = document.getElementById('aiUsageCard');
+    if (!help || !help.parentNode || !help.parentNode.parentNode) {
+      if (left > 0) setTimeout(function () { paintUsage(d, left - 1); }, 100);
+      return;
+    }
+    if (old) old.remove();
+    if (!d) return;
+    var card = el('div', 'ai-usage'); card.id = 'aiUsageCard';
+    card.append(el('b', null, '내 AI 사용량'));
+    if (d.provider) {
+      card.append(el('span', null, AI_NAMES[d.provider] + ' · 끝자리 ' + d.hint),
+        el('span', null, '토큰 ' + num(d.input_tokens + d.output_tokens) + ' (입력 ' + num(d.input_tokens) + ' · 출력 ' + num(d.output_tokens) + ')'),
+        el('span', null, '분석 ' + num(d.analyses) + '건'));
+    } else card.append(el('span', null, '넣은 키 없음 · 기관 상태에서 넣을 수 있어요'));
+    help.parentNode.parentNode.insertBefore(card, help.parentNode);
+  }
+  function refreshUsage() {
+    if (scene || !isApi() || !member()) { usageLast = null; paintUsage(null, 20); return Promise.resolve(null); }
+    return client.get('/v1/auth/ai-key').then(function (res) {
+      usageLast = res.status === 200 && res.data ? res.data : null;
+      paintUsage(usageLast, 20);
+      return usageLast;
+    });
+  }
+  // 분석이 끝나면 내 키로 AI 가 실제 답했는지 토큰 증가로 알려 줌(실패해도 규칙 검사 결과는 나오므로)
+  function reportUsage(a) {
+    var before = usageLast;
+    var aiAxis = a && Array.isArray(a.axes) ? a.axes.filter(function (x) { return x.axis === 'ai'; })[0] : null;
+    return refreshUsage().then(function (now) {
+      if (!now || !now.provider || !before || before.provider !== now.provider || (aiAxis && aiAxis.status === '확인 안 함')) return a;
+      var i = now.input_tokens - before.input_tokens, o = now.output_tokens - before.output_tokens;
+      if (i + o > 0) say('내 ' + AI_NAMES[now.provider] + ' 키로 AI 분석을 했어요. 이번에 토큰 ' + num(i + o) + '개(입력 ' + num(i) + ' · 출력 ' + num(o) + ')를 썼어요.');
+      else say('내 ' + AI_NAMES[now.provider] + ' 키로 AI 분석을 하지 못해 규칙 검사 결과만 보여 드렸어요. 키가 맞는지, 요금 잔액이 있는지 확인해 주세요.');
+      return a;
+    });
+  }
+  if (Hk.auth && Hk.auth.checked) Hk.auth.checked.then(refreshUsage);
+
+  /* 내 AI 키: 서버에 암호화 저장, 응답에는 끝 4자리만. 대화 입력칸을 쓰지 않아 말풍선에 키가 남지 않음 */
+  function aiKeyPanel(r) {
+    var p = r.para('내 AI 키', ['확인 중…']);
+    function show(res) {
+      var d = res.data || {};
+      if (res.status !== 200) return r.set(p, '내 AI 키', errLines(res, r));
+      usageLast = d; paintUsage(d, 20);
+      r.set(p, '내 AI 키', [d.provider ? AI_NAMES[d.provider] + ' · 끝자리 ' + d.hint + ' · 분석에 이 키를 써요' : '없음 · 서버 기본 설정으로 분석해요',
+        d.storage_enabled ? 'sk-ant- 로 시작하면 Claude, sk- 로 시작하면 GPT 로 저장돼요.' : '이 서버는 키 저장을 켜 두지 않았어요.']);
+    }
+    var box = el('input', 'op-input');
+    box.type = 'password'; box.autocomplete = 'off'; box.maxLength = 300; box.placeholder = 'sk-ant-… 또는 sk-…';
+    box.setAttribute('aria-label', 'AI API 키');
+    r.node(box);
+    r.btn('AI 키 저장', function (x) {
+      var key = box.value.trim(); box.value = '';
+      x.disabled = false;
+      if (!key) return say('키를 먼저 넣어 주세요.');
+      return client.write('POST', '/v1/auth/ai-key', { provider: /^sk-ant-/.test(key) ? 'anthropic' : 'openai', key: key }, { requestId: false, key: 'ai-key' }).then(function (res) { show(res); if (res.status !== 200) say(res.status === 422 ? 'API 키 형식이 맞지 않아요.' : errLines(res, r).join(' ')); });
+    });
+    r.btn('AI 키 지우기', function (x) { x.disabled = false; return client.write('DELETE', '/v1/auth/ai-key', null, { requestId: false }).then(show); });
+    return client.get('/v1/auth/ai-key').then(show);
+  }
   function showStatus() {
     var r = aiMsg();
     r.para('연결 설정', ['지금 모드: ' + (isApi() ? '실서버 모드' : '예시 모드'), '연결 주소: ' + getBase() + (getBase() === '/api' ? ' (같은 출처 프록시)' : ''), retainText()]);
-    var h = r.para('서버 상태(/health/live · /health/ready)', ['확인 중…']);
+    var h = r.para('서버 상태', ['확인 중…']);
     var who = r.para('로그인', ['확인 중…']);
     modeButtons(r);
     r.btn('연결 다시 확인', function () { return showStatus(); }, true);
@@ -661,47 +752,55 @@
     govPanel(r);
     roiPanel(r);
     if (!isApi()) {
-      r.set(h, '서버 상태(/health/live · /health/ready)', ['예시 모드라 서버에 묻지 않았어요.']);
+      r.set(h, '서버 상태', ['예시 모드라 서버에 묻지 않았어요.']);
       r.set(who, '로그인', ['예시 모드라 서버에 묻지 않았어요. 실서버 모드에서 기관 상태까지 확인해요. 로그인은 로그인 화면(login.html)에서 해요.']);
       r.btn('로그인 화면 열기', function (x) { x.dataset.done = '1'; location.href = 'login.html?next=business.html'; }, true);
       return Promise.resolve();
     }
     var pending = [client.health().then(function (x) {
-      r.set(h, '서버 상태(/health/live · /health/ready)', ['live: ' + x.live.text + ' (' + x.live.code + ')', 'ready: ' + x.ready.text + ' (' + x.ready.code + ')']);
+      technicalResponse(r, x);
+      r.set(h, '서버 상태', ['프로그램: ' + x.live.text, '준비 상태: ' + x.ready.text]);
     })];
     if (isApi()) pending.push(networkPara(r));
     pending.push(client.me().then(function (res) {
       if (res.status !== 200 || !res.data) {
-        r.set(who, '로그인', errLines(res).concat(['로그인은 로그인 화면(login.html)에서 해요. 비밀번호는 이 대화에 쓰지 마세요.']));
+        r.set(who, '로그인', errLines(res, r).concat(['로그인은 로그인 화면(login.html)에서 해요. 비밀번호는 이 대화에 쓰지 마세요.']));
         r.btn('로그인 화면 열기', function (x) { x.dataset.done = '1'; location.href = 'login.html?next=business.html'; }, true);
         return;
       }
+      technicalResponse(r, { role: res.data.role });
       var me = res.data;
-      r.set(who, '로그인', [String(me.username) + ' · 역할 ' + String(me.role) + (me.issuer_id ? ' · 기관 ' + String(me.issuer_id) : '')]);
-      r.btn('로그아웃', function (x) { x.dataset.done = '1'; return client.logout().then(function (o) { say(o.status === 200 ? '로그아웃했어요.' : errLines(o).join(' ')); }); });
+      r.set(who, '로그인', [String(me.username) + ' · 역할 ' + koreanState(me.role) + (me.issuer_id ? ' · 기관 ' + String(me.issuer_id) : '')]);
+      r.btn('로그아웃', function (x) { x.dataset.done = '1'; return client.logout().then(function (o) { say(o.status === 200 ? '로그아웃했어요.' : errLines(o, r).join(' ')); }); });
+      aiKeyPanel(r);
       if (me.role === 'issuer' || me.role === 'operator') governanceButtons(r, me.role);
       if (me.role !== 'issuer') return;
-      var iss = r.para('기관 상태(/v1/issuer/status · 신청)', ['확인 중…']);
+      var iss = r.para('기관 상태 · 신청', ['확인 중…']);
       return Promise.all([client.get('/v1/issuer/status'), client.get('/v1/issuer-applications/mine')]).then(function (z) {
+        technicalResponse(r, z.map(function (v) { return { status: v.status, data: v.data }; }));
         var lines = [];
-        if (z[0].status === 200 && z[0].data) lines.push('기관 ' + z[0].data.issuer_id + ' · 상태 ' + z[0].data.status + ' · 체인 ' + z[0].data.chain_id);
-        else lines = lines.concat(errLines(z[0]));
-        if (z[1].status === 200 && z[1].data) { lines.push('신청 ' + z[1].data.application_id + ' · ' + z[1].data.issuer_name + ' · ' + z[1].data.status); onboardingButtons(r, z[1].data, me); }
+        if (z[0].status === 200 && z[0].data) lines.push('기관 ' + z[0].data.issuer_id + ' · 상태 ' + koreanState(z[0].data.status) + ' · 체인 ' + z[0].data.chain_id);
+        else lines = lines.concat(errLines(z[0], r));
+        if (z[1].status === 200 && z[1].data) { lines.push('신청 ' + z[1].data.application_id + ' · ' + z[1].data.issuer_name + ' · ' + koreanState(z[1].data.status)); onboardingButtons(r, z[1].data, me); }
         else if (z[1].status === 200) lines.push('기관 신청 기록이 없어요.');
-        else lines = lines.concat(errLines(z[1]));
-        r.set(iss, '기관 상태(/v1/issuer/status · 신청)', lines);
+        else lines = lines.concat(errLines(z[1], r));
+        r.set(iss, '기관 상태 · 신청', lines);
       });
     }));
     return Promise.all(pending);
   }
-  function stepLine(r, p) { return function (s) { r.line(p, (s.ok ? '✓ ' : '✕ ') + s.text + (s.ok ? '' : (s.code ? ' (코드: ' + s.code + (s.data && s.data.status ? ' · HTTP ' + s.data.status : '') + ')' : ''))); }; }
-  function needWallet(r) { var w = ethFn(); if (!w || typeof w.request !== 'function') { r.para('지갑 필요', ['이 브라우저에는 지갑(window.ethereum)이 없어요. 서명은 기관 지갑에서만 하고, 서버에는 개인키를 보내지 않아요.']); return true; } return false; }
+  function stepLine(r, p) { return function (s) {
+    technicalResponse(r, s);
+    var op = s.data && s.data.op;
+    r.line(p, (s.ok ? '✓ ' : '✕ ') + (op ? '작업 ' + op.operation_id + ' · 상태 ' + koreanState(op.status) + ' · 다음 ' + koreanState(op.next_action) : s.ok ? '단계를 완료했어요.' : '단계를 완료하지 못했어요. 기술 증명 보기에서 확인해 주세요.'));
+  }; }
+  function needWallet(r) { var w = ethFn(); if (!w || typeof w.request !== 'function') { r.para('지갑 필요', ['이 브라우저에는 지갑이 없어요. 서명은 기관 지갑에서만 하고, 서버에는 개인키를 보내지 않아요.']); return true; } return false; }
   function txButton(r, sr, kind) {
     r.btn('지갑에서 보낸 거래 해시 알리기', function () {
       ask('tx', '지갑에서 보낸 거래 해시(0x + 64자리)를 입력칸에 넣고 보내 주세요. 같은 서명 요청 ' + sr.signing_request_id + ' 에 붙여요.', function (t) {
         var h = O.parseTxHash(t);
         if (!h.ok) return sayAgain(h.message);
-        var rr = aiMsg(); var p = rr.para('거래 해시 알림(signing-requests/{id}/transactions)', []);
+        var rr = aiMsg(); var p = rr.para('거래 해시 알림', []);
         return wallet.submitTx(sr.signing_request_id, t, kind).then(function (res) { stepLine(rr, p)(res); opButtons(rr, stepOp(res)); return res.ok || !res.data || stepOp(res) || !canRetry(res.data) ? undefined : KEEP; });
       });
     });
@@ -710,15 +809,16 @@
   function opButtons(r, op) {
     if (!op || !O.RE.op.test(String(op.operation_id))) return;
     r.btn('작업 상태 조회 ' + op.operation_id, function () { return showOperation(op.operation_id); });
-    if (op.status === 'UNKNOWN' || op.status === 'SUBMITTED' || op.next_action === 'RECONCILE') r.btn('복구 조회(reconcile) ' + op.operation_id, function () { return reconcileOp(op.operation_id); });
+    if (op.status === 'UNKNOWN' || op.status === 'SUBMITTED' || op.next_action === 'RECONCILE') r.btn('복구 조회 ' + op.operation_id, function () { return reconcileOp(op.operation_id); });
   }
   function showOperation(id) {
     return client.operation(id).then(function (res) {
       var r = aiMsg();
-      if (res.error || res.status !== 200 || !res.data) { r.para('작업 ' + id, errLines(res)); r.btn('작업 상태 조회 ' + id, function () { return showOperation(id); }); return; }
+      if (res.error || res.status !== 200 || !res.data) { r.para('작업 ' + id, errLines(res, r)); r.btn('작업 상태 조회 ' + id, function () { return showOperation(id); }); return; }
+      technicalResponse(r, res.data);
       var op = res.data; client.track(op, 'lookup');
-      r.para('작업 ' + id, ['상태 ' + op.status + ' · 다음 ' + op.next_action + (op.error_code ? ' · 코드 ' + op.error_code : '') + (op.tx_hash ? ' · 거래 ' + op.tx_hash.slice(0, 12) + '…' : ''),
-        op.status === 'UNKNOWN' ? '결과가 불명확해요. 다시 보내지 말고 복구 조회(reconcile)로 기존 거래부터 확인해요.' : op.next_action === 'RESIGN' ? '서명 기한이 지나 새로 서명해야 해요.' : '']);
+      r.para('작업 ' + id, ['상태 ' + koreanState(op.status) + ' · 다음 ' + koreanState(op.next_action) + (op.error_code ? ' · 처리 오류가 있어요.' : '') + (op.tx_hash ? ' · 거래 ' + op.tx_hash.slice(0, 12) + '…' : ''),
+        op.status === 'UNKNOWN' ? '결과가 불명확해요. 다시 보내지 말고 복구 조회로 기존 거래부터 확인해요.' : op.next_action === 'RESIGN' ? '서명 기한이 지나 새로 서명해야 해요.' : '']);
       opButtons(r, op);
     });
   }
@@ -727,12 +827,13 @@
       var r = aiMsg();
       if (res.error || res.status < 200 || res.status >= 300 || !res.data) {
         // 저장된 상태는 그대로 두고 같은 작업을 다시 조회할 단추를 남김(새로 보내지 않음)
-        r.para('복구 조회 ' + id, errLines(res).concat(['복구 조회를 하지 못했어요. 거래를 다시 보내지 말고 같은 작업을 다시 조회해 주세요.']));
+        r.para('복구 조회 ' + id, errLines(res, r).concat(['복구 조회를 하지 못했어요. 거래를 다시 보내지 말고 같은 작업을 다시 조회해 주세요.']));
         opButtons(r, { operation_id: id, status: 'UNKNOWN', next_action: 'RECONCILE' });
         return;
       }
+      technicalResponse(r, res.data);
       client.track(res.data, 'reconcile');
-      r.para('복구 조회 ' + id, ['상태 ' + res.data.status + ' · 다음 ' + res.data.next_action + (res.data.error_code ? ' · 코드 ' + res.data.error_code : '')]);
+      r.para('복구 조회 ' + id, ['상태 ' + koreanState(res.data.status) + ' · 다음 ' + koreanState(res.data.next_action) + (res.data.error_code ? ' · 처리 오류가 있어요.' : '')]);
       opButtons(r, res.data);
     });
   }
@@ -743,7 +844,7 @@
   };
   function startIssue() {
     var r = aiMsg();
-    r.para('새 Proof 발행(기관 지갑)', ['1. 발행 초안 보내기(document-drafts)', '2. 지갑에서 Publish 서명(EIP-712)', '3. 서명 제출(publications) → 작업 번호', '4. 지갑에서 보낸 거래 해시 알리기(signing-requests/{id}/transactions)', '5. 작업 확인 — UNKNOWN 이면 다시 보내지 않고 복구 조회(reconcile)']);
+    r.para('새 Proof 발행(기관 지갑)', ['1. 발행 초안 보내기', '2. 지갑에서 기관 발행 서명', '3. 서명 제출 후 작업 번호 확인', '4. 지갑에서 보낸 거래 해시 알리기', '5. 작업 확인 — 결과가 불명확하면 다시 보내지 않고 복구 조회']);
     gasBadges(r);
     if (!isApi()) { r.para(null, ['예시 모드라 서버에 보내지 않아요.']); modeButtons(r); return; }
     if (needWallet(r)) return;
@@ -762,21 +863,30 @@
   }
   function showKeys() {
     var r = aiMsg();
-    var p = r.para('공개키 관리(GET /v1/issuer/keys)', [isApi() ? '불러오는 중…' : '예시 모드라 서버에 보내지 않아요.']);
+    var p = r.para('공개키 관리', [isApi() ? '불러오는 중…' : '예시 모드라 서버에 보내지 않아요.']);
     if (!isApi()) { modeButtons(r); return; }
     var start = function () {
       if (needWallet(r)) return;
-      r.btn('지갑 키 증명 시작(key-challenges → key-proofs)', function (x) {
+      r.btn('지갑 키 증명 시작', function (x) {
         x.dataset.done = '1';
         var rr = aiMsg(); var q = rr.para('지갑 키 증명', []);
         return wallet.keyProof(stepLine(rr, q));
       });
     };
     return client.get('/v1/issuer/keys').then(function (res) {
-      if (res.status !== 200 || !Array.isArray(res.data)) r.set(p, '공개키 관리', errLines(res));
-      else r.set(p, '공개키 관리', res.data.length ? res.data.slice(0, 8).map(function (k) { return String(k.key_id).slice(0, 14) + '… · ' + k.status + (k.selected ? ' · 사용 중' : '') + ' · ' + String(k.signer).slice(0, 10) + '…'; }) : ['등록된 키가 없어요.']);
+      if (res.status !== 200 || !Array.isArray(res.data)) r.set(p, '공개키 관리', errLines(res, r));
+      else r.set(p, '공개키 관리', res.data.length ? res.data.slice(0, 8).map(function (k) { return String(k.key_id).slice(0, 14) + '… · ' + koreanState(k.status) + (k.selected ? ' · 사용 중' : '') + ' · ' + String(k.signer).slice(0, 10) + '…'; }) : ['등록된 키가 없어요.']);
+      if (res.status === 200) technicalResponse(r, res.data);
       start();
     });
+  }
+  function technicalResponse(r, data) {
+    var tech = el('details', 'op-proof');
+    tech.append(el('summary', 'add-btn', '기술 증명 보기'), el('pre', 'op-tech', JSON.stringify(data, null, 2)));
+    r.node(tech);
+  }
+  function koreanState(value) {
+    return ({ APPROVED: '승인됨', SUBMITTED: '제출됨', PREPARED: '준비됨', PENDING_SUBMISSION: '거래 제출 대기', WAIT: '기다리기', RECONCILE: '복구 조회', RESIGN: '다시 서명', NONE: '없음', RETRY: '다시 시도', SUBMIT_TRANSACTION: '거래 제출', PUBLISH: '발행', publish: '발행', REVOKE: '철회', revoke: '철회', governance: '공동승인', issuer: '기관 담당자', operator: '운영자', recipient: '일반 회원', member: '회원', anvil: '로컬 개발 체인', sepolia: '공개 시험 체인', ACTIVE: '유효', REVOKED: '철회됨', SUPERSEDED: '새 버전 있음', EXPIRED: '만료됨', REGISTERED: '등록됨', CONFIRMED: '확인됨', PENDING: '대기 중', COMPLETED: '완료', FAILED: '실패', QUEUED: '대기 중', RUNNING: '처리 중', UNKNOWN: '확인 중', NOT_REGISTERED: '미등록' })[value] || '확인 필요';
   }
   function showProofs(proofId) {
     var r = aiMsg();
@@ -785,16 +895,18 @@
       if (!O.RE.prf.test(String(proofId))) return r.para('발행 기록', ['Proof ID 형식이 맞지 않아요.']);
       var q = r.para('발행 기록 ' + proofId, ['불러오는 중…']);
       return client.get('/v2/proofs/' + proofId).then(function (res) {
-        r.set(q, '발행 기록 ' + proofId, res.status === 200 && res.data ? [JSON.stringify(res.data).slice(0, 400)] : errLines(res));
+        if (res.status === 200 && res.data) technicalResponse(r, res.data);
+        r.set(q, '발행 기록 ' + proofId, res.status === 200 && res.data ? ['발행 기록을 불러왔어요.'] : errLines(res, r));
       });
     }
-    var p = r.para('발행 목록(GET /v2/issuer/proofs)', ['불러오는 중…']);
+    var p = r.para('발행 목록', ['불러오는 중…']);
     return client.get('/v2/issuer/proofs').then(function (res) {
-      if (res.status !== 200 || !Array.isArray(res.data)) r.set(p, '발행 목록', errLines(res));
-      else r.set(p, '발행 목록', res.data.length ? res.data.slice(0, 8).map(function (x) { return x.proof_id + ' · ' + x.proof_type + ' · 등록 ' + x.registration_status + ' · 만료 ' + x.expires_at; }) : ['발행한 Proof 가 없어요.']);
+      if (res.status !== 200 || !Array.isArray(res.data)) r.set(p, '발행 목록', errLines(res, r));
+      else r.set(p, '발행 목록', res.data.length ? res.data.slice(0, 8).map(function (x) { return x.proof_id + ' · ' + (x.proof_type === 'OFFICIAL_DOCUMENT' ? '공식 문서' : x.proof_type === 'PAYMENT_REQUEST' ? '납부 요청' : '안내 문서') + ' · 등록 ' + koreanState(x.registration_status) + ' · 만료 ' + x.expires_at; }) : ['발행한 Proof 가 없어요.']);
+      if (res.status === 200) technicalResponse(r, res.data);
       r.para(null, ['v3 지갑 발행 문서는 목록 경로가 없어 문서 ID로 찾아요(왼쪽 발행 기록 검색칸에 0x… 입력).']);
       if (needWallet(r)) return;
-      r.btn('철회 시작(revoke-drafts → revocations)', function () {
+      r.btn('철회 시작', function () {
         ask('revoke', '철회할 문서 ID(0x + 64자리)와 버전을 "0x… 2" 처럼 입력칸에 넣고 보내 주세요.', function (t) {
           var d = O.parseRevoke(t);
           if (!d.ok) return sayAgain(d.message);
@@ -807,15 +919,17 @@
   function showOps() {
     var r = aiMsg();
     var ops = client.readOps();
-    r.para('이 탭에서 만든 지갑 작업(v3)', ops.length ? ops.slice(0, 5).map(function (o) { return o.operation_id + ' · ' + o.kind + ' · ' + o.status + ' · 다음 ' + o.next_action; }) : ['아직 없어요.']);
+    if (ops.length) technicalResponse(r, ops);
+    r.para('이 탭에서 만든 지갑 작업', ops.length ? ops.slice(0, 5).map(function (o) { return o.operation_id + ' · ' + koreanState(o.kind) + ' · ' + koreanState(o.status) + ' · 다음 ' + koreanState(o.next_action); }) : ['아직 없어요.']);
     ops.slice(0, 3).forEach(function (o) { opButtons(r, o); });
     r.btn('내 확인 기록(보관한 분석) 보기', function () { return showAnalyses(); }, true);
     r.btn('보관 선택 바꾸기', function () { retainButtons(aiMsg()); }, true);
     if (!isApi()) { r.para(null, ['예시 모드라 서버 작업 목록은 부르지 않아요.']); modeButtons(r); return; }
-    var p = r.para('서버 작업 이력(GET /v1/operations)', ['불러오는 중…']);
+    var p = r.para('서버 작업 이력', ['불러오는 중…']);
     return client.get('/v1/operations?limit=5').then(function (res) {
-      if (res.status !== 200 || !Array.isArray(res.data)) return r.set(p, '서버 작업 이력', errLines(res));
-      r.set(p, '서버 작업 이력(v1)', res.data.length ? res.data.map(function (o) { return o.operation_id + ' · ' + o.action + ' · ' + o.status + ' · 다음 ' + o.next_action; }) : ['작업이 없어요.']);
+      if (res.status !== 200 || !Array.isArray(res.data)) return r.set(p, '서버 작업 이력', errLines(res, r));
+      technicalResponse(r, res.data);
+      r.set(p, '서버 작업 이력', res.data.length ? res.data.map(function (o) { return o.operation_id + ' · ' + koreanState(o.action) + ' · ' + koreanState(o.status) + ' · 다음 ' + koreanState(o.next_action); }) : ['작업이 없어요.']);
     });
   }
   function showHelp() {
@@ -850,18 +964,20 @@
     if (O.RE.ana.test(s) && client.isDeleted(s)) return r.para(title, ['지운 분석이에요.']);
     var p = r.para(title, ['찾는 중…']);
     return client.get(path).then(function (res) {
-      if (res.status !== 200 || !res.data) return r.set(p, title, errLines(res));
+      if (res.status !== 200 || !res.data) return r.set(p, title, errLines(res, r));
       var d = res.data;
-      if (d.document_id && d.state) r.btn('검증 자료 보기(verification-material)', function () {
+      technicalResponse(r, d);
+      if (d.document_id && d.state) r.btn('검증 자료 보기', function () {
         var mr = aiMsg(); var mp = mr.para('검증 자료 ' + title, ['확인 중…']);
         return client.get(path + '/verification-material').then(function (m) {
-          if (m.status !== 200 || !m.data) return mr.set(mp, '검증 자료 ' + title, errLines(m));
-          mr.set(mp, '검증 자료 ' + title, Object.keys(m.data).map(function (k) { var v = m.data[k]; return k + ': ' + (v && typeof v === 'object' ? JSON.stringify(v).slice(0, 200) : String(v).slice(0, 200)); }));
+          if (m.status !== 200 || !m.data) return mr.set(mp, '검증 자료 ' + title, errLines(m, mr));
+          mr.set(mp, '검증 자료 ' + title, ['검증 자료를 불러왔어요. 기술 증명 보기에서 확인하세요.']);
+          technicalResponse(mr, m.data);
         });
       });
-      if (d.document_id && d.state) r.set(p, title, ['상태 ' + d.state + ' · 버전 ' + d.version + '/' + d.latest_version + (d.warnings && d.warnings.length ? ' · 경고 ' + d.warnings.join(', ') : '') + ' · 원본 ' + (d.original_available ? '있음' : '없음')]);
-      else if (d.analysis_id) r.set(p, title, [d.analysis_id + ' · ' + d.status + (d.error_code ? ' · 코드 ' + d.error_code : '')]);
-      else r.set(p, title, [JSON.stringify(d).slice(0, 400)]);
+      if (d.document_id && d.state) r.set(p, title, ['상태 ' + koreanState(d.state) + ' · 버전 ' + d.version + '/' + d.latest_version + (d.warnings && d.warnings.length ? ' · 확인할 경고 ' + d.warnings.length + '건' : '') + ' · 원본 ' + (d.original_available ? '있음' : '없음')]);
+      else if (d.analysis_id) r.set(p, title, ['분석 상태 ' + koreanState(d.status) + (d.error_code ? ' · 처리 오류가 있어요.' : '')]);
+      else r.set(p, title, ['기록을 불러왔어요.']);
     });
   }
 

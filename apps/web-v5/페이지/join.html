@@ -54,9 +54,9 @@
         <div class="a-field"><label for="apiKey" id="keyLabel">GPT API 키</label>
           <div class="a-key"><input id="apiKey" type="password" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="300" data-lpignore="true" data-1p-ignore placeholder="sk-…"><button type="button" class="peek" data-for="apiKey" aria-pressed="false">보기</button></div>
           <span class="a-help" id="keyHelp">나중에 넣어도 돼요. 키가 없으면 AI 분석 없이 기관 기록 확인만 해요.</span></div>
-        <div class="a-lock" role="note"><span aria-hidden="true">🔒</span><span><b>키는 OriginProof 서버로 보내지 않아요.</b> 위 비밀번호로 잠가(AES-256 암호화) 이 기기에만 저장하고, 화면에는 끝 4자리만 보여요. 공용 컴퓨터라면 저장하지 마세요.</span></div>
-        <label class="a-check"><input type="checkbox" id="saveKey" checked> 이 기기에 암호화해서 저장</label>
-        <label class="a-check"><input type="checkbox" id="keyRisk"> API 키는 제가 직접 관리하며, 키 분실·유출이나 기기·브라우저 보안 문제로 생기는 피해(요금 부과 포함)는 OriginProof가 책임지지 않음에 동의해요.</label>
+        <div class="a-lock" role="note"><span aria-hidden="true">🔒</span><span><b>키는 서버에 AES-256으로 암호화해 저장하고 내 분석에만 써요.</b> 브라우저가 AI를 직접 부르지 않고, 화면에는 끝 4자리만 보여요. 언제든 기관 상태 메뉴에서 바꾸거나 지울 수 있어요.</span></div>
+        <label class="a-check"><input type="checkbox" id="saveKey" checked> 서버에 암호화해서 저장하고 분석에 사용</label>
+        <label class="a-check"><input type="checkbox" id="keyRisk"> 이 키로 내 AI 요금이 부과되고, 키 관리는 제 책임임에 동의해요. 한도를 걸어 둔 키를 쓰기를 권해요.</label>
         <p class="a-help" id="savedInfo" style="margin:-6px 0 14px"></p>
       </div>
 
@@ -117,7 +117,7 @@
             <dt>보유 기간</dt><dd>탈퇴할 때까지(시연이 끝나면 지체 없이 파기). 법령에 따라 보관해야 하는 정보는 그 기간까지 보관해요.</dd>
             <dt>동의 거부</dt><dd data-kind="personal">동의하지 않을 수 있어요. 다만 회원가입은 할 수 없고, 비회원 기능만 쓸 수 있어요.</dd><dd data-kind="business">동의하지 않을 수 있어요. 다만 기관 회원 신청은 할 수 없어요.</dd>
           </dl>
-          <p data-kind="personal">AI API 키는 수집하지 않아요. 이 기기에만 암호화되어 저장돼요.</p>
+          <p data-kind="personal">AI API 키를 넣으면 서버에 암호화해 저장하고 내 분석에만 써요. 지우면 서버에서 바로 삭제돼요.</p>
         </div>
         <label class="a-check"><input type="checkbox" id="tPriv"> <span><b class="a-req">[필수]</b> 개인정보 수집·이용에 동의해요.</span></label>
         <label class="a-check" data-kind="personal"><input type="checkbox" id="tAge"> <span><b class="a-req">[필수]</b> 만 14세 이상이에요.</span></label>
@@ -148,12 +148,24 @@
     if(sync.k!==undefined&&sync.k!==biz)["tTerms","tPriv","tAge","tAuth","agree"].forEach(id=>$(id).checked=false);
     sync.k=biz;
     const p=provider();$("keyLabel").textContent=(p==="anthropic"?"Claude":"GPT")+" API 키";$("apiKey").placeholder=p==="anthropic"?"sk-ant-…":"sk-…";
-    const saved=V&&V.info();$("savedInfo").textContent=saved?"이 기기에 저장된 키: "+saved.name+" "+saved.hint+" (새로 넣으면 바뀌어요)":"";
   }
   form.addEventListener("change",sync);
   document.querySelectorAll(".peek").forEach(b=>b.addEventListener("click",()=>{const i=$(b.dataset.for),on=i.type==="password";i.type=on?"text":"password";b.textContent=on?"숨기기":"보기";b.setAttribute("aria-pressed",String(on))}));
   // 키 칸을 벗어나면 다시 가림(어깨 너머 노출 줄이기)
   $("apiKey").addEventListener("blur",()=>{const i=$("apiKey");if(i.type==="text"){i.type="password";const b=document.querySelector('.peek[data-for="apiKey"]');b.textContent="보기";b.setAttribute("aria-pressed","false")}});
+  // 가입 직후 한 번 로그인해 키를 서버에 저장하고 세션은 바로 닫는다. 응답에 키가 돌아오지 않는다.
+  async function storeKey(email,password,provider,key){
+    const json={"Content-Type":"application/json",Accept:"application/json"};
+    try{
+      const l=await fetch("/api/v1/auth/login",{method:"POST",credentials:"same-origin",headers:json,body:JSON.stringify({username:email,password})});
+      if(!l.ok)throw 0;
+      const csrf=(await l.json()).csrf_token,headers={...json,"X-CSRF-Token":csrf};
+      const r=await fetch("/api/v1/auth/ai-key",{method:"POST",credentials:"same-origin",headers,body:JSON.stringify({provider,key})});
+      await fetch("/api/v1/auth/logout",{method:"POST",credentials:"same-origin",headers,body:"{}"});
+      if(r.ok){const v=await r.json();return " AI 키(끝자리 "+v.hint+")를 서버에 암호화해서 저장했어요. 이제 분석에 이 키를 써요."}
+      return " AI 키는 저장하지 못했어요(HTTP "+r.status+"). 로그인 뒤 기관 상태 메뉴에서 다시 넣어 주세요."
+    }catch(_){return " AI 키는 저장하지 못했어요. 로그인 뒤 기관 상태 메뉴에서 다시 넣어 주세요."}
+  }
   $("apiKey").addEventListener("input",()=>{const k=$("apiKey").value.trim();$("keyHelp").textContent=k?(V.check(provider(),k)||"형식 확인됨 · 끝자리 "+k.slice(-4)):"나중에 넣어도 돼요. 키가 없으면 AI 분석 없이 기관 기록 확인만 해요."});
 
   form.addEventListener("submit",async e=>{
@@ -178,7 +190,7 @@
           const bad=V.check(provider(),key);if(bad){show("err",bad);$("apiKey").focus();return}
           if(!$("keyRisk").checked){show("err","API 키를 넣으려면 키 관리 책임 안내에 동의해 주세요.");$("keyRisk").focus();return}
           if($("saveKey").checked)keyToSave=key;     // 가입이 된 뒤에만 저장한다(실패한 비밀번호로 암호화한 키를 남기지 않음)
-          else keyNote=" AI 키는 저장하지 않았어요(이 기기에 남지 않음).";
+          else keyNote=" AI 키는 저장하지 않았어요.";
         }else keyNote=" AI 키는 나중에 넣을 수 있어요.";
       }
       // POST /v1/auth/register 는 개인만 받는다. 메일 도메인만으로 직원 권한을 줄 수 없어 기관 계정은 운영자가 발급한다(서버는 403 BUSINESS_SIGNUP_DISABLED).
@@ -194,7 +206,7 @@
       }catch(_){$("apiKey").value="";$("password").value="";$("password2").value="";show("err","서버에 연결하지 못했어요. 잠시 뒤 다시 해 주세요. 입력한 비밀번호와 키는 지웠어요.");return}
       // 키·비밀번호 칸은 바로 비운다(화면·메모리에 오래 두지 않음)
       $("apiKey").value="";$("password").value="";$("password2").value="";
-      if(r.status===201){if(keyToSave){try{const k=await V.save(provider(),keyToSave,pw);keyNote=" AI 키("+k.name+" "+k.hint+")는 이 기기에 암호화해서 저장했어요."}catch(_){keyNote=" AI 키는 저장하지 못했어요. 로그인 뒤 다시 넣어 주세요."}}show("ok","개인 회원으로 가입했어요. 로그인할 때 계정 이름 자리에 이메일("+email+")을 넣어 주세요."+keyNote);sync();return}
+      if(r.status===201){if(keyToSave)keyNote=await storeKey(email,pw,provider(),keyToSave);show("ok","개인 회원으로 가입했어요. 로그인할 때 계정 이름 자리에 이메일("+email+")을 넣어 주세요."+keyNote);sync();return}
       try{const d=await r.json();code=typeof d.detail==="string"?d.detail:""}catch(_){}
       show("err",ERR[code]||(r.status===404||r.status===405?"이 서버에는 회원가입 기능이 없어요. 계정은 운영자가 발급해요.":r.status===429?ERR.RATE_LIMITED:"가입하지 못했어요(HTTP "+r.status+")."));
       sync();

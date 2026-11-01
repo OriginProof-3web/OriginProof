@@ -46,6 +46,7 @@ class Settings(BaseSettings):
     wallet_image_input_enabled: bool = False
     signup_enabled: bool = False
     wallet_relay_enabled: bool = False
+    ai_key_secret: SecretStr | None = Field(default=None, repr=False, exclude=True)
 
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -229,7 +229,7 @@ const B = '/v3/issuer-applications/' + APP;
 
 test('기관 메뉴(신청자): 온보딩 경로로 가고, 내부 승인·제안 조회 단추는 없음, 긴급 정지는 자기 기관', async () => {
   const { d, has, press, posted } = await open('issuer', 'acct_applicant');
-  assert.match(d.doc.getElementById('chatThread').textContent, /anvil · 체인 31337/);
+  assert.match(d.doc.getElementById('chatThread').textContent, /로컬 개발 체인 · 체인 31337/);
   assert.equal(has('내부 승인하기(지정된 다른 계정)'), false);
   assert.equal(has('공동승인 제안 조회'), false);
   await press('업무 메일 코드 받기'); enter(d, 'staff@bank.example.invalid'); await sleep(40);
@@ -257,7 +257,7 @@ test('기관 메뉴(지정되지 않은 같은 기관 계정): 서버가 거부�
 test('기관 메뉴(운영자): 공동승인 제안 조회·승인·실행·긴급 정지가 계약 경로로 간다', async () => {
   const { d, press, posted } = await open('operator', 'acct_operator');
   await press('공동승인 제안 조회'); enter(d, PID); await sleep(40);
-  assert.match(d.doc.getElementById('chatThread').textContent, /상태 PENDING · 승인 1\/2/);
+  assert.match(d.doc.getElementById('chatThread').textContent, /상태 대기 중 · 승인 1\/2/);
   await press('승인 거래 알리기'); enter(d, TX); await sleep(40);
   const a = posted('/v3/proposals/' + PID + '/approvals'); assert.equal(a[0].tx_hash, TX); assert.match(a[0].request_id, /^req_/);
   await press('실행 거래 알리기'); enter(d, TX); await sleep(40);
