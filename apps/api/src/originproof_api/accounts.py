@@ -163,6 +163,9 @@ async def register(body: RegisterInput, request: Request) -> RegisteredView:
     if body.issuer_id is not None:
         raise HTTPException(422, "MALFORMED_INPUT")
     email = account_name(body.email)
+    # Limit-exempt test accounts are created by operators; sign-up must not claim the name.
+    if email in request.app.state.settings.analysis_limit_exempt_usernames:
+        raise HTTPException(409, "ACCOUNT_EXISTS")
     # casefold can lengthen text (ß -> ss), so check the stored column limit after it.
     if len(email) > 120 or not re.fullmatch(
         r"[^@\s\x00-\x1f\x7f]+@[a-z0-9-]+(?:\.[a-z0-9-]+)*\.invalid", email

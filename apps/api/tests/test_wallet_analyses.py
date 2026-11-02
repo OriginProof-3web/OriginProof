@@ -454,6 +454,9 @@ async def test_exempt_test_account_skips_window_limit_but_not_parallel_guard(wal
         "/v3/analyses", json={"request_id": "req_r_6", "input_ref": await input_ref(w)}
     )
     assert blocked.status_code == 429
+    w.who["name"] = "issuer"
+    for _ in range(module.INPUTS_PER_WINDOW + 1):  # exempt account is not capped on uploads
+        await input_ref(w)
 
 
 async def test_restart_timeout_and_late_completion_keep_failure(wallet, monkeypatch):

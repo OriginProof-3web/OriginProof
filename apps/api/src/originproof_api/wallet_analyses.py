@@ -277,7 +277,8 @@ async def input_text(body: InputRequest, request: Request, identity: Identity):
             )
         )
         # Each input may hold up to 7 MB for an hour; cap storage per account.
-        if len(list(recent)) >= INPUTS_PER_WINDOW:
+        exempt = account.username in service.settings.analysis_limit_exempt_usernames
+        if len(list(recent)) >= INPUTS_PER_WINDOW and not exempt:
             raise HTTPException(429, "INPUT_LIMIT", headers={"Retry-After": "600"})
         row = WalletInputRow(
             input_id=f"inp_{uuid4().hex}",
