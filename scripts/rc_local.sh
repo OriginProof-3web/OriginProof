@@ -80,8 +80,9 @@ start_api() {
     --workers 1 --no-proxy-headers > "$RUN/logs/api.log" 2>&1 & echo $! > "$RUN/api.pid"; \
     echo "$LLM_PROVIDER" > "$RUN/api.mode"; }
   wait_for "curl -sf $API/health/live" "API가 켜지지 않았어요(logs/api.log)"
-  alive web || { (cd apps/web-v5 && OP5_PROXY_PORT="$WEB_PORT" OP5_UPSTREAM="$API" \
-    nohup node 개발/op5-proxy.mjs > "$RUN/logs/web.log" 2>&1 & echo $! > "$RUN/web.pid"); }
+  # node를 셸로 감싸지 않아야 $!가 node 자신이고 down이 끌 수 있다(프록시는 cwd와 무관).
+  alive web || { OP5_PROXY_PORT="$WEB_PORT" OP5_UPSTREAM="$API" \
+    nohup node apps/web-v5/개발/op5-proxy.mjs > "$RUN/logs/web.log" 2>&1 & echo $! > "$RUN/web.pid"; }
   wait_for "curl -sf http://127.0.0.1:$WEB_PORT/business.html" "웹 프록시가 켜지지 않았어요(logs/web.log)"
 }
 
@@ -112,17 +113,18 @@ first_setup() {
 }
 
 # /health/ready는 recipient 계정도 있어야 200이라 개인 계정을 만들고, 실제 AI 확인용 계정도 만든다.
-# 가입 API로 만들며 이미 있으면(409) 그대로 둔다.
+# 면제 계정 이름은 가입 API가 거절하므로(#116) 운영자 경로(seed_accounts)로 DB에 직접 만든다.
 ensure_accounts() {
-  "${UVR[@]}" python - "$RUN" "$API" <<'PY'
-import json, sys
-import httpx
-run, api = sys.argv[1:3]
-password = json.load(open(f"{run}/secrets/test-accounts.json"))["password"]
-for email in ("rc-viewer@example.invalid", "rc-ai-tester@example.invalid"):
-    body = {"kind": "personal", "email": email, "password": password, "terms_accepted": True}
-    response = httpx.post(f"{api}/v1/auth/register", json=body, timeout=10)
-    assert response.status_code in (201, 409), response.text
+  "${UVR[@]}" python - "$RUN" <<'PY'
+import asyncio, json, sys
+sys.path.insert(0, "scripts/fixtures")
+from seed_accounts import create_account
+password = json.load(open(f"{sys.argv[1]}/secrets/test-accounts.json"))["password"]
+for name in ("rc-viewer@example.invalid", "rc-ai-tester@example.invalid"):
+    try:
+        asyncio.run(create_account(name, "recipient", None, password))
+    except SystemExit:
+        pass  # already there
 PY
 }
 
@@ -171,7 +173,7 @@ case "${1:-}" in
     echo; status
     echo; say "로그인 계정 v5_bank · 비밀번호: $RUN/secrets/test-accounts.json 의 password 값"
     say "개인 회원 rc-viewer@example.invalid · 비밀번호 같음"
-    say "실제 AI 확인 계정 rc-ai-tester@example.invalid · 비밀번호 같음 · 10분 5건 제한 없음(#116 반영 시)"
+    say "실제 AI 확인 계정 rc-ai-tester@example.invalid · 비밀번호 같음 · 10분 분석·업로드 제한 없음(#116 반영 시)"
     say "검증용 붙여넣기 문장: $RUN/verify-samples.txt" ;;
   status) status ;;
   down) down ;;
