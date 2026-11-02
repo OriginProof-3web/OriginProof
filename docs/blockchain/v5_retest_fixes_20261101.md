@@ -5,7 +5,7 @@
 - phase 기준: `f1d7b3c0002f406419d44321aff4cff3e90edd57`.
 - 선행: [#124](https://github.com/OriginProof-3web/OriginProof/pull/124) `62b35c33d9127df4fae6f5de0bdb8d13c3aa7658`. 같은 B의 로그 분할을 재사용했습니다.
 - 검증 코드 SHA: `cda575c084e9350b06b2d6bc1468bc2afa583132`. 이후 변경은 이 문서·B 기여 기록뿐입니다.
-- 상태: B 독립 구현·합성 검사 및 폐기 가능한 로컬 Anvil 연결 검사 완료. 작성자 외 리뷰·RC 합본·공개 RPC 성능 재검사는 미확인입니다. W6 전체 완료가 아닙니다.
+- 상태: B 독립 구현·합성 검사 및 폐기 가능한 로컬 Anvil 연결 검사 완료. 11월2일 C의 비차단 검토 의견과 합본 검사 보고를 확인했습니다. 정식 APPROVED·직접 RC 합본 재현·공개 RPC 성능 재검사는 미확인입니다. W6 전체 완료가 아닙니다.
 
 ## 동작 순서와 결함 대응
 
@@ -61,3 +61,10 @@ ORIGINPROOF_WALLET_LIVE=1 .uv-venv/bin/pytest -q services/indexer/tests/test_wal
 ## 기여와 AI
 
 사용자가 작업 범위 ①을 선택했습니다. Codex가 B 범위 원인 확인·구현·합성/로컬 EVM 실행·인계 문서를 작성했습니다. 기존 B RPC/Reconciler/Projection과 #124, C API lifespan/테스트와 공유 모델을 재사용했습니다. A/C/D의 다른 결함을 수정하거나 타인 리뷰를 받은 것으로 기록하지 않습니다. 사람의 직접 작성량·기여 비율을 추정하지 않습니다.
+
+## 2026-11-02: 사용자 B의 Anvil 선택
+
+- 사용자가 Anvil 기준 진행을 선택했습니다. B의 주 시연·검증 준비 기준이며 팀 전체의 발표 체인 합의를 대신하지 않습니다. 기존 `.env.example`의 `CHAIN_TARGET=anvil`을 재사용하므로 공통 환경 파일·기존 로컬 `.env`는 변경하지 않았습니다.
+- C의 #125 비차단 의견은 Sepolia 첫 backfill에서 모든 거래 receipt를 읽는 비용입니다. 이번 Anvil 선택 범위에서는 `logsBloom` 최적화를 추가하지 않고 현재 누락 방지 검사를 유지합니다. 나중에 Sepolia를 주 환경으로 선택하면 비용/최적화와 실제 공개 RPC 검증을 별도 진행해야 합니다.
+- HEAD `57af5be`에서 새로 시작해 종료하는 합성 Anvil 검사 `ORIGINPROOF_WALLET_LIVE=1 pytest -q services/indexer/tests/test_wallet_live.py`를 재실행해 **1 PASS(1.93초)**를 확인했습니다. 기존 노드·DB·로컬/공개 배포 manifest를 초기화하지 않았고 테스트 노드를 서비스용 활성 노드로 남기지 않았습니다. 실제 브라우저 시연 세션 기동·원본 보관/복구는 이 검사와 별도입니다.
+- C는 #125에 로컬 합본(phase/W6 `4f9d03d` + #105·#121·#123·#124·#125·#126·#128) Python1,495 PASS/19 SKIP·Ruff PASS를 보고했습니다. 다른 담당자의 실행 보고이며 B가 직접 재실행한 결과로 계산하지 않습니다. #125 정식 승인은 아직 없고 #124는 APPROVED이나 Draft입니다.
