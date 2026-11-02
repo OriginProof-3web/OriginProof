@@ -65,8 +65,10 @@ start_db() {
 }
 
 start_chain() {
+  # 재기동 뒤에도 배포 블록의 과거 상태가 있어야 Registry 배포 확인(CREATE·코드)이 통과한다.
   alive anvil && return 0
   nohup anvil --host 127.0.0.1 --port "$RPC_PORT" --chain-id 31337 --state "$RUN/anvil-state.json" \
+    --preserve-historical-states \
     > "$RUN/logs/anvil.log" 2>&1 & echo $! > "$RUN/anvil.pid"
   wait_for "cast chain-id --rpc-url $RPC" "Anvil이 켜지지 않았어요(logs/anvil.log)"
 }
