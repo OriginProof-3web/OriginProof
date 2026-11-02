@@ -1085,6 +1085,7 @@
         details.push({ label: '쉬운 설명', value: VS[vs] ? VS[vs].text : '쉬운 설명 없음' });
       }
       if (v.kind === 'error') details.push({ label: '오류', value: v.err.line2 });
+      var proofTx = v.kind === 'result' ? (v.data.tx_hash || (v.data.document && v.data.document.tx_hash)) : null;
 
       return {
         id: 'api_' + Date.now().toString(36),
@@ -1103,7 +1104,8 @@
         conclusion: conclusion,
         axes: axes,
         next_action: { text: next },
-        proof_links: v.kind === 'result' && Hk.chain && /^0x[0-9a-fA-F]{40}$/.test(v.data.verifying_contract || '') ? Hk.chain.explorerLinks(String(v.data.chain_id), v.data.verifying_contract, null) : [],
+        verification_document: v.kind === 'result' && v.api === 'v3' && v.data.document ? { document_id: v.data.document.document_id, version: v.data.document.version } : null,
+        proof_links: v.kind === 'result' && Hk.chain ? Hk.chain.explorerLinks(String(v.data.chain_id), v.data.verifying_contract, proofTx) : [],
         details: details,
         staff: staff
       };

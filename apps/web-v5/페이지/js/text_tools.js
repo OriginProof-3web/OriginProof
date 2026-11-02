@@ -127,7 +127,7 @@
   function buildCopyText(answer) {
     if (!answer || !answer.conclusion) return '';
     var lines = [];
-    lines.push('찐품명품 확인 결과' + (answer.sample ? ' (시안 · 예시 응답)' : ''));
+    lines.push('찐품명품 확인 결과' + (answer.sample ? ' (예시 응답)' : ''));
     lines.push('');
     lines.push('결론: [' + answer.conclusion.badge.text + '] ' + answer.conclusion.text);
     lines.push('');

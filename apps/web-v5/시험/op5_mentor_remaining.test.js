@@ -29,7 +29,7 @@ for (const status of ['NOT_REGISTERED', 'TAMPERED']) {
     }
   });
 }
-test('실제 응답 증명 값과 레지스트리 링크는 접힘 안에, 없는 값은 제공되지 않음', async () => {
+test('실제 응답 증명 값은 접힘 안에, hash 없으면 Sepolia 레지스트리 링크만 표시', async () => {
   const values = { document_id: PID, original_hash: '0x' + '12'.repeat(32), protected_hash: '0x' + '34'.repeat(32) };
   const contract = '0x' + '56'.repeat(20), block = '0x' + '78'.repeat(32);
   const f = serverDouble({ over: u => u === '/v3/verifications' ? { status: 200, body: {
@@ -43,6 +43,7 @@ test('실제 응답 증명 값과 레지스트리 링크는 접힘 안에, 없�
   for (const value of [...Object.values(values), contract, block]) assert.ok(tech.textContent.includes(value));
   assert.match(tech.textContent, /signature: 제공되지 않음/);
   assert.match(tech.textContent, /tx_hash: 제공되지 않음/);
+  assert.equal(tech.querySelectorAll('a').length, 1);
   assert.equal(tech.querySelector('a').href, 'https://sepolia.etherscan.io/address/' + contract);
   assert.ok(!outsideTech(thread).includes(contract));
 });

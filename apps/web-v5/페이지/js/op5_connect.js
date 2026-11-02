@@ -227,7 +227,7 @@
       Hk.chain.verify({ answer: a, settings: Hk.chain.createStore(LS).get(), fetch: function (u, i) { return window.fetch(u, i); } }).then(function (res) {
         out.replaceChildren(el('b', null, '[' + res.shape + '] ' + res.headline), el('br'), document.createTextNode(res.body));
         (res.rows || []).forEach(function (x) { out.append(el('br'), document.createTextNode('· ' + x.label + (x.server != null ? ': 서버 ' + x.server + ' / 체인 ' + x.chain : ''))); });
-        (res.links || []).forEach(function (l) { var k = el('a', null, l.label); k.href = l.href; k.target = '_blank'; k.rel = 'noopener noreferrer'; out.append(el('br'), k); });
+        (res.links || []).forEach(function (l) { if (Array.prototype.some.call(zone.querySelectorAll('a'), function (a) { return a.href === l.href; })) return; var k = el('a', null, l.label); k.href = l.href; k.target = '_blank'; k.rel = 'noopener noreferrer'; out.append(el('br'), k); });
       }).then(function () { b.disabled = false; toBottom(); });
     });
     zone.append(b, out);
@@ -290,8 +290,13 @@
     tech.append(el('summary', 'add-btn', '기술 증명 보기'));
     if (a.sample && a.assumption) tech.append(el('p', 'op-tech', a.assumption));
     if (a.analysis_id) tech.append(el('p', 'op-tech', '분석 번호: ' + a.analysis_id + ' · 상태: ' + (a.analysis_status || '-')));
-    (a.details || []).forEach(function (row) { tech.append(el('p', 'op-tech', row.label + ': ' + row.value)); });
-    tech.append(el('p', 'op-tech', '2-of-3 승인 기록: 이 결과 응답에는 제공되지 않았어요.'));
+    var signatureLine = null;
+    (a.details || []).forEach(function (row) {
+      var line = el('p', 'op-tech', row.label + ': ' + row.value);
+      if (row.label === 'signature') signatureLine = line;
+      tech.append(line);
+    });
+    tech.append(el('p', 'op-tech', '2-of-3 승인 기록: 제공되지 않음 · 이 결과에 연결된 승인 기록을 조회할 수 없어요.'));
     (a.proof_links || []).forEach(function (link) {
       var anchor = el('a', null, link.label);
       anchor.href = link.href; anchor.target = '_blank'; anchor.rel = 'noopener noreferrer'; tech.append(anchor);
@@ -300,6 +305,15 @@
     evidence.forEach(function (e, i) { if (e && e.rule_id) tech.append(el('p', 'op-tech', '근거 ' + (i + 1) + ' · 규칙 번호 ' + e.rule_id)); });
     chainButton(tech, a);
     r.node(tech);
+    // 발행 서명은 보조 자료입니다. 결과 표시·판정은 이 요청을 기다리지 않습니다.
+    var doc = a.verification_document;
+    if (!a.sample && isApi() && signatureLine && doc && /^0x[0-9a-fA-F]{64}$/.test(doc.document_id || '') && Number.isSafeInteger(doc.version) && doc.version > 0) {
+      client.get('/v3/documents/' + doc.document_id + '/verification-material?version=' + doc.version).then(function (res) {
+        var material = res.data, message = material && material.signing_request && material.signing_request.message;
+        if (!isApi() || res.status !== 200 || !message || message.documentId !== doc.document_id || message.version !== doc.version || !/^0x[0-9a-fA-F]{130}$/.test(material.signature || '')) return;
+        signatureLine.textContent = 'signature: ' + material.signature + ' · 기관 발행 서명';
+      }).catch(function () { /* 보조 조회 실패는 기존 미제공 표시를 유지합니다. */ });
+    }
   }
 
   /* ---------------- 입력 → 결과 ---------------- */

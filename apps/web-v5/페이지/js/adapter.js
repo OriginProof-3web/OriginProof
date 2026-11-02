@@ -21,8 +21,16 @@
     return tone;
   }
 
+  var sampleSource, sampleView;
   function samples() {
-    return Array.isArray(window.SAMPLE_DATA) ? window.SAMPLE_DATA : [];
+    // 생성 원본이 없는 가져온 자료의 작업 메모는 화면용 복사본에서 제외합니다.
+    if (sampleSource === window.SAMPLE_DATA && sampleView) return sampleView;
+    sampleSource = window.SAMPLE_DATA;
+    sampleView = Array.isArray(sampleSource) ? JSON.parse(JSON.stringify(window.SAMPLE_DATA), function (key, value) {
+      if (key === 'assumption' || key === '출처' || key === '메모') return '예시 자료의 값입니다';
+      return typeof value === 'string' && /시안|A 화면|B 화면|docs\/|[\w가-힣_]+\.(?:html|md|png)|4\.1 표|멘토 명령/.test(value) ? '예시 자료의 값입니다' : value;
+    }) : [];
+    return sampleView;
   }
 
   function getSample(id) {
@@ -77,7 +85,7 @@
     return out;
   }
 
-  /* 연결 전 응답: 검증 링크·Proof ID 는 찾았지만 이 시안은 서버를 부르지 않음.
+  /* 연결 전 응답: 검증 링크·Proof ID 는 찾았지만 예시 모드는 서버를 부르지 않음.
      4.1 common.not_connected("연결 전")와 1.8 "연결 전" 칸 문구만 씀. */
   function notConnected(text, found) {
     var axis = function (key, name, ids) {
@@ -87,16 +95,16 @@
       { label: '입력 종류', value: found.kind },
       { label: '입력 길이', value: text.length + '자' }
     ].concat(refDetails(found));
-    details.push({ label: '연결 상태', value: 'common.not_connected · 이 시안은 검증 서버를 부르지 않음' });
+    details.push({ label: '연결 상태', value: '연결 전 · 예시 모드는 검증 서버를 부르지 않음' });
     return {
       id: 'not_connected',
-      label: '시안',
+      label: '예시',
       sample: true,
-      assumption: '이 시안은 예시 ' + samples().length + '개만 답합니다. 다른 입력은 서버에 보내지 않고 "연결 전"으로 보여 줍니다.',
+      assumption: '예시 모드는 예시 ' + samples().length + '개만 답합니다. 다른 입력은 서버에 보내지 않고 "연결 전"으로 보여 줍니다.',
       verification_status: null,
       input: { kind: 'message', text: T().maskPersonal(text) },
       ref: found.first,
-      conclusion: { badge: { tone: 'offline', icon: 'plug', text: '연결 전' }, text: '이 시안은 예시 ' + samples().length + '개만 답해요. 검증 엔진을 연결하면 실제로 확인해요.' },
+      conclusion: { badge: { tone: 'offline', icon: 'plug', text: '연결 전' }, text: '예시 모드는 예시 ' + samples().length + '개만 답해요. 검증 엔진을 연결하면 실제로 확인해요.' },
       axes: [
         axis('official', '공식 발행', ['ledger', 'signature']),
         axis('original', '원본 일치', ['original']),
@@ -110,7 +118,7 @@
   }
 
   /* 검증 링크·Proof ID 가 없는 문자: 공식 기록 세 칸은 "확인할 수 없음", AI 칸만 남음.
-     이 시안(서버 없음)에서는 AI 칸도 "연결 전". A3 ApiAdapter 가 AI 분석 결과로 이 칸만 채우면 됨.
+     예시 모드(서버 없음)에서는 AI 칸도 "연결 전". A3 ApiAdapter 가 AI 분석 결과로 이 칸만 채우면 됨.
      말풍선: 서명·원본·상태는 4.1 *.no_source("확인할 원본 없음"), 기록관은 4.1 ledger.not_run,
      접수 직원 문구는 4.1 표에 없어 새로 씀(출처 미확인). */
   function noReference(text, found) {
@@ -128,7 +136,7 @@
     };
     return {
       id: 'no_reference',
-      label: '시안',
+      label: '예시',
       sample: true,
       assumption: '붙여 넣은 글에 검증 링크도 Proof ID 도 없어 공식 기록과 맞춰 보지 않았습니다. AI 분석은 검증 엔진을 연결하면 합니다.',
       verification_status: null,
@@ -147,7 +155,7 @@
         { label: '입력 길이', value: text.length + '자' },
         { label: '찾은 검증 링크·Proof ID', value: '없음' },
         { label: '공식 기록 칸', value: '확인할 수 없음 · 검증 링크가 없음' },
-        { label: 'AI 칸', value: 'common.not_connected · 이 시안은 분석 서버를 부르지 않음' }
+        { label: 'AI 칸', value: '연결 전 · 예시 모드는 분석 서버를 부르지 않음' }
       ],
       staff: staffLines(function (id) { return lines[id]; })
     };

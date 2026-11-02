@@ -302,8 +302,8 @@
 
   function explorerLinks(chainId, registry, txHash) {
     if (chainId !== SEPOLIA) return [];
-    var out = [{ label: 'Etherscan(Sepolia)에서 레지스트리 보기', href: 'https://sepolia.etherscan.io/address/' + registry }];
-    if (txHash) out.push({ label: 'Etherscan(Sepolia)에서 거래 보기', href: 'https://sepolia.etherscan.io/tx/' + txHash });
+    var out = /^0x[0-9a-fA-F]{40}$/.test(registry || '') ? [{ label: 'Etherscan(Sepolia)에서 레지스트리 보기', href: 'https://sepolia.etherscan.io/address/' + registry }] : [];
+    if (/^0x[0-9a-fA-F]{64}$/.test(txHash || '')) out.push({ label: 'Etherscan(Sepolia)에서 거래 보기', href: 'https://sepolia.etherscan.io/tx/' + txHash });
     return out;
   }
 
