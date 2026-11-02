@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import re
 import secrets
+import unicodedata
 from datetime import UTC, datetime, timedelta
 from typing import Literal
 from uuid import uuid4
@@ -21,9 +22,15 @@ SESSION_HOURS = 8
 router = APIRouter(prefix="/v1/auth", tags=["auth"])
 
 
+def account_name(value: str) -> str:
+    """One spelling per account: NFC and NFD forms of the same mail map to one username."""
+    return unicodedata.normalize("NFC", value.strip()).casefold()
+
+
 class LoginInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    username: str = Field(min_length=1, max_length=120)
+    # PostgreSQL text rejects NUL; refuse control characters before the query.
+    username: str = Field(min_length=1, max_length=120, pattern=r"^[^\x00-\x1f\x7f]+$")
     password: str = Field(min_length=1, max_length=256)
 
 
@@ -106,7 +113,7 @@ def require_csrf(request: Request, session: SessionRow) -> None:
 async def login(body: LoginInput, request: Request, response: Response) -> AccountView:
     async with request.app.state.database.session_factory() as db:
         account = await db.scalar(
-            select(AccountRow).where(AccountRow.username == body.username.strip().casefold())
+            select(AccountRow).where(AccountRow.username == account_name(body.username))
         )
         matches = await run_in_threadpool(
             password_matches,
@@ -145,30 +152,29 @@ async def login(body: LoginInput, request: Request, response: Response) -> Accou
 
 @router.post("/register", response_model=RegisteredView, status_code=201)
 async def register(body: RegisterInput, request: Request) -> RegisteredView:
-    """Opt-in synthetic sign-up: only reserved .invalid mail, so no real personal data."""
-    from .wallet_onboarding import ROSTER  # local import: wallet_onboarding imports this module
+    """Opt-in synthetic sign-up: personal only, with reserved .invalid mail.
 
+    Issuer accounts carry publishing and key authority, so operators issue them.
+    """
     if not request.app.state.settings.signup_enabled:
         raise HTTPException(409, "SIGNUP_DISABLED")
-    email = body.email.strip().casefold()
-    match = re.fullmatch(r"[^@\s]+@([a-z0-9-]+(?:\.[a-z0-9-]+)+)", email)
-    domain = match.group(1) if match else ""
     if body.kind == "business":
-        # Staff of a roster institution sign up with that institution's synthetic domain.
-        entry = ROSTER.get(body.issuer_id or "")
-        if entry is None or domain != entry[1]:
-            raise HTTPException(422, "SYNTHETIC_ROSTER_MISMATCH")
-    elif body.issuer_id is not None:
+        raise HTTPException(403, "BUSINESS_SIGNUP_DISABLED")
+    if body.issuer_id is not None:
         raise HTTPException(422, "MALFORMED_INPUT")
-    elif not domain.endswith(".invalid"):
+    email = account_name(body.email)
+    # casefold can lengthen text (ß -> ss), so check the stored column limit after it.
+    if len(email) > 120 or not re.fullmatch(
+        r"[^@\s\x00-\x1f\x7f]+@[a-z0-9-]+(?:\.[a-z0-9-]+)*\.invalid", email
+    ):
         raise HTTPException(422, "SYNTHETIC_EMAIL_REQUIRED")
     if not (re.search(r"[A-Za-z]", body.password) and re.search(r"[0-9]", body.password)):
         raise HTTPException(422, "WEAK_PASSWORD")
     view = RegisteredView(
         account_id=f"acct_{uuid4().hex}",
         username=email,
-        role="issuer" if body.kind == "business" else "recipient",
-        issuer_id=body.issuer_id if body.kind == "business" else None,
+        role="recipient",
+        issuer_id=None,
     )
     hashed = await run_in_threadpool(password_hash, body.password)
     async with request.app.state.database.session_factory() as db:

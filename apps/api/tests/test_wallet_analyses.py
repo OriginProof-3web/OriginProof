@@ -653,3 +653,11 @@ async def test_known_analyzer_failure_codes_survive_without_provider_details(wal
     result = await wallet.client.get(f"/v3/analyses/{accepted.json()['analysis_id']}")
     assert result.json()["status"] == "FAILED" and result.json()["error_code"] == code
     assert "DO_NOT_ECHO" not in result.text and result.json()["report"] is None
+
+
+async def test_input_uploads_are_capped_per_account_window(wallet):
+    wallet.app.state.settings.wallet_text_input_enabled = True
+    for _ in range(module.INPUTS_PER_WINDOW):
+        await input_ref(wallet)
+    response = await wallet.client.post("/v3/inputs", json={"kind": "TEXT", "text": "x"})
+    assert response.status_code == 429 and response.json()["detail"] == "INPUT_LIMIT"
