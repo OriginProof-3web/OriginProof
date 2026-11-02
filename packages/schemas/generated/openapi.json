@@ -4024,7 +4024,7 @@
     },
     "/v1/auth/register": {
       "post": {
-        "description": "Opt-in synthetic sign-up: only reserved .invalid mail, so no real personal data.",
+        "description": "Opt-in synthetic sign-up: personal only, with reserved .invalid mail.\n\nIssuer accounts carry publishing and key authority, so operators issue them.",
         "operationId": "register_v1_auth_register_post",
         "requestBody": {
           "content": {
