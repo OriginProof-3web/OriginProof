@@ -86,7 +86,7 @@ def test_all_synthetic_pass_keeps_21_actual_acceptance_items_blocked(tmp_path, c
         xml = Path(next(a.split("=", 1)[1] for a in args if a.startswith("--junitxml=")))
         # pytest arguments have a fixed --junitxml boundary; commands are not read from a manifest.
         files = args[next(i + 1 for i, a in enumerate(args) if a.startswith("--junitxml=")) :]
-        sizes = [12, 13, 6, 12] if len(files) == 4 else [plan["suites"][xml.stem]["expected_tests"]]
+        sizes = [12, 13, 6, 14] if len(files) == 4 else [plan["suites"][xml.stem]["expected_tests"]]
         junit(xml, list(zip(files, sizes, strict=True)))
         return SimpleNamespace(returncode=1 if child_failure and xml.stem == "benchmark" else 0)
 

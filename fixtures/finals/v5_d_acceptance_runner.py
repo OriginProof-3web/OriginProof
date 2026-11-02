@@ -16,7 +16,7 @@ from v5_d_junit_guard import check_report as validate_junit
 
 ROOT = Path(__file__).resolve().parents[2]
 SUITES = {
-    "stage": ([], 43),
+    "stage": ([], sum(STAGE_COUNTS.values())),
     "consumer": (["fixtures/finals/v5_analysis_consumer_qa.py"], 31),
     "benchmark": (["fixtures/finals/test_v5_d_verification_benchmark.py"], 16),
     "independent": (["fixtures/finals/test_v5_d_independent_verifier.py"], 22),
@@ -79,7 +79,7 @@ def prepare(root):
             for x in (root / "fixtures/finals/v5_d_stage_qa_files.txt").read_text().splitlines()
             if x and not x.startswith("#")
         ],
-        43,
+        sum(STAGE_COUNTS.values()),
     )
     if len(suites["stage"][0]) != 4 or set(suites["stage"][0]) != {
         f"fixtures/finals/{m}.py" for m in STAGE_COUNTS
