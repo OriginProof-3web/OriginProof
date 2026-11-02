@@ -129,8 +129,8 @@ class WalletRegistryReadAdapter:
         )
 
     @dependency_boundary
-    async def key(self, key_id: str) -> WalletKey | None:
-        block = await self.rpc.snapshot()
+    async def key(self, key_id: str, block=None) -> WalletKey | None:
+        block = block if block is not None else await self.rpc.snapshot()
         raw = await self.rpc.call("getKey", [hex_bytes(key_id, 32)], block)
         if raw is None:
             return None

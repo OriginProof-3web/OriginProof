@@ -106,14 +106,14 @@ class WalletRegistry(Protocol):
     find_transaction searches the original intent/nonce and never sends a new transaction.
     C independently compares chain, contract, action, signer and immutable arguments.
     snapshot returns one verified canonical block (number, hash, timestamp as hex); passing it
-    as block makes issuer/document read that same block (default: a fresh snapshot).
+    as block makes issuer/key/document read that same block (default: a fresh snapshot).
     """
 
     async def snapshot(self) -> dict: ...
 
     async def issuer(self, issuer_id: str, block: dict | None = None) -> WalletIssuer | None: ...
 
-    async def key(self, key_id: str) -> WalletKey | None: ...
+    async def key(self, key_id: str, block: dict | None = None) -> WalletKey | None: ...
 
     async def document(
         self, document_id: str, version: int | None, block: dict | None = None

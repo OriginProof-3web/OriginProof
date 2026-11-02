@@ -84,7 +84,7 @@ class SyntheticRegistry:
     async def issuer(self, identifier, block=None):
         return self.read()["issuers"].get(identifier)
 
-    async def key(self, identifier):
+    async def key(self, identifier, block=None):
         return self.read()["keys"].get(identifier)
 
     async def is_approver(self, address):

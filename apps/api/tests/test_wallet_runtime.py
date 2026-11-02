@@ -66,7 +66,7 @@ class Chain:
     async def issuer(self, issuer_id, block=None):
         return self.issuers.get(issuer_id)
 
-    async def key(self, key_id):
+    async def key(self, key_id, block=None):
         return self.keys.get(key_id)
 
     async def proposal(self, proposal_id):
@@ -1792,3 +1792,51 @@ async def test_signer_approver_guard(wallet, monkeypatch, endpoint, case, expect
         assert response.json()["detail"] == "SIGNER_IS_APPROVER"
     if expected == 503:
         assert response.json()["detail"] == "WALLET_REGISTRY_UNAVAILABLE"
+
+
+async def test_verification_reads_document_issuer_and_key_at_one_block(wallet, monkeypatch):
+    await activated(wallet)
+    signing = await draft(wallet)
+    doc, _ = await confirmed_publication(wallet, signing)
+    height = [100]
+
+    async def snapshot():
+        height[0] += 1  # a new block arrives before every unpinned read
+        number = height[0]
+        return {
+            "number": hex(number),
+            "hash": f"0x{number:064x}",
+            "timestamp": hex(int(time.time())),
+        }
+
+    def at(value, block):
+        position = {"block_number": str(int(block["number"], 16)), "block_hash": block["hash"]}
+        return value and value.model_copy(update=position)
+
+    issuer, key, document = wallet.chain.issuer, wallet.chain.key, wallet.chain.document
+
+    async def pinned_issuer(identifier, block=None):
+        return at(await issuer(identifier), block or await snapshot())
+
+    async def pinned_key(identifier, block=None):
+        return at(await key(identifier), block or await snapshot())
+
+    async def pinned_document(identifier, version, block=None):
+        return at(await document(identifier, version), block or await snapshot())
+
+    for name, fake in [
+        ("snapshot", snapshot),
+        ("issuer", pinned_issuer),
+        ("key", pinned_key),
+        ("document", pinned_document),
+    ]:
+        monkeypatch.setattr(wallet.chain, name, fake)
+    body = {
+        "request_id": "req_one_block",
+        "document_id": doc.document_id,
+        "scope": "PROTECTED_FIELDS",
+        "candidate": signing["content"],
+    }
+    response = await wallet.client.post("/v3/verifications", json=body)
+    assert response.status_code == 200, response.text
+    assert response.json()["verification_status"] == "VERIFIED"
