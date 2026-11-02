@@ -414,5 +414,5 @@ def test_historical_holdout_stays_disabled_and_k10_rule_change_is_versioned(monk
             # Preserve the original evaluated candidate, pin the later K10 fix separately.
             assert digest == "52f9e1103799310e03216894bad12f558432975dbcb1cab6d5d9f2db8844580f"
             assert RULE_VERSION == "phishing-rules-0.2"
-            digest = "22f8149f53ff6db15d4ff342d1ee393f6369fa0395d5ed3a87214b12b3ab43d5"
+            digest = "6617f4982d7103557a7fd191632cff1b1427f63dca79b4272377e371223876ba"
         assert hashlib.sha256(files[name].read_bytes()).hexdigest() == digest

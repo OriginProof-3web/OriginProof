@@ -82,7 +82,9 @@ def test_negation_warning_or_isolated_keyword_is_not_a_demand(text):
 
 @pytest.mark.parametrize("remote", ["원격지원", "원격 지원", "원격제어"])
 @pytest.mark.parametrize("action", ["설치", "실행"])
-@pytest.mark.parametrize("followup", ["연락 주세요", "본인 계좌 비밀번호를 입력해 주세요"])
+@pytest.mark.parametrize(
+    "followup", ["연락 주세요", "본인 계좌 비밀번호를 입력해 주세요", "보안 점검을 진행해 주세요"]
+)
 def test_k10_connected_remote_request_keeps_exact_unicode_evidence(remote, action, followup):
     text = f"🧪 아래 링크에서 {remote} 앱을 {action}하고 {followup}."
     report = rule_analysis(text)

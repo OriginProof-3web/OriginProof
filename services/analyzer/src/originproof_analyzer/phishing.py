@@ -27,7 +27,8 @@ _ASK = r"(?:해\s*주(?:세요|십시오)|하(?:세요|십시오)|해라|해\s*�
 # Keep connected requests inside one unquoted clause; descriptions/negations are insufficient.
 _REMOTE_FOLLOWUP = (
     r"하고(?!\s*(?:싶|있))"
-    r"(?:(?!지\s*(?:마|말|않)|(?:안|못)\s|[다라](?:는|고))[^\n.!?\"'“”‘’「」『』]){0,40}?"
+    r"(?:(?!지\s*(?:마|말|않)|(?<!\w)(?:안|못)\s|[다라](?:는|고))"
+    r"[^\n.!?\"'“”‘’「」『』]){0,40}?"
     rf"{_ASK}"
 )
 _RULES = (
