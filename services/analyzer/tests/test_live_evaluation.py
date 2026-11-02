@@ -9,6 +9,7 @@ from pathlib import Path
 import httpx
 import pytest
 from originproof_analyzer import live_evaluation as live
+from originproof_analyzer.phishing import RULE_VERSION
 
 CORPUS = Path(__file__).resolve().parents[3] / "fixtures/synthetic/phishing_sources_v1.json"
 
@@ -383,7 +384,7 @@ async def test_active_prompt_hash_is_bound_and_old_prompt_cannot_resume(
     assert journal.read_bytes() == before
 
 
-def test_holdout_is_prepared_disabled_and_candidate_preserves_model_source_hashes(monkeypatch):
+def test_historical_holdout_stays_disabled_and_k10_rule_change_is_versioned(monkeypatch):
     fixtures = CORPUS.parent
     policy = json.loads((fixtures / "v5_d_live_evaluation_policy.holdout.pending.json").read_text())
     assert policy["approved_for_paid_calls"] is False
@@ -409,4 +410,9 @@ def test_holdout_is_prepared_disabled_and_candidate_preserves_model_source_hashe
         core / "models.py",
     )
     for name, digest in candidate["source_and_runtime_identity"]["source_sha256"].items():
+        if name == "phishing.py":
+            # Preserve the original evaluated candidate, pin the later K10 fix separately.
+            assert digest == "52f9e1103799310e03216894bad12f558432975dbcb1cab6d5d9f2db8844580f"
+            assert RULE_VERSION == "phishing-rules-0.2"
+            digest = "22f8149f53ff6db15d4ff342d1ee393f6369fa0395d5ed3a87214b12b3ab43d5"
         assert hashlib.sha256(files[name].read_bytes()).hexdigest() == digest

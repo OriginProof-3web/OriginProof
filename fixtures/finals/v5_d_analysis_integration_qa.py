@@ -57,6 +57,26 @@ async def test_input_stays_unselected_by_default(wallet):
     assert response.status_code == 409
 
 
+@pytest.mark.parametrize("provider_unavailable", [False, True])
+async def test_k10_connected_request_through_input_and_analysis_api(wallet, provider_unavailable):
+    text = "아래 링크에서 원격지원 앱을 설치하고 본인 계좌 비밀번호를 입력해 주세요."
+    wallet.app.state.settings.wallet_text_input_enabled = True
+    provider = MockLLMProvider() if provider_unavailable else replay(text)
+    wallet.app.state.analysis_processor = PhishingAnalyzer(provider)
+    _, _, report = await analyze(wallet, text)
+    assert report["risk_level"] == "HIGH" and report["verification"] is None
+    evidence = next(e for e in report["evidence"] if e["rule_id"] == "REMOTE_CONTROL_REQUEST")
+    assert evidence["source"] == "RULE"
+    assert text[evidence["start_offset"] : evidence["end_offset"]] == evidence["quote"]
+    assert "phishing-rules-0.2" in report["limitations"]
+    limitation = (
+        "LLM_ANALYSIS_UNAVAILABLE:PROVIDER_UNAVAILABLE"
+        if provider_unavailable
+        else "RULE_LLM_DISAGREEMENT"
+    )
+    assert limitation in report["limitations"]
+
+
 @pytest.mark.parametrize(
     "retain_report,retain_original", [(False, False), (True, False), (False, True), (True, True)]
 )
