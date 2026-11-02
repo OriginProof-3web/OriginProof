@@ -3,7 +3,7 @@
 - 담당: D 여인준 `@yijun0330`, V5-W6-D. 사용자 요청으로 Codex가 수정·검사를 보조했습니다.
 - 기준: `phase/W6` `f1d7b3c0002f406419d44321aff4cff3e90edd57`.
 - 브랜치: `codex/v5-w6-d-k10-connected-request`.
-- 검증 코드: `1e4e5411085d75ed484a8f64f45dd727c21f4528`.
+- 검증 코드: `df586e48c25309e90c8a77352f358a1319e0bf93`.
 - 제보·재현 조건: [C의 #113 재승인/K10 원인 정정](https://github.com/OriginProof-3web/OriginProof/pull/113). 붙여쓰기 자체가 아니라 `설치하고 … 주세요` 연결형 누락입니다.
 
 ## 변경 전후
@@ -21,12 +21,12 @@
 
 기존 공통 `rule_analysis`·정확한 Unicode 인용 위치 검사·PhishingAnalyzer fallback·C 분석 API를 재사용했습니다. 원격지원 규칙에만 `설치/실행하고 … 요청형`을 추가했습니다. 뒤따르는 구간은 최대 40자로 제한하고 문장·줄·따옴표 경계를 넘지 않으며, 진행/희망 표현·부정·발화 인용 형태를 제외합니다. 다른 규칙의 공통 `_ASK`는 유지했습니다.
 
-단순 연결형 확장은 `연락 안 해 주세요`, `연락했다는 문구를 확인해 주세요`, `연락했다고 알려주세요`를 오탐했습니다. 이 3개 거부 사례를 추가하고 연결 구간을 제한했습니다. 신규 검사는 요청 12개·거부 15개·callback 2개·API 2개, 총 31개입니다.
+단순 연결형 확장은 `연락 안 해 주세요`, `연락했다는 문구를 확인해 주세요`, `연락했다고 알려주세요`를 오탐했습니다. 이 3개 거부 사례를 추가하고 연결 구간을 제한했습니다. 부정어 `안`과 `보안`을 구분하는 요청 6개도 추가했습니다. 신규 검사는 요청 18개·거부 15개·callback 2개·API 2개, 총 37개입니다.
 
 ## 평가·버전 보존
 
 - 현재 규칙: `phishing-rules-0.2`.
-- 새 `phishing.py` SHA-256: `22f8149f53ff6db15d4ff342d1ee393f6369fa0395d5ed3a87214b12b3ab43d5`.
+- 새 `phishing.py` SHA-256: `6617f4982d7103557a7fd191632cff1b1427f63dca79b4272377e371223876ba`.
 - 과거 평가 후보의 규칙 소스 hash `52f9e1103799310e03216894bad12f558432975dbcb1cab6d5d9f2db8844580f`와 후보 JSON은 그대로 보존했습니다.
 - 후보 보존 검사는 과거 hash와 현재 후속 버전/hash를 각각 고정하고, 나머지 모델·프롬프트·계약 파일은 기존 hash와 계속 대조합니다. 검사를 삭제하거나 historical 후보의 hash를 새 소스로 덮지 않았습니다.
 - [텍스트 최종 36개 결과](v5-d-live-holdout-20261027.md), [이미지 23개 결과](v5-d-live-images-20261030.md), 원본·정답·분할·정책·생성물은 변경하지 않았습니다. 이 수치는 과거 후보의 결과이며 **0.2의 성능 수치로 승계하지 않습니다**.
@@ -39,10 +39,10 @@
 | 검사 | 결과 | 범위·한계 |
 | --- | --- | --- |
 | 수정 전 K10 신규 검사 최초 25개 | 13 FAIL / 12 PASS | 누락을 먼저 재현; 이후 오탐 3개·callback 1개와 API 2개 추가 |
-| 현재 K10 규칙·callback | 29 PASS | 합성 단위/Mock replay, 정확한 원문 위치·발행 판정 독립성 |
-| 기본 Python 전체 | 1453 PASS / 20 SKIP / 기존 Starlette 경고 1 | 단위·ASGI·기존 로컬 TCP 포함; opt-in DB/EVM 등은 미실행 |
+| 현재 K10 규칙·callback | 35 PASS | 합성 단위/Mock replay, 정확한 원문 위치·발행 판정 독립성 |
+| 기본 Python 전체 | 1459 PASS / 20 SKIP / 기존 Starlette 경고 1 | 단위·ASGI·기존 로컬 TCP 포함; opt-in DB/EVM 등은 미실행 |
 | D 분석 API 연결·소비 | 45 PASS | ASGI·SQLite·합성 Registry·mock. 새 API 2개 포함 |
-| 키 없는 clean archive 관련 검사 | 174 PASS | 검증 코드 커밋 archive에서 규칙/평가 안전장치/API·소비 재현 |
+| 키 없는 clean archive 관련 검사 | 180 PASS | 검증 코드 커밋 archive에서 규칙/평가 안전장치/API·소비 재현 |
 | Ruff 전체·git diff 공백 | PASS | 공유 타입/Schema/OpenAPI/ABI 변경 없음 |
 
 첫 전체 실행은 sandbox TCP 바인딩 차단과 역사적 후보를 현재 소스와 동일시한 검사로 2건 실패했습니다. 로컬 TCP 허용 환경에서 재실행하고 후보/현재 버전을 분리한 뒤 위 전체 결과를 얻었습니다. SKIP 20개는 opt-in DB/EVM 미설정 등 19개와 Foundry cast 미설정 1개이며 통과로 계산하지 않았습니다.
