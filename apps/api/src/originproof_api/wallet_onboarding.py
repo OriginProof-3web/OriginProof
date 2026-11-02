@@ -127,6 +127,9 @@ async def issue_code(
                 },
             )
             db.add(row)
+        elif row.approved_by and not row.internally_approved:
+            # A reissued code must not wipe the internal approver's rejection.
+            raise HTTPException(409, "INTERNAL_APPROVAL_REJECTED")
         if row.issued_at and stamp < row.issued_at + 60:
             raise HTTPException(429, "EMAIL_REISSUE_LIMIT", headers={"Retry-After": "60"})
         issues = [t for t in row.issues if t > stamp - 600]
@@ -243,6 +246,8 @@ async def approved_application(db, application_id, issuer_id):
     row = await db.get(WalletOnboardingRow, application_id)
     if app is None or app.issuer_id != issuer_id:
         raise HTTPException(404, "APPLICATION_NOT_FOUND")
+    if app.status == "REJECTED":
+        raise HTTPException(409, "APPLICATION_REJECTED")
     if row is None or not row.email_verified or not row.internally_approved:
         raise HTTPException(409, "INSTITUTION_CHECKS_REQUIRED")
     return app, row
