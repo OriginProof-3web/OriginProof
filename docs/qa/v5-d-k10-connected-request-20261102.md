@@ -4,6 +4,7 @@
 - 기준: `phase/W6` `f1d7b3c0002f406419d44321aff4cff3e90edd57`.
 - 브랜치: `codex/v5-w6-d-k10-connected-request`.
 - 검증 코드: `df586e48c25309e90c8a77352f358a1319e0bf93`.
+- 후속 QA 개수 가드: `dc00770925c93be58ce1d8335cff621b54ee2b11` (분석 코드 동일).
 - 제보·재현 조건: [C의 #113 재승인/K10 원인 정정](https://github.com/OriginProof-3web/OriginProof/pull/113). 붙여쓰기 자체가 아니라 `설치하고 … 주세요` 연결형 누락입니다.
 
 ## 변경 전후
@@ -43,9 +44,12 @@
 | 기본 Python 전체 | 1459 PASS / 20 SKIP / 기존 Starlette 경고 1 | 단위·ASGI·기존 로컬 TCP 포함; opt-in DB/EVM 등은 미실행 |
 | D 분석 API 연결·소비 | 45 PASS | ASGI·SQLite·합성 Registry·mock. 새 API 2개 포함 |
 | 키 없는 clean archive 관련 검사 | 180 PASS | 검증 코드 커밋 archive에서 규칙/평가 안전장치/API·소비 재현 |
+| 후속 가드 clean archive | stage 45 PASS·엄격 JUnit PASS·가드/수용 실행기 26 PASS | API 모듈 기대12→14, 전체 stage43→45. 실패/중복/누락/skip 거부 유지 |
 | Ruff 전체·git diff 공백 | PASS | 공유 타입/Schema/OpenAPI/ABI 변경 없음 |
 
 첫 전체 실행은 sandbox TCP 바인딩 차단과 역사적 후보를 현재 소스와 동일시한 검사로 2건 실패했습니다. 로컬 TCP 허용 환경에서 재실행하고 후보/현재 버전을 분리한 뒤 위 전체 결과를 얻었습니다. SKIP 20개는 opt-in DB/EVM 미설정 등 19개와 Foundry cast 미설정 1개이며 통과로 계산하지 않았습니다.
+
+PR 첫 CI에서는 stage 검사가 45개 모두 통과했으나 기존 API 모듈 기대 개수12와 실제14가 달라 엄격 JUnit 가드가 거부했습니다. API 개수를14로 갱신하고 수용 실행기의 stage 합계를 같은 기준에서 계산하도록 맞췄습니다. 이후 clean archive에서 stage45·가드/실행기26을 확인했습니다. 과거43개 기록을 수정하거나 가드를 느슨하게 하지 않았습니다.
 
 재현 명령(저장소 루트, 잠금 환경 설치 후):
 
