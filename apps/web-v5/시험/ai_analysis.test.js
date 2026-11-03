@@ -11,7 +11,7 @@ const { loadWeb, fakeFetch, CODE_RE } = require('./가져온/regression/_load.js
 const { makeDom, Ev } = require('./_dom.js');
 
 const EX = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures', 'ai_analysis_examples.json'), 'utf8'));
-const CONTRACT = '/Users/khj/Desktop/2반/OP-AI연결-준비/apps/api/src/originproof_api/wallet_analyses.py';   // 읽기만
+const CONTRACT = path.join(__dirname, '..', '..', 'api', 'src', 'originproof_api', 'wallet_analyses.py');   // 저장소 안 계약 원본(읽기만)
 const URL0 = 'http://127.0.0.1:8000';
 const log = (...a) => console.log('  [출력]', ...a);
 const j = x => JSON.parse(JSON.stringify(x));   // vm 안 배열을 이 쪽 배열로(deepEqual 용)
@@ -69,7 +69,7 @@ test('실패 코드 전부(계약 process·finish·cleanup) → 말풍선 키·�
   for (const [s, k] of [['EXPIRED', 'ai.result_expired'], ['CANCELLED', 'ai.cancelled']]) assert.equal(Hk.api.mapAnalysisJob({ status: s }).obs.bubble_key, k);
 });
 
-test('계약 원본과 대조: wallet_analyses.py 의 오류 코드 문자열이 화면 표에 모두 있음(빠진 것 0)', { skip: !fs.existsSync(CONTRACT) && '계약 원본 경로 없음' }, () => {
+test('계약 원본과 대조: wallet_analyses.py 의 오류 코드 문자열이 화면 표에 모두 있음(빠진 것 0)', () => {
   const Hk = loadWeb();
   const src = fs.readFileSync(CONTRACT, 'utf8');
   const all = new Set([...src.matchAll(/"([A-Z][A-Z_]{3,})"/g)].map(m => m[1]));
