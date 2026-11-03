@@ -130,3 +130,17 @@ def test_settings_repr_hides_database_password():
     from originproof_api.settings import Settings
 
     assert "originproof:originproof" not in repr(Settings(_env_file=None))
+
+
+async def test_signup_cannot_claim_a_limit_exempt_name(wallet):
+    settings = wallet.app.state.settings.model_copy(
+        update={
+            "signup_enabled": True,
+            "analysis_limit_exempt_usernames": ["rc-ai-tester@example.invalid"],
+        }
+    )
+    app = create_app(database=wallet.app.state.database, settings=settings)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as api:
+        body = PERSONAL | {"email": "RC-AI-Tester@example.invalid"}
+        response = await api.post("/v1/auth/register", json=body)
+        assert (response.status_code, response.json()["detail"]) == (409, "ACCOUNT_EXISTS")
