@@ -550,10 +550,12 @@ async def verify_document(
 async def run_verification(service, body, identity):
     chain, issuer, key, unavailable = None, None, None, False
     try:
-        chain = await service.rpc("document", body.document_id, body.version)
+        # One pinned block for all three reads; a new block between them must not split them.
+        block = await service.rpc("snapshot")
+        chain = await service.rpc("document", body.document_id, body.version, block)
         if chain:
-            issuer = await service.rpc("issuer", chain.document.issuer_id)
-            key = await service.rpc("key", chain.document.key_id)
+            issuer = await service.rpc("issuer", chain.document.issuer_id, block)
+            key = await service.rpc("key", chain.document.key_id, block)
     except HTTPException as error:
         if error.status_code != 503:
             raise

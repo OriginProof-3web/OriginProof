@@ -171,7 +171,7 @@ async function render(job, text) {
   return zone;
 }
 
-test('화면: HIGH 예시 → 형광펜 2곳(글자 일치), 근거 줄에 규칙 검사/AI 모델 칩 구분, 규칙 번호', async () => {
+test('화면: HIGH 예시 → 형광펜 2곳(글자 일치), 근거 줄에 규칙 검사/AI 모델 칩 구분, 문장만(규칙 번호는 자세히에만)', async () => {
   const zone = await render(EX.jobs.HIGH, EX.text);
   const marks = zone.querySelectorAll('mark');
   log('형광펜', marks.map(m => JSON.stringify(m.textContent) + ' title=' + m.getAttribute('title')).join(' | '));
@@ -180,7 +180,8 @@ test('화면: HIGH 예시 → 형광펜 2곳(글자 일치), 근거 줄에 규�
   rows.forEach(r => log('줄', r));
   const chips = zone.querySelectorAll('.op-row .op-chip').map(c => c.className + ' ' + c.textContent);
   assert.ok(chips.includes('op-chip t-info 규칙 검사') && chips.includes('op-chip t-none AI 모델'), chips.join(' / '));
-  assert.ok(rows.some(r => r.includes('규칙 번호 R_OTP_REQUEST')) && rows.some(r => r.includes('규칙 번호 L_REMOTE_APP')));
+  assert.ok(rows.some(r => r.includes('“인증번호를 입력하세요”')) && rows.some(r => r.includes('“원격 지원 앱을 설치해 주세요”')));
+  assert.ok(rows.every(r => !r.includes('규칙 번호') && !r.includes('R_OTP_REQUEST') && !r.includes('L_REMOTE_APP')), rows.join(' / '));
 });
 
 test('화면: ANALYZER_UNAVAILABLE → AI 칸 "AI 분석 연결 전", 형광펜 없음', async () => {
@@ -210,12 +211,12 @@ test('화면: ANALYZER_UNAVAILABLE → 머리표 "연결 전", AI 칸에 위험 
   assert.equal(zone.querySelectorAll('.op-row').filter(r => /^근거/.test(r.textContent)).length, 0);
 });
 
-test('화면: 위치가 틀린 근거가 섞여도 깨지지 않고 맞는 곳만 칠함, 못 칠한 사유를 근거 줄에 표시', async () => {
+test('화면: 위치가 틀린 근거가 섞여도 깨지지 않고 맞는 곳만 칠함, 못 칠한 사유는 근거 줄에 내보이지 않음', async () => {
   const job = JSON.parse(JSON.stringify(EX.jobs.HIGH));
   job.report.evidence = job.report.evidence.concat(EX.bad_evidence);
   const zone = await render(job, EX.text);
   assert.equal(zone.querySelectorAll('mark').length, 2);
   const rows = zone.querySelectorAll('.op-row').map(r => r.textContent);
-  assert.ok(rows.some(r => /X_REV.*위치 앞뒤가 바뀜/.test(r)) && rows.some(r => /X_OUT.*위치가 글 길이를 넘음/.test(r)));
+  assert.ok(rows.every(r => !/위치 표시 안 함|X_REV|X_OUT/.test(r)), rows.join(' / '));
   log('모양 틀린 근거(빈 quote) 안내', zone.querySelectorAll('.op-tech').map(p => p.textContent).filter(t => /모양이 틀린/.test(t)).join(''));
 });

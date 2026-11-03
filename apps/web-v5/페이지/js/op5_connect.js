@@ -201,16 +201,13 @@
     box.append(document.createTextNode(text.slice(at)));
     return box;
   }
-  // 근거 한 줄씩(계약 모양만, 예시 자료는 그리지 않음): 근거 n · [규칙 검사|AI 모델] · "문장" · 규칙 번호 · 위치 못 칠한 사유
-  function evidenceRows(zone, a, res) {
+  // 근거 한 줄씩(계약 모양만, 예시 자료는 그리지 않음): 근거 n · [규칙 검사|AI 모델] · "문장". 규칙 번호·위치 값은 '자세히'에만 둠
+  function evidenceRows(zone, a) {
     var rep = a.ai_report, ev = rep && !a.sample && Array.isArray(rep.evidence) ? rep.evidence : [];
-    var why = {}, W = (Hk.api && Hk.api.SPAN_WHY) || {};
-    res.skipped.forEach(function (s) { why[s.index] = s.reason; });
     ev.forEach(function (e, i) {
       if (!e || typeof e.quote !== 'string') return;
       var s = srcOf(e.source);
-      zone.append(opRow({ name: '근거 ' + (i + 1), status: s[0], tone: s[1],
-        body: '“' + T.maskPersonal(e.quote).slice(0, 120) + '”' + (e.rule_id ? ' · 규칙 번호 ' + e.rule_id : '') + (why[i] ? ' · 위치 표시 안 함(' + (W[why[i]] || why[i]) + ')' : '') }));
+      zone.append(opRow({ name: '근거 ' + (i + 1), status: s[0], tone: s[1], body: '“' + T.maskPersonal(e.quote).slice(0, 120) + '”' }));
     });
     if (rep && rep.dropped) zone.append(el('p', 'op-tech', '모양이 틀린 근거 ' + rep.dropped + '건은 그리지 않았어요.'));
   }
@@ -254,7 +251,7 @@
     if (ai) aiz.append(opRow(ai));
     var text = a.input && typeof a.input.text === 'string' ? a.input.text : '';
     var sp = riskSpans(a, ai, text);
-    evidenceRows(aiz, a, sp);
+    evidenceRows(aiz, a);
     if (text) aiz.append(el('p', 'op-tech', sp.spans.length ? '받은 글에서 위험 요구 문장을 칠했어요' : '받은 글'), markedText(text, sp.spans));
     var ids = a.ai_report && Array.isArray(a.ai_report.matched_technique_ids) ? a.ai_report.matched_technique_ids : null;
     if (sp.spans.length || sp.skipped.some(function (s) { return s.reason !== 'NO_QUOTE'; })) aiz.append(el('p', 'op-tech', ids && ids.length ? '일치한 공개 피싱 수법: ' + ids.join(', ') : '공개 피싱 수법 ID: 수법 지식베이스(RAG) 연결 전'));
@@ -685,6 +682,7 @@
       return Promise.all([client.get('/v1/issuer/status'), client.get('/v1/issuer-applications/mine')]).then(function (z) {
         var lines = [];
         if (z[0].status === 200 && z[0].data) lines.push('기관 ' + z[0].data.issuer_id + ' · 상태 ' + z[0].data.status + ' · 체인 ' + z[0].data.chain_id);
+        else if (client.say(z[0]).code === 'CHAIN_UNAVAILABLE') lines.push('기관 체인 상태(v1 장부)는 읽지 못했어요. wallet 장부만 쓰는 환경에서는 정상이고, 문서 발행·검증에는 영향이 없어요.');
         else lines = lines.concat(errLines(z[0]));
         if (z[1].status === 200 && z[1].data) { lines.push('신청 ' + z[1].data.application_id + ' · ' + z[1].data.issuer_name + ' · ' + z[1].data.status); onboardingButtons(r, z[1].data, me); }
         else if (z[1].status === 200) lines.push('기관 신청 기록이 없어요.');

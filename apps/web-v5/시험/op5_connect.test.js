@@ -197,7 +197,7 @@ function serverLike(role, accountId) {
     const m = init.method || 'GET';
     if (url === '/api/v1/auth/me') return { status: 200, body: { account_id: accountId, username: 'u', role, issuer_id: role === 'issuer' ? 'iss_origin_mock_bank' : null, csrf_token: 'c' } };
     if (url === '/api/v1/chain/network') return { status: 200, body: { chain_target: 'anvil', chain_id: 31337, rpc_fallback_configured: false, approver_nodes: [{ role: 'approver_1', label: '승인 노드 #1', notice: 'n' }] } };
-    if (url === '/api/v1/issuer/status') return role === 'issuer' ? { status: 200, body: { issuer_id: 'i', status: 'ACTIVE', chain_id: 31337 } } : deny(403, 'FORBIDDEN');
+    if (url === '/api/v1/issuer/status') return role !== 'issuer' ? deny(403, 'FORBIDDEN') : accountId === 'acct_v1_down' ? deny(503, 'CHAIN_UNAVAILABLE') : { status: 200, body: { issuer_id: 'i', status: 'ACTIVE', chain_id: 31337 } };
     if (url === '/api/v1/issuer-applications/mine') return role === 'issuer' ? { status: 200, body: { application_id: APP, applicant_account_id: APPLICANT, issuer_name: 'Origin Mock Bank', status: 'APPROVED' } } : deny(403, 'FORBIDDEN');
     if (url.startsWith('/api/v3/issuer-applications/')) {
       if (role !== 'issuer') return deny(403, 'FORBIDDEN');
@@ -239,6 +239,13 @@ test('기관 메뉴(신청자): 온보딩 경로로 가고, 내부 승인·제�
   assert.deepEqual(posted(B + '/email-verifications'), [{ code: '123456' }]);
   await press('긴급 정지 거래 알리기'); enter(d, ISS); await sleep(40); enter(d, TX); await sleep(40);
   assert.equal(posted('/v3/issuers/' + ISS + '/suspensions')[0].tx_hash, TX);
+});
+
+test('기관 상태: wallet 전용 환경의 v1 503 CHAIN_UNAVAILABLE은 오류 대신 안내로 보여 줌', async () => {
+  const { d } = await open('issuer', 'acct_v1_down');
+  const t = d.doc.getElementById('chatThread').textContent;
+  assert.match(t, /wallet 장부만 쓰는 환경에서는 정상/);
+  assert.doesNotMatch(t, /CHAIN_UNAVAILABLE/);
 });
 
 test('기관 메뉴(지정 승인자): 내부 승인만 보이고 계약 경로로 간다', async () => {

@@ -1,0 +1,429 @@
+{
+  "date_utc": "2026-10-27T05:51:30.189664+00:00",
+  "source_sha": "05fdf6ca87810cd549e82322df044dd8860eb4df",
+  "python": "3.13.14",
+  "manifest_sha256": "eebd5b1d2b21e17c29b625262dd34cb42c0a3f86b14ba5851600596a2373668c",
+  "local_creation_bytecode_matches_manifest": true,
+  "creation_bytecode_keccak": "0x29dce02df8543025399d557f899b962ad9fc0f3ade02056271ea6ff9a913889f",
+  "chain_id": 11155111,
+  "registry": "0xe540bf29622afff40174b76992b016112f372a2e",
+  "deployment_tx": "0x9e40ba5f455da2a583989d24255c324230bdb804255e249f35cf256f4866a4bc",
+  "deployment_block": 12001755,
+  "deployment_block_hash": "0xf7996737093412ac2d0f7ce64d5f016a60879567a1c456cf7563c8e8e4beaea2",
+  "runtime_code_hash": "0x3c4d2045eabed02ce1f4703f30874607950f91ff5a70f58b93357ea031840476",
+  "attempts": [
+    {
+      "status": "PASS",
+      "head_number": 12003144,
+      "head_hash": "0x9ee3b0b5c07d7025a17a292f7981120947030f91739f705a195fb6a022437be6",
+      "approvers": [
+        "0x4f12cb684fbd76962a85e5bc66fe769597aeca2a",
+        "0xe5d0531ef3c419a5acfb3774b731a2d239ecb240",
+        "0x2efd70f041fe1b400125e8b99029c5fa0af4eb1c"
+      ],
+      "rpc_calls": [
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_chainId",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getCode",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getTransactionByHash",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getTransactionReceipt",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getCode",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_chainId",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getCode",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "rpc_error_code": null
+        }
+      ]
+    },
+    {
+      "status": "PASS",
+      "head_number": 12003144,
+      "head_hash": "0x9ee3b0b5c07d7025a17a292f7981120947030f91739f705a195fb6a022437be6",
+      "approvers": [
+        "0x4f12cb684fbd76962a85e5bc66fe769597aeca2a",
+        "0xe5d0531ef3c419a5acfb3774b731a2d239ecb240",
+        "0x2efd70f041fe1b400125e8b99029c5fa0af4eb1c"
+      ],
+      "rpc_calls": [
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_chainId",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getCode",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getTransactionByHash",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getTransactionReceipt",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getCode",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_chainId",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getCode",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "rpc_error_code": null
+        }
+      ]
+    },
+    {
+      "status": "PASS",
+      "head_number": 12003145,
+      "head_hash": "0x5b20eb18fbea5affa5a80ca2d399c863a2e1b6cb89f31b271184c1d8197cb007",
+      "approvers": [
+        "0x4f12cb684fbd76962a85e5bc66fe769597aeca2a",
+        "0xe5d0531ef3c419a5acfb3774b731a2d239ecb240",
+        "0x2efd70f041fe1b400125e8b99029c5fa0af4eb1c"
+      ],
+      "rpc_calls": [
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_chainId",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getCode",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getTransactionByHash",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getTransactionReceipt",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getCode",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_chainId",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getCode",
+          "http_status": 200,
+          "rpc_error_code": null
+        },
+        {
+          "method": "eth_getBlockByNumber",
+          "http_status": 200,
+          "rpc_error_code": null
+        }
+      ]
+    }
+  ],
+  "writes": 0,
+  "service_api_calls": 0,
+  "scope": "Direct public Sepolia deployment/constructor read; not RC rehearsal",
+  "provider": "ethpandaops",
+  "public_url": "https://rpc.sepolia.ethpandaops.io",
+  "negative_controls": [
+    {
+      "provider": "1rpc",
+      "public_url": "https://1rpc.io/sepolia",
+      "attempts": [
+        {
+          "status": "FAIL",
+          "exception_type": "BlockchainDependencyError",
+          "rpc_calls": [
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_chainId",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getCode",
+              "http_status": 429,
+              "rpc_error_code": -32029
+            }
+          ]
+        }
+      ],
+      "writes": 0
+    },
+    {
+      "provider": "publicnode",
+      "public_url": "https://ethereum-sepolia-rpc.publicnode.com",
+      "attempts": [
+        {
+          "status": "FAIL",
+          "exception_type": "BlockchainDependencyError",
+          "rpc_calls": [
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_chainId",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getCode",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getBlockByNumber",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getTransactionByHash",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getTransactionReceipt",
+              "http_status": 200,
+              "rpc_error_code": null
+            },
+            {
+              "method": "eth_getCode",
+              "http_status": 200,
+              "rpc_error_code": -32000
+            }
+          ]
+        }
+      ],
+      "writes": 0
+    }
+  ],
+  "environment": {
+    "foundry": "1.4.4",
+    "solc": "0.8.26",
+    "openzeppelin": "5.7.0",
+    "dependencies": "existing local Python environment and OpenZeppelin reused; no fresh locked sync",
+    "same_physical_laptop": true
+  },
+  "not_done": [
+    "Public original bytes/content/metadata export not supplied",
+    "Other physical laptop reproduction",
+    "Same team RC rehearsal x3",
+    "Long-term RPC availability or independent provider quorum",
+    "Human owner review and stage acceptance"
+  ]
+}
