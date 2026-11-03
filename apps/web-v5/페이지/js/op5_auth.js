@@ -7,6 +7,9 @@
   var Hk = (root.Hk = root.Hk || {});
   var state = { member: false, me: null, checked: false };
   var LOGIN = 'login.html?next=business.html', SIGNUP = 'join.html';
+  var GUEST_KEY = 'op5.guestSample', ORG_ONLY = ['새 Proof 발행', '공개키 관리', '발행 목록'];
+  var authBtn = null;
+  function guestMark(v) { try { if (v) root.localStorage.setItem(GUEST_KEY, '1'); else if (root.localStorage.getItem(GUEST_KEY)) { root.localStorage.removeItem(GUEST_KEY); return true; } } catch (e) {} return false; }
   var demo = !!(Hk.op5scenes && Hk.op5scenes.valid(new URLSearchParams(location.search).get('demo')));
   var served = /^https?:$/.test(location.protocol) && !demo;
 
@@ -31,7 +34,12 @@
         return set.apply(c, arguments);
       };
       // 확인이 끝났는데 비회원이면(확인 중에 바꾼 경우 포함) 예시 모드로 되돌린다
-      checked.then(function () { if (!state.member && set && c.mode && c.mode() === 'api') set.call(c, 'sample'); });
+      // 비회원 때 머문 예시 모드는 로그인 뒤 실서버로 되돌린다. 회원이 직접 고른 예시 모드와 ?mode=sample 은 그대로 둔다.
+      checked.then(function () {
+        if (!set || !c.mode) return;
+        if (!state.member) { guestMark(true); if (c.mode() === 'api') set.call(c, 'sample'); return; }
+        if (guestMark(false) && c.mode() !== 'api' && new URLSearchParams(location.search).get('mode') !== 'sample') set.call(c, 'api');
+      });
       return c;
     };
   }
@@ -58,10 +66,37 @@
     btn.dataset.member = state.member ? '1' : '0';
   }
 
+  // 세션이 끊기면 다시 불러오기 전에도 단추를 로그인으로 바꾼다
+  function expired() {
+    if (!state.member) return;
+    state.member = false; state.me = null; guestMark(true);
+    if (authBtn) paint(authBtn);
+  }
+
+  // 개인 계정에는 기관 전용 메뉴를 숨긴다(권한은 서버가 따로 막음). 메뉴가 다시 그려져도 유지.
+  function hideOrgMenu() {
+    var side = document.getElementById('sidebar-root'); if (!side) return;
+    function apply() {
+      side.querySelectorAll('button').forEach(function (b) {
+        if (ORG_ONLY.indexOf(b.textContent.trim()) >= 0 && b.style.display !== 'none') b.style.display = 'none';
+      });
+    }
+    apply();
+    if (root.MutationObserver) new MutationObserver(apply).observe(side, { childList: true, subtree: true });
+  }
+
+  // 휴대폰 폭에서는 메뉴를 처음부터 접는다(접기 단추는 번들 것을 그대로 씀)
+  function foldNarrow(left) {
+    if (!root.matchMedia || !root.matchMedia('(max-width:760px)').matches) return;
+    var c = document.querySelector('#sidebar-root .sidebar-collapse-control');
+    if (c) c.click(); else if (left > 0) setTimeout(function () { foldNarrow(left - 1); }, 100);
+  }
+
   function start() {
-    var btn = document.getElementById('authBtn'); if (!btn) return;
+    foldNarrow(20);
+    var btn = authBtn = document.getElementById('authBtn'); if (!btn) return;
     paint(btn);
-    checked.then(function () { paint(btn); });
+    checked.then(function () { paint(btn); if (state.me && state.me.role === 'recipient') hideOrgMenu(); });
     btn.addEventListener('click', function () {
       if (!state.member) { location.href = LOGIN; return; }
       btn.disabled = true;
@@ -86,5 +121,5 @@
     }
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
-  Hk.auth = { state: state, notice: notice };
+  Hk.auth = { state: state, notice: notice, checked: checked, expired: expired };
 })(window);

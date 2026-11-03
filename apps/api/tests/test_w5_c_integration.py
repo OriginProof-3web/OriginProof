@@ -1,9 +1,13 @@
 """W5 scopes and recovery guidance on real persisted rows; chain is synthetic here."""
 
+import json
 import os
+import stat
+import sys
 from datetime import UTC, datetime, timedelta
 from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 import test_finals_proofs as w3
@@ -89,6 +93,29 @@ async def test_not_prepared_runtime_is_503_without_sensitive_errors():
         assert response.json() == {"detail": "RUNTIME_NOT_READY"}
         assert (await client.get("/health/live")).status_code == 200
         assert (await client.get("/v1/chain-sync")).status_code == 401
+
+
+def test_master_seed_is_operator_with_its_own_private_credential(tmp_path, monkeypatch, capsys):
+    spec = spec_from_file_location(
+        "seed_accounts", Path(__file__).parents[3] / "scripts/fixtures/seed_accounts.py"
+    )
+    seed = module_from_spec(spec)
+    spec.loader.exec_module(seed)
+    seeded = []
+
+    async def record(prepared, password):
+        seeded.append((prepared, password))
+        return {}
+
+    monkeypatch.setattr(seed, "seed_prepared", record)
+    monkeypatch.setattr(seed, "Settings", lambda: SimpleNamespace(signer_directory=str(tmp_path)))
+    monkeypatch.setattr(sys, "argv", ["seed_accounts.py", "--master"])
+    seed.main()
+    path = tmp_path / "master-account.json"
+    password = json.loads(path.read_text())["password"]
+    assert seeded == [((("master", "operator", None),), password)]
+    assert stat.S_IMODE(path.stat().st_mode) == 0o600
+    assert password not in capsys.readouterr().out
 
 
 def test_local_seed_password_is_preserved_and_links_are_rejected(tmp_path):

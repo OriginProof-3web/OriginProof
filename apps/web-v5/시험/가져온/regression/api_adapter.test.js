@@ -68,7 +68,7 @@ test('금액 비교 카드: 응답에 금액 필드가 없으면 늘 확인 불�
   assert.ok(!/\d/.test(vals[0]));
 });
 
-test('v3 재구성 응답(체인 없음 INCONCLUSIVE+CHAIN_UNAVAILABLE): v3 를 연결 전으로 보고 v1 로 넘어감, 결과는 v1 값', async () => {
+test('v3 재구성 응답(체인 없음 INCONCLUSIVE+CHAIN_UNAVAILABLE): v3 를 체인 연결 실패로 보고 v1 로 넘어감, 결과는 v1 값', async () => {
   const Hk = loadWeb();
   const v3 = fixture('v3_verification_chain_unavailable.reconstructed.json');
   const v1 = fixture('v1_verify_tampered.response.json');
@@ -77,20 +77,21 @@ test('v3 재구성 응답(체인 없음 INCONCLUSIVE+CHAIN_UNAVAILABLE): v3 를 
   assert.deepEqual(f.calls.map(c => c.url.replace(URL0, '')), ['/v3/verifications', '/v1/mvp/card-notices/verify']);
   assert.equal(JSON.parse(f.calls[0].body).scope, 'ID_ONLY');
   assert.equal(ans.verification_status, 'TAMPERED');
-  assert.ok(ans.details.some(d => d.label === 'v3 검증' && /연결 전/.test(d.value)));
+  assert.ok(ans.details.some(d => d.label === 'v3 검증' && /체인에 연결하지 못해/.test(d.value)));
   screenChecks(ans, 'v3→v1');
 });
 
-test('v3 재구성 응답만 있고 Proof ID 없음: 결과를 지어내지 않고 네 칸 연결 전', async () => {
+test('v3 재구성 응답만 있고 Proof ID 없음: 결과를 지어내지 않고 체인 장애는 판단 보류', async () => {
   const Hk = loadWeb();
   const v3 = fixture('v3_verification_chain_unavailable.reconstructed.json');
   const { a, f } = api(Hk, () => ({ status: 200, body: v3 }));
   const ans = await a.check(JSON.stringify({ document_id: '0x' + 'b'.repeat(64) }));
   assert.equal(f.calls.length, 1);
   assert.equal(ans.verification_status, null);
-  assert.equal(ans.conclusion.badge.text, '연결 전');
-  for (const ax of ans.axes.slice(0, 3)) assert.equal(ax.status, '연결 전');
-  screenChecks(ans, 'v3 연결 전');
+  assert.equal(ans.conclusion.badge.text, '판단 보류');
+  assert.match(ans.conclusion.text, /체인에 연결하지 못해/);
+  for (const ax of ans.axes.slice(0, 3)) assert.equal(ax.status, '확인 불가');
+  screenChecks(ans, 'v3 체인 장애');
 });
 
 test('v3 503 WALLET_REGISTRY_NOT_CONFIGURED: 연결 전 처리 후 v1', async () => {
