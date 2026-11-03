@@ -8,6 +8,8 @@
 - 시나리오 선택: [#117](https://github.com/OriginProof-3web/OriginProof/issues/117), [D AI 기대 초안](../handoffs/v5_d_demo_scenarios_20261103.md)
 - 판정: **NOT_RUN_ON_FINAL_RC**. 과거 supporting suite PASS를 accepted=true로 옮기지 않습니다.
 
+2026-11-03 후속: #131 준비 문서는 병합됐고 #130의 갱신 CI는3/3 PASS입니다. 별도 [D 시연 후속 검증](v5-d-demo-followup-20261103.md)에서 #133/#134 실제 화면·#136 mock 지연 교체를 확인했습니다. 이9개 사전 확인을 아래21개 최종 수용으로 승계하지 않습니다. #137 리허설 안내는 아직 실행 기록이 아니며, 각 회차에 실제 provider(mock/OpenAI)·준비 응답 표시/교체 여부를 기록합니다.
+
 ## 1. 실행 전 동일성·환경
 
 1. C가 지정한40자리 SHA를 새 checkout에서 확인합니다. 작업 중 HEAD나 phase 최신을 임의로 최종 RC라 부르지 않습니다.
