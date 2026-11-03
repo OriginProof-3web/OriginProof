@@ -41,6 +41,12 @@ C가 같은 Operation을 재조회할 수 있게 했다. 실제 canonical 실패
 - 작성자 외 리뷰: 미확인
 
 
+## 2026-11-03 — #104 중복 projection 정리
+
+사용자 선택 ①에 따라 `fix/w6-review-b`에 phase/W6 `fb6e23b`를 반영했습니다. 이미 병합된 #125의 receipt 완전성·구간 사이 정본 재검사와 현재 회귀를 보존하고, #104의 구식 projection 대안과 그 전용 중복 테스트는 최종 base diff에서 제거했습니다. 남은 고유 변경은 Cancun 설정·Sepolia 런북 정정입니다. Codex가 충돌 해결·검사를 수행했으며 다른 담당자의 신규 구현을 추가하지 않았습니다.
+
+관련 Python77 PASS, Forge1.8.1/solc0.8.26/Cancun Foundry 검사 PASS, 생성 bytecode와 커밋된 Sepolia manifest 완전 일치 PASS. 공개 RPC·쓰기·서비스 API·DB reset은 실행하지 않았고 이 검사로 과거 G07·공개 문서 전체 대조·W6 완료를 선언하지 않습니다. 기존 CHANGES_REQUESTED의 projection 대안은 현재 PR에서 제외했으며, 변경된 최종 head는 작성자 외 재리뷰가 필요합니다.
+
 ## 2026-10-24 — V5-W6-B 이벤트 증거 경계 보완
 
 - 상태: 독립 구현·검사 완료 / 실제 C API 연결·독립 리뷰·W6 단계 완료는 미확인.
@@ -131,9 +137,3 @@ D의 동일 SHA 독립 재현·다른 장비 검증, 리뷰·W6 반영. TCP 테�
 ### 2026-11-02 Anvil 기준 선택
 
 사용자가 B 시연·검증 준비를 Anvil로 진행하기로 선택했습니다. 기존 기본 설정을 재사용하고 #125의 공개 RPC receipt 비용 최적화는 이번 범위에 추가하지 않았습니다. 생산 코드 무변경, HEAD `57af5be`에서 새 합성 Anvil 검사1 PASS(1.93초). 기존 DB/노드/배포 초기화와 서비스 세션 상시 기동은 하지 않았습니다. 팀 전체 발표 체인 확정·C의 정식 승인·B 직접 RC 합본 검증은 별도입니다. [결정과 검증 근거](../blockchain/v5_retest_fixes_20261101.md#2026-11-02-사용자-b의-anvil-선택).
-
-## 2026-11-03 — #104 중복 projection 정리
-
-사용자 선택 ①에 따라 `fix/w6-review-b`에 phase/W6 `fb6e23b`를 반영했습니다. 이미 병합된 #125의 receipt 완전성·구간 사이 정본 재검사와 현재 회귀를 보존하고, #104의 구식 projection 대안과 그 전용 중복 테스트는 최종 base diff에서 제거했습니다. 남은 고유 변경은 Cancun 설정·Sepolia 런북 정정입니다. Codex가 충돌 해결·검사를 수행했으며 다른 담당자의 신규 구현을 추가하지 않았습니다.
-
-관련 Python77 PASS, Forge1.8.1/solc0.8.26/Cancun Foundry 검사 PASS, 생성 bytecode와 커밋된 Sepolia manifest 완전 일치 PASS. 공개 RPC·쓰기·서비스 API·DB reset은 실행하지 않았고 이 검사로 과거 G07·공개 문서 전체 대조·W6 완료를 선언하지 않습니다. 기존 CHANGES_REQUESTED의 projection 대안은 현재 PR에서 제외했으며, 변경된 최종 head는 작성자 외 재리뷰가 필요합니다.
