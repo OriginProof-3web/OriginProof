@@ -97,3 +97,36 @@ async def test_signup_is_off_by_default(client):
     async with client(enabled=False) as api:
         response = await api.post("/v1/auth/register", json=PERSONAL)
         assert (response.status_code, response.json()["detail"]) == (409, "SIGNUP_DISABLED")
+
+
+async def test_login_rejects_control_characters_before_the_query(client):
+    async with client() as api:
+        response = await api.post(
+            "/v1/auth/login", json={"username": "a\u0000b", "password": "synthetic1pass"}
+        )
+        assert response.status_code == 422
+
+
+async def test_casefold_growth_and_unicode_forms(client):
+    async with client() as api:
+        long = PERSONAL | {"email": "ß" * 100 + "@example.invalid"}
+        response = await api.post("/v1/auth/register", json=long)
+        assert (response.status_code, response.json()["detail"]) == (
+            422,
+            "SYNTHETIC_EMAIL_REQUIRED",
+        )
+        nfd = PERSONAL | {"email": "jose\u0301@example.invalid"}
+        assert (await api.post("/v1/auth/register", json=nfd)).status_code == 201
+        nfc = PERSONAL | {"email": "jos\u00e9@example.invalid"}
+        assert (await api.post("/v1/auth/register", json=nfc)).status_code == 409
+        login = await api.post(
+            "/v1/auth/login",
+            json={"username": "jos\u00e9@example.invalid", "password": PERSONAL["password"]},
+        )
+        assert login.status_code == 200, login.text
+
+
+def test_settings_repr_hides_database_password():
+    from originproof_api.settings import Settings
+
+    assert "originproof:originproof" not in repr(Settings(_env_file=None))

@@ -3,13 +3,22 @@
 import time
 
 import pytest
-from originproof_api.database import OperationRow
+from originproof_api.database import IssuerApplicationRow, OperationRow
 from originproof_api.operations import input_fingerprint
 from originproof_api.wallet_database import WalletSigningRow
 from originproof_core.wallet_ports import WalletIssuer, WalletKey
 from originproof_core.wallet_signatures import identifier_hash
 from sqlalchemy.orm import Session
-from test_wallet_runtime import APPROVERS, BLOCK, ISSUER_HASH, SIGNER, proved_key, sign
+from test_wallet_runtime import (
+    APPROVERS,
+    BLOCK,
+    ISSUER,
+    ISSUER_HASH,
+    SIGNER,
+    onboarding,
+    proved_key,
+    sign,
+)
 
 pytest_plugins = ("test_wallet_runtime",)
 
@@ -123,3 +132,47 @@ async def test_governance_transaction_retries_expire(wallet, action):
         )
     response = await wallet.client.post(path, json=body)
     assert response.status_code == 410, response.text
+
+
+async def test_rejected_application_cannot_continue_to_key_proof(wallet):
+    await onboarding(wallet)
+    with Session(wallet.engine) as db:
+        db.get(IssuerApplicationRow, "app_test").status = "REJECTED"
+        db.commit()
+    response = await wallet.client.post(
+        "/v3/key-challenges",
+        json={"request_id": "req_rejected", "application_id": "app_test", "signer": SIGNER},
+    )
+    assert response.status_code == 409 and response.json()["detail"] == "APPLICATION_REJECTED"
+
+
+async def test_reissued_email_code_keeps_internal_rejection(wallet):
+    c = wallet.client
+    await c.post(
+        "/v3/issuer-applications/app_test/email-codes", json={"email": "staff@bank.example.invalid"}
+    )
+    code = (await c.get("/v3/issuer-applications/app_test/demo-inbox")).json()["code"]
+    await c.post("/v3/issuer-applications/app_test/email-verifications", json={"code": code})
+    wallet.who["name"] = "internal"
+    rejected = await c.post(
+        "/v3/issuer-applications/app_test/internal-approvals",
+        json={"decision": "REJECT", "reason": "not our staff"},
+    )
+    assert rejected.status_code == 200, rejected.text
+    wallet.who["name"] = "issuer"
+    reissue = await c.post(
+        "/v3/issuer-applications/app_test/email-codes", json={"email": "staff@bank.example.invalid"}
+    )
+    assert reissue.status_code == 409
+    assert reissue.json()["detail"] == "INTERNAL_APPROVAL_REJECTED"
+
+
+async def test_suspension_accepts_roster_slug_and_pending_tx_is_retryable(wallet):
+    wallet.who["name"] = "operator"
+    body = {"request_id": "req_suspend", "tx_hash": "0x" + "cd" * 32}
+    for _ in range(2):  # same answer on retry while the transaction is not visible
+        pending = await wallet.client.post(f"/v3/issuers/{ISSUER}/suspensions", json=body)
+        assert pending.status_code == 503, pending.text
+        assert pending.json()["detail"] == "TRANSACTION_PENDING"
+    bad = await wallet.client.post("/v3/issuers/not-a-slug/suspensions", json=body)
+    assert bad.status_code == 422
