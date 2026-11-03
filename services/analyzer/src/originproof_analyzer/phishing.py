@@ -21,9 +21,16 @@ from .providers import (
 from .settings import AnalyzerSettings
 
 logger = logging.getLogger(__name__)
-RULE_VERSION = "phishing-rules-0.1"
+RULE_VERSION = "phishing-rules-0.2"
 _PRIORITY = {"NO_CLEAR_INDICATORS": 0, "UNDETERMINED": 0, "CAUTION": 1, "HIGH": 2}
 _ASK = r"(?:해\s*주(?:세요|십시오)|하(?:세요|십시오)|해라|해\s*줘|주세요|주십시오)"
+# Keep connected requests inside one unquoted clause; descriptions/negations are insufficient.
+_REMOTE_FOLLOWUP = (
+    r"하고(?!\s*(?:싶|있))"
+    r"(?:(?!지\s*(?:마|말|않)|(?<!\w)(?:안|못)\s|[다라](?:는|고))"
+    r"[^\n.!?\"'“”‘’「」『』]){0,40}?"
+    rf"{_ASK}"
+)
 _RULES = (
     (
         "CREDENTIAL_REQUEST",
@@ -34,7 +41,7 @@ _RULES = (
     (
         "REMOTE_CONTROL_REQUEST",
         "HIGH",
-        rf"원격\s*(?:제어|지원).{{0,25}}?(?:설치|실행){_ASK}",
+        rf"원격\s*(?:제어|지원).{{0,25}}?(?:설치|실행)(?:{_ASK}|{_REMOTE_FOLLOWUP})",
     ),
     (
         "URGENT_TRANSFER",

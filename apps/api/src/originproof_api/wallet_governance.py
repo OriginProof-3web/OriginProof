@@ -5,7 +5,7 @@ import secrets
 from typing import Annotated
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Path, Request
 from originproof_core.canonicalization import canonical_json_bytes
 from originproof_core.wallet_contract import (
     GovernanceTransaction,
@@ -38,6 +38,8 @@ Identity = Annotated[tuple, Depends(current_session)]
 async def challenge(body: KeyChallengeRequest, request: Request, identity: Identity):
     service = runtime(request)
     account = service.authorize(request, identity, "issuer")
+    if await service.rpc("is_approver", body.signer):
+        raise HTTPException(409, "SIGNER_IS_APPROVER")
     async with service.database.session_factory() as db:
         await service.lock_account(db, account)
         retry = await service.signing_retry(db, account, "KeyProof", body)
@@ -122,6 +124,8 @@ async def proposal_view(service, row):
 async def propose(body: ProposalRequest, request: Request, identity: Identity):
     service = runtime(request)
     account, _ = await service.operator(request, identity)
+    if await service.rpc("is_approver", body.proposal.signer):
+        raise HTTPException(409, "SIGNER_IS_APPROVER")
     async with service.database.session_factory() as db:
         await service.lock_account(db, account)
         retry = await db.scalar(
@@ -419,18 +423,19 @@ async def proposal_transaction(
 
 @router.post("/issuers/{issuer_id}/suspensions", response_model=OperationView, status_code=202)
 async def suspension(
-    issuer_id: Hex32, body: GovernanceTransaction, request: Request, identity: Identity
+    issuer_id: Annotated[str, Path(pattern=r"^(0x[0-9a-f]{64}|iss_[a-z0-9_]{1,60})$")],
+    body: GovernanceTransaction,
+    request: Request,
+    identity: Identity,
 ):
     service = runtime(request)
+    # Screens show the roster slug (iss_...); the chain key is its identifier hash.
+    if not issuer_id.startswith("0x"):
+        issuer_id = identifier_hash(issuer_id)
     account = service.authorize(request, identity)
     if account.role == "operator":
         _, actor = await service.operator(request, identity)
-    elif account.role == "issuer" and service.issuer_id(account) == issuer_id:
-        issuer = await service.rpc("issuer", issuer_id)
-        if issuer is None:
-            raise HTTPException(404, "ISSUER_NOT_FOUND")
-        actor = issuer.signer
-    else:
+    elif account.role != "issuer" or service.issuer_id(account) != issuer_id:
         raise HTTPException(403, "FORBIDDEN")
     async with service.database.session_factory() as db:
         await service.lock_account(db, account)
@@ -439,14 +444,18 @@ async def suspension(
             if retry.target_id != issuer_id:
                 raise HTTPException(409, "REQUEST_ID_CONFLICT")
             return service.operation_view(retry)
+        if account.role == "issuer":
+            issuer = await service.rpc("issuer", issuer_id)
+            if issuer is None:
+                raise HTTPException(404, "ISSUER_NOT_FOUND")
+            actor = issuer.signer
         tx = await service.rpc("transaction", body.tx_hash)
-        if (
-            tx is None
-            or tx.arguments.get("issuerId") != issuer_id
-            or (
-                tx.arguments.get("reasonCode")
-                not in {identifier_hash(x) for x in ("KEY_COMPROMISE", "ABUSE_REPORT", "OTHER")}
-            )
+        if tx is None:
+            # Not mined or not visible yet: retryable, unlike a mismatching transaction.
+            raise HTTPException(503, "TRANSACTION_PENDING", headers={"Retry-After": "5"})
+        if tx.arguments.get("issuerId") != issuer_id or (
+            tx.arguments.get("reasonCode")
+            not in {identifier_hash(x) for x in ("KEY_COMPROMISE", "ABUSE_REPORT", "OTHER")}
         ):
             raise HTTPException(422, "DIRECT_TX_MISMATCH")
         operation = service.operation(

@@ -79,6 +79,26 @@ export interface DocumentDraftRequest {
   content: PaymentContent | OfficialContent;
 }
 
+export interface DocumentImageInputRequest {
+  kind: "DOCUMENT_IMAGE";
+  image_media_type: "image/png" | "image/jpeg" | "image/webp";
+  image_base64: string;
+}
+
+export interface DocumentLookupRequest {
+  request_id: string;
+  issuer_id: string;
+  key: PaymentLookupKey | OfficialLookupKey;
+}
+
+export interface DocumentLookupResult {
+  lookup_status: "MATCHED" | "UNVERIFIED" | "AMBIGUOUS";
+  match_count: number;
+  document_ids: string[];
+  verification?: VerificationResult | null;
+  reason_codes: string[];
+}
+
 export interface DocumentView {
   document_id: string;
   issuer_id: string;
@@ -154,6 +174,11 @@ export interface OfficialContent {
   official_url?: string | null;
 }
 
+export interface OfficialLookupKey {
+  notice_type: "OFFICIAL_DOCUMENT";
+  document_number: string;
+}
+
 export interface OnboardingView {
   application_id: string;
   roster_matched: boolean;
@@ -187,6 +212,13 @@ export interface PaymentContent {
   payment_purpose: string;
   due_at: number;
   official_url?: string | null;
+}
+
+export interface PaymentLookupKey {
+  notice_type: "PAYMENT_REQUEST";
+  amount_minor: number;
+  currency: string;
+  payee_account_number: string;
 }
 
 export interface ProposalRequest {

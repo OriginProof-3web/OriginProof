@@ -5,8 +5,6 @@ from functools import partial
 
 from sqlalchemy import BigInteger, Column, MetaData, String, Table, delete, insert, select, update
 
-LOG_CHUNK_SIZE = 200
-
 metadata = MetaData()
 journal = Table(
     "wallet_events", metadata,
@@ -62,17 +60,22 @@ class WalletProjection:
             if old["hash"] != previous[1]:
                 raise ValueError("wallet reorg: explicit rewind required")
         start = self.rpc.deployment_block if previous is None else previous[0] + 1
-        confirmed = int(head["number"], 16)
-        count = 0
-        while start <= confirmed:
-            end = min(start + LOG_CHUNK_SIZE - 1, confirmed)
-            chunk_head = await self.rpc.block(hex(end))
-            logs = await self.rpc.logs(start, chunk_head)
-            await self.run(partial(self._store, previous, chunk_head, logs))
-            previous = (int(chunk_head["number"], 16), chunk_head["hash"])
-            count += len(logs)
-            start = end + 1
-        return count
+        total = 0
+        for first in range(start, int(head["number"], 16) + 1, 128):
+            page = head if first + 127 >= int(head["number"], 16) else (
+                await self.rpc.block(hex(first + 127)))
+            # A successful empty log response alone is not evidence of a complete page.
+            logs = await self.rpc.logs(first, page)
+            await self.rpc.verify_logs(first, page, logs)
+            await self.rpc.check(head)
+            if previous is not None:
+                old = await self.rpc.block(hex(previous[0]))
+                if old["hash"] != previous[1]:
+                    raise ValueError("wallet reorg during sync; explicit rewind required")
+            await self.run(partial(self._store, previous, page, logs))
+            previous = (int(page["number"], 16), page["hash"])
+            total += len(logs)
+        return total
 
     def _store(self, previous, head, logs):
         # Compare-and-swap makes a competing worker roll back its entire page.

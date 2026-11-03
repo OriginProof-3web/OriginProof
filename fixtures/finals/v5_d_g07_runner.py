@@ -33,8 +33,13 @@ REQUIRED_GROUPS = {
 }
 
 
+def git_environment() -> dict[str, str]:
+    """Make cwd select the QA repository even when invoked from a Git hook."""
+    return {key: value for key, value in os.environ.items() if not key.startswith("GIT_")}
+
+
 def git(root: Path, *args: str) -> bytes:
-    result = subprocess.run(["git", *args], cwd=root, capture_output=True)
+    result = subprocess.run(["git", *args], cwd=root, env=git_environment(), capture_output=True)
     if result.returncode:
         raise ValueError("GIT_OBJECT_OR_REF_UNAVAILABLE")
     return result.stdout
@@ -43,7 +48,10 @@ def git(root: Path, *args: str) -> bytes:
 def ancestor(root: Path, older: str, newer: str) -> bool:
     return (
         subprocess.run(
-            ["git", "merge-base", "--is-ancestor", older, newer], cwd=root, capture_output=True
+            ["git", "merge-base", "--is-ancestor", older, newer],
+            cwd=root,
+            env=git_environment(),
+            capture_output=True,
         ).returncode
         == 0
     )
@@ -118,7 +126,7 @@ def private_report(path: Path, value: dict) -> None:
 def run_once(root: Path, plan: dict, mode: str, directory: Path) -> dict:
     directory.mkdir(mode=0o700)
     env = dict(
-        os.environ,
+        git_environment(),
         W5_D_API_QA="1",
         W5_D_PRODUCT_SHA=plan["product_sha"],
         W5_D_OUTPUT_ROOT=str(directory),

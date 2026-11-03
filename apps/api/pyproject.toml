@@ -8,6 +8,7 @@ dependencies = [
   "eth-abi>=5.2,<6",
   "fastapi>=0.142.2,<0.143",
   "httpx>=0.28,<0.29",
+  "originproof-analyzer",
   "originproof-core",
   "pydantic-settings>=2.7,<3",
   "sqlalchemy[asyncio]>=2.0,<2.1",
@@ -15,6 +16,7 @@ dependencies = [
 ]
 
 [tool.uv.sources]
+originproof-analyzer = { workspace = true }
 originproof-core = { workspace = true }
 
 [build-system]

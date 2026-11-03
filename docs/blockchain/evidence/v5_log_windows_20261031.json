@@ -1,0 +1,205 @@
+{
+  "code_sha": "ae996c30269f721bd73857ab03062c2f3b121dd6",
+  "base_sha": "f1d7b3c0002f406419d44321aff4cff3e90edd57",
+  "date_kst": "2026-10-31",
+  "provider_limit_probe": {
+    "date_utc": "2026-10-31T07:31:39.315964+00:00",
+    "writes": 0,
+    "results": [
+      {
+        "provider": "publicnode",
+        "head": 12032358,
+        "observations": [
+          {
+            "span": 200,
+            "http": 200,
+            "rpc_error": null,
+            "log_count": 0
+          },
+          {
+            "span": 50000,
+            "http": 200,
+            "rpc_error": null,
+            "log_count": 7
+          },
+          {
+            "span": 50001,
+            "http": 200,
+            "rpc_error": null,
+            "log_count": 7
+          }
+        ]
+      },
+      {
+        "provider": "ethpandaops",
+        "head": 12032358,
+        "observations": [
+          {
+            "span": 200,
+            "http": 200,
+            "rpc_error": null,
+            "log_count": 0
+          },
+          {
+            "span": 50000,
+            "http": 200,
+            "rpc_error": {
+              "code": -32012,
+              "message": "getLogs request exceeded max allowed range",
+              "data": {
+                "code": "ErrGetLogsExceededMaxAllowedRange",
+                "message": "getLogs request exceeded max allowed range",
+                "details": {
+                  "requestRange": 50000,
+                  "maxAllowedRange": 30000
+                }
+              }
+            },
+            "log_count": null
+          },
+          {
+            "span": 50001,
+            "http": 200,
+            "rpc_error": {
+              "code": -32012,
+              "message": "getLogs request exceeded max allowed range",
+              "data": {
+                "code": "ErrGetLogsExceededMaxAllowedRange",
+                "message": "getLogs request exceeded max allowed range",
+                "details": {
+                  "requestRange": 50001,
+                  "maxAllowedRange": 30000
+                }
+              }
+            },
+            "log_count": null
+          }
+        ]
+      }
+    ]
+  },
+  "actual_adapter_proposal": {
+    "source_sha": "ae996c30269f721bd73857ab03062c2f3b121dd6",
+    "date_utc": "2026-10-31T07:38:12.759464+00:00",
+    "provider": "ethpandaops",
+    "writes": 0,
+    "service_api_calls": 0,
+    "proposal_elapsed_seconds": 9.25,
+    "port_status": "EXECUTED",
+    "status": "PASS",
+    "proposal_id": "0xe796b23dd4cf36791ebe4af1b8fdfd427d4e767005eaeb08cfd6df94d65cda82",
+    "head": {
+      "number": "0xb79987",
+      "hash": "0xaf173ac373ea60d404412297c074690229059a0843008e36fc80156eaf9d0214"
+    },
+    "approvals": [
+      "0x4f12cb684fbd76962a85e5bc66fe769597aeca2a",
+      "0xe5d0531ef3c419a5acfb3774b731a2d239ecb240"
+    ],
+    "executed": true,
+    "ranges": [
+      [
+        12001755,
+        12003754
+      ],
+      [
+        12003755,
+        12005754
+      ],
+      [
+        12005755,
+        12007754
+      ],
+      [
+        12007755,
+        12009754
+      ],
+      [
+        12009755,
+        12011754
+      ],
+      [
+        12011755,
+        12013754
+      ],
+      [
+        12013755,
+        12015754
+      ],
+      [
+        12015755,
+        12017754
+      ],
+      [
+        12017755,
+        12019754
+      ],
+      [
+        12019755,
+        12021754
+      ],
+      [
+        12021755,
+        12023754
+      ],
+      [
+        12023755,
+        12025754
+      ],
+      [
+        12025755,
+        12027754
+      ],
+      [
+        12027755,
+        12029754
+      ],
+      [
+        12029755,
+        12031754
+      ],
+      [
+        12031755,
+        12032391
+      ]
+    ],
+    "rpc_method_counts": {
+      "eth_chainId": 2,
+      "eth_getBlockByNumber": 19,
+      "eth_getCode": 3,
+      "eth_getTransactionByHash": 2,
+      "eth_getTransactionReceipt": 1,
+      "eth_call": 2,
+      "eth_getLogs": 16
+    }
+  },
+  "synthetic_regression": {
+    "before": "4 failed / 5 passed with 200-block rejecting provider",
+    "final_related": "144 passed (including 10 new window/concurrency cases)",
+    "full_python": "1434 passed / 20 skipped / 1 existing warning",
+    "final_boundary_events": "10 passed after adding events across 2000/2001/4000/4001"
+  },
+  "review104": {
+    "head": "b255ac09d4150016b4a9d6f132364530d7470648",
+    "projection_tests": "63 passed",
+    "foundry": "1.4.4 / solc0.8.26 / Cancun creation bytecode matches manifest",
+    "reorg_reproduction": {
+      "orphan_event_still_stored": true,
+      "checkpoint_canonical": true,
+      "next_sync_returns_zero": true
+    },
+    "review": "REQUEST_CHANGES"
+  },
+  "review114": {
+    "head": "7f9931f67b57ec92f54560c73bbb30939e689a62",
+    "tests": "110 passed / 1 skipped",
+    "review": "APPROVED as B/Codex technical review"
+  },
+  "not_done": [
+    "Production API HTTP endpoint latency SLA",
+    "Actual PostgreSQL/Anvil projection resync for #104",
+    "Long-term public provider stability",
+    "Public original material export and whole document comparison",
+    "Other laptop and same RC rehearsal x3"
+  ]
+}

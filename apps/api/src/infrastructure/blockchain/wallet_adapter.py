@@ -91,11 +91,16 @@ class WalletRegistryReadAdapter:
         )
 
     @dependency_boundary
-    async def issuer(self, issuer_id: str) -> WalletIssuer | None:
-        block = await self.rpc.snapshot()
+    async def snapshot(self):
+        return await self.rpc.snapshot()
+
+    @dependency_boundary
+    async def issuer(self, issuer_id: str, block=None) -> WalletIssuer | None:
+        block = block if block is not None else await self.rpc.snapshot()
         identifier = hex_bytes(issuer_id, 32)
         raw = await self.rpc.call("getIssuer", [identifier], block)
         if raw is None:
+            await self.rpc.check(block)
             return None
         state, key_id, signer, metadata_hash = raw
         key_id = "0x" + key_id.hex()
@@ -134,8 +139,10 @@ class WalletRegistryReadAdapter:
         return result
 
     @dependency_boundary
-    async def document(self, document_id: str, version: int | None) -> WalletDocument | None:
-        block = await self.rpc.snapshot()
+    async def document(
+        self, document_id: str, version: int | None, block=None
+    ) -> WalletDocument | None:
+        block = block if block is not None else await self.rpc.snapshot()
         identifier = hex_bytes(document_id, 32)
         latest = (await self.rpc.call("latestVersion", [identifier], block))[0]
         require(type(latest) is int and latest >= 0, "invalid latest version")
@@ -147,6 +154,7 @@ class WalletRegistryReadAdapter:
         raw = await self.rpc.call("getDocument", [identifier, version], block)
         if raw is None:
             require(version > latest, "known document version missing")
+            await self.rpc.check(block)
             return None
         doc = named(self.rpc.functions["getDocument"]["outputs"][0]["components"], raw[0])
         require(

@@ -96,6 +96,11 @@ async def seed_p0(password: str) -> None:
     )
 
 
+async def seed_master(password: str) -> None:
+    # Top existing role; no bypass, so issuer-only actions still need a roster issuer account.
+    await seed_prepared((("master", "operator", None),), password)
+
+
 def v5_wallet_env(ids: dict[str, str]) -> list[str]:
     """Settings lines for the seeded accounts; approver wallet addresses come from deployment."""
     approvers = {
@@ -156,6 +161,7 @@ def main() -> None:
     parser.add_argument("--issuer-id")
     parser.add_argument("--p0", action="store_true")
     parser.add_argument("--v5-wallet", action="store_true")
+    parser.add_argument("--master", action="store_true")
     args = parser.parse_args()
     if args.v5_wallet:
         password = synthetic_password(Path(Settings().signer_directory) / "test-accounts.json")
@@ -167,6 +173,11 @@ def main() -> None:
         password = synthetic_password(Path(Settings().signer_directory) / "test-accounts.json")
         asyncio.run(seed_p0(password))
         print("P0 synthetic accounts ready; local credential file: test-accounts.json (0600)")
+        return
+    if args.master:
+        password = synthetic_password(Path(Settings().signer_directory) / "master-account.json")
+        asyncio.run(seed_master(password))
+        print("master account ready (operator); local credential file: master-account.json (0600)")
         return
     if not args.username or not args.role:
         parser.error("username and role are required unless --p0 is used")
