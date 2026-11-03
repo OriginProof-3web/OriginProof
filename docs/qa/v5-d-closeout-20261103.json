@@ -1,0 +1,329 @@
+{
+  "schema_version": "v5-d-closeout-evidence-0.1",
+  "date_kst": "2026-11-03",
+  "role": "D",
+  "status": "PRE_RC_INDEPENDENT_EVIDENCE_NOT_FINAL_ACCEPTANCE",
+  "plan_version": "5.1",
+  "shared_contract_version": "v5-shared-0.2",
+  "product_source_sha": "0466633576e7e5ce6a0ec3eee5ba5ba5581ab0fd",
+  "helper_pr115_sha": "4b3f1289b53f2cf88d53f2bac03082c3ec26fbe6",
+  "product_source_changed": false,
+  "final_rc_sha": null,
+  "environment_fingerprint": {
+    "comparable": {
+      "git_sha": "0466633576e7e5ce6a0ec3eee5ba5ba5581ab0fd",
+      "docker": "Docker version 29.7.2, build a7dcaa6",
+      "compose": "Docker Compose version v5.5.1",
+      "python": "Python 3.13.7",
+      "uv": "uv 0.8.17 (10960bc13 2025-09-10)",
+      "node": "v22.18.0",
+      "pnpm": "11.19.0",
+      "container_config": {
+        ".tool-versions": "9e238d2a904c0fe8d489505fbe1e6a51185ba327ada08d34db8cf8d7bd9f94e2",
+        "docker-compose.yml": "ec2dd83ba35a0e2df0aa6d7dbe6086774034721561fd127101a73eebd0117c0d",
+        "infra/docker/deployer.Dockerfile": "b34edd32f46ea1cb2f05dc0fcbe42d3c7202a2f8c8c71b2f2e5867be53d5e5c7",
+        "packages/contracts/foundry.toml": "693326f9ecfa5155bdf15afffaefc635fe37d40a78558e3e46ea0d724480ddfd"
+      },
+      "lockfiles": {
+        "uv.lock": "7d54eaac0be3d48bf349a59931f189c5d1e4dcc2205784cb98e4719247af9427",
+        "pnpm-lock.yaml": "25a2e4a6ddb95d4a22bee0c1d530aeb8efb0f1fce26856926c35477fa6af8110",
+        "contract_dependencies": "d602f87fe5dbb7bc482a851adf729d02249bc2774bd58cbe613c0a61d7d4d154"
+      },
+      "schema_tree": "e554d81d394ab65190200cb57544885e6851c5283dd173930878f250e6fddcd4",
+      "abi_tree": "b57ce3add6e2dc46594f9330f5a8e6fa6cdfb703eb26cf396422e79fd79e22d9"
+    },
+    "informational": {
+      "host_platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+      "host_forge": "forge Version: 1.4.4-v1.4.4"
+    }
+  },
+  "tracked_contract_git_trees": {
+    "packages/schemas": "7d82f434219825b40a5625dcff729002bf81a1b7",
+    "packages/python/originproof_core": "054845d5dd27b258f9c8a40e40b27673f9ea0506",
+    "packages/contracts/src": "b67f7b3d6c272f1ea79580e1f03f174991846e6d",
+    "packages/contracts/abi": "f5e3657b5033f613e7448724b927e86a3ced1dc2"
+  },
+  "fingerprint_note": "Existing schema_tree may include Python bytecode caches; use tracked Git trees and lock hashes for source identity. Server SHA is declared, not cryptographically attested.",
+  "checks": {
+    "python": {
+      "passed": 1494,
+      "skipped": 19,
+      "existing_warnings": 1
+    },
+    "node22": {
+      "passed": 306,
+      "skipped": 5,
+      "failures": 0
+    },
+    "foundry": {
+      "passed": 101,
+      "skipped": 0
+    },
+    "ruff": "PASS",
+    "make_generate": "PASS_DIFF_ZERO",
+    "browser": {
+      "steps": {
+        "R1": "PASS",
+        "R2": "PASS",
+        "R3": "PASS",
+        "R4": "PASS",
+        "R5": "PASS"
+      },
+      "actual_chain": "local Anvil",
+      "actual_database": "PostgreSQL",
+      "model": "mock",
+      "k10_remote_control_evidence_checked": true,
+      "integration_warning": "V1_ISSUER_STATUS_503_WITH_V3_READY_200"
+    }
+  },
+  "actual_http_benchmark": {
+    "schema_version": "v5-d-verification-benchmark-result-0.1",
+    "source": "synthetic",
+    "scope": "LOOPBACK_HTTP_UNATTESTED_TARGET",
+    "benchmark_code_sha256": "5a742ad69fe988cfc289a394bcb18b633f3c1dad044e4807ee9bf784a6194437",
+    "config_sha256": "0ee2cc699c1175d45bf8899b65fca85ee972e9b1e7e012de59b0719648f914a2",
+    "attempts": 100,
+    "matching_results": 100,
+    "failures": 0,
+    "error_rate": 0.0,
+    "http_status_counts": {
+      "200": 100
+    },
+    "error_counts": {},
+    "latency_seconds_all_attempts": {
+      "p50": 0.03463139553787187,
+      "p95": 0.0426849169889465,
+      "max": 0.06087758298963308
+    },
+    "samples_seconds": [
+      0.06087758298963308,
+      0.03468074998818338,
+      0.03207933402154595,
+      0.03544162504840642,
+      0.03504812496248633,
+      0.035213249968364835,
+      0.034083666978403926,
+      0.03708162496332079,
+      0.034472665982320905,
+      0.03431637503672391,
+      0.034223750000819564,
+      0.03370529203675687,
+      0.035646208096295595,
+      0.03430266701616347,
+      0.035150791984051466,
+      0.03537120798137039,
+      0.03707674995530397,
+      0.03648224996868521,
+      0.035475917044095695,
+      0.03614791599102318,
+      0.036150333005934954,
+      0.044528458965942264,
+      0.034466583048924804,
+      0.0426849169889465,
+      0.034921666025184095,
+      0.03466020803898573,
+      0.037105040973983705,
+      0.03582125005777925,
+      0.038535083062015474,
+      0.0366674589458853,
+      0.03860004199668765,
+      0.03489424998406321,
+      0.03445904201362282,
+      0.03372387494891882,
+      0.04313991602975875,
+      0.03283566702157259,
+      0.032841832959093153,
+      0.03177679202053696,
+      0.03743754199240357,
+      0.034727375023067,
+      0.034533999976702034,
+      0.03468766692094505,
+      0.03667245898395777,
+      0.03344791696872562,
+      0.03733787499368191,
+      0.030899749952368438,
+      0.03874308301601559,
+      0.034923499915748835,
+      0.03538133297115564,
+      0.03428474999964237,
+      0.03691320901270956,
+      0.03441891702823341,
+      0.0380649589933455,
+      0.03579670807812363,
+      0.0352902909507975,
+      0.03493358404375613,
+      0.033753791940398514,
+      0.03355608298443258,
+      0.03488024999387562,
+      0.0339804160175845,
+      0.03388383309356868,
+      0.033574125031009316,
+      0.03425783303100616,
+      0.033887249999679625,
+      0.03567045903764665,
+      0.03473916603252292,
+      0.036034875083714724,
+      0.03507791692391038,
+      0.03358929103706032,
+      0.034367957967333496,
+      0.035773583920672536,
+      0.0321465419838205,
+      0.03315179096534848,
+      0.033051708014681935,
+      0.03278341703116894,
+      0.03282125003170222,
+      0.03223875002004206,
+      0.03376554197166115,
+      0.03410845797043294,
+      0.03448999999091029,
+      0.04538141703233123,
+      0.05215820798184723,
+      0.03294695809017867,
+      0.03280879196245223,
+      0.031836917041800916,
+      0.032845749985426664,
+      0.03238079196307808,
+      0.031681374995969236,
+      0.032707209000363946,
+      0.031674167024903,
+      0.03210212499834597,
+      0.03100995800923556,
+      0.03217779099941254,
+      0.03307862509973347,
+      0.03361141693312675,
+      0.034602583036758006,
+      0.036061667022295296,
+      0.037866750033572316,
+      0.03806441696360707,
+      0.03992300003301352
+    ],
+    "functional_success": true,
+    "p95_target_seconds": 3.0,
+    "latency_target_met": true,
+    "measurement_passed": true,
+    "timing_boundary": "client POST roundtrip; client result validation excluded",
+    "included": [
+      "API processing",
+      "DB session writes",
+      "RPC reads if target uses them"
+    ],
+    "not_invoked": [
+      "AI",
+      "chain writes"
+    ],
+    "not_isolated": [
+      "server core time",
+      "RPC-only time",
+      "internal cache effects"
+    ],
+    "integration_acceptance": "NOT_DECLARED_BY_THIS_MEASUREMENT",
+    "api_origin": "http://127.0.0.1:28215",
+    "candidate_sha_declared": "0466633576e7e5ce6a0ec3eee5ba5ba5581ab0fd",
+    "qa_sha": "0466633576e7e5ce6a0ec3eee5ba5ba5581ab0fd",
+    "server_sha_verified": false,
+    "requests": 100,
+    "executed": true
+  },
+  "actual_independent_verifier": {
+    "source_sha": "0466633576e7e5ce6a0ec3eee5ba5ba5581ab0fd",
+    "api_process_stopped": true,
+    "api_port_open": false,
+    "chain": "actual local Anvil",
+    "paid_calls": 0,
+    "cases": [
+      {
+        "case": "v1-original",
+        "exit_code": 0,
+        "status": "VERIFIED",
+        "comparison_scope": "FULL_COMPARISON",
+        "document_state": "SUPERSEDED",
+        "result_sha256": "d2b26f27090c9e1fa2447c258130473989880562adc8fb91016cd88a166a449d"
+      },
+      {
+        "case": "v2-original",
+        "exit_code": 0,
+        "status": "VERIFIED",
+        "comparison_scope": "FULL_COMPARISON",
+        "document_state": "ACTIVE",
+        "result_sha256": "5c99f3182efcf00ffe974d34ac20587c3f0aeeb1b810c371264f0450dd52dd71"
+      },
+      {
+        "case": "v2-tampered",
+        "exit_code": 1,
+        "status": "TAMPERED",
+        "comparison_scope": "FULL_COMPARISON",
+        "document_state": "ACTIVE",
+        "result_sha256": "d7f8e82ce528e524d7dcd60c68299f3ff8d3dd2d8ed554452bda6401949709b5"
+      },
+      {
+        "case": "v2-missing-metadata",
+        "exit_code": 2,
+        "status": "INCONCLUSIVE",
+        "comparison_scope": "FULL_COMPARISON",
+        "document_state": "ACTIVE",
+        "result_sha256": "a5125125383b19472ba98c02ef25b177302ecc07f713bfc7d192f83642947946"
+      }
+    ]
+  },
+  "reviewed_prs": [
+    {
+      "number": 127,
+      "state": "APPROVED",
+      "commit_id": "4464f387423dd0dba463be76da800e03a4f9772e",
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/127#pullrequestreview-5748508148"
+    },
+    {
+      "number": 116,
+      "state": "APPROVED",
+      "commit_id": "7344d139906dcfadf82db7c899661bc489bb6286",
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/116#pullrequestreview-5748508307"
+    },
+    {
+      "number": 115,
+      "state": "APPROVED",
+      "commit_id": "4b3f1289b53f2cf88d53f2bac03082c3ec26fbe6",
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/115#pullrequestreview-5748508420"
+    },
+    {
+      "number": 102,
+      "state": "APPROVED",
+      "commit_id": "1dd155f08dab7552c0ebe17d1081167a6b49c339",
+      "url": "https://github.com/OriginProof-3web/OriginProof/pull/102#pullrequestreview-5748508554"
+    }
+  ],
+  "known_integration_followups": [
+    {
+      "id": "D-INT-01",
+      "status": "OWNER_CONFIRMATION_REQUIRED",
+      "description": "v3 ready200 and valid v3 verifications coexist with v1 issuer/status503 CHAIN_UNAVAILABLE. Helper provisions wallet Registry only."
+    },
+    {
+      "id": "D-INT-02",
+      "status": "SCENARIO_AND_CONSUMER_CONFIRMATION_REQUIRED",
+      "description": "Verification JSON does not submit AI requests; text analyses set verification_session_id null. Do not present separate paths as one combined report."
+    }
+  ],
+  "paid_calls_this_work": 0,
+  "historical_paid_total": 133,
+  "paid_policies_changed": false,
+  "previous_corpus_and_holdout_changed": false,
+  "cleanup": "OWN_RUNTIME_PURGED_ORIGINAL_CONTAINERS_PRESERVED",
+  "not_completed": [
+    "final V5-F01..21 acceptance",
+    "other physical laptop",
+    "five-person user understanding study",
+    "three full rehearsals",
+    "public Sepolia original-byte comparison",
+    "additional model evaluation"
+  ],
+  "log_sha256": {
+    "closeout-python.log": "e1c7d682e55b7bdd5d2e29113604db2ebae04da2acad4c84f50bc3954eeb8493",
+    "closeout-node22.log": "cbc6e112acc54c39be302e6cd93c543e210343af17ef715146326f74fe377c56",
+    "closeout-foundry.log": "87999d9e74014da0920d2c45b47e7e22b3c75accea0c0f9f9f496fc566a199d5",
+    "closeout-generated-diff.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "closeout-browser.json": "504231014668c592115bea2960a92c249bf4962fef4a1a2c45e5646e9b381666",
+    "closeout-independent.json": "1f1f0152453518c225d9f3896ceb2d37d8e1e436a2581f8dba07630297d68842",
+    "closeout-up.log": "8258c420871aa90f30a9a5b116939217f340a42a93ea22a712de41fde510cc74",
+    "closeout-purge.log": "c9add5e84695185ca3c2dcb98b36967fbd760b8795d778018d41cf9c58bbfba4"
+  }
+}
