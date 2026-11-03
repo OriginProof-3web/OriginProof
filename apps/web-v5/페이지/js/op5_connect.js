@@ -20,6 +20,8 @@
   var S = Hk.op5scenes;
   var scene = S && S.valid(Q.get('demo')) ? Q.get('demo') : '';
   var fileMode = location.protocol === 'file:' && !scene;
+  // 시연용 AI 지연 대체(기본 꺼짐): ?demo_ai_fallback=5 처럼 명시했을 때만. 3~10초로 제한(api_adapter.js demoFallbackSec). 장면 재현에서는 안 씀
+  var demoAiSec = !scene && Hk.api && Hk.api.demoFallbackSec ? Hk.api.demoFallbackSec(Q.get('demo_ai_fallback')) : 0;
 
   /* ---------------- 저장소(장면이면 메모리만) ---------------- */
   function memStore() { var m = {}; return { getItem: function (k) { return k in m ? m[k] : null; }, setItem: function (k, v) { m[k] = String(v); }, removeItem: function (k) { delete m[k]; } }; }
@@ -53,7 +55,7 @@
         var a = Hk.createApiAdapter({
           fetch: fetchFn, base: getBase(), csrf: client.csrf, retain: function () { return retain; }, isDeleted: client.isDeleted,
           loginWhy: '분석은 로그인이 필요해요. 왼쪽 메뉴 기관 상태에서 로그인 화면을 열어 주세요.',
-          timeoutMs: 25000, pollMs: scene ? 30 : 2000
+          timeoutMs: 25000, pollMs: scene ? 30 : 2000, demoAiFallbackSec: demoAiSec
         });
         a.serverUrl = o.serverUrl;
         return a;
@@ -63,7 +65,7 @@
   }
   rebuild();
   function isApi() { return conn.mode() === 'api'; }
-  function paintHint() { if (hint) hint.textContent = 'Enter 보내기 · Shift+Enter 줄바꿈 · ' + (isApi() ? '실서버 모드(' + getBase() + ')' : '예시 모드(예시 응답)'); }
+  function paintHint() { if (hint) hint.textContent = 'Enter 보내기 · Shift+Enter 줄바꿈 · ' + (isApi() ? '실서버 모드(' + getBase() + ')' + (demoAiSec ? ' · 시연 AI 대체 ' + demoAiSec + '초 켜짐(준비된 시연 응답)' : '') : '예시 모드(예시 응답)'); }
   if (isApi()) paintHint();
   if (Hk.auth && Hk.auth.checked) Hk.auth.checked.then(function () { if (isApi()) paintHint(); });
   Hk.op5live = function () { return !scene && isApi(); };   // 시연 버튼이 실서버 모드인지 볼 때 씀
@@ -188,7 +190,7 @@
     (m || []).forEach(function (q) { qs.push({ quote: q.slice(1, -1) }); });
     return calc(text, qs);
   }
-  var SRC = { RULE: ['규칙 검사', 'info'], LLM: ['AI 모델', 'none'] };     // 기존 칩 모양(.op-chip.t-info / .t-none) 재사용
+  var SRC = { RULE: ['규칙 검사', 'info'], LLM: ['AI 모델', 'none'], DEMO_PREPARED: ['준비된 시연 응답 · 실제 AI 결과 아님', 'none'] };     // 기존 칩 모양(.op-chip.t-info / .t-none) 재사용
   function srcOf(s) { return SRC[s] || ['출처 미상', 'none']; }
   function markedText(text, spans) {
     var box = el('div', 'op-quote'), at = 0;
@@ -259,11 +261,14 @@
 
     wrap.append(fact, aiz);
     r.box.append(wrap); toBottom();
+    return aiz;
   }
 
   function renderAnswer(a) {
     var r = aiMsg();
-    renderReport(r, a);
+    if (a.ai_replaced) r.para('AI 칸 교체', ['실제 AI 결과가 도착해 위의 준비된 시연 응답을 이 결과로 바꿨어요. 발행 검증 칸은 처음 결과 그대로예요.']);
+    var aiZone = renderReport(r, a);
+    if (a.ai_prepared) r.para('준비된 시연 응답', ['AI 칸은 실제 AI 결과가 아니에요. 실서버 AI 분석이 늦어 미리 준비한 시연 설명을 먼저 보여 줬어요. 실제 결과가 오면 아래에 교체해 보여 드려요.']);
     if (a.next_action && a.next_action.text) r.para('다음 행동', [a.next_action.text]);
     if (a.sample) r.para(null, ['예시 응답이에요. ' + (a.assumption || '')]);
     var files = attachedIds();
@@ -281,6 +286,7 @@
       var d = aiMsg();
       d.para('자세히', (a.details || []).map(function (row) { return row.label + ': ' + row.value; }));
     }, true);
+    return aiZone;
   }
 
   /* ---------------- 입력 → 결과 ---------------- */
@@ -294,12 +300,26 @@
     resetStaff(isApi() ? '직원 7명이 실제 응답이 온 순서대로 표시해요.' : '예시 모드: 예시 응답을 직원 순서대로 보여 줘요.');
     var api = isApi();
     var onStaff = api ? function (o) { if (att && o && o.bubble_key === 'intake.received') att.received = true; chipObs(o); } : null;
-    var p = conn.check(text, { onStaff: onStaff, image: image || null }).then(function (a) {
+    var zone = null;   // 처음 그린 답의 AI 구역(교체 표시용)
+    // 시연 대체(기본 꺼짐) 뒤 실제 결과: 준비 응답 답이 다 그려진 뒤(p) 교체 답을 아래에 그리고 위 AI 칸에 교체 표시
+    var onAiLater = api ? function (ev) {
+      if (!ev || ev.reason === 'deleted') return;      // 지운 분석은 기존 삭제 흐름이 알림
+      p.then(function () {
+        if (ev.replaced && ev.answer) {
+          chipObs(ev.obs);
+          if (zone) zone.append(el('p', 'op-foot', '→ 이 준비된 시연 응답은 아래 실제 AI 결과로 교체됐어요.'));
+          renderAnswer(ev.answer);
+          return;
+        }
+        say('실제 AI 결과를 시간 안에 받지 못해 위 AI 칸은 준비된 시연 응답 그대로예요(실제 AI 결과 아님).', '준비된 시연 응답');
+      }, function () {});
+    } : null;
+    var p = conn.check(text, { onStaff: onStaff, image: image || null, onAiLater: onAiLater }).then(function (a) {
       return new Promise(function (resolve) {
         animateStaff(Array.isArray(a.staff) ? a.staff : [], function () {
           var n = $('staffNote');
           if (n) n.textContent = api ? '실제 응답이 온 순서대로 갱신했어요. 판정은 서버 값 그대로예요.' : '예시 응답이에요. 서버에 보내지 않았어요.';
-          renderAnswer(a); resolve(a);
+          zone = renderAnswer(a); resolve(a);
         });
       });
     }, function (e) {

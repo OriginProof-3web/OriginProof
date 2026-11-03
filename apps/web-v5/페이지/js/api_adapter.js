@@ -814,6 +814,54 @@
     AMBIGUOUS: '문자에서 읽은 값과 맞는 발행 기록이 여러 개라 하나로 정하지 않았어요. 기관 공식 번호나 검증 링크로 다시 확인해 주세요.'
   };
 
+  /* ---------------- 시연용 AI 지연 대체 응답 (5차 멘토 피드백, 기본 꺼짐) ----------------
+     켜는 법: 주소에 ?demo_ai_fallback=5 (op5_connect.js 가 읽어 opts.demoAiFallbackSec 로 넘김). 없으면 꺼짐 = 기존 동작 그대로.
+     켜져 있고 실서버 AI 분석이 N초 안에 끝나지 않으면, 입력 글이 멘토 시나리오 예시 문자 3개(data/sample_data.js 의
+     normal·tamper·unregistered)와 같을 때만 아래 준비 응답을 AI 칸에 먼저 보여 준다. 다른 글은 기존처럼 계속 기다린다.
+     - 준비 응답은 '준비된 시연 응답 · 실제 AI 결과 아님'을 AI 칸·직원 칩·자세히·기록에 남긴다. 발행 검증 4칸은 건드리지 않는다.
+     - 준비 응답을 보여 준 뒤에도 폴링은 계속하고, 실제 결과(끝난 작업)가 pollLimit 안에 오면 opts.onAiLater 로 교체 답을 넘긴다.
+     - 문구는 합성 시나리오 설명만 담는다(개인정보·실제 기관 없음). */
+  var DEMO_FALLBACK = { min: 3, max: 10, def: 5 };
+  var PREPARED_LABEL = '준비된 시연 응답 · 실제 AI 결과 아님';
+  var PREPARED_LIMIT = 'DEMO_PREPARED_RESPONSE_NOT_AI_RESULT';
+  var PREPARED = {
+    normal: { risk_level: 'NO_CLEAR_INDICATORS', evidence: [], extra: '' },
+    tamper: { risk_level: 'NO_CLEAR_INDICATORS', evidence: [], extra: '금액이 바뀌었는지는 AI가 아니라 블록체인 기록 대조(원본 일치 칸)가 판정해요.' },
+    unregistered: { risk_level: 'HIGH', evidence: [{ rule_id: 'demo-prepared-remote-app', quote: '원격 지원 앱을 설치해 주세요', source: 'DEMO_PREPARED' }], extra: '고위험: 원격 지원 앱 설치를 유도하는 문장이 있어요.' }
+  };
+  // 주소 값 → 초(0 = 꺼짐). 값 없음(?demo_ai_fallback)이면 5초, 숫자면 3~10으로 제한, 0·숫자 아닌 값·없음은 꺼짐
+  function demoFallbackSec(raw) {
+    if (raw == null) return 0;
+    var s = String(raw).trim();
+    if (s === '') return DEMO_FALLBACK.def;
+    if (!/^\d{1,4}$/.test(s)) return 0;
+    var n = Number(s);
+    if (n === 0) return 0;
+    return Math.min(DEMO_FALLBACK.max, Math.max(DEMO_FALLBACK.min, n));
+  }
+  function normText(s) { return String(s == null ? '' : s).replace(/\s+/g, ' ').trim(); }
+  // 입력 글이 시나리오 예시 문자와 (공백 차이만 빼고) 같으면 그 시나리오 id
+  function preparedScenario(text) {
+    var data = Array.isArray(window.SAMPLE_DATA) ? window.SAMPLE_DATA : [];
+    var t = normText(text);
+    if (!t) return '';
+    var hit = '';
+    Object.keys(PREPARED).forEach(function (id) {
+      var s = data.filter(function (x) { return x && x.id === id; })[0];
+      if (!hit && s && s.input && typeof s.input.text === 'string' && normText(s.input.text) === t) hit = id;
+    });
+    return hit;
+  }
+  function preparedAi(id, sec) {
+    var pr = PREPARED[id];
+    var m = mapReport({ risk_level: pr.risk_level, evidence: pr.evidence, limitations: [PREPARED_LIMIT], verification_not_run_reason: null });
+    m.obs.line1 = '[준비된 시연 응답] ' + m.obs.line1;
+    m.obs.line2 = 'DEMO_PREPARED · ' + pr.risk_level;
+    m.obs.line3 = PREPARED_LABEL;
+    m.prepared = { scenario: id, sec: sec, extra: pr.extra };
+    return m;
+  }
+
   /* ---------------- ApiAdapter ---------------- */
   function createApiAdapter(opts) {
     var c = makeCaller(opts);
@@ -822,6 +870,7 @@
     var pollLimit = opts.pollLimitMs || POLL_LIMIT_MS;
     var now = opts.now || function () { return Date.now(); };
     var sample = Hk.sampleAdapter;
+    var fallbackSec = demoFallbackSec(opts.demoAiFallbackSec);   // 기본 꺼짐(0)
 
     // 검증: v3(문서 ID가 있을 때) -> 연결 전 신호면 v1 -> 그래도 없으면 연결 전
     function verify(p, log) {
@@ -952,7 +1001,17 @@
               return loop(r3.data);
             });
           };
-          return loop(r2.data);
+          var real = Promise.resolve(loop(r2.data));
+          var scenario = fallbackSec && !image ? preparedScenario(text) : '';
+          if (!scenario) return real;          // 꺼짐·시나리오 아님: 기존 동작 그대로
+          // 시연 대체: N초 안에 실제 결과가 없으면 준비 응답을 먼저 돌려주고, 실제 폴링은 그대로 이어서 later 로 넘김
+          var WAIT = {};
+          var lastStatus = str(r2.data.status) || null;
+          return Promise.race([real, c.sleep(fallbackSec * 1000).then(function () { return WAIT; })]).then(function (first) {
+            if (first !== WAIT || gone()) return real;
+            log.push({ label: 'AI 결과', value: 'analysis_id ' + id + ' · ' + fallbackSec + '초 안에 끝나지 않아 준비된 시연 응답(' + scenario + ') 표시 · 실제 AI 결과 아님 · 실제 결과를 계속 기다림' });
+            return { ai: preparedAi(scenario, fallbackSec), intake: intake, analysisId: id, analysisStatus: lastStatus, later: real };
+          });
         });
       });
     }
@@ -1018,6 +1077,16 @@
         statusAxis(four.status, holdExtra),
         aiAxis(ai, a.ai.quote || '', a.ai.unran, a.ai.why || '')
       ];
+      // 시연 대체(기본 꺼짐): AI 칸에만 '준비된 시연 응답 · 실제 AI 결과 아님'을 앞에 붙임. 발행 검증 3칸(axes[0..2])은 그대로
+      var prep = a.ai.prepared || null;
+      if (prep) {
+        var aiAx = axes[3];
+        aiAx.prepared = true;
+        aiAx.status = '준비된 시연 응답 · ' + aiAx.status;
+        aiAx.body = '[' + PREPARED_LABEL + '] 실서버 AI 분석이 ' + prep.sec + '초 안에 끝나지 않아 미리 준비한 시연 설명을 먼저 보여 줘요. ' + aiAx.body + (prep.extra ? ' ' + prep.extra : '') + ' 실제 결과가 오면 교체해요.';
+        aiAx.note = PREPARED_LABEL + '. ' + aiAx.note;
+      }
+      if (a.replaced) axes[3].note = '준비된 시연 응답을 실제 AI 결과로 교체했어요. ' + axes[3].note;
       // 원본 찾기 MATCHED 는 문자에서 읽은 항목만 맞춘 것(서버 PARTIAL_COMPARISON): 문자 전체가 그 안내문이라고 말하지 않음
       if (v.lookup === 'MATCHED') {
         if (axes[0].tone === 'ok') axes[0].body = '문자에서 읽은 항목과 맞는 발행 기록과 기관 서명이 있어요. 문자 전체가 그 안내문이라는 뜻은 아니에요.';
@@ -1081,14 +1150,18 @@
         details.push({ label: '쉬운 설명', value: VS[vs] ? VS[vs].text : '쉬운 설명 없음' });
       }
       if (v.kind === 'error') details.push({ label: '오류', value: v.err.line2 });
+      if (prep) details.push({ label: '준비된 시연 응답', value: PREPARED_LABEL + ' · 시나리오 ' + prep.scenario + ' · 대체 기준 ' + prep.sec + '초 · ' + PREPARED_LIMIT });
+      if (a.replaced) details.push({ label: '준비된 시연 응답', value: '실제 AI 결과로 교체함 · 처음 보인 AI 칸은 준비된 시연 응답이었음' });
 
       return {
         id: 'api_' + Date.now().toString(36),
         analysis_id: a.analysisId || null,          // 5안 확장: 보관/삭제 단추용
         analysis_deleted: a.deleted === true,
         analysis_status: a.analysisStatus || null,
-        label: '실제 서버 응답',
+        label: prep ? '실제 서버 응답 · AI 칸은 ' + PREPARED_LABEL : '실제 서버 응답',
         sample: false,
+        ai_prepared: prep ? prep.scenario : null,      // 시연 대체(기본 꺼짐)일 때만 값. AI 칸이 준비된 시연 응답임
+        ai_replaced: a.replaced === true,              // 준비 응답을 실제 AI 결과로 바꾼 교체 답
         assumption: 'OriginProof 서버 응답을 웹_설계.md 4.1·1.8 표대로 옮겼어요. 판정 값은 서버가 준 그대로이고, 응답에 없는 값은 지어내지 않았어요.',
         verification_status: vs,
         input: p.image ? { kind: 'image', text: '' } : { kind: 'message', text: T().maskPersonal(text) },     // = 서버에 보낸 글(근거 위치의 기준 글)
@@ -1137,7 +1210,27 @@
         return { v: v, four: four };
       });
       var aDone = aP.then(function (a) { emit(a.intake); emit(a.ai.obs); return a; });
-      return Promise.all([vDone, aDone]).then(function (r) { return build(text, p, r[0].v, r[0].four, r[1], log, order); });
+      return Promise.all([vDone, aDone]).then(function (r) {
+        var answer = build(text, p, r[0].v, r[0].four, r[1], log, order);
+        if (r[1].later) later(r[1].later, r[0]);
+        return answer;
+      });
+      /* 시연 대체 뒤 실제 폴링 결과: 끝난 작업(완료·실패·취소·만료)이면 AI 칸만 바꾼 교체 답을 opts.onAiLater 로 넘김.
+         검증 결과(v·four)는 처음 것을 그대로 씀. 시간 초과·조회 오류는 교체하지 않고(준비 응답 표시 유지) 사유만 알림. 지운 분석은 그대로 버림. */
+      function later(realP, vr) {
+        var tell = function (ev) { if (typeof opts.onAiLater === 'function') { try { opts.onAiLater(ev); } catch (e) { /* 화면 오류가 요청을 멈추지 않게 */ } } };
+        realP.then(function (ra) {
+          if (ra.deleted) return tell({ replaced: false, reason: 'deleted' });
+          if (!ra.analysisStatus) {
+            log.push({ label: 'AI 결과', value: '실제 AI 결과를 받지 못해 준비된 시연 응답을 교체하지 않음 · ' + str(ra.ai && ra.ai.obs && ra.ai.obs.line2) });
+            return tell({ replaced: false, reason: ra.ai && ra.ai.obs && ra.ai.obs.bubble_key === 'ai.timeout' ? 'timeout' : 'error' });
+          }
+          log.push({ label: 'AI 결과', value: '준비된 시연 응답을 실제 AI 결과로 교체 · status=' + ra.analysisStatus });
+          ra.replaced = true;
+          var ord = order.map(function (o) { return o.staff === 'ai' ? nameOf(ra.ai.obs) : o; });
+          tell({ replaced: true, reason: 'result', answer: build(text, p, vr.v, vr.four, ra, log, ord), obs: ra.ai.obs });
+        }, function () { tell({ replaced: false, reason: 'error' }); });
+      }
     }
 
     return {
@@ -1154,5 +1247,6 @@
   Hk.DEMO_TERM = DEMO_TERM;
   Hk.demoTermRows = demoTermRows;
   Hk.api = { mapV1: mapV1, mapV3: mapV3, mapAnalysisJob: mapAnalysisJob, isLoopback: isLoopback, READY_MSG: READY_MSG, errorInfo: errorInfo, makeCaller: makeCaller, rid: rid,
-    lookupKey: lookupKey, evidenceSpans: evidenceSpans, SPAN_WHY: SPAN_WHY, AI_FAIL: AI_FAIL, AI_HTTP: AI_HTTP };
+    lookupKey: lookupKey, evidenceSpans: evidenceSpans, SPAN_WHY: SPAN_WHY, AI_FAIL: AI_FAIL, AI_HTTP: AI_HTTP,
+    demoFallbackSec: demoFallbackSec, preparedScenario: preparedScenario, PREPARED_LABEL: PREPARED_LABEL, DEMO_FALLBACK: DEMO_FALLBACK };
 })();

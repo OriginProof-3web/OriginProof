@@ -495,6 +495,7 @@
   // Connection captions follow received reports; prepared RAG is not a connection signal.
   function analysisCaption(answer) {
     if (answer && answer.sample) return '규칙·AI 위험 분석 · 예시 응답';
+    if (answer && answer.ai_prepared) return '준비된 시연 응답 · 실제 AI 결과 아님';
     if (!answer || answer.analysis_status !== 'COMPLETED' || !answer.ai_report) return '규칙·AI 위험 분석 · 서버 분석기 연결 전';
     var limits = Array.isArray(answer.ai_report.limitations) ? answer.ai_report.limitations : [];
     if (limits.some(function (x) { return typeof x === 'string' && x.indexOf('LLM_ANALYSIS_UNAVAILABLE:') === 0; })) return '규칙 검사 · AI 분석 사용 불가';
