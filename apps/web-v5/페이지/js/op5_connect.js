@@ -682,6 +682,7 @@
       return Promise.all([client.get('/v1/issuer/status'), client.get('/v1/issuer-applications/mine')]).then(function (z) {
         var lines = [];
         if (z[0].status === 200 && z[0].data) lines.push('기관 ' + z[0].data.issuer_id + ' · 상태 ' + z[0].data.status + ' · 체인 ' + z[0].data.chain_id);
+        else if (client.say(z[0]).code === 'CHAIN_UNAVAILABLE') lines.push('기관 체인 상태(v1 장부)는 읽지 못했어요. wallet 장부만 쓰는 환경에서는 정상이고, 문서 발행·검증에는 영향이 없어요.');
         else lines = lines.concat(errLines(z[0]));
         if (z[1].status === 200 && z[1].data) { lines.push('신청 ' + z[1].data.application_id + ' · ' + z[1].data.issuer_name + ' · ' + z[1].data.status); onboardingButtons(r, z[1].data, me); }
         else if (z[1].status === 200) lines.push('기관 신청 기록이 없어요.');
