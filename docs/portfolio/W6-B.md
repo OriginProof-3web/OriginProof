@@ -113,3 +113,21 @@ live 200/ready 503·복원 후 200, UNKNOWN 저장 뒤 SIGKILL, 같은 DB/체인
 다음: C 운영 composition·신뢰 배포 자료 연결과 #63 포함 후보 지정, B/C hashless 검색 저장 계약,
 D의 동일 SHA 독립 재현·다른 장비 검증, 리뷰·W6 반영. TCP 테스트 성공은 이 후속이나 단계 완료를
 대신하지 않는다. 사용자 선택과 AI 구현·검사·기록을 사람의 코드 Approve와 구분한다.
+
+## 2026-10-31 — A-2 로그 구간 결함 수정·B 소유 경로 리뷰
+
+- #120 요청의 제안 전체 구간 조회를 WalletRpc 공통 경계에서2,000블록/최대4개 동시 읽기로 제한했습니다. 생산 코드 `ae996c30269f721bd73857ab03062c2f3b121dd6`, 관련144 PASS·전체1,434 PASS/20 SKIP. 실제 ethpandaops 제안16페이지/9.25초/EXECUTED·승인자2명 확인, 공개 쓰기0. 빠듯한10초 예산·provider 한도 차이를 한계로 기록했습니다.
+- #102 비JSON trace 의견은 별도 PR branch에 반영(65 PASS). #104 고정 Foundry1.4.4 빌드·manifest 일치를 확인했지만 페이지 재조직 혼합 이력P2를 재현해 REQUEST_CHANGES, #114 Protocol 일치를110 PASS/1 SKIP로 확인해 B/Codex 기술 APPROVED를 게시했습니다.
+- [재현·실제 증거·실패와 조정 이유·리뷰·남은 범위](../blockchain/v5_log_windows_20261031.md). A/C/D 구현·결함 전달·기존 B 검사 자산을 재사용했고 Codex가 수정·실행·기록을 보조했습니다. 새 수정 PR의 작성자 외 승인은 아직 없습니다. 팀 전체 단계 완료가 아닙니다.
+
+## 2026-11-01 재시험 B 결함 후속
+
+- V5-W6-B, 사용자 선택 ①: 중간 2건과 RPC 5건. phase `f1d7b3c` + 기존 B #124 `62b35c3`를 사용한 `codex/v5-w6-b-retest-fixes`. 검증 코드 `cda575c084e9350b06b2d6bc1468bc2afa583132`.
+- 제안 이력 1회 조회/시점 분리, 같은 HTTP client의 동시 4개 제한, 실패 즉시 task 회수, 블록 병렬 조회, JSON 오류 전환·traceback URL 제거를 구현했습니다. Projection은 receipt 완전성 대조와 128블록 원자 저장·구간 사이 정본 재확인 뒤 최신 tip까지 진행합니다.
+- 신규 회귀 최초 7 FAIL → 최종 신규 16개 포함 전체 Python 1,450 PASS/20 SKIP/기존 warning 1. 실제 새 로컬 Anvil 검사 1 PASS, Ruff·구조·diff PASS. 보고서의 페이지당 2.2초 합성 조건은 10초 안에 승인 대사 PASS이며 공개 SLA가 아닙니다.
+- Codex가 구현·테스트·기록을 작성하고 기존 B #124·C runtime/공유 모델을 재사용했습니다. 사용자 변경·기존 노드/DB는 보존했습니다. 작성자 외 리뷰·공개 부하·PostgreSQL/RC 합본은 미확인입니다. 이미 누락된 journal의 실제 복구는 대상 확인 후 별도이며 자동 DB 삭제는 없습니다.
+- [동작·실패·명령·비용·#104 충돌/인계](../blockchain/v5_retest_fixes_20261101.md). W6 전체 완료로 판정하지 않습니다.
+
+### 2026-11-02 Anvil 기준 선택
+
+사용자가 B 시연·검증 준비를 Anvil로 진행하기로 선택했습니다. 기존 기본 설정을 재사용하고 #125의 공개 RPC receipt 비용 최적화는 이번 범위에 추가하지 않았습니다. 생산 코드 무변경, HEAD `57af5be`에서 새 합성 Anvil 검사1 PASS(1.93초). 기존 DB/노드/배포 초기화와 서비스 세션 상시 기동은 하지 않았습니다. 팀 전체 발표 체인 확정·C의 정식 승인·B 직접 RC 합본 검증은 별도입니다. [결정과 검증 근거](../blockchain/v5_retest_fixes_20261101.md#2026-11-02-사용자-b의-anvil-선택).

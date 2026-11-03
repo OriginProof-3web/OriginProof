@@ -54,7 +54,7 @@ def approved_log(number):
         "data": "0x" + encode([x[0] for x in data], [x[1] for x in data]).hex(),
         "blockNumber": hex(number),
         "blockHash": block_hash(number),
-        "transactionHash": TX,
+        "transactionHash": "0x" + f"{number:064x}",
         "logIndex": "0x0",
         "removed": False,
     }
@@ -82,13 +82,21 @@ class Node:
                 "number": hex(number),
                 "hash": self.hash(number),
                 "timestamp": hex(100 + number),
-                "transactions": [TX] if number >= 2 else [],
+                "transactions": ["0x" + f"{number:064x}"] if number >= 2 else [],
             }
 
         result = {
             "eth_chainId": lambda: "0x7a69",
             "eth_getBlockByNumber": lambda: block(params[0]),
             "eth_getCode": lambda: "0x" + CODE.hex(),
+            "eth_getTransactionReceipt": lambda: {
+                "transactionHash": params[0],
+                "blockHash": self.hash(int(params[0], 16)),
+                "blockNumber": hex(int(params[0], 16)),
+                "transactionIndex": "0x0", "status": "0x1",
+                "logs": [approved_log(int(params[0], 16)) | {
+                    "blockHash": self.hash(int(params[0], 16))}],
+            },
             "eth_getLogs": lambda: [
                 approved_log(n) | {"blockHash": self.hash(n)}
                 for n in range(int(params[0]["fromBlock"], 16), int(params[0]["toBlock"], 16) + 1)
