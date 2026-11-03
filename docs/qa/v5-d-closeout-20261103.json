@@ -325,5 +325,18 @@
     "closeout-independent.json": "1f1f0152453518c225d9f3896ceb2d37d8e1e436a2581f8dba07630297d68842",
     "closeout-up.log": "8258c420871aa90f30a9a5b116939217f340a42a93ea22a712de41fde510cc74",
     "closeout-purge.log": "c9add5e84695185ca3c2dcb98b36967fbd760b8795d778018d41cf9c58bbfba4"
+  },
+  "phase_advanced_during_work": "6f6fa36",
+  "merged_during_work": [
+    127,
+    116,
+    115
+  ],
+  "additional_review": {
+    "pr": 129,
+    "commit": "8c0722d233c0951388fb95549c91f68ffdaa9243",
+    "node22_passed": 306,
+    "node22_skipped": 5,
+    "state": "D_APPROVED"
   }
 }
