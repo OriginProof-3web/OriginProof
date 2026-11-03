@@ -153,6 +153,24 @@ def create_app(
         version="0.1.0",
         lifespan=lifespan,
         responses={
+            # Replaces FastAPI's default 422 schema: the handler below returns these bodies.
+            422: {
+                "description": "MALFORMED_INPUT. /v3: {detail, request_id, field_paths}; "
+                "others: {error, request_id}",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "detail": {"type": "string"},
+                                "error": {"type": "string"},
+                                "request_id": {"type": "string"},
+                                "field_paths": {"type": "array", "items": {"type": "string"}},
+                            },
+                        }
+                    }
+                },
+            },
             413: {"description": "REQUEST_TOO_LARGE: request body exceeds configured limit"},
             429: {"description": "RATE_LIMITED: retry after Retry-After seconds"},
         },

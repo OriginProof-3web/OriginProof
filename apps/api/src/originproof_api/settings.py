@@ -9,7 +9,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """Runtime settings. Secrets are loaded from the environment and never logged."""
 
-    database_url: str = "postgresql+asyncpg://originproof:originproof@postgres:5432/originproof"
+    database_url: str = Field(
+        default="postgresql+asyncpg://originproof:originproof@postgres:5432/originproof",
+        repr=False,
+    )
     # One switch (CHAIN_TARGET=anvil|sepolia) selects chain ID, wallet manifest and RPC rules.
     chain_target: str = Field(
         default="anvil", validation_alias=AliasChoices("CHAIN_TARGET", "chain_target")
@@ -45,6 +48,8 @@ class Settings(BaseSettings):
     wallet_text_input_enabled: bool = False
     wallet_image_input_enabled: bool = False
     signup_enabled: bool = False
+    # Synthetic test accounts only (C real-AI check); others keep the 5-per-10-minute limit.
+    analysis_limit_exempt_usernames: list[str] = []
     wallet_relay_enabled: bool = False
 
     model_config = SettingsConfigDict(

@@ -416,6 +416,49 @@ async def test_account_parallel_and_window_limits_prevent_duplicate_work(wallet)
     ).status_code == 429
 
 
+async def test_exempt_test_account_skips_window_limit_but_not_parallel_guard(wallet):
+    w = wallet
+    w.app.state.settings.wallet_text_input_enabled = True
+    w.app.state.settings.analysis_limit_exempt_usernames = ["i"]
+    for i in range(7):
+        value = await input_ref(w)
+        response = await w.client.post(
+            "/v3/analyses", json={"request_id": f"req_exempt_{i}", "input_ref": value}
+        )
+        assert response.status_code == 202, response.text
+        await settle(w)
+    started, release = asyncio.Event(), asyncio.Event()
+
+    async def delayed(text):
+        started.set()
+        await release.wait()
+        return report(text)
+
+    w.app.state.analysis_processor = delayed
+    slow = await input_ref(w)
+    await w.client.post("/v3/analyses", json={"request_id": "req_slow", "input_ref": slow})
+    await asyncio.wait_for(started.wait(), timeout=2)
+    busy = await w.client.post(
+        "/v3/analyses", json={"request_id": "req_busy", "input_ref": await input_ref(w)}
+    )
+    assert busy.status_code == 429
+    release.set()
+    await settle(w)
+    w.app.state.analysis_processor = processor
+    w.who["name"] = "recipient"
+    for i in range(5):
+        value = await input_ref(w)
+        await w.client.post("/v3/analyses", json={"request_id": f"req_r_{i}", "input_ref": value})
+        await settle(w)
+    blocked = await w.client.post(
+        "/v3/analyses", json={"request_id": "req_r_6", "input_ref": await input_ref(w)}
+    )
+    assert blocked.status_code == 429
+    w.who["name"] = "issuer"
+    for _ in range(module.INPUTS_PER_WINDOW + 1):  # exempt account is not capped on uploads
+        await input_ref(w)
+
+
 async def test_restart_timeout_and_late_completion_keep_failure(wallet, monkeypatch):
     w = wallet
     w.app.state.settings.wallet_text_input_enabled = True
@@ -613,3 +656,11 @@ async def test_known_analyzer_failure_codes_survive_without_provider_details(wal
     result = await wallet.client.get(f"/v3/analyses/{accepted.json()['analysis_id']}")
     assert result.json()["status"] == "FAILED" and result.json()["error_code"] == code
     assert "DO_NOT_ECHO" not in result.text and result.json()["report"] is None
+
+
+async def test_input_uploads_are_capped_per_account_window(wallet):
+    wallet.app.state.settings.wallet_text_input_enabled = True
+    for _ in range(module.INPUTS_PER_WINDOW):
+        await input_ref(wallet)
+    response = await wallet.client.post("/v3/inputs", json={"kind": "TEXT", "text": "x"})
+    assert response.status_code == 429 and response.json()["detail"] == "INPUT_LIMIT"

@@ -107,7 +107,7 @@ checks의 공통 name은 signature / original_hash / protected_fields / current_
 | 키 보유 증명 | POST /v3/key-challenges → POST /v3/key-proofs | 201 SigningRequest → 200 KeyProofReceipt; 해당 신청자 |
 | 공동승인 준비/조회 | POST /v3/proposals, GET /v3/proposals/{proposal_id} | ProposalView; operator + 실제 approver |
 | 제안 등록/승인 tx 접수 | POST /v3/proposals/{proposal_id}/transactions 또는 /approvals | 202 OperationView; 성공 tx와 제안·승인자를 대조 |
-| 긴급 정지 tx 접수 | POST /v3/issuers/{issuer_id}/suspensions | 202 OperationView; 해당 기관/approver와 실제 tx 검사 |
+| 긴급 정지 tx 접수 | POST /v3/issuers/{issuer_id}/suspensions | 202 OperationView; 해당 기관/approver와 실제 tx 검사. `issuer_id`는 0x 해시 또는 명부 slug(`iss_…`). tx가 아직 안 보이면 503 `TRANSACTION_PENDING`(같은 request_id로 재시도) |
 | 발행 | POST /v3/document-drafts → POST /v3/publications | 201 SigningRequest → 202 OperationView; 세션 기관의 현재 발행키 |
 | 철회 | POST /v3/revoke-drafts → POST /v3/revocations | 해당 기관이 소유한 버전; 정지 중에도 현재 키 서명 허용 |
 | 기관 직접 제출 tx 접수 | POST /v3/signing-requests/{signing_request_id}/transactions | 202 OperationView; 원본·서명 요청을 먼저 보존한 뒤 동일 tx 확인 |
@@ -125,10 +125,10 @@ SignedSubmission은 signing_request_id와 signature만 전달합니다. 서버�
 | --- | --- |
 | 401/403 | 세션 없음 / 역할·서명자·체인 승인 권한 불일치 |
 | 404 | 문서/작업 미존재 또는 타인 비공개 객체 |
-| 409 | REQUEST_ID_CONFLICT, VERSION_CONFLICT, NONCE_ALREADY_USED, PROPOSAL_STALE, DUPLICATE_APPROVAL, SIGNER_IS_APPROVER (체인 승인자는 기관 signer로 등록 불가) |
+| 409 | REQUEST_ID_CONFLICT, VERSION_CONFLICT, NONCE_ALREADY_USED, PROPOSAL_STALE, DUPLICATE_APPROVAL, SIGNER_IS_APPROVER (체인 승인자는 기관 signer로 등록 불가), APPLICATION_REJECTED(운영자가 거절한 신청), INTERNAL_APPROVAL_REJECTED(내부 거절 뒤 메일 코드 재발급) |
 | 410 | SIGNATURE_EXPIRED, PROPOSAL_EXPIRED, RESULT_EXPIRED, ORIGINAL_UNAVAILABLE |
 | 422 | MALFORMED_INPUT, DOCUMENT_ID_MISMATCH, CONTENT_SCHEMA_MISMATCH, ORIGINAL_HASH_MISMATCH, PROTECTED_HASH_MISMATCH, SIGNATURE_SCHEMA_UNSUPPORTED, DIRECT_TX_MISMATCH |
-| 429/503 | 요청 제한(retry_after_seconds) / 제출용 의존성 장애 |
+| 429/503 | 요청 제한(retry_after_seconds; `/v3/inputs`는 계정당 10분 20건 `INPUT_LIMIT`) / 제출용 의존성 장애 |
 
 `/v3/key-challenges`와 `/v3/proposals`는 체인 `is_approver(signer)`가 참이면
 409 `SIGNER_IS_APPROVER`, 조회 실패이면 503 `WALLET_REGISTRY_UNAVAILABLE`로 거부합니다.
