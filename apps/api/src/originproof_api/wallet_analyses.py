@@ -40,6 +40,7 @@ from .wallet_runtime import now, runtime
 router = APIRouter(prefix="/v3", tags=["wallet analyses"])
 Identity = Annotated[tuple, Depends(current_session)]
 ACTIVE = ("QUEUED", "RUNNING")
+INPUTS_PER_WINDOW = 20
 InputRequest = Annotated[TextInputRequest | DocumentImageInputRequest, Field(discriminator="kind")]
 
 
@@ -267,15 +268,26 @@ async def input_text(body: InputRequest, request: Request, identity: Identity):
             # Validation details may echo untrusted image metadata; keep only the code.
             raise HTTPException(422, "MALFORMED_INPUT") from None
         original = base64.b64decode(body.image_base64, validate=True)
-    row = WalletInputRow(
-        input_id=f"inp_{uuid4().hex}",
-        account_id=account.account_id,
-        kind=body.kind,
-        original=original,
-        accepted_at=now(),
-        expires_at=now() + 3600,
-    )
     async with service.database.session_factory() as db:
+        await service.lock_account(db, account)
+        recent = await db.scalars(
+            select(WalletInputRow.input_id).where(
+                WalletInputRow.account_id == account.account_id,
+                WalletInputRow.accepted_at > now() - 600,
+            )
+        )
+        # Each input may hold up to 7 MB for an hour; cap storage per account.
+        exempt = account.username in service.settings.analysis_limit_exempt_usernames
+        if len(list(recent)) >= INPUTS_PER_WINDOW and not exempt:
+            raise HTTPException(429, "INPUT_LIMIT", headers={"Retry-After": "600"})
+        row = WalletInputRow(
+            input_id=f"inp_{uuid4().hex}",
+            account_id=account.account_id,
+            kind=body.kind,
+            original=original,
+            accepted_at=now(),
+            expires_at=now() + 3600,
+        )
         db.add(row)
         await service.commit(db)
     return InputReceipt(input_ref=row.input_id, expires_at=row.expires_at)
@@ -323,7 +335,8 @@ async def analysis(body: AnalysisRequest, request: Request, identity: Identity):
                 )
             )
         )
-        if any(row.status in ACTIVE for row in recent) or len(recent) >= 5:
+        exempt = account.username in service.settings.analysis_limit_exempt_usernames
+        if any(row.status in ACTIVE for row in recent) or (len(recent) >= 5 and not exempt):
             raise HTTPException(429, "ANALYSIS_LIMIT", headers={"Retry-After": "600"})
         verification = None
         if body.verification_session_id:

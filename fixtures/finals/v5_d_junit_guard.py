@@ -10,7 +10,7 @@ STAGE_COUNTS = {
     "v5_d_w2_governance_qa": 12,
     "v5_d_w3_content_qa": 13,
     "v5_d_w4_lifecycle_qa": 6,
-    "v5_d_analysis_integration_qa": 12,
+    "v5_d_analysis_integration_qa": 14,
 }
 
 

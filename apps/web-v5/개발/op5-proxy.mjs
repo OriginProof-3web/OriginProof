@@ -21,6 +21,7 @@ const WRITE_METHODS = ['POST', 'DELETE'];
 const REQ_HEADERS = ['cookie', 'x-csrf-token', 'x-request-id', 'content-type', 'accept'];
 const RES_HEADERS = ['content-type', 'set-cookie', 'retry-after', 'x-request-id', 'cache-control', 'x-content-type-options', 'content-disposition'];
 const BODY_MAX = 1024 * 1024;          // d0111d8 settings.py request_body_max_bytes 상한(le=1048576)
+const IMAGE_BODY_MAX = 7 * 1024 * 1024 + 1024;   // security.py IMAGE_INPUT_MAX_BYTES 와 같음(/v3/inputs 의 5MB 사진 base64)
 const RES_MAX = 16 * 1024 * 1024;
 const UPSTREAM_TIMEOUT_MS = 30000;
 const ROOT = fileURLToPath(new URL('../페이지/', import.meta.url));
@@ -82,10 +83,10 @@ export function rewriteSetCookie(v) {
   const list = v == null ? [] : Array.isArray(v) ? v : [v];
   return list.map((c) => String(c).split(';').filter((part, i) => i === 0 || !/^\s*domain\s*=/i.test(part)).join(';'));
 }
-function readBody(req) {
+function readBody(req, max) {
   return new Promise((resolve, reject) => {
     const chunks = []; let size = 0;
-    req.on('data', (c) => { size += c.length; if (size > BODY_MAX) { reject(Object.assign(new Error('too large'), { code: 'BODY_TOO_LARGE' })); req.destroy?.(); } else chunks.push(c); });
+    req.on('data', (c) => { size += c.length; if (size > max) { reject(Object.assign(new Error('too large'), { code: 'BODY_TOO_LARGE' })); req.destroy?.(); } else chunks.push(c); });
     req.on('end', () => resolve(Buffer.concat(chunks)));
     req.on('error', reject);
   });
@@ -124,7 +125,7 @@ export function createHandler(opts = {}) {
         if ((origin != null && !origins.includes(origin)) || (origin == null && site === 'cross-site')) { done(403); return json(res, 403, apiPath, 'ORIGIN_FORBIDDEN'); }
       }
       let body;
-      try { body = WRITE_METHODS.includes(method) ? await readBody(req) : Buffer.alloc(0); } catch { done(413); return json(res, 413, apiPath, 'REQUEST_TOO_LARGE'); }
+      try { body = WRITE_METHODS.includes(method) ? await readBody(req, apiPath === '/v3/inputs' ? IMAGE_BODY_MAX : BODY_MAX) : Buffer.alloc(0); } catch { done(413); return json(res, 413, apiPath, 'REQUEST_TOO_LARGE'); }
       const headers = {};
       for (const h of REQ_HEADERS) if (req.headers[h] != null) headers[h] = req.headers[h];
       if (method === 'POST' || body.length) headers['content-length'] = String(body.length);

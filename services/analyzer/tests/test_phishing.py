@@ -80,6 +80,68 @@ def test_negation_warning_or_isolated_keyword_is_not_a_demand(text):
     assert rule_analysis(text).evidence == []
 
 
+@pytest.mark.parametrize("remote", ["원격지원", "원격 지원", "원격제어"])
+@pytest.mark.parametrize("action", ["설치", "실행"])
+@pytest.mark.parametrize(
+    "followup", ["연락 주세요", "본인 계좌 비밀번호를 입력해 주세요", "보안 점검을 진행해 주세요"]
+)
+def test_k10_connected_remote_request_keeps_exact_unicode_evidence(remote, action, followup):
+    text = f"🧪 아래 링크에서 {remote} 앱을 {action}하고 {followup}."
+    report = rule_analysis(text)
+    assert report.risk_level == "HIGH"
+    evidence = next(item for item in report.evidence if item.rule_id == "REMOTE_CONTROL_REQUEST")
+    assert evidence.quote == f"{remote} 앱을 {action}하고 {followup}"
+    assert text[evidence.start_offset : evidence.end_offset] == evidence.quote
+    assert evidence.source == "RULE" and report.verification is None
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "원격지원 앱을 설치하고 있습니다.",
+        "원격지원 앱을 설치하고 싶은지 알려주세요.",
+        "원격지원 앱을 설치하고 있다는 설명을 확인해 주세요.",
+        "원격지원 앱을 설치하고 연락하지 마세요.",
+        "원격지원 앱을 설치하고 연락하지 말아 주세요.",
+        "원격지원 앱을 설치하고 연락 안 해 주세요.",
+        "원격지원 앱을 설치하고 연락했다는 문구를 확인해 주세요.",
+        "원격지원 앱을 설치하고 연락했다고 알려주세요.",
+        "원격지원 앱을 설치하고 사용하지 않도록 주의해 주세요.",
+        "원격지원 앱을 설치하고 싶다는 요청은 거절해 주세요.",
+        "원격지원 앱을 설치하고 연락했다는 기록입니다.",
+        "원격지원 앱을 설치하고. 다음 일정을 확인해 주세요.",
+        "원격지원 앱을 설치하고\n다음 일정을 확인해 주세요.",
+        "피싱 교육 사례: ‘원격지원 앱을 설치하고 연락 주세요’는 사기 예시입니다.",
+        "사기 예방 예시: ‘원격지원 앱을 설치하고 연락’이라는 문구를 무시해 주세요.",
+    ],
+)
+def test_k10_connected_description_negation_and_warning_are_not_requests(text):
+    assert rule_analysis(text).evidence == []
+
+
+async def test_k10_connected_request_survives_unavailable_provider():
+    text = "아래 링크에서 원격지원 앱을 설치하고 본인 계좌 비밀번호를 입력해 주세요."
+    report = await PhishingAnalyzer(MockLLMProvider())(text)
+    assert report.risk_level == "HIGH"
+    assert any(item.rule_id == "REMOTE_CONTROL_REQUEST" for item in report.evidence)
+    assert "LLM_ANALYSIS_UNAVAILABLE:PROVIDER_UNAVAILABLE" in report.limitations
+    assert report.verification is None
+
+
+async def test_k10_connected_request_survives_low_risk_mock_replay():
+    text = "🧪 원격지원 앱을 설치하고 연락 주세요."
+    replay = {
+        "risk_level": "NO_CLEAR_INDICATORS",
+        "evidence": [],
+        "limitations": [],
+        "verification_not_run_reason": "not run",
+    }
+    report = await PhishingAnalyzer(replay_provider(text, replay))(text)
+    assert report.risk_level == "HIGH" and report.verification is None
+    assert "RULE_LLM_DISAGREEMENT" in report.limitations
+    assert all(text[item.start_offset : item.end_offset] == item.quote for item in report.evidence)
+
+
 async def test_default_mock_never_invents_llm_success_or_verification():
     plain = await PhishingAnalyzer()("합성 정기 점검 일정 안내입니다.")
     assert plain.risk_level == "UNDETERMINED" and plain.evidence == []

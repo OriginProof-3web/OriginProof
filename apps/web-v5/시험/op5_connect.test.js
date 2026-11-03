@@ -109,7 +109,7 @@ test('실서버 모드: 최초 회원 확인 뒤 세션이 만료되면 쓰기�
 
 test('같은 글을 연달아 보내면 진행 중인 것은 다시 보내지 않음', async () => {
   let n = 0;
-  const f = fakeFetch(url => { if (url === '/api/v1/auth/me') return { status: 200, body: { csrf_token: 'fixture' } }; if (url === '/api/v3/inputs') { n++; return { status: 201, body: { input_ref: 'inp_x', expires_at: 1 }, delay: 30 }; } return { status: 409, body: { detail: 'INPUT_SUPPORT_UNDECIDED' } }; });
+  const f = fakeFetch(url => { if (url === '/api/v1/auth/me') return { status: 200, body: { username: 'fixture', csrf_token: 'fixture' } }; if (url === '/api/v3/inputs') { n++; return { status: 201, body: { input_ref: 'inp_x', expires_at: 1 }, delay: 30 }; } return { status: 409, body: { detail: 'INPUT_SUPPORT_UNDECIDED' } }; });
   const d = build('?mode=api', f);
   load(d);
   enter(d, '같은 안내문'); enter(d, '같은 안내문');
@@ -166,7 +166,7 @@ test('business.html 은 스크립트 연결 줄만 더함, 사이드바·번들�
   for (const id of ['composer', 'chatThread', 'staffList']) assert.ok(HTML.includes('id="' + id + '"'));
   SCRIPTS.forEach(f => assert.ok(fs.existsSync(path.join(WEB, f)), f));
   assert.equal(sha(fs.readFileSync(path.join(WEB, 'business.bundle.js'))), '0a329cb58e6430f910fcd6b2b2a6ae2509ea5bf66ad16342d83194199e97bc45');
-  assert.equal(sha(fs.readFileSync(path.join(WEB, 'sidebar.bundle.js'))), '74222a3ab62779066b0bbb159fd41c674b9fd21c03d10f614e35b8eb160161eb');
+  assert.equal(sha(fs.readFileSync(path.join(WEB, 'sidebar.bundle.js'))), 'b1fedcbf96f3073fe214e605a21b537b926646bebb706670abbd5bf0053ba09b');
   assert.equal(sha(fs.readFileSync(path.join(WEB, 'business-workspace.css'))), '4c105ee44ae27b0966e02ba9216878ad77180488dd4d58a2e1824211bd50afb1');
 });
 
@@ -183,4 +183,85 @@ test('연결 스크립트는 기존 CSS 클래스만 쓰고, 인라인 스타일
     if (cls.delete('t-')) ['ok','fail','caution','info','none','pending','offline'].forEach(c => cls.add('t-' + c));
     for (const c of cls) assert.ok(new RegExp('\\.' + c + '(?![\\w-])').test(style), '없는 클래스: ' + c);
   }
+});
+
+/* 대역은 서버 규칙대로 거부함: 제안 조회·승인·실행은 operator 만(wallet_governance.py:126·250·361), 소유자 경로는 신청자만(wallet_onboarding.py:56-67·91·108·156·177),
+   내부 승인은 신청자 아닌 지정 승인자만(wallet_onboarding.py:225-228). 예전 대역은 issuer 에게 다 성공시켜 화면·서버 불일치를 가렸음. */
+const APP = 'app_1', PID = '0x' + 'ab'.repeat(32), ISS = '0x' + 'cd'.repeat(32), TX = '0x' + 'ef'.repeat(32);
+function serverLike(role, accountId) {
+  const V = { application_id: APP, roster_matched: true, email_verified: false, internally_approved: false, metadata: {}, metadata_hash: 'x' };
+  const OP = { operation_id: 'op_1', status: 'SUBMITTED', next_action: 'WAIT' };
+  const APPLICANT = 'acct_applicant', APPROVER = 'acct_approver';
+  const deny = (status, detail) => ({ status, body: { detail } });
+  return fakeFetch((url, init) => {
+    const m = init.method || 'GET';
+    if (url === '/api/v1/auth/me') return { status: 200, body: { account_id: accountId, username: 'u', role, issuer_id: role === 'issuer' ? 'iss_origin_mock_bank' : null, csrf_token: 'c' } };
+    if (url === '/api/v1/chain/network') return { status: 200, body: { chain_target: 'anvil', chain_id: 31337, rpc_fallback_configured: false, approver_nodes: [{ role: 'approver_1', label: '승인 노드 #1', notice: 'n' }] } };
+    if (url === '/api/v1/issuer/status') return role === 'issuer' ? { status: 200, body: { issuer_id: 'i', status: 'ACTIVE', chain_id: 31337 } } : deny(403, 'FORBIDDEN');
+    if (url === '/api/v1/issuer-applications/mine') return role === 'issuer' ? { status: 200, body: { application_id: APP, applicant_account_id: APPLICANT, issuer_name: 'Origin Mock Bank', status: 'APPROVED' } } : deny(403, 'FORBIDDEN');
+    if (url.startsWith('/api/v3/issuer-applications/')) {
+      if (role !== 'issuer') return deny(403, 'FORBIDDEN');
+      if (url.endsWith('/internal-approvals')) return accountId === APPLICANT ? deny(403, 'SELF_APPROVAL_FORBIDDEN') : accountId !== APPROVER ? deny(403, 'INTERNAL_APPROVER_REQUIRED') : { status: 200, body: V };
+      if (accountId !== APPLICANT) return deny(404, 'APPLICATION_NOT_FOUND');
+      if (url.endsWith('/demo-inbox')) return { status: 200, body: { code: '123456', expires_at: 1 } };
+      return { status: m === 'POST' && url.endsWith('email-codes') ? 201 : 200, body: V };
+    }
+    if (url.startsWith('/api/v3/proposals/')) {
+      if (role !== 'operator') return deny(403, 'FORBIDDEN');
+      return url === '/api/v3/proposals/' + PID ? { status: 200, body: { proposal_id: PID, status: 'PENDING', approvals: ['0x1'], threshold: 2, proposal: {} } } : { status: 202, body: OP };
+    }
+    if (url.endsWith('/suspensions')) return { status: 202, body: OP };
+    if (url.startsWith('/health/') || url.startsWith('/api/health/')) return { status: 200, body: { status: 'ok' } };
+    return null;
+  });
+}
+async function open(role, accountId) {
+  const f = serverLike(role, accountId);
+  const d = build('?mode=api', f);
+  load(d); await sleep(20);
+  vm.runInContext('selectAction("status")', d.win); await sleep(120);
+  const has = label => d.doc.querySelectorAll('#chatThread button').some(x => x.textContent === label);
+  const press = async label => { const b = d.doc.querySelectorAll('#chatThread button').filter(x => x.textContent === label).pop(); assert.ok(b, '단추 없음: ' + label); d.doc._dispatch(b, new Ev('click')); await sleep(30); };
+  const posted = u => f.calls.filter(c => c.url === '/api' + u && c.init.method === 'POST').map(c => JSON.parse(c.body));
+  return { f, d, has, press, posted };
+}
+const B = '/v3/issuer-applications/' + APP;
+
+test('기관 메뉴(신청자): 온보딩 경로로 가고, 내부 승인·제안 조회 단추는 없음, 긴급 정지는 자기 기관', async () => {
+  const { d, has, press, posted } = await open('issuer', 'acct_applicant');
+  assert.match(d.doc.getElementById('chatThread').textContent, /anvil · 체인 31337/);
+  assert.equal(has('내부 승인하기(지정된 다른 계정)'), false);
+  assert.equal(has('공동승인 제안 조회'), false);
+  await press('업무 메일 코드 받기'); enter(d, 'staff@bank.example.invalid'); await sleep(40);
+  assert.deepEqual(posted(B + '/email-codes'), [{ email: 'staff@bank.example.invalid' }]);
+  await press('데모 받은편지함 보기'); assert.match(d.doc.getElementById('chatThread').textContent, /확인 코드 123456/);
+  await press('메일 코드 확인'); enter(d, '123456'); await sleep(40);
+  assert.deepEqual(posted(B + '/email-verifications'), [{ code: '123456' }]);
+  await press('긴급 정지 거래 알리기'); enter(d, ISS); await sleep(40); enter(d, TX); await sleep(40);
+  assert.equal(posted('/v3/issuers/' + ISS + '/suspensions')[0].tx_hash, TX);
+});
+
+test('기관 메뉴(지정 승인자): 내부 승인만 보이고 계약 경로로 간다', async () => {
+  const { d, has, press, posted } = await open('issuer', 'acct_approver');
+  for (const l of ['온보딩 상태 보기', '업무 메일 코드 받기', '데모 받은편지함 보기', '메일 코드 확인']) assert.equal(has(l), false, l);
+  await press('내부 승인하기(지정된 다른 계정)'); enter(d, '시험 승인'); await sleep(40);
+  assert.deepEqual(posted(B + '/internal-approvals'), [{ decision: 'APPROVE', reason: '시험 승인' }]);
+});
+
+test('기관 메뉴(지정되지 않은 같은 기관 계정): 서버가 거부하고 쉬운 말로 보여 줌', async () => {
+  const { d, press } = await open('issuer', 'acct_other');
+  await press('내부 승인하기(지정된 다른 계정)'); enter(d, '시험 승인'); await sleep(40);
+  assert.match(d.doc.getElementById('chatThread').textContent, /INTERNAL_APPROVER_REQUIRED/);
+});
+
+test('기관 메뉴(운영자): 공동승인 제안 조회·승인·실행·긴급 정지가 계약 경로로 간다', async () => {
+  const { d, press, posted } = await open('operator', 'acct_operator');
+  await press('공동승인 제안 조회'); enter(d, PID); await sleep(40);
+  assert.match(d.doc.getElementById('chatThread').textContent, /상태 PENDING · 승인 1\/2/);
+  await press('승인 거래 알리기'); enter(d, TX); await sleep(40);
+  const a = posted('/v3/proposals/' + PID + '/approvals'); assert.equal(a[0].tx_hash, TX); assert.match(a[0].request_id, /^req_/);
+  await press('실행 거래 알리기'); enter(d, TX); await sleep(40);
+  assert.equal(posted('/v3/proposals/' + PID + '/transactions')[0].tx_hash, TX);
+  await press('긴급 정지 거래 알리기'); enter(d, ISS); await sleep(40); enter(d, TX); await sleep(40);
+  assert.equal(posted('/v3/issuers/' + ISS + '/suspensions')[0].tx_hash, TX);
 });
