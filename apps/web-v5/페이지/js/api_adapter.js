@@ -531,6 +531,7 @@
     INPUT_ALREADY_ANALYZED: '이미 분석을 맡긴 입력이에요.',
     REQUEST_ID_CONFLICT: '같은 요청 번호로 다른 내용이 들어왔어요.',
     ANALYSIS_LIMIT: '분석은 계정당 동시에 1건, 10분에 5건까지 받아요.',
+    INPUT_LIMIT: '글·사진 올리기는 계정당 10분에 20건까지 받아요.',
     VERIFICATION_SESSION_NOT_FOUND: '연결할 검증 기록을 찾지 못했어요.',
     VERIFICATION_SESSION_EXPIRED: '연결할 검증 기록의 보관 시간이 지났어요.',
     RESULT_EXPIRED: '분석 결과 보관 시간이 지났어요.'
