@@ -44,7 +44,7 @@
 - `packages/contracts/script/DeployWalletRegistry.s.sol`: B 소스를 import하지 않고 artifact 이름으로 배포합니다. `WALLET_DEPLOY_CHAIN_ID`와 연결된 체인이 다르면 거부합니다.
 - `packages/contracts/script/deploy_wallet_registry.py`: `CHAIN_TARGET`(또는 `--chain-target`)으로 31337/11155111을 고르고 forge를 실행한 뒤 `packages/contracts/deployments/<chainId>.wallet[.local].json`을 씁니다. manifest를 쓰기 전에 배포 tx의 input 전체가 로컬 artifact(`out/OriginProofWalletRegistry.sol/OriginProofWalletRegistry.json`)의 creation bytecode + ABI 인코딩한 생성자 인자(`address[3]`)와 **바이트 단위로 같은지** 확인하고, 다르면 manifest를 만들지 않습니다(forge 배포와 `--deployment-tx` 기록 모두). 기존 Sepolia manifest는 덮어쓰지 않습니다.
 - `packages/contracts/foundry.toml` `[rpc_endpoints]`: `sepolia = "${SEPOLIA_RPC_URL}"`, `anvil = "http://127.0.0.1:8545"`. `cast … --rpc-url sepolia`처럼 **별칭**만 명령에 쓰고 키가 든 URL은 환경 변수에만 둡니다. `cast`는 `packages/contracts`에서 실행해야 별칭을 읽습니다.
-- API: `CHAIN_TARGET=anvil|sepolia`(기본 anvil)가 chain ID, 주/보조 RPC 규칙, wallet manifest 기본 경로를 정하고 잘못된 값은 기동 오류입니다. 실제 소비 경로의 연결 범위는 아래 [연결 범위](#연결-범위와-b-연결-대기)를 봅니다. `GET /v1/chain/network`는 선택된 네트워크와 승인 노드 라벨만 반환합니다(RPC URL·manifest 경로는 반환하지 않음).
+- API: `CHAIN_TARGET=anvil|sepolia`(기본 anvil)가 chain ID, 주/보조 RPC 규칙, wallet manifest 기본 경로를 정하고 잘못된 값은 기동 오류입니다. 실제 소비 경로의 연결 범위는 아래 [연결 범위](#연결-범위와-w5-당시-b-연결-대기-기록)를 봅니다. `GET /v1/chain/network`는 선택된 네트워크와 승인 노드 라벨만 반환합니다(RPC URL·manifest 경로는 반환하지 않음).
 
 ## 대표가 할 일
 
