@@ -76,11 +76,11 @@
     var sc = document.getElementById('chatScroll'); if (sc) sc.scrollTop = sc.scrollHeight;
   }
 
-  bar.append(el('span', 'preset-title', '시연'));
-  LIVE.forEach(function (p) {
+  function canLive(p) { return !!SERVER_INPUT[p.id] || p.id === 'unregistered'; }
+  function addLive(p) {
     var t = textOf(p.id), s = SERVER_INPUT[p.id];
     if (!t && !s) return;
-    var b = el('button', 'preset', p.label);
+    var b = el('button', canLive(p) ? 'preset' : 'preset preset-sample', p.label);
     b.type = 'button'; b.title = p.tip;
     b.addEventListener('click', function () {
       if (live() && s && s.text) { send(s.text); return; }
@@ -105,7 +105,24 @@
       send(t);
     });
     bar.append(b);
-  });
+  }
+  // 버튼 줄이 화면보다 길면 양 끝 화살표로 옮김(스크롤바는 숨겨져 있음)
+  function nav(dir) {
+    var b = el('button', 'preset-nav preset-nav-' + dir, dir === 'l' ? '‹' : '›');
+    b.type = 'button'; b.setAttribute('aria-label', dir === 'l' ? '시연 버튼 왼쪽으로' : '시연 버튼 오른쪽으로');
+    b.addEventListener('click', function () { if (bar.scrollBy) bar.scrollBy({ left: (dir === 'l' ? -0.7 : 0.7) * bar.clientWidth, behavior: 'smooth' }); });
+    return b;
+  }
+  var navL = nav('l'), navR = nav('r');
+  function navUpdate() {
+    navL.hidden = !(bar.scrollLeft > 0);
+    navR.hidden = !(bar.scrollWidth - bar.clientWidth - bar.scrollLeft > 1);
+  }
+  bar.append(navL, el('span', 'preset-title', '실서버 시연'));
+  LIVE.filter(canLive).forEach(addLive);
+  bar.append(el('span', 'preset-title', '예시 모드 전용'));
+  LIVE.filter(function (p) { return !canLive(p); }).forEach(addLive);
+  bar.append(el('span', 'preset-title', '설명만'));
   SERVER.forEach(function (p) {
     var b = el('button', 'preset preset-server', p.label);
     b.type = 'button'; b.title = '실서버·체인 연결 뒤 재현';
@@ -118,4 +135,8 @@
     });
     bar.append(b);
   });
+  bar.append(navR);
+  bar.addEventListener('scroll', navUpdate);
+  window.addEventListener('resize', navUpdate);
+  navUpdate();
 })();

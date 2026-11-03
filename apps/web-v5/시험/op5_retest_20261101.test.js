@@ -58,6 +58,17 @@ test('K1: 실서버 모드의 예시 버튼은 서버에 보내지 않고 이유
   assert.match(d.doc.getElementById('chatThread').textContent, /예시 자료라 실서버 기록과 맞지 않아 보내지 않았어요/);
 });
 
+test('시연 줄: 실서버 시연 / 예시 모드 전용 / 설명만 으로 나뉘고 양 끝에 좌우 이동 단추가 있음', async () => {
+  const d = page(u => u === '/api/v1/auth/me' ? ME('issuer') : { status: 404, body: {} });
+  await sleep(10);
+  const order = d.doc.getElementById('presetBar').children.map(n => n.textContent);
+  const at = s => order.indexOf(s);
+  assert.ok(at('실서버 시연') < at('진짜 안내 + 위험 요구') && at('미등록 기관 사칭') < at('예시 모드 전용'), order.join(' | '));
+  assert.ok(at('예시 모드 전용') < at('철회된 안내') && at('철회된 안내') < at('설명만') && at('설명만') < at('DB 직접 조작'), order.join(' | '));
+  const navs = d.doc.querySelectorAll('#presetBar button').map(b => b.getAttribute('aria-label')).filter(Boolean);
+  assert.deepEqual(navs, ['시연 버튼 왼쪽으로', '시연 버튼 오른쪽으로']);
+});
+
 test('실서버 시연 버튼: 정상·위험 요구는 RC 시드와 같은 고정 문자를 보냄', async () => {
   const d = page(u => u === '/api/v1/auth/me' ? ME('issuer') : { status: 404, body: {} });
   await sleep(10);
