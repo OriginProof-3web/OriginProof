@@ -18,6 +18,7 @@
     RUNTIME_NOT_READY: '서버는 켜져 있지만 아직 준비가 안 됐어요(계정·장부 연결 등 준비 항목이 남음). 꺼진 것과는 달라요.',
     RATE_LIMITED: '요청이 많아 서버가 잠시 막았어요.',
     ANALYSIS_LIMIT: '분석은 계정당 동시에 1건, 10분에 5건까지만 받아요.',
+    INPUT_LIMIT: '글·사진 올리기는 계정당 10분에 20건까지만 받아요.',
     EMAIL_ISSUE_LIMIT: '메일 코드를 너무 자주 요청했어요.', EMAIL_REISSUE_LIMIT: '메일 코드를 너무 자주 다시 요청했어요.', EMAIL_ATTEMPT_LIMIT: '메일 코드를 너무 많이 틀렸어요.',
     RESULT_EXPIRED: '결과 보관 시간이 지나 더는 볼 수 없어요.',
     INPUT_EXPIRED: '입력 보관 시간(1시간)이 지나 분석할 수 없어요.',
