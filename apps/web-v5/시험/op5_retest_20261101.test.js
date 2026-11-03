@@ -52,10 +52,46 @@ test('K1: 실서버 모드의 예시 버튼은 서버에 보내지 않고 이유
   const d = page(u => u === '/api/v1/auth/me' ? ME('issuer') : { status: 404, body: {} });
   await sleep(10);
   const before = d.win.fetch.calls.length;
-  presetBtn(d, '정상 안내문').click();
+  presetBtn(d, '철회된 안내').click();
   await sleep(30);
   assert.equal(d.win.fetch.calls.length, before);
   assert.match(d.doc.getElementById('chatThread').textContent, /예시 자료라 실서버 기록과 맞지 않아 보내지 않았어요/);
+});
+
+test('실서버 시연 버튼: 정상·위험 요구는 RC 시드와 같은 고정 문자를 보냄', async () => {
+  const d = page(u => u === '/api/v1/auth/me' ? ME('issuer') : { status: 404, body: {} });
+  await sleep(10);
+  presetBtn(d, '진짜 안내 + 위험 요구').click();
+  await sleep(30);
+  const sent = d.win.fetch.calls.map(c => c.body).join('\n');
+  assert.match(sent, /Origin Mock Bank/);
+  assert.match(sent, /원격 지원 앱을 설치해 주세요/);
+});
+
+test('실서버 시연 버튼: 변조·구버전은 data/rc_presets.json 의 문서를 보내고, 파일이 없으면 보내지 않고 알림', async () => {
+  const DOCJ = { document_id: DOC, version: 2, protected_fields: { amount_minor: 120001, payee_account_number: '001234567890' } };
+  const GEN = { document_id: DOC, version: 2, protected_fields: { amount_minor: 120000, payee_account_number: '001234567890' } };
+  const d = page(u => u === '/api/v1/auth/me' ? ME('issuer') : u === 'data/rc_presets.json' ? { status: 200, body: { genuine: GEN, tamper: DOCJ, superseded: DOCJ } } : { status: 404, body: {} });
+  await sleep(10);
+  presetBtn(d, '금액 1원 변조').click();
+  await sleep(60);
+  assert.ok(d.win.fetch.calls.some(c => c.url === 'data/rc_presets.json'));
+  assert.ok(d.win.fetch.calls.some(c => c.body.includes(DOC)), '문서 ID를 보내지 않음');
+  const shown = d.doc.getElementById('chatThread').textContent;
+  assert.match(shown, /금액 1원 변조 안내문 · 문서 v2/);
+  assert.match(shown, /발행 원본과 다른 항목: 납부 금액/);
+  assert.match(shown, /납부 금액: 120,001원 +⟵ 발행 원본 120,000원/);
+  assert.doesNotMatch(shown, /\[시연\]|001234567890/);
+  assert.doesNotMatch(shown, /"document_id"/);
+  assert.match(shown, /문서 입력은 분석하지 않음/);
+  assert.doesNotMatch(shown, /서버 분석기 연결 전/);
+
+  const e = page(u => u === '/api/v1/auth/me' ? ME('issuer') : { status: 404, body: {} });
+  await sleep(10);
+  presetBtn(e, '구버전 재사용').click();
+  await sleep(60);
+  assert.match(e.doc.getElementById('chatThread').textContent, /시연 데이터 파일\(data\/rc_presets\.json\)이 없어/);
+  assert.ok(!e.win.fetch.calls.some(c => c.url.startsWith('/api/v3')));
 });
 
 test('K1: 미등록 사칭은 실서버에서도 그대로 보냄', async () => {

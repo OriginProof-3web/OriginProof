@@ -252,7 +252,7 @@
     aiz.setAttribute('aria-label', 'AI 위험 설명');
     aiz.append(el('span', 'op-zone-tag', O.analysisCaption(a)), el('h4', null, 'AI 위험 설명 · 맥락'));
     if (ai) aiz.append(opRow(ai));
-    var text = a.input && typeof a.input.text === 'string' ? a.input.text : '';
+    var text = a.input && typeof a.input.text === 'string' && !O.docInput(a) ? a.input.text : '';
     var sp = riskSpans(a, ai, text);
     evidenceRows(aiz, a, sp);
     if (text) aiz.append(el('p', 'op-tech', sp.spans.length ? '받은 글에서 위험 요구 문장을 칠했어요' : '받은 글'), markedText(text, sp.spans));
@@ -312,7 +312,7 @@
     running[key] = p;
     return p;
   }
-  function submit() {
+  function submit(shown) {
     var v = Hk.validateInput(input.value);
     if (!v.ok) { if (input.value.trim()) say(v.message); return null; }
     var w = awaiting;
@@ -322,7 +322,7 @@
     input.value = '';
     input.dispatchEvent(new Event('input'));     // 안쪽 스크립트의 높이·보내기 단추 상태 갱신
     if (w) return answerAsk(w, v.text);
-    userMsg(T.maskPersonal(v.text));
+    userMsg(shown || T.maskPersonal(v.text));
     return check(v.text);
   }
   function answerAsk(w, text) {
@@ -896,5 +896,7 @@
 
   // 장면 재현(캡처용)에서만 쓰는 손잡이
   var ui = { submitText: function (t) { input.value = t; return submit(); }, menu: function (k) { return MENU[k](); }, showAnalyses: showAnalyses, removeAnalysis: removeAnalysis, client: function () { return client; } };
+  // 시연 버튼이 문서 JSON을 보낼 때 말풍선에는 이름만 보임(날 JSON·가림 처리된 기한 대신)
+  Hk.op5send = function (t, shown) { input.value = t; return submit(shown); };
   if (scene) setTimeout(function () { S.run(scene, ui); }, 0);
 })();

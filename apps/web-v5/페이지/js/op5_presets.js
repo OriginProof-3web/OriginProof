@@ -10,9 +10,39 @@
   var DATA = Array.isArray(window.SAMPLE_DATA) ? window.SAMPLE_DATA : [];
   function textOf(id) { var s = DATA.filter(function (x) { return x.id === id; })[0]; return s && s.input ? s.input.text : ''; }
 
+  // 실서버 모드에서는 예시 자료 대신 rc_local.sh 시연 데이터와 맞는 입력을 보냄.
+  // 문자는 어느 RC에서나 같은 값(기관·금액·계좌)이라 고정하고, 문서 JSON(ID·기한)은 RC마다 달라 rc_local.sh 가 data/rc_presets.json 으로 만든다.
+  var RC_TEXT = '[Origin Mock Bank] 합성 지방세 납부 안내입니다. 납부 금액: 120,000원, 입금 계좌: 합성 은행 001234567890(예금주 합성 기관).';
+  var SERVER_INPUT = {
+    normal: { text: RC_TEXT + ' 기한 내 납부해 주세요.' },
+    risky: { text: RC_TEXT + ' 납부 전 본인 확인을 위해 원격 지원 앱을 설치해 주세요.' },
+    tamper: { file: 'tamper', vs: '발행 원본' },
+    superseded: { file: 'superseded', vs: '최신판' }
+  };
+  // 문서 JSON을 읽을 수 있는 안내문으로 보여 주고, 기준 문서(rc_presets.json 의 genuine)와 다른 항목엔 기준 값을 붙인다.
+  var FIELDS = [['payment_purpose', '납부 목적'], ['amount_minor', '납부 금액'], ['payee_bank_name', '입금 은행'],
+    ['payee_account_number', '입금 계좌'], ['payee_account_holder', '예금주'], ['due_at', '납부 기한']];
+  function fmt(k, v) {
+    if (k === 'amount_minor') return Number(v).toLocaleString('ko-KR') + '원';
+    if (k === 'due_at') return new Date((Number(v) + 9 * 3600) * 1000).toISOString().slice(0, 10);   // 한국 날짜
+    return window.Hk.text ? window.Hk.text.maskPersonal(String(v)) : String(v);
+  }
+  function describe(label, doc, base, vs) {
+    var f = doc.protected_fields || {}, b = (base && base.protected_fields) || {}, changed = [];
+    var rows = FIELDS.filter(function (x) { return f[x[0]] != null; }).map(function (x) {
+      var line = '· ' + x[1] + ': ' + fmt(x[0], f[x[0]]);
+      if (base && b[x[0]] !== f[x[0]]) { changed.push(x[1]); line += '   ⟵ ' + vs + (base.version !== doc.version ? '(v' + base.version + ')' : '') + ' ' + fmt(x[0], b[x[0]]); }
+      return line;
+    });
+    var head = [label + ' 안내문 · 문서 v' + doc.version];
+    if (base) head.push(changed.length ? '⚠ ' + vs + '과 다른 항목: ' + changed.join(', ') : vs + '과 같은 내용');
+    return head.concat(rows).join('\n');
+  }
+
   var LIVE = [
     { label: '정상 안내문', id: 'normal', tip: '기관이 발행한 원본 그대로 → 기록 일치' },
-    { label: '금액 1원 변조', id: 'tamper', tip: '문구는 그대로, 금액만 85,000원 → 85,001원 → 원본과 다름' },
+    { label: '진짜 안내 + 위험 요구', id: 'risky', tip: '발행 기록과 맞는 안내 + 원격 앱 설치 요구 → 발행 확인됨 + AI 위험 신호(실서버 전용)' },
+    { label: '금액 1원 변조', id: 'tamper', tip: '문구는 그대로, 금액만 1원 바꿈 → 원본과 다름' },
     { label: '사진 고지서 변조', id: 'tamper_image', tip: '고지서 사진의 금액을 바꾼 경우 → 원본과 다름' },
     { label: '구버전 재사용', id: 'superseded', tip: '정정 전 v1 안내문을 다시 보냄 → 새 버전 있음' },
     { label: '철회된 안내', id: 'revoked', tip: '기관이 철회한 안내문 → 철회됨' },
@@ -48,16 +78,30 @@
 
   bar.append(el('span', 'preset-title', '시연'));
   LIVE.forEach(function (p) {
-    var t = textOf(p.id);
-    if (!t) return;
+    var t = textOf(p.id), s = SERVER_INPUT[p.id];
+    if (!t && !s) return;
     var b = el('button', 'preset', p.label);
     b.type = 'button'; b.title = p.tip;
     b.addEventListener('click', function () {
+      if (live() && s && s.text) { send(s.text); return; }
+      if (live() && s && s.file) {
+        window.fetch('data/rc_presets.json', { cache: 'no-store' })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .catch(function () { return null; })
+          .then(function (all) {
+            var doc = all && all[s.file];
+            if (doc && window.Hk.op5send) window.Hk.op5send(JSON.stringify(doc), describe(p.label, doc, all.genuine, s.vs));
+            else if (doc) send(JSON.stringify(doc));
+            else bubble('시연 데이터 없음', '시연 · ' + p.label, ['이 컴퓨터의 시연 데이터 파일(data/rc_presets.json)이 없어 보내지 않았어요.', 'scripts/rc_local.sh up 으로 시연 데이터를 만든 뒤 새로고침해 주세요.']);
+          });
+        return;
+      }
       // 예시 자료의 ID는 실서버에 없어 '기록 없음'으로 잘못 나온다. 미등록 사칭만 실서버에서도 그 결과가 맞다.
       if (live() && p.id !== 'unregistered') {
         bubble('예시 자료', '시연 · ' + p.label, ['이 버튼은 예시 자료라 실서버 기록과 맞지 않아 보내지 않았어요. 예시 모드에서 볼 수 있어요.', '실서버로 확인하려면 기관이 발행한 문자를 입력칸에 붙여 넣어 주세요.']);
         return;
       }
+      if (!t) { bubble('실서버 전용', '시연 · ' + p.label, ['이 버튼은 실서버 시연 데이터와 맞춰 둔 장면이라 실서버 모드에서만 보내요.']); return; }
       send(t);
     });
     bar.append(b);

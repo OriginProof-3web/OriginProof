@@ -23,6 +23,7 @@ packages/contracts/out/
 packages/contracts/cache/
 packages/contracts/broadcast/
 packages/contracts/deployments/*.local.json
+apps/web-v5/페이지/data/rc_presets.json
 
 # Local Graphify extraction/cache state (published graph remains tracked)
 graphify-out/cache/

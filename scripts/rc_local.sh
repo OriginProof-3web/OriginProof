@@ -17,6 +17,8 @@ RPC="http://127.0.0.1:$RPC_PORT"
 API="http://127.0.0.1:$API_PORT"
 MANIFEST="$PWD/packages/contracts/deployments/31337.wallet.local.json"
 KEY_FILE="$RUN/secrets/openai.key"
+# 실서버 모드 시연 버튼(op5_presets.js)이 읽는 문서 JSON. ID·기한이 RC마다 달라 Git에 넣지 않는다.
+PRESET_FILE="$PWD/apps/web-v5/페이지/data/rc_presets.json"
 # Anvil 기본 공개 시험 계정(실제 자산 없음): 0 배포, 1~3 승인자, 4 합성 기관 지갑
 DEPLOYER=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 APPROVER1=0x70997970C51812dc3A010C7d01b50e0d17dc79C8
@@ -134,7 +136,7 @@ write_samples() {
   docker exec "$PG_NAME" psql -U originproof -d originproof -At -c \
     "select json_build_object('document_id',document_id,'version',version,'protected_fields',content) from wallet_document_versions order by version" \
     > "$RUN/docs.jsonl"
-  "${UVR[@]}" python - "$RUN" <<'PY'
+  "${UVR[@]}" python - "$RUN" "$PRESET_FILE" <<'PY'
 import json, sys
 run = sys.argv[1]
 docs = [json.loads(line) for line in open(f"{run}/docs.jsonl") if line.strip()]
@@ -146,6 +148,8 @@ lines = [("J1 정본 v2", v2), ("J2 금액 1원 변조", tampered), ("J3 정정 
 with open(f"{run}/verify-samples.txt", "w", encoding="utf-8") as out:
     for label, body in lines:
         out.write(f"# {label}\n{json.dumps(body, ensure_ascii=False, separators=(',', ':'))}\n\n")
+with open(sys.argv[2], "w", encoding="utf-8") as out:
+    json.dump({"genuine": v2, "tamper": tampered, "superseded": v1}, out, ensure_ascii=False)
 PY
 }
 
@@ -171,7 +175,7 @@ case "${1:-}" in
     mkdir -p "$RUN/logs" "$RUN/secrets"; chmod 700 "$RUN/secrets"
     llm_env
     start_db; start_chain
-    if [ -f "$RUN/wallet.env" ]; then api_env; start_api; ensure_accounts; else first_setup; fi
+    if [ -f "$RUN/wallet.env" ]; then api_env; start_api; ensure_accounts; [ -f "$PRESET_FILE" ] || write_samples; else first_setup; fi
     echo; status
     echo; say "로그인 계정 v5_bank · 비밀번호: $RUN/secrets/test-accounts.json 의 password 값"
     say "개인 회원 rc-viewer@example.invalid · 비밀번호 같음"
@@ -180,7 +184,7 @@ case "${1:-}" in
   status) status ;;
   down) down ;;
   purge)
-    down; docker rm -f "$PG_NAME" >/dev/null 2>&1 || true; rm -rf "$RUN" "$MANIFEST"
+    down; docker rm -f "$PG_NAME" >/dev/null 2>&1 || true; rm -rf "$RUN" "$MANIFEST" "$PRESET_FILE"
     say "재현 환경을 모두 지웠어요" ;;
   set-key)
     mkdir -p "$RUN/secrets"; chmod 700 "$RUN/secrets"

@@ -495,15 +495,18 @@
   // Connection captions follow received reports; prepared RAG is not a connection signal.
   function analysisCaption(answer) {
     if (answer && answer.sample) return '규칙·AI 위험 분석 · 예시 응답';
+    if (docInput(answer)) return '규칙·AI 위험 분석 · 문서 입력은 분석하지 않음';
     if (!answer || answer.analysis_status !== 'COMPLETED' || !answer.ai_report) return '규칙·AI 위험 분석 · 서버 분석기 연결 전';
     var limits = Array.isArray(answer.ai_report.limitations) ? answer.ai_report.limitations : [];
     if (limits.some(function (x) { return typeof x === 'string' && x.indexOf('LLM_ANALYSIS_UNAVAILABLE:') === 0; })) return '규칙 검사 · AI 분석 사용 불가';
     if (limits.indexOf('MOCK_REPLAY_NOT_MODEL_PERFORMANCE') >= 0) return '규칙·AI 위험 분석 · 기록 응답';
     return '규칙·AI 위험 분석 · 서버 보고서';
   }
+  // AI가 보지 않는 문서 JSON 입력(검증만 함). 기록 재실행용 원문은 input.text 에 그대로 남는다.
+  function docInput(answer) { return !!(answer && !answer.ai_report && answer.input && /^\s*\{/.test(answer.input.text || '')); }
   Hk.op5 = {
     uploadAttachment: uploadAttachment,
-    analysisCaption: analysisCaption,
+    analysisCaption: analysisCaption, docInput: docInput,
     CODE_TEXT: CODE_TEXT, explain: explain, createClient: createClient, createWallet: createWallet,
     parseDraft: parseDraft, parseRevoke: parseRevoke, parseTxHash: parseTxHash, parseBase: parseBase,
     EIP712_TYPES: EIP712_TYPES, typedData: typedData, RE: RE
