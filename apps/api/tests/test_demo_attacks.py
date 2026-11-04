@@ -48,3 +48,6 @@ async def test_demo_db_tamper_only_for_demo_account_and_caught(wallet):
     restored = await wallet.client.post("/v3/demo/db-restore")
     assert restored.json()["amount_after"] == 430000
     assert (await verify(wallet, doc))["verification_status"] != "TAMPERED"
+    # Other institutions' targets are picked by payee account; anything else is refused
+    assert (await wallet.client.post("/v3/demo/db-tamper?account=001234567890")).status_code == 404
+    assert (await wallet.client.post("/v3/demo/db-tamper?account=002345600002")).status_code == 409

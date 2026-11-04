@@ -19,11 +19,13 @@ from originproof_api.wallet_onboarding import ROSTER
 from sqlalchemy import select
 
 # Synthetic v5 roster accounts: applicant + internal approver per institution, three operators.
+V5_INSTITUTIONS = ("bank", "office", "card", "telecom", "clinic")
 V5_WALLET_ACCOUNTS = (
-    ("v5_bank", "issuer", "iss_origin_mock_bank"),
-    ("v5_bank_approver", "issuer", "iss_origin_mock_bank"),
-    ("v5_office", "issuer", "iss_origin_mock_office"),
-    ("v5_office_approver", "issuer", "iss_origin_mock_office"),
+    *(
+        (f"v5_{name}{suffix}", "issuer", f"iss_origin_mock_{name}")
+        for name in V5_INSTITUTIONS
+        for suffix in ("", "_approver")
+    ),
     ("v5_operator1", "operator", None),
     ("v5_operator2", "operator", None),
     ("v5_operator3", "operator", None),
@@ -103,10 +105,7 @@ async def seed_master(password: str) -> None:
 
 def v5_wallet_env(ids: dict[str, str]) -> list[str]:
     """Settings lines for the seeded accounts; approver wallet addresses come from deployment."""
-    approvers = {
-        "iss_origin_mock_bank": ids["v5_bank_approver"],
-        "iss_origin_mock_office": ids["v5_office_approver"],
-    }
+    approvers = {f"iss_origin_mock_{name}": ids[f"v5_{name}_approver"] for name in V5_INSTITUTIONS}
     operators = {ids[f"v5_operator{n}"]: f"<approver{n} wallet address>" for n in (1, 2, 3)}
     return [
         "API_WALLET_INTERNAL_APPROVERS=" + json.dumps(approvers, separators=(",", ":")),

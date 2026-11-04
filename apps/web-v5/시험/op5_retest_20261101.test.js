@@ -7,7 +7,9 @@ const memStore = (init) => { const m = new Map(Object.entries(init || {})); retu
 const SETTINGS = JSON.stringify({ mode: 'sample' });
 const DOC = '0x' + 'a'.repeat(64);
 const texts = (d, sel) => d.doc.querySelectorAll(sel).map(n => n.textContent);
-function presetBtn(d, label) { return d.doc.querySelectorAll('#presetBar button').find(b => b.textContent === label); }
+// 실서버 시연 버튼에는 다음 기관 표시(' · 은행')가 붙음
+const plain = s => s.replace(/ · .*$/, '');
+function presetBtn(d, label) { return d.doc.querySelectorAll('#presetBar button').find(b => plain(b.textContent) === label); }
 
 test('비회원 때 머문 예시 모드는 로그인 뒤 실서버 모드로 돌아감', async () => {
   const ls = memStore({ 'op5.guestSample': '1', 'jjin.settings.v1': SETTINGS });
@@ -65,7 +67,7 @@ test('시연 줄: 실서버 시연(DB 직접 조작 포함) / 예시 결과 / �
   await sleep(10);
   const bar = d.doc.getElementById('presetBar');
   assert.deepEqual(bar.children.map(n => n.className), ['preset-nav preset-nav-l', 'preset-track', 'preset-nav preset-nav-r']);
-  const order = bar.children[1].children.map(n => n.textContent);
+  const order = bar.children[1].children.map(n => plain(n.textContent));
   const at = s => order.indexOf(s);
   assert.ok(at('실서버 시연') < at('진짜 안내 + 위험 요구') && at('DB 직접 조작') < at('예시 결과') && at('미등록 기관 사칭') < at('예시 결과'), order.join(' | '));
   assert.ok(at('예시 결과') < at('철회된 안내') && at('철회된 안내') < at('설명만') && at('설명만') < at('타 기관 권한 도용'), order.join(' | '));
@@ -95,7 +97,7 @@ test('DB 직접 조작 버튼: rc_presets.json 의 db_target(원래 받은 안�
   assert.equal(sent[0].document_id, DOC);
   assert.equal(sent[0].candidate.amount_minor, 430000);
   const shown = d.doc.getElementById('chatThread').textContent;
-  assert.match(shown, /DB 직접 조작 안내문 · 문서 v1/);
+  assert.match(shown, /DB 직접 조작 · 은행 안내문 · 문서 v1/);
   assert.match(shown, /납부 금액: 430,000원/);
   assert.doesNotMatch(shown, /다른 항목|⟵/);
   // 서버 DB가 체인 기록과 다르면(STORED_CONTENT_MISMATCH) 받은 글이 아니라 서버 기록이 바뀌었다고 말함
@@ -108,8 +110,8 @@ test('DB 직접 조작 버튼: rc_presets.json 의 db_target(원래 받은 안�
 test('DB 직접 조작(시연 계정): DB 금액을 바꾼 걸 보여 주고, 검증 결과가 나온 뒤 자동으로 되돌림', async () => {
   const TARGET = { document_id: DOC, version: 1, protected_fields: { amount_minor: 430000, payee_account_number: '001234500010' } };
   const d = page(u => u === '/api/v1/auth/me' ? ME('recipient') : u === 'data/rc_presets.json' ? { status: 200, body: { genuine: TARGET, db_target: TARGET } }
-    : u === '/api/v3/demo/db-tamper' ? { status: 200, body: { document_id: DOC, version: 1, original_amount: 430000, amount_before: 4300000, amount_after: 4300000 } }
-    : u === '/api/v3/demo/db-restore' ? { status: 200, body: { document_id: DOC, version: 1, original_amount: 430000, amount_before: 4300000, amount_after: 430000 } } : { status: 404, body: {} });
+    : u === '/api/v3/demo/db-tamper?account=001234500010' ? { status: 200, body: { document_id: DOC, version: 1, original_amount: 430000, amount_before: 4300000, amount_after: 4300000 } }
+    : u === '/api/v3/demo/db-restore?account=001234500010' ? { status: 200, body: { document_id: DOC, version: 1, original_amount: 430000, amount_before: 4300000, amount_after: 430000 } } : { status: 404, body: {} });
   await sleep(10);
   presetBtn(d, 'DB 직접 조작').click();
   await sleep(600);
@@ -133,7 +135,7 @@ test('실서버 시연 버튼: 변조·구버전은 data/rc_presets.json 의 문
   assert.ok(d.win.fetch.calls.some(c => c.url === 'data/rc_presets.json'));
   assert.ok(d.win.fetch.calls.some(c => c.body.includes(DOC)), '문서 ID를 보내지 않음');
   const shown = d.doc.getElementById('chatThread').textContent;
-  assert.match(shown, /금액 1원 변조 안내문 · 문서 v2/);
+  assert.match(shown, /금액 1원 변조 · 은행 안내문 · 문서 v2/);
   assert.match(shown, /발행 원본과 다른 항목: 납부 금액/);
   assert.match(shown, /납부 금액: 120,001원 +⟵ 발행 원본 120,000원/);
   assert.doesNotMatch(shown, /\[시연\]|001234567890/);
@@ -156,6 +158,41 @@ test('K1: 미등록 사칭은 실서버에서도 그대로 보냄', async () => 
   presetBtn(d, '미등록 기관 사칭').click();
   await sleep(30);
   assert.ok(d.win.fetch.calls.length > before);
+});
+
+test('실서버 시연 버튼은 누를 때마다 은행 → 카드사 → 통신사 → 병원 → 은행 순서로 다음 기관 장면을 보냄(버튼마다 따로 셈)', async () => {
+  const doc = (n, amount, acct) => ({ document_id: '0x' + n.repeat(64), version: 2, protected_fields: { amount_minor: amount, payee_account_number: acct } });
+  const SC = [['a', 120000, '001234567890'], ['b', 386400, '002345600001'], ['c', 68250, '003456700001'], ['d', 152300, '004567800001']]
+    .map(([n, a, acct], i) => ({ name: ['은행', '카드사', '통신사', '병원'][i], genuine: doc(n, a, acct), tamper: doc(n, a + 1, acct), superseded: doc(n, a, acct), db_target: doc(n, a, acct) }));
+  const d = page(u => u === '/api/v1/auth/me' ? ME('recipient') : u === 'data/rc_presets.json' ? { status: 200, body: { genuine: SC[0].genuine, scenes: SC.slice(0, 2) } } : { status: 404, body: {} });
+  await sleep(10);
+  const normal = presetBtn(d, '정상 안내문');
+  assert.equal(normal.textContent, '정상 안내문 · 은행');
+  const sentTexts = [];
+  for (let i = 0; i < 5; i++) {
+    const before = d.win.fetch.calls.length;
+    presetBtn(d, '정상 안내문').click(); await sleep(40);
+    sentTexts.push(d.win.fetch.calls.slice(before).map(c => c.body || '').join(' '));
+  }
+  ['Origin Mock Bank', 'Origin Mock Card', 'Origin Mock Telecom', 'Origin Mock Clinic', 'Origin Mock Bank'].forEach((n, i) => assert.match(sentTexts[i], new RegExp(n), i + ': ' + n));
+  assert.equal(normal.textContent, '정상 안내문 · 카드사', '다음에 보낼 기관을 표시');
+  assert.equal(presetBtn(d, '금액 1원 변조').textContent, '금액 1원 변조 · 은행', '다른 버튼은 따로 셈');
+  // 변조: 두 번째는 카드사 문서, 세 번째(통신사)는 시연 데이터에 없으면 보내지 않고 알림
+  presetBtn(d, '금액 1원 변조').click(); await sleep(60);
+  presetBtn(d, '금액 1원 변조').click(); await sleep(60);
+  assert.ok(d.win.fetch.calls.some(c => (c.body || '').includes('0x' + 'b'.repeat(64))), '카드사 문서를 보냄');
+  presetBtn(d, '금액 1원 변조').click(); await sleep(60);
+  assert.match(d.doc.getElementById('chatThread').textContent, /통신사 장면이 시연 데이터에 없어 보내지 않았어요/);
+  // DB 조작: 두 번째 누르면 카드사 대상 계좌로 요청
+  presetBtn(d, 'DB 직접 조작').click(); await sleep(80);
+  presetBtn(d, 'DB 직접 조작').click(); await sleep(80);
+  assert.ok(d.win.fetch.calls.some(c => c.url === '/api/v3/demo/db-tamper?account=002345600001'), d.win.fetch.calls.map(c => c.url).join(' '));
+  // 미등록 사칭: 두 번째는 등록되지 않은 카드 보안센터 사칭 문자
+  assert.equal(presetBtn(d, '미등록 기관 사칭').textContent, '미등록 기관 사칭 · 환급센터');
+  presetBtn(d, '미등록 기관 사칭').click(); await sleep(40);
+  const before = d.win.fetch.calls.length;
+  presetBtn(d, '미등록 기관 사칭').click(); await sleep(40);
+  assert.match(d.win.fetch.calls.slice(before).map(c => c.body || '').join(' '), /카드 보안센터/);
 });
 
 test('K7: 로그인한 실서버 모드에서 "서버를 켜고 로그인" 안내를 하지 않음', async () => {

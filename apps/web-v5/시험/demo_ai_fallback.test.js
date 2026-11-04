@@ -269,13 +269,15 @@ test('준비 응답 문구: 합성 시나리오 설명만, 개인정보 형식(�
 test('실서버 시연 문자(시연 버튼·A1~A3·C1)도 준비 응답이 있고, 근거 문장은 서버로 보내는 글(가린 글) 안에 있음', () => {
   const Hk = loadWeb();
   const T = Hk.api.DEMO_TEXTS;
-  assert.deepEqual(Object.keys(T).sort(), ['bank_account', 'bank_amount', 'bank_genuine', 'other_issuer', 'rc_normal', 'rc_risky']);
+  assert.deepEqual(Object.keys(T).sort(), ['bank_account', 'bank_amount', 'bank_genuine', 'other_issuer', 'rc_normal', 'rc_normal_card', 'rc_normal_clinic', 'rc_normal_telecom',
+    'rc_risky', 'rc_risky_card', 'rc_risky_clinic', 'rc_risky_telecom', 'unreg_card', 'unreg_clinic', 'unreg_telecom']);
   for (const id of Object.keys(T)) {
     assert.equal(Hk.api.preparedScenario(T[id]), id);
     assert.equal(Hk.api.preparedScenario(T[id].replace(/^\[Web발신\]\n/, '')), id, id + ' [Web발신] 없이 붙여 넣어도');
   }
   const src = fs.readFileSync(path.join(__dirname, '..', '페이지', 'js', 'api_adapter.js'), 'utf8');
-  for (const [id, quote] of [['rc_risky', '원격 지원 앱을 설치해 주세요'], ['bank_amount', '11/10까지 입금 바랍니다'], ['bank_account', '오늘 정지 예정'], ['bank_account', '즉시 아래 계좌로 입금하세요'], ['other_issuer', '본인 확인 후 수령하세요']]) {
+  for (const [id, quote] of [['rc_risky', '원격 지원 앱을 설치해 주세요'], ['bank_amount', '11/10까지 입금 바랍니다'], ['bank_account', '오늘 정지 예정'], ['bank_account', '즉시 아래 계좌로 입금하세요'], ['other_issuer', '본인 확인 후 수령하세요'],
+    ['unreg_card', '원격 지원 앱을 설치'], ['unreg_telecom', '원격 지원 앱을 설치'], ['unreg_clinic', '원격 지원 앱을 설치']]) {
     assert.ok(src.includes("quote: '" + quote + "'"), quote);
     assert.ok(Hk.text.maskPersonal(T[id]).includes(quote), id + ': ' + quote);
   }

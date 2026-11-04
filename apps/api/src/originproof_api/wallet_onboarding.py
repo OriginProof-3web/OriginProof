@@ -26,6 +26,9 @@ Identity = Annotated[tuple, Depends(current_session)]
 ROSTER = {
     "iss_origin_mock_bank": ("Origin Mock Bank", "bank.example.invalid"),
     "iss_origin_mock_office": ("Origin Mock Office", "office.example.invalid"),
+    "iss_origin_mock_card": ("Origin Mock Card", "card.example.invalid"),
+    "iss_origin_mock_telecom": ("Origin Mock Telecom", "telecom.example.invalid"),
+    "iss_origin_mock_clinic": ("Origin Mock Clinic", "clinic.example.invalid"),
 }
 
 

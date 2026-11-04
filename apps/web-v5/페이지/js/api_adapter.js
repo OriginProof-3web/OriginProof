@@ -717,12 +717,18 @@
   }
 
   /* Track B(#88): 검증 코드 없는 문자에서 기관·금액·계좌(또는 공문 번호)를 읽어 POST /v3/document-lookups 본문을 만든다.
-     기관 ID = identifier_hash("iss_…")(keccak256). 합성 명부(wallet_onboarding.ROSTER) 두 곳만 안다. 못 읽으면 null(보내지 않음).
-     A2: 같은 두 기관의 한글 표기(오리진 목 은행·오리진목은행, 오리진 목 오피스)와 붙임표·점·가운뎃점 변형만 더함. 새 기관은 만들지 않음. */
+     기관 ID = identifier_hash("iss_…")(keccak256). 합성 명부(wallet_onboarding.ROSTER) 다섯 곳만 안다. 못 읽으면 null(보내지 않음).
+     A2: 같은 기관의 한글 표기(오리진 목 은행·오리진목은행, 오리진 목 오피스 등)와 붙임표·점·가운뎃점 변형만 더함. */
   var LOOKUP_SEP = '[\\s\\-‐-―._·]*';
+  function lookupIssuer(en, ko, id) {
+    return { re: new RegExp('origin' + LOOKUP_SEP + 'mock' + LOOKUP_SEP + en + '|iss_origin_mock_' + en + '|오리진' + LOOKUP_SEP + '목' + LOOKUP_SEP + '(?:' + ko + ')', 'i'), id: id };
+  }
   var LOOKUP_ISSUERS = [
-    { re: new RegExp('origin' + LOOKUP_SEP + 'mock' + LOOKUP_SEP + 'bank|iss_origin_mock_bank|오리진' + LOOKUP_SEP + '목' + LOOKUP_SEP + '(?:은행|뱅크)', 'i'), id: '0x9d6e623a821f35508c0c970540013aa75041537806d71a2e318ac7ca5358a217' },
-    { re: new RegExp('origin' + LOOKUP_SEP + 'mock' + LOOKUP_SEP + 'office|iss_origin_mock_office|오리진' + LOOKUP_SEP + '목' + LOOKUP_SEP + '오피스', 'i'), id: '0xa079131abb1c9fafcee45cedda0cb5ae9a0aa8d8e2f3112e1ad0e85da89a9bbe' }
+    lookupIssuer('bank', '은행|뱅크', '0x9d6e623a821f35508c0c970540013aa75041537806d71a2e318ac7ca5358a217'),
+    lookupIssuer('office', '오피스', '0xa079131abb1c9fafcee45cedda0cb5ae9a0aa8d8e2f3112e1ad0e85da89a9bbe'),
+    lookupIssuer('card', '카드', '0x8e756c656fb48c6667945cebc2819ce86f089f00c6fc23f16e61d1d8db5f41e7'),
+    lookupIssuer('telecom', '텔레콤|통신', '0x7974fdce1b77668401fd7aca8821a33e94652785f10b13fbb79f489cf4da68ad'),
+    lookupIssuer('clinic', '클리닉|병원', '0x917f5207a5859e82a3c5ff9d012de1fcc1fc08eafcf61a508c9d3018df8074b2')
   ];
   /* 값을 고를 수 없으면 null(조회 안 함). 맞을 것 같은 일부 숫자를 보내지 않음: 틀린 값의 UNVERIFIED·다른 값의 MATCHED 모두 사실과 달라짐. */
   var LOOKUP_UNIT = '십백천만억조';
@@ -904,7 +910,7 @@
   // A7: 원본 찾기를 하지 않은 이유(무엇을 못 읽었는지). 문자를 서버로 보내지 않았음을 함께 알림
   var LOOKUP_SKIP_END = ' 그래서 원본 찾기를 하지 않았어요. 기관 공식 번호로 직접 확인해 주세요.';
   var LOOKUP_SKIP = {
-    NO_ISSUER: '문자에서 기관 이름을 찾지 못했어요(지금 찾을 수 있는 기관: Origin Mock Bank·오리진 목 은행, Origin Mock Office·오리진 목 오피스).',
+    NO_ISSUER: '문자에서 기관 이름을 찾지 못했어요(지금 찾을 수 있는 기관: Origin Mock Bank·Office·Card·Telecom·Clinic, 오리진 목 은행·오피스·카드·통신·병원).',
     MANY_ISSUERS: '기관 이름이 둘 이상 있어 어느 기관의 기록을 찾을지 정하지 않았어요.',
     HIDDEN_CHARS: '숫자 사이에 보이지 않는 글자나 전각 숫자가 있어 값을 정확히 읽을 수 없었어요.',
     DOC_UNCLEAR: '공문번호를 하나로 정확히 읽지 못했어요.',
@@ -983,6 +989,23 @@
     bank_account: { risk_level: 'HIGH', evidence: [{ rule_id: 'demo-prepared-urgency', quote: '오늘 정지 예정', source: 'DEMO_PREPARED' }, { rule_id: 'demo-prepared-pay-now', quote: '즉시 아래 계좌로 입금하세요', source: 'DEMO_PREPARED' }], extra: '고위험: 정지를 내세워 바로 다른 계좌로 입금하라고 재촉해요.' },
     other_issuer: { risk_level: 'CAUTION', evidence: [{ rule_id: 'demo-prepared-refund-bait', quote: '본인 확인 후 수령하세요', source: 'DEMO_PREPARED' }], extra: '주의: 환급금을 미끼로 링크에서 본인 확인을 하라고 해요.' }
   };
+  /* 시연 버튼이 누를 때마다 도는 다른 기관 장면(카드사·통신사·병원). 금액·계좌는 scripts/fixtures/wallet_demo_bulk.py SCENES 의 v2와 같음.
+     rc_normal_*·rc_risky_*: 등록 기관 원본 그대로 / 원격 앱 요구를 덧붙임. unreg_*: 등록되지 않은 기관 이름 + 원격 앱 유도(합성 문구) */
+  [['card', 'Origin Mock Card', '합성 카드 이용 대금 청구 안내', '386,400', '002345600001', '합성 카드사'],
+    ['telecom', 'Origin Mock Telecom', '합성 통신 요금 납부 안내', '68,250', '003456700001', '합성 통신사'],
+    ['clinic', 'Origin Mock Clinic', '합성 진료비 납부 안내', '152,300', '004567800001', '합성 병원']].forEach(function (s) {
+    var t = '[' + s[1] + '] ' + s[2] + '입니다. 납부 금액: ' + s[3] + '원, 입금 계좌: 합성 은행 ' + s[4] + '(예금주 ' + s[5] + ').';
+    DEMO_TEXTS['rc_normal_' + s[0]] = t + ' 기한 내 납부해 주세요.';
+    DEMO_TEXTS['rc_risky_' + s[0]] = t + ' 납부 전 본인 확인을 위해 원격 지원 앱을 설치해 주세요.';
+    PREPARED['rc_normal_' + s[0]] = PREPARED.rc_normal;
+    PREPARED['rc_risky_' + s[0]] = PREPARED.rc_risky;
+  });
+  DEMO_TEXTS.unreg_card = '[카드 보안센터] 고객님 카드로 해외 결제 1,980,000원 승인이 대기 중입니다. 본인 결제가 아니면 상담원 안내에 따라 지금 원격 지원 앱을 설치해 주세요.';
+  DEMO_TEXTS.unreg_telecom = '[통신요금 환급센터] 고객님께 과오납 통신 요금 47,800원이 환급 대기 중입니다. 오늘 안에 원격 지원 앱을 설치하고 본인 확인을 해 주세요.';
+  DEMO_TEXTS.unreg_clinic = '[병원 원무과] 지난 진료비 312,000원이 미납되어 내일 법적 조치가 진행됩니다. 원격 지원 앱을 설치하면 바로 납부를 도와 드려요.';
+  ['unreg_card', 'unreg_telecom', 'unreg_clinic'].forEach(function (id) {
+    PREPARED[id] = { risk_level: 'HIGH', evidence: [{ rule_id: 'demo-prepared-remote-app', quote: '원격 지원 앱을 설치', source: 'DEMO_PREPARED' }], extra: '고위험: 등록되지 않은 기관 이름으로 원격 지원 앱 설치를 유도해요.' };
+  });
   // 주소 값 → 초(0 = 꺼짐). 값 없음(?demo_ai_fallback)이면 5초, 숫자면 3~10으로 제한, 0·숫자 아닌 값·없음은 꺼짐
   function demoFallbackSec(raw) {
     if (raw == null) return 0;

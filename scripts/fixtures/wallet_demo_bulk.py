@@ -1,4 +1,6 @@
-"""More demo documents for local Anvil: 10 payment notices (bank) + 10 official documents (office).
+"""More demo documents for local Anvil: 10 payment notices (bank) + 10 official documents (office),
+and for card / telecom / clinic one notice corrected v1 → v2 plus one DB-tamper target each
+(the rotating demo buttons in op5_presets.js).
 
 Run after rc_local.sh first setup (bank already active). Reuses wallet_demo_flow helpers.
 Writes build/rc-local/bulk-docs.jsonl (document_id, issuer, content) for test cases.
@@ -39,6 +41,34 @@ ISSUERS = {
         approver="v5_office_approver",
         email="staff@office.example.invalid",
         wallet="office",
+    ),
+    **{
+        who: dict(
+            issuer=f"iss_origin_mock_{who}",
+            name=f"Origin Mock {who.title()}",
+            user=f"v5_{who}",
+            approver=f"v5_{who}_approver",
+            email=f"staff@{who}.example.invalid",
+            wallet=who,
+        )
+        for who in ("card", "telecom", "clinic")
+    },
+}
+
+# 시연 버튼 장면: (목적, 계좌, 예금주, v1 금액, v2 금액) + DB 조작 대상 (목적, 금액, 계좌).
+# 문자는 api_adapter.js DEMO_TEXTS, 대상 계좌·금액은 demo_attacks.py TARGETS 와 같아야 한다.
+SCENES = {
+    "card": (
+        ("합성 카드 이용 대금 청구 안내", "002345600001", "합성 카드사", 412800, 386400),
+        ("합성 카드 연회비 청구 안내", 150000, "002345600002"),
+    ),
+    "telecom": (
+        ("합성 통신 요금 납부 안내", "003456700001", "합성 통신사", 74500, 68250),
+        ("합성 단말기 할부금 납부 안내", 55000, "003456700002"),
+    ),
+    "clinic": (
+        ("합성 진료비 납부 안내", "004567800001", "합성 병원", 186000, 152300),
+        ("합성 건강검진 비용 납부 안내", 220000, "004567800002"),
     ),
 }
 
@@ -94,7 +124,7 @@ OFFICIALS = [
 ]
 
 
-def payment(amount, account, holder, purpose):
+def payment(amount, account, holder, purpose, site="bank"):
     return {
         "notice_type": "PAYMENT_REQUEST",
         "amount_minor": amount,
@@ -104,7 +134,7 @@ def payment(amount, account, holder, purpose):
         "payee_account_holder": holder,
         "payment_purpose": purpose,
         "due_at": int(time.time()) + 14 * 86400,
-        "official_url": "https://bank.example.invalid/pay",
+        "official_url": f"https://{site}.example.invalid/pay",
     }
 
 
@@ -248,9 +278,11 @@ async def onboard(api, signers, chain_client, reader, who):
     return inst
 
 
-async def publish(inst, signers, chain_client, reader, who, label, content):
+async def publish(
+    inst, signers, chain_client, reader, who, label, content, doc_key=None, version=1
+):
     stamp = time.time_ns()
-    doc_key = identifier_hash(f"bulk_{who}_{label}_{stamp}")
+    doc_key = doc_key or identifier_hash(f"bulk_{who}_{label}_{stamp}")
     draft = ok(
         await post(
             inst,
@@ -258,7 +290,7 @@ async def publish(inst, signers, chain_client, reader, who, label, content):
             json={
                 "request_id": f"req_draft_{who}_{stamp}",
                 "doc_key": doc_key,
-                "expected_version": 1,
+                "expected_version": version,
                 "expires_at": int(time.time()) + 30 * 86400,
                 "content": content,
             },
@@ -306,10 +338,26 @@ async def publish(inst, signers, chain_client, reader, who, label, content):
     return {
         "issuer": ISSUERS[who]["issuer"],
         "document_id": signing.message.document_id,
-        "version": 1,
+        "version": version,
         "content": draft["content"],
         "tx": tx,
     }
+
+
+async def publish_scenes(inst, signers, chain_client, reader, who):
+    (purpose, account, holder, v1, v2), (db_purpose, db_amount, db_account) = SCENES[who]
+    holder = f"{holder}({ISSUERS[who]['name']})"
+    doc_key = identifier_hash(f"scene_{who}_{time.time_ns()}")
+    docs = []
+    for version, amount in ((1, v1), (2, v2)):
+        body = payment(amount, account, holder, purpose, who)
+        doc = await publish(
+            inst, signers, chain_client, reader, who, "scene", body, doc_key, version
+        )
+        docs.append(doc | {"scene": f"v{version}"})
+    body = payment(db_amount, db_account, holder, db_purpose, who)
+    doc = await publish(inst, signers, chain_client, reader, who, "db", body)
+    return docs + [doc | {"scene": "db"}]
 
 
 async def run(args):
@@ -331,6 +379,9 @@ async def run(args):
                 "approver2": args.approver2,
                 "institution": args.institution,
                 "office": args.office,
+                "card": args.card,
+                "telecom": args.telecom,
+                "clinic": args.clinic,
             },
             {},
         )
@@ -342,6 +393,11 @@ async def run(args):
                     doc = await publish(inst, signers, chain_client, reader, who, i, make(*row))
                     out.append(doc)
                     say(f"{who} #{i} 발행 확정 · {doc['document_id'][:12]}…")
+            for who in (w for w in SCENES if w in args.only.split(",")):
+                inst = await onboard(api, signers, chain_client, reader, who)
+                for doc in await publish_scenes(inst, signers, chain_client, reader, who):
+                    out.append(doc)
+                    say(f"{who} {doc['scene']} 발행 확정 · {doc['document_id'][:12]}…")
         finally:
             await api.close()
             with open(args.out, "a", encoding="utf-8") as handle:
@@ -363,9 +419,12 @@ def main(argv=None):
         "--approver2",
         "--institution",
         "--office",
+        "--card",
+        "--telecom",
+        "--clinic",
     ):
         p.add_argument(name, required=True)
-    p.add_argument("--only", default="bank,office")
+    p.add_argument("--only", default="bank,office,card,telecom,clinic")
     asyncio.run(run(p.parse_args(argv)))
 
 
