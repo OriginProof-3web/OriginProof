@@ -300,7 +300,8 @@
   /* 최종 판단(한눈에): 블록체인 세 칸(공식 발행·원본 일치·현재 상태)만으로 정함. AI 는 진위를 정하지 않음.
      - 한 칸이라도 문제(fail) → 가짜이거나 바뀐 안내문
      - 세 칸 모두 확인(ok) → 진짜(원본 찾기면 '읽은 항목이 진짜 기록과 같음')
-     - 그 밖(기록 없음 아님·확인 못 함) → 확인할 수 없음
+     - 연결 문제(서버·체인에 묻지 못함, offline) → 지금은 확인 못 함(가짜 의심 아님)
+     - 그 밖(공식 기록으로 확인 못 함) → 가짜 의심(대표 결정 2026-11-04: '확인 불가'는 '가짜 의심'으로 명시)
      AI 가 주의·위험이면 한 줄을 덧붙임(진짜여도 송금 요청이면 계좌 확인을 권함). 서버 판정 값은 바꾸지 않음. */
   function verdictOf(a, fact, ai) {
     var tones = fact.map(function (x) { return x.tone; });
@@ -308,7 +309,8 @@
     var v;
     if (tones.indexOf('fail') >= 0) v = { tone: 'fail', head: '✕ 가짜이거나 바뀐 안내문이에요', sub: '이 문자대로 돈을 보내거나 링크를 누르지 마세요.' };
     else if (fact.length && tones.every(function (t) { return t === 'ok'; })) v = { tone: 'ok', head: '✓ 진짜 안내문이에요', sub: lookup ? '문자에서 읽은 금액·계좌(또는 공문번호)가 기관이 블록체인에 남긴 발행 기록과 같아요. 나머지 문구는 비교하지 않았어요.' : '기관이 블록체인에 남긴 발행 기록·서명·원본과 모두 같고, 지금도 유효해요.' };
-    else v = { tone: 'caution', head: '! 진짜인지 확인할 수 없어요', sub: '공식 기록으로 확인하지 못했어요. 진짜라고 믿지 말고 기관 대표번호나 공식 앱으로 직접 확인하세요.' };
+    else if (tones.indexOf('offline') >= 0) v = { tone: 'none', head: '· 지금은 확인하지 못했어요', sub: '서버나 블록체인에 연결하지 못해 판단을 미뤘어요. 잠시 뒤 다시 확인하고, 그 전에는 돈을 보내지 마세요.' };
+    else v = { tone: 'caution', head: '! 가짜 의심 · 공식 기록으로 확인되지 않아요', sub: '등록된 기관의 발행 기록과 맞는 것이 없어요. 돈을 보내거나 링크를 누르지 말고, 기관 대표번호나 공식 앱으로 직접 확인하세요.' };
     if (ai && (ai.tone === 'caution' || ai.tone === 'fail')) {
       v.ai = v.tone === 'ok'
         ? 'AI ' + ai.status + ': 돈을 보내라는 문장이 있어요. 진짜 안내문이어도 받는 계좌가 기관 공식 계좌인지 확인한 뒤 보내세요.'
@@ -325,7 +327,7 @@
     var v = verdictOf(a, axes.filter(function (x) { return x.axis !== 'ai'; }), ai);
     var vbox = el('div', 'op-gov');
     var vrow = el('div', 'op-gov-row');
-    vrow.append(el('span', 'op-gov-n', '최종'), el('span', 'op-gov-who', v.head), el('span', 'op-chip t-' + v.tone, v.tone === 'ok' ? '진짜' : v.tone === 'fail' ? '가짜·변조' : '확인 불가'), el('span', 'op-body', v.sub));
+    vrow.append(el('span', 'op-gov-n', '최종'), el('span', 'op-gov-who', v.head), el('span', 'op-chip t-' + v.tone, v.tone === 'ok' ? '진짜' : v.tone === 'fail' ? '가짜·변조' : v.tone === 'caution' ? '가짜 의심' : '확인 못 함'), el('span', 'op-body', v.sub));
     vbox.append(vrow);
     if (v.ai) vbox.append(el('p', 'op-foot', v.ai));
     r.box.append(vbox);

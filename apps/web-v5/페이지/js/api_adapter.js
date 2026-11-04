@@ -900,7 +900,7 @@
     ACCOUNT_UNCLEAR: '계좌번호로 보이는 숫자가 여러 개이거나 모양이 애매해 하나로 고를 수 없었어요.'
   };
   var LOOKUP_WHY = {
-    UNVERIFIED: '문자에서 읽은 값으로 찾았지만 보관 중인 발행 기록과 맞는 것이 없어요. 가짜라는 뜻은 아니니 기관 공식 번호로 직접 확인해 주세요.',
+    UNVERIFIED: '등록된 기관의 발행 기록 중 문자에서 읽은 값과 맞는 것이 없어요(가짜 의심). 돈을 보내지 말고 기관 공식 번호로 직접 확인해 주세요.',
     AMBIGUOUS: '문자에서 읽은 값과 맞는 발행 기록이 여러 개라 하나로 정하지 않았어요. 기관 공식 번호나 검증 링크로 다시 확인해 주세요.'
   };
 
@@ -1162,7 +1162,8 @@
         conclusion = { badge: { tone: 'pending', icon: 'question', text: '판단 보류' }, text: '서버 응답을 받지 못해 판단을 보류했어요.' + (v.err.why ? ' ' + v.err.why : '') };
       } else if (v.kind === 'none') {
         // A7: 원본 찾기를 못 한 이유(v.reason)가 있으면 무엇을 못 읽었는지 함께 말함
-        conclusion = { badge: { tone: 'none', icon: 'dash', text: '확인할 수 없음' }, text: v.reason ? '공식 기록으로 확인할 수 없는 문자예요. ' + v.why : v.why || '공식 기록으로 확인할 수 없는 문자예요.' };
+        // 대표 결정(2026-11-04): 공식 기록으로 확인 못 한 문자는 '가짜 의심'으로 명시(엔진 값은 그대로, 표시만)
+        conclusion = { badge: { tone: 'caution', icon: 'warn', text: '가짜 의심' }, text: v.reason ? '공식 기록으로 확인되지 않는 문자예요(가짜 의심). ' + v.why : v.why || '공식 기록으로 확인되지 않는 문자예요(가짜 의심).' };
       } else if (v.chainDown) {
         conclusion = { badge: { tone: 'pending', icon: 'question', text: '판단 보류' }, text: v.why };
       } else {
