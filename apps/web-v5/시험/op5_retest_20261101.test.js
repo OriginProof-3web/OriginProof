@@ -60,13 +60,15 @@ test('K1: 실서버 모드의 예시 버튼은 서버에 보내지 않고 예시
   assert.match(t, /예시 응답이에요/);
 });
 
-test('시연 줄: 실서버 시연 / 예시 결과 / 설명만 으로 나뉘고 양 끝에 좌우 이동 단추가 있음', async () => {
+test('시연 줄: 실서버 시연(DB 직접 조작 포함) / 예시 결과 / 설명만 으로 나뉘고, 좌우 이동 단추는 스크롤 줄 밖 양 끝에 고정', async () => {
   const d = page(u => u === '/api/v1/auth/me' ? ME('issuer') : { status: 404, body: {} });
   await sleep(10);
-  const order = d.doc.getElementById('presetBar').children.map(n => n.textContent);
+  const bar = d.doc.getElementById('presetBar');
+  assert.deepEqual(bar.children.map(n => n.className), ['preset-nav preset-nav-l', 'preset-track', 'preset-nav preset-nav-r']);
+  const order = bar.children[1].children.map(n => n.textContent);
   const at = s => order.indexOf(s);
-  assert.ok(at('실서버 시연') < at('진짜 안내 + 위험 요구') && at('미등록 기관 사칭') < at('예시 결과'), order.join(' | '));
-  assert.ok(at('예시 결과') < at('철회된 안내') && at('철회된 안내') < at('설명만') && at('설명만') < at('DB 직접 조작'), order.join(' | '));
+  assert.ok(at('실서버 시연') < at('진짜 안내 + 위험 요구') && at('DB 직접 조작') < at('예시 결과') && at('미등록 기관 사칭') < at('예시 결과'), order.join(' | '));
+  assert.ok(at('예시 결과') < at('철회된 안내') && at('철회된 안내') < at('설명만') && at('설명만') < at('타 기관 권한 도용'), order.join(' | '));
   const navs = d.doc.querySelectorAll('#presetBar button').map(b => b.getAttribute('aria-label')).filter(Boolean);
   assert.deepEqual(navs, ['시연 버튼 왼쪽으로', '시연 버튼 오른쪽으로']);
 });
@@ -79,6 +81,26 @@ test('실서버 시연 버튼: 정상·위험 요구는 RC 시드와 같은 고�
   const sent = d.win.fetch.calls.map(c => c.body).join('\n');
   assert.match(sent, /Origin Mock Bank/);
   assert.match(sent, /원격 지원 앱을 설치해 주세요/);
+});
+
+test('DB 직접 조작 버튼: rc_presets.json 의 db_target(원래 받은 안내문)으로 검증만 보냄, 비교 기준 줄 없음', async () => {
+  const TARGET = { document_id: DOC, version: 1, protected_fields: { amount_minor: 430000, payee_account_number: '001234500010' } };
+  const TAMPERED = { session_id: 'vsn_db', verification_status: 'TAMPERED', comparison_scope: 'PARTIAL_COMPARISON', checks: [{ name: 'protected_fields', status: 'FAILED', reason_code: 'STORED_CONTENT_MISMATCH' }], reason_codes: [], checked_at: 1, chain_id: 31337, verifying_contract: '0x' + '11'.repeat(20) };
+  const d = page(u => u === '/api/v1/auth/me' ? ME('issuer') : u === 'data/rc_presets.json' ? { status: 200, body: { genuine: TARGET, db_target: TARGET } } : u.startsWith('/api/v3/verifications') ? { status: 200, body: TAMPERED } : { status: 404, body: {} });
+  await sleep(10);
+  presetBtn(d, 'DB 직접 조작').click();
+  await sleep(60);
+  const sent = d.win.fetch.calls.filter(c => c.url.startsWith('/api/v3/verifications')).map(c => JSON.parse(c.body));
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].document_id, DOC);
+  assert.equal(sent[0].candidate.amount_minor, 430000);
+  const shown = d.doc.getElementById('chatThread').textContent;
+  assert.match(shown, /DB 직접 조작 안내문 · 문서 v1/);
+  assert.match(shown, /납부 금액: 430,000원/);
+  assert.doesNotMatch(shown, /다른 항목|⟵/);
+  // 서버 DB가 체인 기록과 다르면(STORED_CONTENT_MISMATCH) 받은 글이 아니라 서버 기록이 바뀌었다고 말함
+  await sleep(400);
+  assert.match(d.doc.getElementById('chatThread').textContent, /서버 기록이 바뀌었어요 · 블록체인 기록과 달라요/);
 });
 
 test('실서버 시연 버튼: 변조·구버전은 data/rc_presets.json 의 문서를 보내고, 파일이 없으면 보내지 않고 알림', async () => {
@@ -119,7 +141,7 @@ test('K1: 미등록 사칭은 실서버에서도 그대로 보냄', async () => 
 test('K7: 로그인한 실서버 모드에서 "서버를 켜고 로그인" 안내를 하지 않음', async () => {
   const d = page(u => u === '/api/v1/auth/me' ? ME('issuer') : { status: 404, body: {} });
   await sleep(10);
-  presetBtn(d, 'DB 직접 조작').click();
+  presetBtn(d, '타 기관 권한 도용').click();
   const all = d.doc.getElementById('chatThread').textContent;
   assert.doesNotMatch(all, /켜고 로그인한 뒤/);
   assert.match(all, /이 버튼으로 실행하지 않아요/);

@@ -279,6 +279,7 @@
     spans.forEach(function (sp) {
       if (sp.start > at) box.append(document.createTextNode(text.slice(at, sp.start)));
       var mk = el('mark', null, text.slice(sp.start, sp.end));
+      if (sp.diff) { mk.className = 'op-diff'; mk.setAttribute('title', '기관 기록과 다른 값'); }
       if (sp.source === 'RULE' || sp.source === 'LLM') mk.setAttribute('title', '근거 ' + (sp.index + 1) + ' · ' + srcOf(sp.source)[0]);
       box.append(mk); at = sp.end;
     });
@@ -294,6 +295,27 @@
       zone.append(opRow({ name: '근거 ' + (i + 1), status: s[0], tone: s[1], body: '“' + T.maskPersonal(e.quote).slice(0, 120) + '”' }));
     });
     if (rep && rep.dropped) zone.append(el('p', 'op-tech', '모양이 틀린 근거 ' + rep.dropped + '건은 그리지 않았어요.'));
+  }
+  // 기관 기록과 다른 값(금액·가린 계좌·공문번호)이 받은 글 어디인지. 원래 값은 보여 주지 않음(서버도 알려 주지 않음)
+  function diffSpan(text, d) {
+    if (!d || !d.key) return null;
+    if (d.miss === 'AMOUNT_DIFFERS_FOR_ACCOUNT') {
+      var re = /[0-9][0-9,]*\s*원/g, m;
+      while ((m = re.exec(text))) if (Number(m[0].replace(/[^0-9]/g, '')) === d.key.amount_minor) return { start: m.index, end: m.index + m[0].length, diff: true };
+      return null;
+    }
+    var tok = d.miss === 'ACCOUNT_NOT_IN_RECORDS' ? '(계좌번호 가림)' : d.key.document_number;
+    var i = tok ? text.indexOf(tok) : -1;
+    return i < 0 ? null : { start: i, end: i + tok.length, diff: true };
+  }
+  // 블록체인 증거 한 줄: 확인한 블록·Registry 계약·기관 키(응답 값 그대로). Sepolia 면 Etherscan 링크
+  function chainLine(p) {
+    var short = function (h) { h = String(h || ''); return h.length > 12 ? h.slice(0, 6) + '…' + h.slice(-4) : h; };
+    var sepolia = String(p.chain_id) === '11155111';
+    var line = el('p', 'op-chainline');
+    line.append(document.createTextNode((sepolia ? 'Sepolia' : String(p.chain_id) === '31337' ? '로컬 체인(Anvil)' : '체인 ' + p.chain_id) + ' · 블록 #' + p.block + ' 기준 · 계약 ' + short(p.contract) + (p.key_id ? ' · 기관 키 ' + short(p.key_id) : '')));
+    if (sepolia) { var k = el('a', null, ' Etherscan에서 보기'); k.href = 'https://sepolia.etherscan.io/address/' + p.contract; k.target = '_blank'; k.rel = 'noopener noreferrer'; line.append(k); }
+    return line;
   }
   function chainButton(zone, a) {
     var out = el('p', 'op-foot');
@@ -358,9 +380,9 @@
     fact.append(el('span', 'op-zone-tag', 'Blockchain & Crypto Core'), el('h4', null, '블록체인 결정 · 사실'));
     // 종합 결론(사실+맥락)은 두 구역 위에 한 줄로
     var concl = el('p', 'op-concl');
-    concl.append(el('b', null, '종합 '), el('span', 'op-chip t-' + (c.badge.tone || 'none'), c.badge.text || '-'), document.createTextNode(' ' + (c.text || '')));
+    concl.append(el('b', null, '종합 '), el('span', 'op-chip t-' + (c.badge.tone || 'none'), c.badge.text || '-'));
     r.box.append(concl);
-    axes.filter(function (x) { return x.axis !== 'ai'; }).forEach(function (x) { fact.append(opRow(x)); });
+    axes.filter(function (x) { return x.axis !== 'ai'; }).forEach(function (x) { fact.append(opRow(x)); if (x.axis === 'official' && a.chain_proof) fact.append(chainLine(a.chain_proof)); });
     fact.append(el('p', 'op-foot', '이 영역은 AI 없이 기관 서명과 블록체인 기록만으로 판정해요. ①공식 발행 ②원본 일치 ③현재 상태'));
     chainButton(fact, a);
 
@@ -371,7 +393,10 @@
     var text = a.input && typeof a.input.text === 'string' && !O.docInput(a) ? a.input.text : '';
     var sp = riskSpans(a, ai, text);
     evidenceRows(aiz, a);
-    if (text) aiz.append(el('p', 'op-tech', sp.spans.length ? '받은 글에서 위험 요구 문장을 칠했어요' : '받은 글'), markedText(text, sp.spans));
+    var dsp = text ? diffSpan(text, a.lookup_diff) : null;
+    var spans = sp.spans;
+    if (dsp && !spans.some(function (s) { return s.start < dsp.end && dsp.start < s.end; })) spans = spans.concat([dsp]).sort(function (x, y) { return x.start - y.start; });
+    if (text) aiz.append(el('p', 'op-tech', (sp.spans.length ? '받은 글에서 위험 요구 문장을 칠했어요' : '받은 글') + (dsp ? ' · 기관 기록과 다른 값은 빨간 밑줄로 표시했어요' : '')), markedText(text, spans));
     var ids = a.ai_report && Array.isArray(a.ai_report.matched_technique_ids) ? a.ai_report.matched_technique_ids : null;
     // 4차 멘토링: 'RAG 연결 전' 문구는 빼고, 일치한 수법이 있을 때만 보여 줌
     if (ids && ids.length) aiz.append(el('p', 'op-tech', '일치한 공개 피싱 수법: ' + ids.join(', ')));
@@ -1093,8 +1118,8 @@
     if (me && me.username) r.btn('로그아웃', logoutFn);
     else r.btn('로그인 화면 열기', function (x) { x.dataset.done = '1'; location.href = 'login.html?next=business.html'; }, true);
     var light = document.documentElement.dataset.theme === 'light';
-    r.para('화면', ['지금 ' + (light ? '밝은 화면' : '어두운 화면') + '이에요. 오른쪽 위 해 모양 단추로도 바꿀 수 있어요.']);
-    r.btn(light ? '어두운 화면으로' : '밝은 화면으로', function (x) { var t = document.getElementById('themeBtn'); if (t) t.click(); x.dataset.done = '1'; }, true);
+    r.para('화면', ['지금 ' + (light ? '밝은 화면' : '어두운 화면') + '이에요.']);
+    r.btn(light ? '어두운 화면으로' : '밝은 화면으로', function (x) { if (window.op5ToggleTheme) window.op5ToggleTheme(); x.dataset.done = '1'; }, true);
     if (myRole() === 'operator') r.para('운영자', ['연결 주소·서버 상태·보관 선택은 기관 상태 화면에 있어요.']);
     return Promise.resolve();
   }

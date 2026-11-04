@@ -92,3 +92,20 @@ test('원본 찾기로 금액·계좌가 맞으면, 가린 계좌로 입금하�
   assert.match(t, /AI 위험뚜렷한 신호 없음/);
   assert.match(t, /그 계좌로 입금하라는 문장은 위험으로 보지 않았어요/);
 });
+
+test('블록체인 증거 한 줄(확인 블록·계약·기관 키), 금액이 다르면 받은 글의 그 금액에 밑줄', async () => {
+  const { serverDouble: sd } = require('./_review_harness.js');
+  const V = { session_id: 'vs_1', verification_status: 'INCONCLUSIVE', reason_codes: ['PARTIAL_COMPARISON'], comparison_scope: 'PARTIAL_COMPARISON', chain_id: 31337, verifying_contract: '0x' + '11'.repeat(20), block_number: '123', document: { key_id: '0x' + 'cd'.repeat(32), state: 'ACTIVE', version: 1, latest_version: 1, warnings: [] }, checks: [] };
+  let miss = false;
+  const f = sd({ persona: { role: 'recipient', issuer_id: null, username: 'kim' }, over: u => /document-lookups$/.test(u)
+    ? { status: 200, body: miss ? { lookup_status: 'UNVERIFIED', match_count: 0, document_ids: [], reason_codes: ['NO_MATCHING_RETAINED_RECORD', 'AMOUNT_DIFFERS_FOR_ACCOUNT'] } : { lookup_status: 'MATCHED', match_count: 1, document_ids: ['0x' + 'ab'.repeat(32)], reason_codes: [], verification: V } } : null });
+  const d = build('?mode=api', f);
+  await sleep(20);
+  enter(d, '[오리진 목 은행] 카드 대금 85,000원 청구 안내입니다. 입금계좌 001-234-500003'); await sleep(500);
+  assert.match(threadText(d), /로컬 체인\(Anvil\) · 블록 #123 기준 · 계약 0x1111…1111 · 기관 키 0xcdcd…cdcd/);
+  miss = true;
+  enter(d, '[오리진 목 은행] 카드 대금 86,000원 청구 안내입니다. 입금계좌 001-234-500003'); await sleep(500);
+  const marks = d.doc.querySelectorAll('#chatThread .op-diff').map(m => m.textContent);
+  assert.deepEqual(marks, ['86,000원']);
+  assert.match(threadText(d), /기관 기록과 다른 값은 빨간 밑줄로 표시했어요/);
+});

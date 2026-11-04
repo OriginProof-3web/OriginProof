@@ -176,13 +176,14 @@
 
   function start() {
     foldNarrow(20);
-    var btn = authBtn = document.getElementById('authBtn'); if (!btn) return;
-    paint(btn);
+    // 오른쪽 위 로그인 단추는 없앰(로그인·로그아웃은 사이드바). 단추가 있는 화면이면 예전처럼 씀
+    var btn = authBtn = document.getElementById('authBtn');
+    if (btn) paint(btn);
     var foot = null;
     try { foot = sideFooter(); } catch (e) { foot = null; }   // 사이드바 꾸미기가 실패해도 로그인 처리는 계속
     // 비로그인도 개인 화면과 같은 메뉴(기관 전용 메뉴 숨김). ?demo= 시연 화면만 예전 그대로
-    checked.then(function () { paint(btn); if (foot) { try { foot(); } catch (e) {} } if (!demo && !(state.me && state.me.role === 'issuer')) hideOrgMenu(); });
-    btn.addEventListener('click', function () { logout(btn); });
+    checked.then(function () { if (btn) paint(btn); if (foot) { try { foot(); } catch (e) {} } if (!demo && !(state.me && state.me.role === 'issuer')) hideOrgMenu(); });
+    if (btn) btn.addEventListener('click', function () { logout(btn); });
     // 비회원이 처음 확인을 보내면(대화에 내 말풍선이 생기면) 결과 뒤에 한 번만 회원 기능을 알려 준다
     var thread = document.getElementById('chatThread');
     if (thread && root.MutationObserver) {

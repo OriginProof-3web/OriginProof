@@ -1088,7 +1088,7 @@
         log.push({ label: '원본 찾기', value: d.lookup_status + ' · 일치 ' + str(d.match_count) + '건' + (d.reason_codes && d.reason_codes.length ? ' · ' + d.reason_codes.join(', ') : '') });
         if (d.lookup_status === 'MATCHED' && d.verification && typeof d.verification.verification_status === 'string') return { kind: 'result', api: 'v3', data: d.verification, res: res, lookup: d.lookup_status, fields: x.fields };
         if (!Object.prototype.hasOwnProperty.call(LOOKUP_WHY, d.lookup_status)) return { kind: 'error', err: { key: 'common.held_error', line2: 'UPSTREAM_SCHEMA_MISMATCH', why: '서버 응답 모양이 예상과 달라요.' }, res: res };
-        return { kind: 'none', lookup: d.lookup_status, why: lookupWhy(d), miss: lookupMiss(d) };
+        return { kind: 'none', lookup: d.lookup_status, why: lookupWhy(d), miss: lookupMiss(d), key: k.key };
       });
     }
 
@@ -1279,6 +1279,9 @@
         if (axes[2].tone === 'ok') axes[2].body = '찾은 발행 기록은 지금 유효해요. 문자의 나머지 내용은 확인하지 않았어요.';
       }
       if (four.original.noBasis) axes[1].body = '이 확인 기능은 아직 연결 전이에요. 받은 문자에서 비교할 항목을 뽑지 않아 원본과 맞춰 볼 근거가 없어요.';
+      // 서버 DB에 저장된 내용·원본이 기관 서명(체인 기록)과 다름 = 받은 글이 아니라 서버 기록이 바뀐 것(DB 직접 조작 장면)
+      var storedBad = v.kind === 'result' && Array.isArray(v.data.checks) && v.data.checks.some(function (c) { return c && /^STORED_(CONTENT|ORIGINAL)_MISMATCH$/.test(String(c.reason_code || '')); });
+      if (storedBad) axes[1].body = '서버 DB에 저장된 내용이 기관이 서명해 블록체인에 남긴 기록과 달라요. 서버 기록이 바뀐 것으로 보여요.';
       if (v.kind === 'offline') axes.slice(0, 3).forEach(function (x) {
         if (v.chainDown) { x.status = '확인 불가'; x.tone = 'none'; x.icon = 'dash'; x.body = v.why; return; }
         x.body = '이 확인 기능은 아직 연결 전이에요.' + (v.why ? ' ' + v.why : '');
@@ -1323,6 +1326,7 @@
       }
 
       var details = [{ label: '연결 방식', value: typeof c.opts.base === 'string' ? '5안 연결 ' + c.opts.base + ' (로그인 쿠키·CSRF)' : (c.opts.viaProxy ? '중계 프로그램 /api → ' : '직접 → ') + c.serverUrl }];
+      if (storedBad) conclusion.verdict = { tone: 'fail', chip: '가짜·변조', head: '✕ 서버 기록이 바뀌었어요 · 블록체인 기록과 달라요', sub: '서버 DB의 내용이 기관이 서명해 블록체인에 남긴 기록과 맞지 않아요. 바뀐 서버 기록은 믿지 말고 기관 공식 번호로 직접 확인하세요.' };
       details.push({ label: '입력 종류', value: p.image ? '문서 사진' : p.structured ? '항목 입력(JSON)' : (p.first ? (p.first.type === 'proof' ? 'Proof ID 가 든 문자' : '검증 링크가 든 문자') + (v.lookup ? ' · Proof ID 없어 원본 찾기 ' + v.lookup : '') : (v.lookup ? '코드 없는 문자(원본 찾기 ' + v.lookup + ')' : '문자')) });
       if (p.structured && p.ignored.length) details.push({ label: '보내지 않은 키', value: p.ignored.join(', ') });
       // 찾은 링크·Proof ID: 첫 번째만 쓰고, 나머지는 '더 찾은 … (쓰지 않음)'으로 자세히에만(adapter.js refDetails)
@@ -1368,6 +1372,11 @@
         ref: p.first || null,
         // 체인에서 직접 확인(js/chain_check.js)이 비교할 서버 값: v3 응답의 document·chain_id·verifying_contract 만. 없으면 null
         chain_claim: v.kind === 'result' && v.api === 'v3' && Hk.chain ? Hk.chain.claimFrom(v.data) : null,
+        // 블록체인 증거 한 줄(공식 발행 칸 아래): 응답의 확인 블록·Registry 계약·기관 키. v3 결과에 블록이 있을 때만
+        chain_proof: v.kind === 'result' && v.api === 'v3' && v.data.block_number != null
+          ? { chain_id: v.data.chain_id, contract: v.data.verifying_contract, block: v.data.block_number, key_id: v.data.document ? v.data.document.key_id : null } : null,
+        // 원본 찾기에서 기관 기록과 다른 값(받은 글에 밑줄): 이유 코드와 문자에서 읽은 값만
+        lookup_diff: v.kind === 'none' && LOOKUP_DIFF_HEAD[v.miss] ? { miss: v.miss, key: v.key } : null,
         conclusion: conclusion,
         axes: axes,
         next_action: { text: next },

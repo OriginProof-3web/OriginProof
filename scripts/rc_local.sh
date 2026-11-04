@@ -114,8 +114,8 @@ first_setup() {
     --registry "$API_WALLET_REGISTRY_ADDRESS" --manifest "$MANIFEST" --credentials "$RUN/secrets/test-accounts.json" \
     --signer rpc --approver1 $APPROVER1 --approver2 $APPROVER2 --institution $INSTITUTION | tee "$RUN/logs/demo.log"
   ensure_accounts
-  write_samples
   write_bulk
+  write_samples
 }
 
 # /health/ready는 recipient 계정도 있어야 200이라 개인 계정을 만들고, 실제 AI 확인용 계정도 만든다.
@@ -153,7 +153,15 @@ with open(f"{run}/verify-samples.txt", "w", encoding="utf-8") as out:
     for label, body in lines:
         out.write(f"# {label}\n{json.dumps(body, ensure_ascii=False, separators=(',', ':'))}\n\n")
 with open(sys.argv[2], "w", encoding="utf-8") as out:
-    json.dump({"genuine": v2, "tamper": tampered, "superseded": v1}, out, ensure_ascii=False)
+    presets = {"genuine": v2, "tamper": tampered, "superseded": v1}
+    # DB 직접 조작 장면의 대상: 시연 문자 원본의 은행 #10(430,000원). 원래 값은 DB가 아니라 발행 때 남긴 기록에서(조작 중에 다시 만들어도 원래 값)
+    try:
+        bulk = [json.loads(line) for line in open(f"{run}/bulk-docs.jsonl") if line.strip()]
+        target = next(d for d in bulk if d["content"].get("payee_account_number") == "001234500010")
+        presets["db_target"] = {"document_id": target["document_id"], "version": target["version"], "protected_fields": target["content"]}
+    except (OSError, StopIteration):
+        pass
+    json.dump(presets, out, ensure_ascii=False)
 PY
 }
 
@@ -168,6 +176,14 @@ write_bulk() {
     --out "$RUN/bulk-docs.jsonl.part" --approver1 $APPROVER1 --approver2 $APPROVER2 \
     --institution $INSTITUTION --office $OFFICE > "$RUN/logs/bulk.log" 2>&1 || die "시연 문자 원본 발행 실패(logs/bulk.log)"
   mv "$RUN/bulk-docs.jsonl.part" "$RUN/bulk-docs.jsonl"
+}
+
+# DB 직접 조작 시연: 서버 DB에 저장된 은행 #10 안내문의 금액만 몰래 바꾼다(체인·서명은 그대로). 시연 단추 'DB 직접 조작'으로 확인하면 변조로 잡힌다.
+DB_TARGET_ACCOUNT=001234500010
+db_amount() {
+  docker exec "$PG_NAME" psql -U originproof -d originproof -At -c \
+    "update wallet_document_versions set content = jsonb_set(content::jsonb, '{amount_minor}', '$1')::json where content->>'payee_account_number' = '$DB_TARGET_ACCOUNT' returning content->>'amount_minor'" \
+    | head -1
 }
 
 status() {
@@ -195,7 +211,7 @@ case "${1:-}" in
     if [ -f "$RUN/wallet.env" ]; then
       api_env   # 이미 만든 환경도 새 migration(예: #139 accounts.email)을 받아야 API가 뜸
       "${UVR[@]}" alembic -c apps/api/alembic.ini upgrade head > "$RUN/logs/migrate.log" 2>&1 || die "migration 실패(logs/migrate.log)"
-      start_api; ensure_accounts; [ -f "$PRESET_FILE" ] || write_samples; write_bulk
+      start_api; ensure_accounts; write_bulk; write_samples
     else first_setup; fi
     echo; status
     echo; say "로그인 계정 v5_bank · 비밀번호: $RUN/secrets/test-accounts.json 의 password 값"
@@ -204,6 +220,12 @@ case "${1:-}" in
     say "검증용 붙여넣기 문장: $RUN/verify-samples.txt" ;;
   status) status ;;
   down) down ;;
+  db-tamper)
+    got=$(db_amount 4300000); [ "$got" = 4300000 ] || die "대상 안내문을 못 찾았어요(시연 문자 원본이 발행됐는지: up)"
+    say "서버 DB의 은행 #10 안내문 금액을 430,000원 → 4,300,000원으로 바꿨어요(체인 기록은 그대로). 되돌리기: scripts/rc_local.sh db-restore" ;;
+  db-restore)
+    got=$(db_amount 430000); [ "$got" = 430000 ] || die "대상 안내문을 못 찾았어요"
+    say "서버 DB의 은행 #10 안내문 금액을 원래 430,000원으로 되돌렸어요" ;;
   purge)
     down; docker rm -f "$PG_NAME" >/dev/null 2>&1 || true; rm -rf "$RUN" "$MANIFEST" "$PRESET_FILE"
     say "재현 환경을 모두 지웠어요" ;;
@@ -215,5 +237,5 @@ case "${1:-}" in
     say "저장했어요(이 컴퓨터에만, 0600). 실제 AI로 켜기: RC_LLM=openai scripts/rc_local.sh up" ;;
   clear-key)
     rm -f "$KEY_FILE"; say "키 파일을 지웠어요. 다음 up부터 mock입니다" ;;
-  *) echo "사용: scripts/rc_local.sh up | status | down | purge | set-key | clear-key"; exit 2 ;;
+  *) echo "사용: scripts/rc_local.sh up | status | down | purge | set-key | clear-key | db-tamper | db-restore"; exit 2 ;;
 esac

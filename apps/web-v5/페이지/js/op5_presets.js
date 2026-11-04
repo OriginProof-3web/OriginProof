@@ -2,7 +2,8 @@
    - 예시 문자(data/sample_data.js)를 입력칸에 넣고 바로 보냄. 결과는 예시 응답이며 칩에 '예시 모드'가 붙음.
    - 실서버 모드에서는 RC 시연 데이터와 맞는 버튼(정상·위험 요구·변조·구버전·미등록 사칭)만 실제로 보내고,
      나머지는 서버에 보내지 않고 예시 결과를 '예시 자료 · 서버에 보내지 않음' 표시로 보여 줌.
-   - 예시 자료로 재현할 수 있는 것만 바로 실행. 서버·체인이 있어야 재현되는 공격(DB 조작·권한 도용·서명 재사용·키 유출 정지)은
+   - DB 직접 조작: 터미널에서 scripts/rc_local.sh db-tamper 로 서버 DB의 금액을 바꾼 뒤 누르면, 원래 받은 안내문으로 검증해 변조로 잡힘(db-restore 로 되돌림).
+   - 예시 자료로 재현할 수 있는 것만 바로 실행. 서버·체인이 있어야 재현되는 공격(권한 도용·서명 재사용·키 유출 정지)은
      지어낸 결과를 보여 주지 않고, 무엇을 보여 주는 장면인지와 '실서버 연결 뒤 재현'만 알려 줌. */
 (function () {
   'use strict';
@@ -20,7 +21,8 @@
     normal: { text: DT.rc_normal },
     risky: { text: DT.rc_risky },
     tamper: { file: 'tamper', vs: '발행 원본' },
-    superseded: { file: 'superseded', vs: '최신판' }
+    superseded: { file: 'superseded', vs: '최신판' },
+    db: { file: 'db_target' }
   };
   // 문서 JSON을 읽을 수 있는 안내문으로 보여 주고, 기준 문서(rc_presets.json 의 genuine)와 다른 항목엔 기준 값을 붙인다.
   var FIELDS = [['payment_purpose', '납부 목적'], ['amount_minor', '납부 금액'], ['payee_bank_name', '입금 은행'],
@@ -48,11 +50,11 @@
     { label: '금액 1원 변조', id: 'tamper', tip: '문구는 그대로, 금액만 1원 바꿈 → 원본과 다름' },
     { label: '사진 고지서 변조', id: 'tamper_image', tip: '고지서 사진의 금액을 바꾼 경우 → 원본과 다름' },
     { label: '구버전 재사용', id: 'superseded', tip: '정정 전 v1 안내문을 다시 보냄 → 새 버전 있음' },
+    { label: 'DB 직접 조작', id: 'db', tip: '해커가 서버 DB의 금액을 몰래 바꿔도 기관 서명·블록체인 기록과 대조해 변조로 잡아요(먼저 터미널에서 scripts/rc_local.sh db-tamper)' },
     { label: '철회된 안내', id: 'revoked', tip: '기관이 철회한 안내문 → 철회됨' },
     { label: '미등록 기관 사칭', id: 'unregistered', tip: '체인에 없는 기관 + 원격 앱 설치 유도 → 기록 없음 + AI 위험 신호' }
   ];
   var SERVER = [
-    { label: 'DB 직접 조작', why: '해커가 서버 DB의 금액·공개키를 몰래 바꿔도, 체인 기록과 대조해 TAMPERED로 잡아내는 장면이에요.' },
     { label: '타 기관 권한 도용', why: 'A 기관 계정으로 B 기관 안내문을 발행하려 하면 거부되는 장면이에요.' },
     { label: '서명 재사용', why: '이미 쓴 EIP-712 서명을 다시 제출하면 nonce 때문에 거부되는 장면이에요.' },
     { label: '키 유출 긴급 정지', why: '승인자 1명이 단독으로 기관을 즉시 정지하고, 2-of-3 승인으로 키를 바꿔 복구하는 장면이에요.' }
@@ -93,7 +95,7 @@
           .catch(function () { return null; })
           .then(function (all) {
             var doc = all && all[s.file];
-            if (doc && window.Hk.op5send) window.Hk.op5send(JSON.stringify(doc), describe(p.label, doc, all.genuine, s.vs));
+            if (doc && window.Hk.op5send) window.Hk.op5send(JSON.stringify(doc), describe(p.label, doc, s.vs ? all.genuine : null, s.vs));
             else if (doc) send(JSON.stringify(doc));
             else bubble('시연 데이터 없음', '시연 · ' + p.label, ['이 컴퓨터의 시연 데이터 파일(data/rc_presets.json)이 없어 보내지 않았어요.', 'scripts/rc_local.sh up 으로 시연 데이터를 만든 뒤 새로고침해 주세요.']);
           });
@@ -109,25 +111,27 @@
       if (!t) { bubble('실서버 전용', '시연 · ' + p.label, ['이 버튼은 실서버 시연 데이터와 맞춰 둔 장면이라 실서버 모드에서만 보내요.']); return; }
       send(t);
     });
-    bar.append(b);
+    track.append(b);
   }
-  // 버튼 줄이 화면보다 길면 양 끝 화살표로 옮김(스크롤바는 숨겨져 있음)
+  // 버튼은 가운데 줄(track)에만 두고 양 끝 화살표로 옮김. 화살표는 늘 보이고, 더 갈 곳이 없으면 흐리게(스크롤바는 숨김)
+  var track = el('div', 'preset-track');
   function nav(dir) {
     var b = el('button', 'preset-nav preset-nav-' + dir, dir === 'l' ? '‹' : '›');
     b.type = 'button'; b.setAttribute('aria-label', dir === 'l' ? '시연 버튼 왼쪽으로' : '시연 버튼 오른쪽으로');
-    b.addEventListener('click', function () { if (bar.scrollBy) bar.scrollBy({ left: (dir === 'l' ? -0.7 : 0.7) * bar.clientWidth, behavior: 'smooth' }); });
+    b.addEventListener('click', function () { if (track.scrollBy) track.scrollBy({ left: (dir === 'l' ? -0.7 : 0.7) * track.clientWidth, behavior: 'smooth' }); });
     return b;
   }
   var navL = nav('l'), navR = nav('r');
   function navUpdate() {
-    navL.hidden = !(bar.scrollLeft > 0);
-    navR.hidden = !(bar.scrollWidth - bar.clientWidth - bar.scrollLeft > 1);
+    navL.disabled = !(track.scrollLeft > 0);
+    navR.disabled = !(track.scrollWidth - track.clientWidth - track.scrollLeft > 1);
   }
-  bar.append(navL, el('span', 'preset-title', '실서버 시연'));
+  bar.append(navL, track, navR);
+  track.append(el('span', 'preset-title', '실서버 시연'));
   LIVE.filter(canLive).forEach(addLive);
-  bar.append(el('span', 'preset-title', '예시 결과'));
+  track.append(el('span', 'preset-title', '예시 결과'));
   LIVE.filter(function (p) { return !canLive(p); }).forEach(addLive);
-  bar.append(el('span', 'preset-title', '설명만'));
+  track.append(el('span', 'preset-title', '설명만'));
   SERVER.forEach(function (p) {
     var b = el('button', 'preset preset-server', p.label);
     b.type = 'button'; b.title = '실서버·체인 연결 뒤 재현';
@@ -138,10 +142,9 @@
       }
       bubble('실서버 필요', '공격 시나리오 · ' + p.label, [p.why, '이 장면은 서버와 체인(Anvil 또는 Sepolia)을 켜고 로그인한 뒤 실제 응답으로만 보여 드려요. 예시 결과를 지어내지 않았어요.']);
     });
-    bar.append(b);
+    track.append(b);
   });
-  bar.append(navR);
-  bar.addEventListener('scroll', navUpdate);
+  track.addEventListener('scroll', navUpdate);
   window.addEventListener('resize', navUpdate);
   navUpdate();
 })();
