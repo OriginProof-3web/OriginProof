@@ -160,3 +160,15 @@ test('A7 못 읽은 이유를 구체적으로, "검증 링크가 없어" 문구 
     assert.ok(r.details.some(d => d.label === '원본 찾기' && /^보내지 않음 · /.test(d.value)));
   }
 });
+
+test('원본을 못 찾은 이유를 보여 줌: 같은 계좌 금액 다름 / 기관 계좌 아님 / 공문번호 없음(저장된 값은 말하지 않음)', async () => {
+  const cases = [
+    ['[Origin Mock Bank] 카드 대금 85,001원 입금계좌 001-234-500003', 'AMOUNT_DIFFERS_FOR_ACCOUNT', /이 계좌로 발행한 안내문은 있지만 금액이 달라요/],
+    ['[Origin Mock Bank] 카드 대금 85,000원 입금계좌 001-234-599999', 'ACCOUNT_NOT_IN_RECORDS', /이 계좌로 돈을 받는 것은 없어요/]
+  ];
+  for (const [msg, code, re] of cases) {
+    const { r } = await run(msg, { lookup_status: 'UNVERIFIED', match_count: 0, document_ids: [], reason_codes: ['NO_MATCHING_RETAINED_RECORD', code] });
+    assert.equal(r.conclusion.badge.text, '가짜 의심', code);
+    assert.match(r.conclusion.text, re, code);
+  }
+});

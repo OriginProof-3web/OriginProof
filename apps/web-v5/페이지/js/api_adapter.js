@@ -912,6 +912,18 @@
     NO_ACCOUNT: '입금 계좌번호를 찾지 못했어요.',
     ACCOUNT_UNCLEAR: '계좌번호로 보이는 숫자가 여러 개이거나 모양이 애매해 하나로 고를 수 없었어요.'
   };
+  /* 원본을 못 찾은 이유(서버 reason_codes, 저장된 값은 알려 주지 않음). 금액·계좌 중 무엇이 기관 기록과 다른지 쉬운 말로. */
+  var LOOKUP_MISS = {
+    AMOUNT_DIFFERS_FOR_ACCOUNT: '이 기관이 이 계좌로 발행한 안내문은 있지만 금액이 달라요. 금액이 바뀐 문자일 수 있어요(가짜 의심). 돈을 보내지 말고 기관 공식 번호로 직접 확인해 주세요.',
+    ACCOUNT_NOT_IN_RECORDS: '이 기관이 발행한 안내문 중에 이 계좌로 돈을 받는 것은 없어요. 기관 공식 계좌가 아닐 수 있어요(가짜 의심). 이 계좌로 돈을 보내지 마세요.',
+    DOCUMENT_NUMBER_NOT_IN_RECORDS: '이 기관이 이 공문번호로 발행한 기록이 없어요. 번호가 바뀌었거나 꾸며낸 공문일 수 있어요(가짜 의심). 기관 공식 번호로 직접 확인해 주세요.',
+    ISSUER_HAS_NO_RETAINED_RECORDS: '이 기관이 지금 블록체인에 남긴 발행 기록이 없어요. 공식 기록으로 확인되지 않는 문자예요(가짜 의심). 기관 공식 번호로 직접 확인해 주세요.'
+  };
+  function lookupWhy(d) {
+    var codes = Array.isArray(d.reason_codes) ? d.reason_codes : [];
+    for (var i = 0; i < codes.length; i++) if (Object.prototype.hasOwnProperty.call(LOOKUP_MISS, codes[i])) return LOOKUP_MISS[codes[i]];
+    return LOOKUP_WHY[d.lookup_status];
+  }
   var LOOKUP_WHY = {
     UNVERIFIED: '등록된 기관의 발행 기록 중 문자에서 읽은 값과 맞는 것이 없어요(가짜 의심). 돈을 보내지 말고 기관 공식 번호로 직접 확인해 주세요.',
     AMBIGUOUS: '문자에서 읽은 값과 맞는 발행 기록이 여러 개라 하나로 정하지 않았어요. 기관 공식 번호나 검증 링크로 다시 확인해 주세요.'
@@ -987,7 +999,7 @@
         log.push({ label: '원본 찾기', value: d.lookup_status + ' · 일치 ' + str(d.match_count) + '건' + (d.reason_codes && d.reason_codes.length ? ' · ' + d.reason_codes.join(', ') : '') });
         if (d.lookup_status === 'MATCHED' && d.verification && typeof d.verification.verification_status === 'string') return { kind: 'result', api: 'v3', data: d.verification, res: res, lookup: d.lookup_status, fields: x.fields };
         if (!Object.prototype.hasOwnProperty.call(LOOKUP_WHY, d.lookup_status)) return { kind: 'error', err: { key: 'common.held_error', line2: 'UPSTREAM_SCHEMA_MISMATCH', why: '서버 응답 모양이 예상과 달라요.' }, res: res };
-        return { kind: 'none', lookup: d.lookup_status, why: LOOKUP_WHY[d.lookup_status] };
+        return { kind: 'none', lookup: d.lookup_status, why: lookupWhy(d) };
       });
     }
 
