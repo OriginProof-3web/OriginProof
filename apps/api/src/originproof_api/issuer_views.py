@@ -1,4 +1,5 @@
-"""Issuer screens on the v5 wallet Registry: my chain state and key, my published notices.
+"""Issuer screens on the v5 wallet Registry: my chain state and key, my published notices, and
+how each institution got registered (applicant, internal approver, operator 2-of-3 approvals).
 
 The old v1 key list (/v1/issuer/keys) and v2 proof list read registries the v5 deployment does not
 configure, so the web 'key management' and 'published list' screens showed chain errors.
@@ -7,11 +8,15 @@ configure, so the web 'key management' and 'published list' screens showed chain
 from typing import Literal
 
 from fastapi import APIRouter, HTTPException, Request
+from originproof_core.wallet_contract import ProposalView
+from originproof_core.wallet_signatures import identifier_hash
 from pydantic import BaseModel
 from sqlalchemy import select
 
-from .wallet_database import WalletDocumentRow
+from .database import AccountRow, IssuerApplicationRow
+from .wallet_database import WalletDocumentRow, WalletOnboardingRow, WalletProposalRow
 from .wallet_documents import Identity
+from .wallet_governance import proposal_view
 from .wallet_runtime import runtime
 
 router = APIRouter(prefix="/v3/issuer", tags=["issuer views"])
@@ -39,6 +44,27 @@ class IssuerDocument(BaseModel):
 
 class IssuerDocuments(BaseModel):
     documents: list[IssuerDocument]
+
+
+class RegistrationProposal(BaseModel):
+    proposal_id: str
+    proposer: str
+    status: Literal["PREPARED", "PENDING", "EXECUTED", "EXPIRED", "STALE"]
+    approvers: list[str]
+
+
+class RegistrationTrail(BaseModel):
+    issuer_name: str
+    applicant: str
+    email_verified: bool
+    internal_approver: str | None
+    internally_approved: bool
+    proposals: list[RegistrationProposal]
+    chain_state: Literal["ACTIVE", "SUSPENDED"] | None
+
+
+class RegistrationTrails(BaseModel):
+    trails: list[RegistrationTrail]
 
 
 @router.get("/state", response_model=IssuerChainState)
@@ -103,3 +129,74 @@ async def my_documents(request: Request, identity: Identity):
         )
     ]
     return IssuerDocuments(documents=items[:50])
+
+
+@router.get("/registrations", response_model=RegistrationTrails)
+async def registration_trails(request: Request, identity: Identity):
+    """Steps done by accounts that have no screen of their own: internal approver, operators."""
+    service = runtime(request)
+    account = service.authorize(request, identity, mutation=False)
+    if account.role != "operator" and not (account.role == "issuer" and account.issuer_id):
+        raise HTTPException(403, "FORBIDDEN")
+    domain = service.domain.model_dump(by_alias=True)
+    async with service.database.session_factory() as db:
+        query = select(IssuerApplicationRow).order_by(IssuerApplicationRow.created_at)
+        if account.role == "issuer":
+            query = query.where(IssuerApplicationRow.issuer_id == account.issuer_id)
+        apps = list(await db.scalars(query))
+        onboarding = {
+            row.application_id: row
+            for row in await db.scalars(
+                select(WalletOnboardingRow).where(
+                    WalletOnboardingRow.application_id.in_([a.application_id for a in apps])
+                )
+            )
+        }
+        # Proposals from an earlier deployment cannot be checked against this chain.
+        proposals = [r for r in await db.scalars(select(WalletProposalRow)) if r.domain == domain]
+        operators = service.settings.wallet_operator_addresses
+        ids = {a.applicant_account_id for a in apps} | {r.account_id for r in proposals}
+        ids |= {row.approved_by for row in onboarding.values() if row.approved_by}
+        ids |= set(operators)
+        names = dict(
+            (
+                await db.execute(
+                    select(AccountRow.account_id, AccountRow.username).where(
+                        AccountRow.account_id.in_(ids)
+                    )
+                )
+            ).all()
+        )
+    by_address = {address.lower(): names.get(acc, address) for acc, address in operators.items()}
+    trails = []
+    for app in apps:
+        issuer_hash = identifier_hash(app.issuer_id).lower()
+        steps = []
+        for row in proposals:
+            if ProposalView.model_validate(row.payload).proposal.issuer_id.lower() != issuer_hash:
+                continue
+            view = await proposal_view(service, row)
+            steps.append(
+                RegistrationProposal(
+                    proposal_id=row.proposal_id,
+                    proposer=names.get(row.account_id, row.account_id),
+                    status=view.status,
+                    approvers=[by_address.get(a.lower(), a) for a in view.approvals],
+                )
+            )
+        chain = await service.rpc("issuer", issuer_hash)
+        checks = onboarding.get(app.application_id)
+        trails.append(
+            RegistrationTrail(
+                issuer_name=app.issuer_name,
+                applicant=names.get(app.applicant_account_id, app.applicant_account_id),
+                email_verified=bool(checks and checks.email_verified),
+                internal_approver=names.get(checks.approved_by)
+                if checks and checks.approved_by
+                else None,
+                internally_approved=bool(checks and checks.internally_approved),
+                proposals=steps,
+                chain_state=chain.state if chain else None,
+            )
+        )
+    return RegistrationTrails(trails=trails)

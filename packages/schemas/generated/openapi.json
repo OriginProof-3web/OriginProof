@@ -3029,6 +3029,124 @@
         "title": "RegisteredView",
         "type": "object"
       },
+      "RegistrationProposal": {
+        "properties": {
+          "approvers": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Approvers",
+            "type": "array"
+          },
+          "proposal_id": {
+            "title": "Proposal Id",
+            "type": "string"
+          },
+          "proposer": {
+            "title": "Proposer",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "PREPARED",
+              "PENDING",
+              "EXECUTED",
+              "EXPIRED",
+              "STALE"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "proposal_id",
+          "proposer",
+          "status",
+          "approvers"
+        ],
+        "title": "RegistrationProposal",
+        "type": "object"
+      },
+      "RegistrationTrail": {
+        "properties": {
+          "applicant": {
+            "title": "Applicant",
+            "type": "string"
+          },
+          "chain_state": {
+            "anyOf": [
+              {
+                "enum": [
+                  "ACTIVE",
+                  "SUSPENDED"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chain State"
+          },
+          "email_verified": {
+            "title": "Email Verified",
+            "type": "boolean"
+          },
+          "internal_approver": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Internal Approver"
+          },
+          "internally_approved": {
+            "title": "Internally Approved",
+            "type": "boolean"
+          },
+          "issuer_name": {
+            "title": "Issuer Name",
+            "type": "string"
+          },
+          "proposals": {
+            "items": {
+              "$ref": "#/components/schemas/RegistrationProposal"
+            },
+            "title": "Proposals",
+            "type": "array"
+          }
+        },
+        "required": [
+          "issuer_name",
+          "applicant",
+          "email_verified",
+          "internal_approver",
+          "internally_approved",
+          "proposals",
+          "chain_state"
+        ],
+        "title": "RegistrationTrail",
+        "type": "object"
+      },
+      "RegistrationTrails": {
+        "properties": {
+          "trails": {
+            "items": {
+              "$ref": "#/components/schemas/RegistrationTrail"
+            },
+            "title": "Trails",
+            "type": "array"
+          }
+        },
+        "required": [
+          "trails"
+        ],
+        "title": "RegistrationTrails",
+        "type": "object"
+      },
       "RevokeDraftRequest": {
         "additionalProperties": false,
         "properties": {
@@ -7643,6 +7761,61 @@
           }
         },
         "summary": "My Documents",
+        "tags": [
+          "issuer views"
+        ]
+      }
+    },
+    "/v3/issuer/registrations": {
+      "get": {
+        "description": "Steps done by accounts that have no screen of their own: internal approver, operators.",
+        "operationId": "registration_trails_v3_issuer_registrations_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistrationTrails"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "field_paths": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "MALFORMED_INPUT. /v3: {detail, request_id, field_paths}; others: {error, request_id}"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "Registration Trails",
         "tags": [
           "issuer views"
         ]

@@ -176,6 +176,10 @@ function serverDouble(o) {
       { document_id: '0x' + 'ab'.repeat(32), version: 2, latest_version: 2, notice_type: 'PAYMENT_REQUEST', summary: '합성 지방세 납부 안내', amount_minor: 120000, document_number: null },
       { document_id: '0x' + 'ab'.repeat(32), version: 1, latest_version: 2, notice_type: 'PAYMENT_REQUEST', summary: '합성 지방세 납부 안내', amount_minor: 154000, document_number: null }] } } : deny(403, 'FORBIDDEN');
     if (u.startsWith('/v2/issuer/proofs')) return isIssuer ? { status: 200, body: [] } : deny(403, 'FORBIDDEN');
+    if (u === '/v3/issuer/registrations') return isIssuer || persona.role === 'operator' ? { status: 200, body: { trails: [
+      { issuer_name: 'Origin Mock Bank', applicant: 'v5_bank', email_verified: true, internal_approver: 'v5_bank_approver', internally_approved: true, chain_state: 'ACTIVE',
+        proposals: [{ proposal_id: '0x' + 'ea'.repeat(32), proposer: 'v5_operator1', status: 'EXECUTED', approvers: ['v5_operator1', 'v5_operator2'] }] }]
+      .concat(isIssuer ? [] : [{ issuer_name: 'Origin Mock Office', applicant: 'v5_office', email_verified: true, internal_approver: null, internally_approved: false, chain_state: null, proposals: [] }]) } } : deny(403, 'FORBIDDEN');
     if (u.startsWith('/v1/operations')) return { status: 200, body: [] };
     if (u.startsWith('/v3/documents/')) return { status: 200, body: { document_id: PID, state: 'ACTIVE', version: 1, latest_version: 1, warnings: [] } };
     return { status: 404, body: { detail: 'Not Found' } };

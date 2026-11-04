@@ -155,6 +155,19 @@ test('기관 공개키 관리·발행 목록: v5 Registry 경로(/v3/issuer/stat
   assert.ok(!urls.some(u => /\/v1\/issuer\/keys|\/v2\/issuer\/proofs/.test(u)), urls.join(' '));
 });
 
+test('등록 과정: 화면이 없는 내부 승인·운영자 계정이 한 일을 기관 상태에 단계별로(기관은 내 기관, 운영자는 전체)', async () => {
+  const bank = await open({ role: 'issuer', issuer_id: 'iss_origin_mock_bank', username: 'v5_bank_approver' });
+  assert.match(bank.text, /등록 과정 · Origin Mock Bank\s*1\. 기관 신청 · v5_bank\s*2\. 업무 메일 인증 · 완료\s*3\. 기관 내부 승인 · v5_bank_approver 승인/);
+  assert.match(bank.text, /4\. 운영자 등록 제안 · v5_operator1 · 제안 0xeaea…eaea\s*5\. 운영자 공동승인 2\/2 · v5_operator1, v5_operator2 · 승인 완료 · 실행됨\s*6\. 블록체인 등록 · 활성/);
+  assert.doesNotMatch(bank.text, /Origin Mock Office\s*1\./);
+  const op = await open({ role: 'operator', issuer_id: null, username: 'v5_operator1' });
+  assert.match(op.text, /등록 과정 · Origin Mock Bank/);
+  assert.match(op.text, /등록 과정 · Origin Mock Office\s*1\. 기관 신청 · v5_office\s*2\. 업무 메일 인증 · 완료\s*3\. 기관 내부 승인 · 대기\s*4\. 운영자 등록 제안 · 아직 없음\s*6\. 블록체인 등록 · 등록 전/);
+  const viewer = await open({ role: 'recipient', issuer_id: null, username: 'kim_tester' });
+  assert.ok(!viewer.text.includes('등록 과정'));
+  assert.ok(!viewer.f.calls.some(c => /registrations/.test(c.url)), '개인 계정은 묻지 않음');
+});
+
 test('화면 나누기: 메뉴를 바꾸면 앞 메뉴 내용이 남지 않고, 개인 계정의 맨 위 단추(issue)는 빈 새 대화 화면', async () => {
   const { d } = await open({ role: 'recipient', issuer_id: null, username: 'kim_tester' });
   assert.match(threadText(d), /이용 가능한 기관/);

@@ -957,6 +957,7 @@
         else lines = lines.concat(errLines(z[1]));
         r.set(iss, '내 기관 상태 · 신청', lines);
       }));
+      pending.push(registrationTrails(r));
       return Promise.all(pending);
     });
   }
@@ -983,7 +984,7 @@
     governanceButtons(r, me.role);
     return Promise.all([client.health().then(function (x) {
       r.set(h, '서버 상태(/health/live · /health/ready)', ['live: ' + x.live.text + ' (' + x.live.code + ')', 'ready: ' + x.ready.text + ' (' + x.ready.code + ')']);
-    }), networkPara(r)]);
+    }), networkPara(r), registrationTrails(r)]);
   }
   function stepLine(r, p) { return function (s) { r.line(p, (s.ok ? '✓ ' : '✕ ') + s.text + (s.ok ? '' : (s.code ? ' (코드: ' + s.code + (s.data && s.data.status ? ' · HTTP ' + s.data.status : '') + ')' : ''))); }; }
   function needWallet(r) { var w = ethFn(); if (!w || typeof w.request !== 'function') { r.para('지갑 필요', ['이 브라우저에는 지갑(window.ethereum)이 없어요. 서명은 기관 지갑에서만 하고, 서버에는 개인키를 보내지 않아요.']); return true; } return false; }
@@ -1053,6 +1054,29 @@
   }
   function shortHex(h) { h = String(h || ''); return h.length > 12 ? h.slice(0, 6) + '…' + h.slice(-4) : h; }
   var KEY_STATUS_KO = { ACTIVE: '사용 중', RETIRED: '교체되어 쓰지 않음', COMPROMISED: '유출 신고됨' };
+  var PROPOSAL_STATUS_KO = { PREPARED: '체인 제출 전', PENDING: '승인 진행 중', EXECUTED: '승인 완료 · 실행됨', EXPIRED: '기한 지남', STALE: '다른 제안으로 무효' };
+  // 내부 승인 계정·운영자 계정은 따로 화면이 없어, 그 계정들이 서버·체인에 남긴 일을 기관별로 모아 보여 줌
+  function registrationTrails(r) {
+    var p = r.para('등록 과정', ['확인 중…']);
+    return client.get('/v3/issuer/registrations').then(function (res) {
+      if (res.status !== 200 || !res.data || !Array.isArray(res.data.trails)) return r.set(p, '등록 과정', errLines(res));
+      if (!res.data.trails.length) return r.set(p, '등록 과정', ['기관 신청 기록이 없어요.']);
+      res.data.trails.forEach(function (t, i) {
+        var lines = [
+          '1. 기관 신청 · ' + t.applicant,
+          '2. 업무 메일 인증 · ' + (t.email_verified ? '완료' : '대기'),
+          '3. 기관 내부 승인 · ' + (t.internal_approver ? t.internal_approver + (t.internally_approved ? ' 승인' : ' 반려') : '대기')
+        ];
+        if (!t.proposals.length) lines.push('4. 운영자 등록 제안 · 아직 없음');
+        t.proposals.forEach(function (s) {
+          lines.push('4. 운영자 등록 제안 · ' + s.proposer + ' · 제안 ' + shortHex(s.proposal_id));
+          lines.push('5. 운영자 공동승인 ' + s.approvers.length + '/2 · ' + (s.approvers.length ? s.approvers.join(', ') : '아직 없음') + ' · ' + (PROPOSAL_STATUS_KO[s.status] || s.status));
+        });
+        lines.push('6. 블록체인 등록 · ' + (t.chain_state === 'ACTIVE' ? '활성' : t.chain_state === 'SUSPENDED' ? '정지됨' : '등록 전'));
+        if (i) r.para('등록 과정 · ' + t.issuer_name, lines); else r.set(p, '등록 과정 · ' + t.issuer_name, lines);
+      });
+    });
+  }
   function showKeys() {
     var r = aiMsg();
     var p = r.para('공개키 관리', [isApi() ? '불러오는 중…' : '예시 모드라 서버에 보내지 않아요.']);
