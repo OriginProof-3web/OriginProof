@@ -38,6 +38,7 @@ async def test_demo_db_tamper_only_for_demo_account_and_caught(wallet):
     assert tampered.json() | {"document_id": None} == {
         "document_id": None,
         "version": 1,
+        "original_amount": 430000,
         "amount_before": 430000,
         "amount_after": 4300000,
     }

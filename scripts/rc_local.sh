@@ -236,6 +236,8 @@ case "${1:-}" in
       api_env   # 이미 만든 환경도 새 migration(예: #139 accounts.email)을 받아야 API가 뜸
       "${UVR[@]}" alembic -c apps/api/alembic.ini upgrade head > "$RUN/logs/migrate.log" 2>&1 || die "migration 실패(logs/migrate.log)"
       start_api; ensure_accounts; write_bulk; write_samples
+      # DB 직접 조작 장면을 되돌리지 못하고 끝났어도(브라우저 닫힘 등) 켤 때마다 원래 금액으로
+      db_amount 430000 > /dev/null || true
     else first_setup; fi
     echo; status
     echo; say "로그인 계정 v5_bank · 비밀번호: $RUN/secrets/test-accounts.json 의 password 값"

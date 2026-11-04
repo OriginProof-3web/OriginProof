@@ -128,6 +128,14 @@ test('기관 화면: API 경로·영문 상태 코드·신청 번호 대신 쉬�
   for (const t of ['/v1/issuer/status', 'PENDING_REVIEW', 'APPROVED_PENDING_CHAIN', 'app_', 'v1 장부', 'wallet 장부']) assert.ok(!text.includes(t), t);
 });
 
+test('기관 화면: 체인에서 활성인 기관은 v1 신청서가 검토 중이어도 등록 완료, 온보딩 단추 없음', async () => {
+  const { d, text } = await open({ role: 'issuer', issuer_id: 'iss_origin_mock_bank', username: 'bank_staff', issuer_name: 'Origin Mock Bank' });
+  assert.match(text, /블록체인 등록 상태: 활성 · 등록 완료/);
+  assert.match(text, /신청 기관 Origin Mock Bank · 등록 완료/);
+  assert.doesNotMatch(text, /검토 중|불러오지 못했어요/);
+  for (const l of ['온보딩 상태 보기', '업무 메일 코드 받기', '메일 코드 확인', '내부 승인하기(지정된 다른 계정)']) assert.equal(find(d, l), undefined, l);
+});
+
 test('화면 나누기: 메뉴를 바꾸면 앞 메뉴 내용이 남지 않고, 개인 계정의 맨 위 단추(issue)는 빈 새 대화 화면', async () => {
   const { d } = await open({ role: 'recipient', issuer_id: null, username: 'kim_tester' });
   assert.match(threadText(d), /이용 가능한 기관/);

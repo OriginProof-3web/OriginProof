@@ -48,6 +48,7 @@ async def demo_attack(
         return {
             "document_id": row.document_id,
             "version": row.version,
+            "original_amount": AMOUNTS["db-restore"],
             "amount_before": before,
             "amount_after": AMOUNTS[action],
         }

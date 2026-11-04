@@ -878,7 +878,6 @@
   }
   /* 이용 가능한 기관: 체인에서 지금 활성(ACTIVE)인 기관의 이름만(/v1/chain/issuers, 로그인 없이 공개). 지어낸 목록 없음. */
   // 서버 상태 값 → 쉬운 말(표에 없는 값은 그대로 보여 줌, 지어내지 않음)
-  var ISSUER_STATE_KO = { ACTIVE: '활성', SUSPENDED: '정지됨' };
   var APP_STATUS_KO = { PENDING_REVIEW: '검토 중', APPROVED_PENDING_CHAIN: '승인됨 · 블록체인 등록 대기', REJECTED: '거절됨' };
   // 공동승인 패널과 같은 카드 모양(op-gov)을 그대로 씀: 기관마다 한 줄, 이름 + '활성' 표시
   function availableIssuers(r) {
@@ -943,12 +942,17 @@
       var pending = [publicChain(r), availableIssuers(r)];
       if (me.role !== 'issuer') return Promise.all(pending);
       var iss = r.para('내 기관 상태 · 신청', ['확인 중…']);
-      pending.push(Promise.all([client.get('/v1/issuer/status'), client.get('/v1/issuer-applications/mine')]).then(function (z) {
+      // 블록체인 등록 상태는 v3 체인 활성 기관 목록(/v1/chain/issuers, 이름은 합성 기관 명단)으로 판단: 옛 v1 상태 경로는 v5 시연 환경에 없고,
+      // v1 신청서 상태(PENDING_REVIEW)는 v3 등록을 마쳐도 바뀌지 않아 '검토 중'으로 잘못 보였음
+      pending.push(Promise.all([client.get('/v1/chain/issuers'), client.get('/v1/issuer-applications/mine')]).then(function (z) {
         var lines = [];
-        if (z[0].status === 200 && z[0].data) lines.push('블록체인 등록 상태: ' + (ISSUER_STATE_KO[z[0].data.status] || String(z[0].data.status)));
-        else if (client.say(z[0]).code === 'CHAIN_UNAVAILABLE') lines.push('블록체인에 등록된 기관 상태를 지금은 불러오지 못했어요. 문서 발행과 검증은 그대로 쓸 수 있어요.');
-        else lines = lines.concat(errLines(z[0]));
-        if (z[1].status === 200 && z[1].data) { lines.push('신청 기관 ' + z[1].data.issuer_name + ' · ' + (APP_STATUS_KO[z[1].data.status] || String(z[1].data.status))); onboardingButtons(r, z[1].data, me); }
+        var app = z[1].status === 200 ? z[1].data : null;
+        var list = z[0].status === 200 && z[0].data && Array.isArray(z[0].data.issuers) ? z[0].data.issuers : null;
+        var active = !!(app && list && list.some(function (x) { return x && x.name === app.issuer_name; }));
+        if (list) lines.push('블록체인 등록 상태: ' + (active ? '활성 · 등록 완료' : '활성 아님(등록 전이거나 정지됨)'));
+        else lines.push('블록체인에 등록된 기관 상태를 지금은 불러오지 못했어요. 문서 발행과 검증은 그대로 쓸 수 있어요.');
+        // 등록을 마친 기관은 신청·메일 인증·내부 승인 단추를 보이지 않음(이미 끝난 단계)
+        if (app) { lines.push('신청 기관 ' + app.issuer_name + ' · ' + (active ? '등록 완료' : (APP_STATUS_KO[app.status] || String(app.status)))); if (!active) onboardingButtons(r, app, me); }
         else if (z[1].status === 200) lines.push('기관 신청 기록이 없어요.');
         else lines = lines.concat(errLines(z[1]));
         r.set(iss, '내 기관 상태 · 신청', lines);

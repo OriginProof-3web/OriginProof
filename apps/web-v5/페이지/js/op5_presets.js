@@ -83,7 +83,8 @@
     return bub;
   }
   function won(n) { return Number(n).toLocaleString('ko-KR') + '원'; }
-  // DB 직접 조작 장면: 시연용 공격 재현으로 서버 DB 금액을 바꾼 뒤(시연 계정만) 원래 받은 안내문으로 검증
+  // DB 직접 조작 장면: 시연용 공격 재현으로 서버 DB 금액을 바꾸고(시연 계정만) 원래 받은 안내문으로 검증한 뒤, 결과가 나오면 바로 되돌림.
+  // 브라우저를 닫는 등으로 되돌리지 못해도 rc_local.sh up 이 켤 때 되돌림
   function dbScene(go) {
     var attack = window.Hk && window.Hk.op5demoAttack;
     (attack ? attack('db-tamper') : Promise.resolve(null)).then(function (res) {
@@ -92,18 +93,14 @@
         bubble('시연용 공격 재현', 'DB를 바꾸지 않았어요', ['이 계정은 시연 계정이 아니거나 서버에서 시연 기능이 꺼져 있어요. 원래 안내문으로 확인만 해요.']);
         return go();
       }
-      var bub = bubble('시연용 공격 재현 · 실서비스에는 없는 기능', '해커가 서버 DB를 몰래 바꿨어요', ['서버 DB에 저장된 은행 안내문의 금액을 ' + won(d.amount_before) + ' → ' + won(d.amount_after) + '으로 바꿨어요. 기관 서명과 블록체인 기록은 그대로예요.', '이제 원래 받은 안내문으로 확인해요.']);
-      var undo = el('button', 'add-btn', 'DB 되돌리기');
-      undo.type = 'button';
-      undo.addEventListener('click', function () {
-        undo.disabled = true;
-        attack('db-restore').then(function (r) {
-          if (r && r.status === 200 && r.data) { undo.textContent = 'DB를 ' + won(r.data.amount_after) + '으로 되돌렸어요'; return; }
-          undo.disabled = false; bubble('시연용 공격 재현', 'DB를 되돌리지 못했어요', ['잠시 뒤 다시 눌러 주세요. 터미널 scripts/rc_local.sh db-restore 로도 되돌릴 수 있어요.']);
+      bubble('시연용 공격 재현 · 실서비스에는 없는 기능', '해커가 서버 DB를 몰래 바꿨어요', ['서버 DB에 저장된 은행 안내문의 금액을 ' + won(d.original_amount) + ' → ' + won(d.amount_after) + '으로 바꿨어요. 기관 서명과 블록체인 기록은 그대로예요.', '이제 원래 받은 안내문으로 확인해요.']);
+      var restore = function () {
+        return attack('db-restore').then(function (r) {
+          if (r && r.status === 200 && r.data) bubble('시연용 공격 재현', '시연을 마쳐 DB를 원래대로 되돌렸어요', ['서버 DB의 금액을 다시 ' + won(r.data.amount_after) + '으로 돌려 놓았어요.']);
+          else bubble('시연용 공격 재현', 'DB를 되돌리지 못했어요', ['터미널에서 scripts/rc_local.sh db-restore 로 되돌려 주세요. 서버를 다시 켜면(up) 자동으로 되돌아가요.']);
         });
-      });
-      bub.append(undo);
-      go();
+      };
+      return Promise.resolve(go()).then(restore, restore);
     });
   }
 
@@ -117,14 +114,15 @@
       if (live() && s && s.text) { send(s.text); return; }
       if (live() && s && s.file) {
         var sendFile = function () {
-        window.fetch('data/rc_presets.json', { cache: 'no-store' })
+        // 검증 결과가 다 그려질 때 끝나는 약속을 돌려줌(DB 조작 장면이 그 뒤에 되돌림)
+        return window.fetch('data/rc_presets.json', { cache: 'no-store' })
           .then(function (r) { return r.ok ? r.json() : null; })
           .catch(function () { return null; })
           .then(function (all) {
             var doc = all && all[s.file];
-            if (doc && window.Hk.op5send) window.Hk.op5send(JSON.stringify(doc), describe(p.label, doc, s.vs ? all.genuine : null, s.vs));
-            else if (doc) send(JSON.stringify(doc));
-            else bubble('시연 데이터 없음', '시연 · ' + p.label, ['이 컴퓨터의 시연 데이터 파일(data/rc_presets.json)이 없어 보내지 않았어요.', 'scripts/rc_local.sh up 으로 시연 데이터를 만든 뒤 새로고침해 주세요.']);
+            if (doc && window.Hk.op5send) return window.Hk.op5send(JSON.stringify(doc), describe(p.label, doc, s.vs ? all.genuine : null, s.vs));
+            if (doc) return send(JSON.stringify(doc));
+            bubble('시연 데이터 없음', '시연 · ' + p.label, ['이 컴퓨터의 시연 데이터 파일(data/rc_presets.json)이 없어 보내지 않았어요.', 'scripts/rc_local.sh up 으로 시연 데이터를 만든 뒤 새로고침해 주세요.']);
           });
         };
         if (p.id === 'db') dbScene(sendFile); else sendFile();

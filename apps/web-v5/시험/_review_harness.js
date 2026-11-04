@@ -127,7 +127,8 @@ function serverDouble(o) {
     if (u === '/v1/chain/network') return { status: 200, body: { chain_target: 'anvil', chain_id: 31337, rpc_fallback_configured: false, approver_nodes: [] } };
     if (u === '/v1/chain/issuers') return { status: 200, body: { issuers: [{ name: 'Origin Mock Bank', issuer_id: '0x' + '9d'.repeat(32) }, { name: 'Origin Mock Office', issuer_id: '0x' + 'a0'.repeat(32) }] } };
     if (u === '/v1/issuer/status') return isIssuer ? { status: 200, body: { issuer_id: persona.issuer_id, status: 'ACTIVE', chain_id: 31337 } } : deny(403, 'FORBIDDEN');
-    if (u === '/v1/issuer-applications/mine') return persona.role === 'issuer' ? { status: 200, body: { application_id: APP, issuer_id: persona.issuer_id, issuer_name: 'Origin Mock Bank', applicant_account_id: applicant, status: 'APPROVED', decision_reason: null, decided_by_account_id: null, created_at: 'x' } } : deny(403, 'FORBIDDEN');
+    // 기본 신청 기관은 아직 체인에 없는(등록 중인) 합성 기관: 온보딩 단추 흐름 시험용. 등록 마친 기관은 persona.issuer_name 으로
+    if (u === '/v1/issuer-applications/mine') return persona.role === 'issuer' ? { status: 200, body: { application_id: APP, issuer_id: persona.issuer_id, issuer_name: persona.issuer_name || 'Origin Mock Clinic', applicant_account_id: applicant, status: 'APPROVED', decision_reason: null, decided_by_account_id: null, created_at: 'x' } } : deny(403, 'FORBIDDEN');
     /* suspensions:시작 wallet_governance.py:424-438, wallet_runtime.py:85-110. 형식(422)은 FastAPI 가 함수 실행 전에 거른다(main.py:190-203) */
     const suspend = m === 'POST' && u.match(/^\/v3\/issuers\/([^/]+)\/suspensions$/);
     if (suspend) {

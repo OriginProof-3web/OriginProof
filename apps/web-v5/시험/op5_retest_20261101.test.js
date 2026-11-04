@@ -105,23 +105,22 @@ test('DB 직접 조작 버튼: rc_presets.json 의 db_target(원래 받은 안�
   assert.match(d.doc.getElementById('chatThread').textContent, /DB를 바꾸지 않았어요/);
 });
 
-test('DB 직접 조작(시연 계정): 시연용 공격 재현으로 DB 금액을 바꾼 걸 보여 주고, 되돌리기 단추가 db-restore 를 부름', async () => {
+test('DB 직접 조작(시연 계정): DB 금액을 바꾼 걸 보여 주고, 검증 결과가 나온 뒤 자동으로 되돌림', async () => {
   const TARGET = { document_id: DOC, version: 1, protected_fields: { amount_minor: 430000, payee_account_number: '001234500010' } };
   const d = page(u => u === '/api/v1/auth/me' ? ME('recipient') : u === 'data/rc_presets.json' ? { status: 200, body: { genuine: TARGET, db_target: TARGET } }
-    : u === '/api/v3/demo/db-tamper' ? { status: 200, body: { document_id: DOC, version: 1, amount_before: 430000, amount_after: 4300000 } }
-    : u === '/api/v3/demo/db-restore' ? { status: 200, body: { document_id: DOC, version: 1, amount_before: 4300000, amount_after: 430000 } } : { status: 404, body: {} });
+    : u === '/api/v3/demo/db-tamper' ? { status: 200, body: { document_id: DOC, version: 1, original_amount: 430000, amount_before: 4300000, amount_after: 4300000 } }
+    : u === '/api/v3/demo/db-restore' ? { status: 200, body: { document_id: DOC, version: 1, original_amount: 430000, amount_before: 4300000, amount_after: 430000 } } : { status: 404, body: {} });
   await sleep(10);
   presetBtn(d, 'DB 직접 조작').click();
-  await sleep(80);
+  await sleep(600);
   const shown = d.doc.getElementById('chatThread').textContent;
   assert.match(shown, /시연용 공격 재현 · 실서비스에는 없는 기능/);
-  assert.match(shown, /430,000원 → 4,300,000원/);
+  assert.match(shown, /430,000원 → 4,300,000원/, '이미 바뀐 상태여도 원래 금액 기준으로 말함');
   const calls = d.win.fetch.calls.map(c => c.url);
-  assert.ok(calls.indexOf('/api/v3/demo/db-tamper') < calls.findIndex(u => u.startsWith('/api/v3/verifications')), '바꾼 뒤 검증');
-  const undo = d.doc.querySelectorAll('#chatThread button').find(b => b.textContent === 'DB 되돌리기');
-  undo.click(); await sleep(40);
-  assert.ok(d.win.fetch.calls.some(c => c.url === '/api/v3/demo/db-restore'));
-  assert.equal(undo.textContent, 'DB를 430,000원으로 되돌렸어요');
+  const at = u => calls.findIndex(x => x.startsWith(u));
+  assert.ok(at('/api/v3/demo/db-tamper') < at('/api/v3/verifications') && at('/api/v3/verifications') < at('/api/v3/demo/db-restore'), '바꾸고 → 검증 → 되돌림: ' + calls.join(' '));
+  assert.match(shown, /시연을 마쳐 DB를 원래대로 되돌렸어요/);
+  assert.ok(!d.doc.querySelectorAll('#chatThread button').some(b => b.textContent === 'DB 되돌리기'));
 });
 
 test('실서버 시연 버튼: 변조·구버전은 data/rc_presets.json 의 문서를 보내고, 파일이 없으면 보내지 않고 알림', async () => {
