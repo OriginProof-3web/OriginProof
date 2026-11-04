@@ -2,6 +2,7 @@
 
 import time
 
+from originproof_api.accounts import current_session
 from originproof_api.wallet_database import WalletVerificationRow
 from originproof_core.wallet_signatures import identifier_hash
 from sqlalchemy.orm import Session
@@ -100,3 +101,9 @@ async def test_lookup_rejects_malformed_key(wallet):
         wallet, identifier_hash("iss_origin_mock_bank"), KEY | {"payee_account_number": "abc"}
     )
     assert response.status_code == 422
+
+
+async def test_lookup_requires_login(wallet):
+    del wallet.app.dependency_overrides[current_session]
+    response = await lookup(wallet, identifier_hash("iss_origin_mock_bank"))
+    assert response.status_code == 401

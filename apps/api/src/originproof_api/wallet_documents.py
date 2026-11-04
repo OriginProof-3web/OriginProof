@@ -647,10 +647,14 @@ def near_miss(expected, contents):
 async def lookup_document(
     body: DocumentLookupRequest,
     request: Request,
-    identity: Annotated[tuple | None, Depends(optional_session)],
+    identity: Identity,
 ):
-    """Track B (#88): match only records this service still retains; the request is not stored."""
+    """Track B (#88): match only records this service still retains; the request is not stored.
+
+    Members only: the miss reasons say whether an account or amount is in an issuer's records.
+    """
     service = runtime(request)
+    service.authorize(request, identity, mutation=False)
     expected = body.key.model_dump()
     async with service.database.session_factory() as db:
         # shortcut: filters one issuer's retained rows in Python; add indexed key columns
