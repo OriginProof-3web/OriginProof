@@ -297,11 +297,38 @@
     });
     zone.append(b, out);
   }
+  /* 최종 판단(한눈에): 블록체인 세 칸(공식 발행·원본 일치·현재 상태)만으로 정함. AI 는 진위를 정하지 않음.
+     - 한 칸이라도 문제(fail) → 가짜이거나 바뀐 안내문
+     - 세 칸 모두 확인(ok) → 진짜(원본 찾기면 '읽은 항목이 진짜 기록과 같음')
+     - 그 밖(기록 없음 아님·확인 못 함) → 확인할 수 없음
+     AI 가 주의·위험이면 한 줄을 덧붙임(진짜여도 송금 요청이면 계좌 확인을 권함). 서버 판정 값은 바꾸지 않음. */
+  function verdictOf(a, fact, ai) {
+    var tones = fact.map(function (x) { return x.tone; });
+    var lookup = fact.some(function (x) { return x.status === '읽은 항목 일치'; });
+    var v;
+    if (tones.indexOf('fail') >= 0) v = { tone: 'fail', head: '✕ 가짜이거나 바뀐 안내문이에요', sub: '이 문자대로 돈을 보내거나 링크를 누르지 마세요.' };
+    else if (fact.length && tones.every(function (t) { return t === 'ok'; })) v = { tone: 'ok', head: '✓ 진짜 안내문이에요', sub: lookup ? '문자에서 읽은 금액·계좌(또는 공문번호)가 기관이 블록체인에 남긴 발행 기록과 같아요. 나머지 문구는 비교하지 않았어요.' : '기관이 블록체인에 남긴 발행 기록·서명·원본과 모두 같고, 지금도 유효해요.' };
+    else v = { tone: 'caution', head: '! 진짜인지 확인할 수 없어요', sub: '공식 기록으로 확인하지 못했어요. 진짜라고 믿지 말고 기관 대표번호나 공식 앱으로 직접 확인하세요.' };
+    if (ai && (ai.tone === 'caution' || ai.tone === 'fail')) {
+      v.ai = v.tone === 'ok'
+        ? 'AI ' + ai.status + ': 돈을 보내라는 문장이 있어요. 진짜 안내문이어도 받는 계좌가 기관 공식 계좌인지 확인한 뒤 보내세요.'
+        : 'AI ' + ai.status + ': 돈·개인정보를 요구하는 위험 문장이 있어요. 특히 조심하세요.';
+    }
+    return v;
+  }
   function renderReport(r, a) {
     var c = a.conclusion || { badge: { text: '', tone: 'none' }, text: '' };
     var axes = Array.isArray(a.axes) ? a.axes : [];
     var ai = axes.filter(function (x) { return x.axis === 'ai'; })[0];
     var wrap = el('div', 'op-report');
+    // 맨 위 최종 판단 카드(이용 가능한 기관과 같은 카드 모양)
+    var v = verdictOf(a, axes.filter(function (x) { return x.axis !== 'ai'; }), ai);
+    var vbox = el('div', 'op-gov');
+    var vrow = el('div', 'op-gov-row');
+    vrow.append(el('span', 'op-gov-n', '최종'), el('span', 'op-gov-who', v.head), el('span', 'op-chip t-' + v.tone, v.tone === 'ok' ? '진짜' : v.tone === 'fail' ? '가짜·변조' : '확인 불가'), el('span', 'op-body', v.sub));
+    vbox.append(vrow);
+    if (v.ai) vbox.append(el('p', 'op-foot', v.ai));
+    r.box.append(vbox);
 
     var fact = el('section', 'op-zone op-fact');
     fact.setAttribute('aria-label', '블록체인 결정');
@@ -323,7 +350,8 @@
     evidenceRows(aiz, a);
     if (text) aiz.append(el('p', 'op-tech', sp.spans.length ? '받은 글에서 위험 요구 문장을 칠했어요' : '받은 글'), markedText(text, sp.spans));
     var ids = a.ai_report && Array.isArray(a.ai_report.matched_technique_ids) ? a.ai_report.matched_technique_ids : null;
-    if (sp.spans.length || sp.skipped.some(function (s) { return s.reason !== 'NO_QUOTE'; })) aiz.append(el('p', 'op-tech', ids && ids.length ? '일치한 공개 피싱 수법: ' + ids.join(', ') : '공개 피싱 수법 ID: 수법 지식베이스(RAG) 연결 전'));
+    // 4차 멘토링: 'RAG 연결 전' 문구는 빼고, 일치한 수법이 있을 때만 보여 줌
+    if (ids && ids.length) aiz.append(el('p', 'op-tech', '일치한 공개 피싱 수법: ' + ids.join(', ')));
     aiz.append(el('p', 'op-foot', (ai && ai.note ? ai.note + ' ' : '') + '이 영역은 규칙과 AI가 메시지가 요구하는 행동의 위험을 설명만 해요. 진위 판정과 분리돼요. 확률 숫자는 쓰지 않아요.'));
 
     wrap.append(fact, aiz);
