@@ -73,12 +73,24 @@
     if (authBtn) paint(authBtn);
   }
 
-  // 개인 계정에는 기관 전용 메뉴를 숨긴다(권한은 서버가 따로 막음). 메뉴가 다시 그려져도 유지.
+  // 기관이 아닌 계정(개인·운영자)에는 기관 전용 메뉴를 숨긴다(권한은 서버가 따로 막음). 메뉴가 다시 그려져도 유지.
+  // 맨 위 '새 Proof 발행' 자리는 숨기지 않고 '새 대화'(빈 확인 화면)로 바꿔 씀 — 번들 디자인 그대로
+  var NEW_PAGE = '새 대화';
+  function relabel(node, from, to) {
+    for (var i = 0; i < node.childNodes.length; i++) {
+      var c = node.childNodes[i];
+      if (c.nodeType === 3 && c.nodeValue.trim() === from) { c.nodeValue = to; return true; }
+      if (c.nodeType === 1 && relabel(c, from, to)) return true;
+    }
+    return false;
+  }
   function hideOrgMenu() {
     var side = document.getElementById('sidebar-root'); if (!side) return;
     function apply() {
       side.querySelectorAll('button').forEach(function (b) {
-        if (ORG_ONLY.indexOf(b.textContent.trim()) >= 0 && b.style.display !== 'none') b.style.display = 'none';
+        var t = b.textContent.trim();
+        if (t === ORG_ONLY[0]) { relabel(b, t, NEW_PAGE); b.setAttribute('aria-label', NEW_PAGE); return; }
+        if (ORG_ONLY.indexOf(t) >= 0 && b.style.display !== 'none') b.style.display = 'none';
       });
     }
     apply();
@@ -96,7 +108,7 @@
     foldNarrow(20);
     var btn = authBtn = document.getElementById('authBtn'); if (!btn) return;
     paint(btn);
-    checked.then(function () { paint(btn); if (state.me && state.me.role === 'recipient') hideOrgMenu(); });
+    checked.then(function () { paint(btn); if (state.me && state.me.role !== 'issuer') hideOrgMenu(); });
     btn.addEventListener('click', function () {
       if (!state.member) { location.href = LOGIN; return; }
       btn.disabled = true;

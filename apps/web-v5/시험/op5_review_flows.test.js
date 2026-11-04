@@ -68,11 +68,14 @@ test('T5-6 전수 훑기: 실서버에서 만든 모든 단추를 예시 모드 
   const f = serverDouble({});
   const d = build(API, f, win => { win.ethereum = eth(); win.sessionStorage.setItem('op5.ops.v1', JSON.stringify([{ operation_id: 'op_1', request_id: 'r', kind: 'publish', status: 'UNKNOWN', next_action: 'RECONCILE', at: 1 }])); });
   await ready(d);
-  for (const k of ['status', 'issue', 'keys', 'proofs', 'operations']) { menu(d, k); await sleep(40); }
-  await press(d, '내 확인 기록(보관한 분석) 보기', 40);
-  const box = d.doc.querySelector('#sidebar-root input'); box.value = PID; d.doc._dispatch(box, new Ev('keydown', { key: 'Enter' })); await sleep(30);
-  enter(d, '일반 안내문입니다'); await sleep(60);
-  const all = buttons(d).filter(b => !/모드로 바꾸기|로그인 화면/.test(b.textContent));
+  // 메뉴마다 화면이 새로 그려지므로 화면마다 단추를 모아 둠
+  let seen = [];
+  const keep = () => { seen = seen.concat(buttons(d).filter(b => seen.indexOf(b) < 0)); };
+  for (const k of ['status', 'issue', 'keys', 'proofs', 'operations']) { menu(d, k); await sleep(40); keep(); }
+  await press(d, '내 확인 기록(보관한 분석) 보기', 40); keep();
+  const box = d.doc.querySelector('#sidebar-root input'); box.value = PID; d.doc._dispatch(box, new Ev('keydown', { key: 'Enter' })); await sleep(30); keep();
+  enter(d, '일반 안내문입니다'); await sleep(60); keep();
+  const all = seen.filter(b => !/모드로 바꾸기|로그인 화면/.test(b.textContent));
   await toSample(d);
   const n = f.calls.length;
   const walked = [];

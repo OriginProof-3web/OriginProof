@@ -123,20 +123,23 @@ test('왼쪽 메뉴(selectAction 이벤트) → 말풍선, 도움말은 알림�
   load(d);
   let reached = 0;
   d.doc.getElementById('sidebar-root')._l.push({ type: 'click', fn: () => reached++, cap: false });
-  vm.runInContext('selectAction("status")', d.win);
-  vm.runInContext('selectAction("issue")', d.win);
-  d.doc.querySelectorAll('#sidebar-root button')[0].click();
+  // 메뉴마다 화면을 새로 그림(앞 메뉴 내용이 한 대화창에 쌓이지 않음)
+  const now = () => d.doc.getElementById('chatThread').textContent;
+  vm.runInContext('selectAction("status")', d.win); await sleep(10);
+  assert.match(now(), /연결 설정/);
+  assert.ok(d.doc.querySelectorAll('#chatThread .add-btn').length > 0);
+  vm.runInContext('selectAction("issue")', d.win); await sleep(10);
+  assert.match(now(), /새 Proof 발행\(기관 지갑\)/);
+  assert.doesNotMatch(now(), /연결 설정/);
+  d.doc.querySelectorAll('#sidebar-root button')[0].click(); await sleep(10);
+  assert.match(now(), /도움말/);
+  assert.doesNotMatch(now(), /새 Proof 발행\(기관 지갑\)/);
   const box = d.doc.querySelector('#sidebar-root input');
   box.value = 'ana_fixture';
   d.doc._dispatch(box, new Ev('keydown', { key: 'Enter' }));
   await sleep(20);
-  const all = d.doc.getElementById('chatThread').textContent;
-  assert.match(all, /연결 설정/);
-  assert.match(all, /새 Proof 발행\(기관 지갑\)/);
-  assert.match(all, /도움말/);
-  assert.match(all, /발행 기록 검색: ana_fixture/);
+  assert.match(now(), /발행 기록 검색: ana_fixture/);
   assert.equal(reached, 0, '도움말 클릭이 번들(알림창)까지 감');
-  assert.ok(d.doc.querySelectorAll('#chatThread .add-btn').length > 0);
 });
 
 test('장면 재현은 ?demo= 일 때만: wallet 장면은 503 WALLET_REGISTRY_UNAVAILABLE 에서 멈춤, retention 장면은 지우기 뒤 목록', async () => {

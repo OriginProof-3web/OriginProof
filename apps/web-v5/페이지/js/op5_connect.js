@@ -72,6 +72,15 @@
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
   function toBottom() { scroll.scrollTop = scroll.scrollHeight; }
   function clearEmpty() { var e = $('chatEmpty'); if (e) e.remove(); }
+  /* 화면(페이지) 나누기: 메뉴(기관 상태·작업 이력 등)를 누르면 대화창을 비우고 그 메뉴 내용만 보여 줌.
+     메뉴 화면에서 문자를 보내면 새 확인 화면으로 시작. '새 대화'는 처음 빈 화면으로 돌아감. */
+  var emptyNode = $('chatEmpty'), page = 'chat';   // 처음 빈 화면 요소(지워져도 다시 붙여 씀)
+  function newPage(kind) { thread.replaceChildren(); page = kind; toBottom(); }
+  function newChat() {
+    thread.replaceChildren(); page = 'chat';
+    if (emptyNode) thread.append(emptyNode);
+    toBottom(); if (input) input.focus();
+  }
   function userMsg(text) {
     clearEmpty();
     var m = el('div', 'msg msg-user');
@@ -319,6 +328,7 @@
     input.value = '';
     input.dispatchEvent(new Event('input'));     // 안쪽 스크립트의 높이·보내기 단추 상태 갱신
     if (w) return answerAsk(w, v.text);
+    if (page !== 'chat') newPage('chat');
     userMsg(T.maskPersonal(v.text));
     return check(v.text);
   }
@@ -960,6 +970,10 @@
     var fn = MENU[d.key];
     if (!fn) return;
     dropAsk('메뉴 이동');
+    // 기관이 아닌 계정에서는 맨 위 단추가 '새 대화'(op5_auth.js): 빈 확인 화면으로
+    var role = Hk.auth && Hk.auth.state && Hk.auth.state.me ? Hk.auth.state.me.role : null;
+    if (d.key === 'issue' && role && role !== 'issuer') return newChat();
+    newPage(d.key);
     if (d.key === 'proofs' && d.proofId) return showProofs(d.proofId);
     fn();
   });
@@ -969,6 +983,7 @@
     if (!b || b.textContent.trim() !== '도움말') return;
     e.preventDefault(); e.stopPropagation();
     dropAsk('도움말');
+    newPage('help');
     showHelp();
   }, true);
   // 시연 프리셋은 입력칸으로 바로 보내므로(op5_presets.js) 먼저 대기를 해제함
@@ -980,6 +995,7 @@
     var t = e.target;
     if (e.key !== 'Enter' || e.isComposing || !t || !t.matches || !t.matches('#sidebar-root input[aria-label="최근 확인 검색"]')) return;
     e.preventDefault();
+    newPage('search');
     search(t.value);
   });
 

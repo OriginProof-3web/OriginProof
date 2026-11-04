@@ -108,3 +108,15 @@ test('기관 화면: API 경로·영문 상태 코드·신청 번호 대신 쉬�
   assert.match(text, /내 기관 상태 · 신청/);
   for (const t of ['/v1/issuer/status', 'PENDING_REVIEW', 'APPROVED_PENDING_CHAIN', 'app_', 'v1 장부', 'wallet 장부']) assert.ok(!text.includes(t), t);
 });
+
+test('화면 나누기: 메뉴를 바꾸면 앞 메뉴 내용이 남지 않고, 개인 계정의 맨 위 단추(issue)는 빈 새 대화 화면', async () => {
+  const { d } = await open({ role: 'recipient', issuer_id: null, username: 'kim_tester' });
+  assert.match(threadText(d), /이용 가능한 기관/);
+  menu(d, 'operations'); await sleep(40);
+  assert.ok(!threadText(d).includes('이용 가능한 기관'), '작업 이력 화면에 기관 상태가 남지 않음');
+  menu(d, 'issue'); await sleep(20);
+  const th = d.doc.getElementById('chatThread');
+  assert.equal(th.children.length, 1, '빈 화면 하나만');
+  assert.equal(th.children[0].id, 'chatEmpty');
+  assert.ok(!/작업 이력|새 Proof 발행/.test(threadText(d)));
+});
