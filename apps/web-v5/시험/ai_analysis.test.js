@@ -171,15 +171,17 @@ async function render(job, text) {
   return zone;
 }
 
-test('화면: HIGH 예시 → 형광펜 2곳(글자 일치), 근거 줄에 규칙 검사/AI 모델 칩 구분, 문장만(규칙 번호는 자세히에만)', async () => {
+test('화면: HIGH 예시 → 형광펜 2곳(글자 일치), 근거 줄은 문장만(규칙 검사/AI 모델 칩·규칙 번호는 자세히에만)', async () => {
   const zone = await render(EX.jobs.HIGH, EX.text);
   const marks = zone.querySelectorAll('mark');
   log('형광펜', marks.map(m => JSON.stringify(m.textContent) + ' title=' + m.getAttribute('title')).join(' | '));
   assert.deepEqual(marks.map(m => m.textContent), ['인증번호를 입력하세요', '원격 지원 앱을 설치해 주세요']);
   const rows = zone.querySelectorAll('.op-row').map(r => r.textContent);
   rows.forEach(r => log('줄', r));
-  const chips = zone.querySelectorAll('.op-row .op-chip').map(c => c.className + ' ' + c.textContent);
-  assert.ok(chips.includes('op-chip t-info 규칙 검사') && chips.includes('op-chip t-none AI 모델'), chips.join(' / '));
+  const evRows = zone.querySelectorAll('.op-row').filter(r => /^근거/.test(r.textContent));
+  assert.equal(evRows.length, 2);
+  assert.ok(evRows.every(r => r.querySelectorAll('.op-chip').length === 0), '근거 줄에 출처 칩 없음');
+  assert.doesNotMatch(zone.textContent, /규칙 검사|AI 모델/);
   assert.ok(rows.some(r => r.includes('“인증번호를 입력하세요”')) && rows.some(r => r.includes('“원격 지원 앱을 설치해 주세요”')));
   assert.ok(rows.every(r => !r.includes('규칙 번호') && !r.includes('R_OTP_REQUEST') && !r.includes('L_REMOTE_APP')), rows.join(' / '));
 });
@@ -199,7 +201,7 @@ test('화면: ANALYZER_UNAVAILABLE → 머리표 "연결 전", AI 칸에 위험 
   log('AI 칸 전체', zone.textContent);
   assert.equal(tag.className, 'op-zone-tag');                      // class 그대로
   assert.equal(Object.keys(tag.style).length, 0); assert.equal(tag.getAttribute('style'), null);   // 인라인 스타일 없음(변경 전과 같음)
-  assert.match(tag.textContent, /연결 전/);
+  assert.equal(tag.textContent, 'AI 위험 분석 · 결과 없음');
   assert.doesNotMatch(tag.textContent, /Hybrid|Analyzer/);           // 옛 '작동 중' 인상 문구 없음
   assert.match(zone.textContent, /AI 분석 연결 전/);
   // 결과 값 없음: 위험 등급 4종 화면 글·영문 등급 코드, 근거 줄·규칙 번호·출처 칩, 형광펜, 수법 ID

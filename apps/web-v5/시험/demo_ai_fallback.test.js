@@ -366,6 +366,6 @@ test('화면(실제 시간 약 5초): 3초 지연 → AI 구역에 준비 응답
   assert.match(all, /이 준비된 시연 응답은 아래 서버 분석 결과로 교체됐어요/);
   const zones = d.doc.querySelectorAll('#chatThread .op-ai');
   assert.equal(zones.length, 2);
-  assert.match(zones[1].textContent, /규칙·AI 위험 분석 · 서버 보고서/);
+  assert.equal(zones[1].querySelector('.op-zone-tag').textContent, 'AI 위험 분석');
   assert.ok(!/준비된 시연 응답 · 위험 신호/.test(zones[1].textContent));
 });

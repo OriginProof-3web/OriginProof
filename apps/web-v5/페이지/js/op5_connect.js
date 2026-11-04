@@ -272,27 +272,26 @@
     (m || []).forEach(function (q) { qs.push({ quote: q.slice(1, -1) }); });
     return calc(text, qs);
   }
-  var SRC = { RULE: ['규칙 검사', 'info'], LLM: ['AI 모델', 'none'], DEMO_PREPARED: ['준비된 시연 응답 · 실제 AI 결과 아님', 'none'] };     // 기존 칩 모양(.op-chip.t-info / .t-none) 재사용
-  function srcOf(s) { return SRC[s] || ['출처 미상', 'none']; }
   function markedText(text, spans) {
     var box = el('div', 'op-quote'), at = 0;
     spans.forEach(function (sp) {
       if (sp.start > at) box.append(document.createTextNode(text.slice(at, sp.start)));
       var mk = el('mark', null, text.slice(sp.start, sp.end));
       if (sp.diff) { mk.className = 'op-diff'; mk.setAttribute('title', '기관 기록과 다른 값'); }
-      if (sp.source === 'RULE' || sp.source === 'LLM') mk.setAttribute('title', '근거 ' + (sp.index + 1) + ' · ' + srcOf(sp.source)[0]);
+      if (sp.source === 'RULE' || sp.source === 'LLM') mk.setAttribute('title', '근거 ' + (sp.index + 1));
       box.append(mk); at = sp.end;
     });
     box.append(document.createTextNode(text.slice(at)));
     return box;
   }
-  // 근거 한 줄씩(계약 모양만, 예시 자료는 그리지 않음): 근거 n · [규칙 검사|AI 모델] · "문장". 규칙 번호·위치 값은 '자세히'에만 둠
+  // 근거 한 줄씩(계약 모양만, 예시 자료는 그리지 않음): 근거 n · "문장". 규칙·AI 중 누가 찾았는지·규칙 번호·위치 값은 '자세히'에만 둠
   function evidenceRows(zone, a) {
     var rep = a.ai_report, ev = rep && !a.sample && Array.isArray(rep.evidence) ? rep.evidence : [];
     ev.forEach(function (e, i) {
       if (!e || typeof e.quote !== 'string') return;
-      var s = srcOf(e.source);
-      zone.append(opRow({ name: '근거 ' + (i + 1), status: s[0], tone: s[1], body: '“' + T.maskPersonal(e.quote).slice(0, 120) + '”' }));
+      var row = el('div', 'op-row');
+      row.append(el('b', null, '근거 ' + (i + 1)), el('span', 'op-body', '“' + T.maskPersonal(e.quote).slice(0, 120) + '”'));
+      zone.append(row);
     });
     if (rep && rep.dropped) zone.append(el('p', 'op-tech', '모양이 틀린 근거 ' + rep.dropped + '건은 그리지 않았어요.'));
   }

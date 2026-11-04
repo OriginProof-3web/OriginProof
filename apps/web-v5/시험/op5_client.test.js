@@ -392,12 +392,11 @@ test('첨부: PNG·JPEG·WebP 만 받고 5MB 초과·다른 형식은 서버로 
 });
 
 
-test('분석 표시: 실제 서버 보고서·규칙 fallback·기록 응답·예시·미연결을 구분', () => {
+test('분석 표시: 정상은 AI 위험 분석만, 실제 AI 결과가 아닌 경우(AI 꺼짐·녹화·예시·결과 없음)는 밝힘', () => {
   const Hk = load(), caption = Hk.op5.analysisCaption;
-  assert.match(caption({ analysis_status: 'COMPLETED', ai_report: { limitations: [] } }), /서버 보고서/);
-  assert.ok(!caption({ analysis_status: 'COMPLETED', ai_report: { limitations: [] } }).includes('연결 전'));
-  assert.match(caption({ analysis_status: 'COMPLETED', ai_report: { limitations: ['LLM_ANALYSIS_UNAVAILABLE:TIMEOUT'] } }), /규칙 검사 · AI 분석 사용 불가/);
-  assert.match(caption({ analysis_status: 'COMPLETED', ai_report: { limitations: ['MOCK_REPLAY_NOT_MODEL_PERFORMANCE'] } }), /기록 응답/);
+  assert.equal(caption({ analysis_status: 'COMPLETED', ai_report: { limitations: [] } }), 'AI 위험 분석');
+  assert.match(caption({ analysis_status: 'COMPLETED', ai_report: { limitations: ['LLM_ANALYSIS_UNAVAILABLE:TIMEOUT'] } }), /AI 꺼짐\(규칙 검사만\)/);
+  assert.match(caption({ analysis_status: 'COMPLETED', ai_report: { limitations: ['MOCK_REPLAY_NOT_MODEL_PERFORMANCE'] } }), /녹화된 응답/);
   assert.match(caption({ sample: true, analysis_status: 'COMPLETED', ai_report: { limitations: [] } }), /예시 응답/);
-  assert.match(caption({ analysis_status: 'FAILED' }), /연결 전/);
+  assert.match(caption({ analysis_status: 'FAILED' }), /결과 없음/);
 });

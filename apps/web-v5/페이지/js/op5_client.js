@@ -493,14 +493,15 @@
 
   // Connection captions follow received reports; prepared RAG is not a connection signal.
   function analysisCaption(answer) {
-    if (answer && answer.sample) return '규칙·AI 위험 분석 · 예시 응답';
-    if (docInput(answer)) return '규칙·AI 위험 분석 · 문서 입력은 분석하지 않음';
+    // 정상 결과는 'AI 위험 분석'만. 실제 AI 결과가 아닌 경우(예시·준비 응답·AI 꺼짐·녹화 응답)는 보는 사람이 알 수 있게 밝힘
+    if (answer && answer.sample) return 'AI 위험 분석 · 예시 응답';
+    if (docInput(answer)) return 'AI 위험 분석 · 문서 입력은 분석하지 않음';
     if (answer && answer.ai_prepared) return '준비된 시연 응답 · 실제 AI 결과 아님';
-    if (!answer || answer.analysis_status !== 'COMPLETED' || !answer.ai_report) return '규칙·AI 위험 분석 · 서버 분석기 연결 전';
+    if (!answer || answer.analysis_status !== 'COMPLETED' || !answer.ai_report) return 'AI 위험 분석 · 결과 없음';
     var limits = Array.isArray(answer.ai_report.limitations) ? answer.ai_report.limitations : [];
-    if (limits.some(function (x) { return typeof x === 'string' && x.indexOf('LLM_ANALYSIS_UNAVAILABLE:') === 0; })) return '규칙 검사 · AI 분석 사용 불가';
-    if (limits.indexOf('MOCK_REPLAY_NOT_MODEL_PERFORMANCE') >= 0) return '규칙·AI 위험 분석 · 기록 응답';
-    return '규칙·AI 위험 분석 · 서버 보고서';
+    if (limits.some(function (x) { return typeof x === 'string' && x.indexOf('LLM_ANALYSIS_UNAVAILABLE:') === 0; })) return 'AI 위험 분석 · AI 꺼짐(규칙 검사만)';
+    if (limits.indexOf('MOCK_REPLAY_NOT_MODEL_PERFORMANCE') >= 0) return 'AI 위험 분석 · 녹화된 응답';
+    return 'AI 위험 분석';
   }
   // AI가 보지 않는 문서 JSON 입력(검증만 함). 기록 재실행용 원문은 input.text 에 그대로 남는다.
   function docInput(answer) { return !!(answer && !answer.ai_report && answer.input && /^\s*\{/.test(answer.input.text || '')); }
