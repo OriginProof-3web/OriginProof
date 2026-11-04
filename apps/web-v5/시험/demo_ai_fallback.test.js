@@ -277,7 +277,7 @@ test('실서버 시연 문자(시연 버튼·A1~A3·C1)도 준비 응답이 있�
   }
   const src = fs.readFileSync(path.join(__dirname, '..', '페이지', 'js', 'api_adapter.js'), 'utf8');
   for (const [id, quote] of [['rc_risky', '다른 곳에는 문의하지 마세요'], ['bank_amount', '11/10까지 입금 바랍니다'], ['bank_account', '오늘 정지 예정'], ['bank_account', '즉시 아래 계좌로 입금하세요'], ['other_issuer', '본인 확인 후 수령하세요'],
-    ['rc_risky_card', '핀번호를 답장으로 보내 주세요'], ['rc_risky_telecom', "결제 대행 앱 '페이헬퍼'를 받아 로그인하시면"], ['rc_risky_clinic', '가족이나 은행에는 알리지 말고'],
+    ['rc_risky_card', '담당자 개인 계좌로 먼저 보내 주시면'], ['rc_risky_telecom', "결제 대행 앱 '페이헬퍼'를 받아 로그인하시면"], ['rc_risky_clinic', '가족이나 은행에는 알리지 말고'],
     ['unreg_card', '원격 지원 앱을 설치'], ['unreg_telecom', '원격 지원 앱을 설치'], ['unreg_clinic', '원격 지원 앱을 설치']]) {
     assert.ok(src.includes(quote), quote);   // 준비 응답 근거 문장(기관별 위험 요구는 RISKY 표 안)
     assert.ok(Hk.text.maskPersonal(T[id]).includes(quote), id + ': ' + quote);

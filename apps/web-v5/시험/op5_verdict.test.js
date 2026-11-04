@@ -109,3 +109,23 @@ test('블록체인 증거 한 줄(확인 블록·계약·기관 키), 금액이 
   assert.deepEqual(marks, ['86,000원']);
   assert.match(threadText(d), /기관 기록과 다른 값은 빨간 밑줄로 표시했어요/);
 });
+test('진짜 안내문에 AI 위험·주의가 나오면 요약도 진짜 · 위험 요구/주의로, AI가 짚은 문장을 요약에 보여 줌', async () => {
+  const { page, REAL, Ev } = require('./_review_common.js');
+  for (const [level, chip, head] of [['HIGH', '진짜 · 위험 요구', '! 진짜 안내문이지만 위험한 요구가 붙어 있어요'], ['CAUTION', '진짜 · 주의', '! 진짜 안내문이에요 · 덧붙은 요구는 확인하세요'], ['NO_CLEAR_INDICATORS', '진짜', '✓ 진짜 안내문이에요']]) {
+    const job = { analysis_id: 'ana_v', status: 'COMPLETED', input_kind: 'TEXT', retain_report: false, retain_original: false,
+      report: { risk_level: level, evidence: level === 'NO_CLEAR_INDICATORS' ? [] : [{ quote: '다른 곳에는 문의하지 마세요', source: 'LLM' }], limitations: [] } };
+    const d = page(u => u === '/api/v1/auth/me' ? { status: 200, body: { account_id: 'a', username: 'u', role: 'recipient', issuer_id: null, csrf_token: 'tok' } }
+      : u === '/api/v3/document-lookups' ? { status: 200, body: REAL } : u === '/api/v3/inputs' ? { status: 201, body: { input_ref: 'inp_v', expires_at: 1 } } : u.startsWith('/api/v3/analyses') ? { status: u === '/api/v3/analyses' ? 202 : 200, body: job } : null);
+    await sleep(10);
+    const i = d.doc.getElementById('chatInput');
+    i.value = '[오리진 목 은행] 합성 지방세 납부 안내입니다. 납부 금액: 120,000원, 입금 계좌: 합성 은행 001234567890. 다른 곳에는 문의하지 마세요.';
+    d.doc._dispatch(i, new Ev('keydown', { key: 'Enter' }));
+    await sleep(900);
+    const v = d.doc.querySelectorAll('#chatThread .op-verdict')[0];
+    assert.ok(v, level + ': 요약 카드');
+    const t = v.textContent;
+    assert.ok(t.includes(head) && t.includes(chip), level + ': ' + t);
+    if (level !== 'NO_CLEAR_INDICATORS') assert.ok(t.includes('AI는 “다른 곳에는 문의하지 마세요”를') && !/AI (위험 신호|주의):/.test(t), level + ': ' + t);
+  }
+});
+

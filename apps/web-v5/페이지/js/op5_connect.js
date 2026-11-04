@@ -339,7 +339,8 @@
      - 연결 문제(서버·체인에 묻지 못함, offline) → 지금은 확인 못 함
      - 우리 서비스 기록으로 확인할 수 없음(미등록 기관·기록 없음·못 읽음) → '확인할 수 없어요' + 이유. 가짜라고 하지 않음
        (기관 기록과 금액·계좌·공문번호가 다를 때만 '기록과 다름', 원본 찾기 결과의 conclusion.verdict 를 그대로 씀)
-     AI 가 주의·위험이면 한 줄을 덧붙임(진짜여도 송금 요청이면 계좌 확인을 권함). 서버 판정 값은 바꾸지 않음. */
+     AI 가 주의·위험이면 요약에도 반영: 진짜면 '진짜 · 위험 요구/주의'로 바꾸고 AI가 짚은 문장을 보여 줌,
+     확인 불가면 표시에 AI 결과를 붙임, 그 밖에는 한 줄을 덧붙임. 블록체인 칸의 서버 판정 값은 바꾸지 않음. */
   function verdictOf(a, fact, ai) {
     var tones = fact.map(function (x) { return x.tone; });
     var lookup = fact.some(function (x) { return x.status === '읽은 항목 일치'; });
@@ -354,11 +355,28 @@
     else if (tones.indexOf('offline') >= 0) v = { tone: 'none', head: '· 지금은 확인하지 못했어요', sub: '서버나 블록체인에 연결하지 못해 판단을 미뤘어요. 잠시 뒤 다시 확인하고, 그 전에는 돈을 보내지 마세요.' };
     else v = { tone: 'none', chip: '확인 불가', head: '· 확인할 수 없어요', sub: (a.conclusion && a.conclusion.text) || 'OriginProof에 등록된 기관의 발행 기록과 맞춰 볼 수 없었어요. 돈을 보내기 전에 기관 공식 번호로 직접 확인하세요.' };
     if (ai && (ai.tone === 'caution' || ai.tone === 'fail')) {
-      v.ai = v.tone === 'ok'
-        ? 'AI ' + ai.status + ': 조심해야 할 요구가 있어요. 진짜 안내문이어도 앱 설치·개인정보 입력·다른 계좌 송금 요구는 기관 공식 번호로 확인하기 전에는 따르지 마세요.'
-        : 'AI ' + ai.status + ': 돈·개인정보를 요구하는 위험 문장이 있어요. 특히 조심하세요.';
+      var risky = ai.tone === 'fail', q = aiQuote(a, ai);
+      if (v.tone === 'ok') {
+        v = { tone: 'caution', chip: risky ? '진짜 · 위험 요구' : '진짜 · 주의',
+          head: risky ? '! 진짜 안내문이지만 위험한 요구가 붙어 있어요' : '! 진짜 안내문이에요 · 덧붙은 요구는 확인하세요',
+          sub: (lookup ? '금액·계좌(또는 공문번호)는 기관이 블록체인에 남긴 발행 기록과 같아요. ' : '기관이 블록체인에 남긴 발행 기록·서명·원본과 같아요. ') +
+            'AI는 ' + (q ? '“' + q + '”' : '덧붙은 요구') + (risky ? '를 위험한 요구로 봤어요. ' : '를 주의할 요구로 봤어요. ') +
+            '이 요구는 따르지 말고 기관 공식 번호로 먼저 확인하세요.' };
+        return v;
+      }
+      if (v.tone === 'none') v.chip = (v.chip || '확인 불가') + ' · ' + (risky ? '위험 요구' : '주의');
+      v.ai = 'AI ' + ai.status + ': 돈·개인정보를 요구하는 위험 문장이 있어요. 특히 조심하세요.';
     }
     return v;
+  }
+  // AI가 위험하다고 짚은 첫 문장(개인정보 가림, 너무 길면 줄임). 예시 자료의 '요청' 문장은 근거로 쓰지 않음
+  function aiQuote(a, ai) {
+    var ev = a.ai_report && Array.isArray(a.ai_report.evidence) ? a.ai_report.evidence : [];
+    var e = ev.filter(function (x) { return x && typeof x.quote === 'string' && x.role !== 'request'; })[0];
+    var q = e ? e.quote : ((ai && ai.body ? String(ai.body).match(/["“]([^"”]{2,200})["”]/) : null) || [])[1];
+    if (!q) return '';
+    q = T.maskPersonal(q).trim();
+    return q.length > 60 ? q.slice(0, 59) + '…' : q;
   }
   function renderReport(r, a) {
     var c = a.conclusion || { badge: { text: '', tone: 'none' }, text: '' };
