@@ -41,6 +41,40 @@
         "title": "AccountView",
         "type": "object"
       },
+      "ActiveIssuerView": {
+        "properties": {
+          "issuer_id": {
+            "title": "Issuer Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "issuer_id"
+        ],
+        "title": "ActiveIssuerView",
+        "type": "object"
+      },
+      "ActiveIssuersView": {
+        "properties": {
+          "issuers": {
+            "items": {
+              "$ref": "#/components/schemas/ActiveIssuerView"
+            },
+            "title": "Issuers",
+            "type": "array"
+          }
+        },
+        "required": [
+          "issuers"
+        ],
+        "title": "ActiveIssuersView",
+        "type": "object"
+      },
       "AnalysisEvidence": {
         "additionalProperties": false,
         "properties": {
@@ -666,6 +700,17 @@
             "title": "Chain Target",
             "type": "string"
           },
+          "registry_address": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Registry Address"
+          },
           "rpc_fallback_configured": {
             "title": "Rpc Fallback Configured",
             "type": "boolean"
@@ -675,6 +720,7 @@
           "chain_target",
           "chain_id",
           "rpc_fallback_configured",
+          "registry_address",
           "approver_nodes"
         ],
         "title": "ChainNetworkView",
@@ -2772,6 +2818,19 @@
             "const": true,
             "title": "Terms Accepted",
             "type": "boolean"
+          },
+          "username": {
+            "anyOf": [
+              {
+                "maxLength": 120,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Username"
           }
         },
         "required": [
@@ -4228,6 +4287,60 @@
         "summary": "Sync Status",
         "tags": [
           "operations"
+        ]
+      }
+    },
+    "/v1/chain/issuers": {
+      "get": {
+        "operationId": "active_issuers_v1_chain_issuers_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActiveIssuersView"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "field_paths": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "MALFORMED_INPUT. /v3: {detail, request_id, field_paths}; others: {error, request_id}"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "Active Issuers",
+        "tags": [
+          "chain network"
         ]
       }
     },

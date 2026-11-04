@@ -656,9 +656,9 @@
     });
   }
 
-  /* 공개 블록체인 연결 정보: 체인 이름·ID 는 서버(/v1/chain/network), 등록부 주소는 배포 기록 설정에서.
-     PUBLIC_REGISTRY 는 packages/contracts/deployments/11155111.wallet.json 의 contracts.OriginProofWalletRegistry.address 를 옮긴 값
-     (시험이 원본 파일과 같은지 대조함). 서버 응답(/v1/chain/network)에 등록부 주소가 없어서 둔 설정(C 보완 필요). */
+  /* 공개 블록체인 연결 정보: 체인 이름·ID·등록부 주소는 서버(/v1/chain/network).
+     PUBLIC_REGISTRY 는 서버가 주소를 주지 않을 때(예전 서버)만 쓰는 Sepolia 배포 기록 값
+     (packages/contracts/deployments/11155111.wallet.json, 시험이 원본 파일과 같은지 대조함). */
   var PUBLIC_REGISTRY = { '11155111': '0xe540bf29622afff40174b76992b016112f372a2e' };
   function publicChain(r) {
     var title = '공개 블록체인 연결 정보';
@@ -667,7 +667,8 @@
       var d = res.data;
       if (res.status !== 200 || !d || !/^[1-9][0-9]{0,15}$/.test(String(d.chain_id))) return r.set(p, title, errLines(res));
       var id = String(d.chain_id), target = String(d.chain_target);
-      var registry = target === 'sepolia' ? PUBLIC_REGISTRY[id] || '' : '';
+      var given = typeof d.registry_address === 'string' && /^0x[0-9a-fA-F]{40}$/.test(d.registry_address) ? d.registry_address : '';
+      var registry = given || (target === 'sepolia' ? PUBLIC_REGISTRY[id] || '' : '');
       var lines = [];
       if (target === 'sepolia') lines.push('체인: Sepolia 테스트넷 · 체인 ID ' + id);
       else if (target === 'anvil') lines.push('체인: 로컬 시연 체인(Anvil) · 체인 ID ' + id);
@@ -680,12 +681,17 @@
       }
     });
   }
-  /* 이용 가능한 기관: 체인에서 활성(ACTIVE)인 기관 이름 목록을 공개로 주는 서버 API 가 아직 없음(apps/api, C 담당).
-     지어낸 목록 대신, 기관 계정은 자기 기관(/v1/issuer/status 의 ACTIVE + 신청의 기관 이름)만 실제 값으로 보여 줌. */
-  function issuerLines(own) {
-    return (own ? [own] : []).concat([(own ? '다른 기관 목록은' : '지금 체인에서 활성인 기관 목록은') + ' 알려 주는 서버 기능이 아직 없어 보여 드리지 못해요.']);
+  /* 이용 가능한 기관: 체인에서 지금 활성(ACTIVE)인 기관의 이름만(/v1/chain/issuers, 로그인 없이 공개). 지어낸 목록 없음. */
+  function availableIssuers(r) {
+    var title = '이용 가능한 기관';
+    var p = r.para(title, ['확인 중…']);
+    return client.get('/v1/chain/issuers').then(function (res) {
+      var list = res.status === 200 && res.data && Array.isArray(res.data.issuers) ? res.data.issuers : null;
+      if (!list) return r.set(p, title, errLines(res));
+      var names = list.map(function (x) { return x && typeof x.name === 'string' ? x.name : ''; }).filter(Boolean);
+      r.set(p, title, names.length ? names : ['지금 활성인 기관이 없어요.']);
+    });
   }
-  function availableIssuers(r, own) { return r.para('이용 가능한 기관', issuerLines(own)); }
   function logoutFn(x) { x.dataset.done = '1'; return client.logout().then(function (o) { if (o.status === 200) lastRole = null; say(o.status === 200 ? '로그아웃했어요.' : errLines(o).join(' ')); }); }
   // 아이디는 /v1/auth/me 의 username(계정 이름). 역할 글자는 보여 주지 않음.
   function loginLine(me) { return ['아이디 ' + String(me.username)]; }
@@ -713,7 +719,7 @@
         lastRole = null;
         r.set(who, '로그인', errLines(res).concat(['로그인은 로그인 화면(login.html)에서 해요. 비밀번호는 이 대화에 쓰지 마세요.']));
         r.btn('로그인 화면 열기', function (x) { x.dataset.done = '1'; location.href = 'login.html?next=business.html'; }, true);
-        return Promise.all([publicChain(r), availableIssuers(r, '')]);
+        return Promise.all([publicChain(r), availableIssuers(r)]);
       }
       var me = res.data;
       lastRole = typeof me.role === 'string' ? me.role : null;
@@ -721,9 +727,8 @@
       r.set(who, '로그인', loginLine(me));
       r.btn('로그아웃', logoutFn);
       if (me.role === 'issuer') governanceButtons(r, me.role);
-      var pending = [publicChain(r)];
-      if (me.role !== 'issuer') { availableIssuers(r, ''); return Promise.all(pending); }
-      var avail = availableIssuers(r, '');
+      var pending = [publicChain(r), availableIssuers(r)];
+      if (me.role !== 'issuer') return Promise.all(pending);
       var iss = r.para('기관 상태(/v1/issuer/status · 신청)', ['확인 중…']);
       pending.push(Promise.all([client.get('/v1/issuer/status'), client.get('/v1/issuer-applications/mine')]).then(function (z) {
         var lines = [];
@@ -734,9 +739,6 @@
         else if (z[1].status === 200) lines.push('기관 신청 기록이 없어요.');
         else lines = lines.concat(errLines(z[1]));
         r.set(iss, '기관 상태(/v1/issuer/status · 신청)', lines);
-        var active = z[0].status === 200 && z[0].data && z[0].data.status === 'ACTIVE';
-        var name = z[1].status === 200 && z[1].data && typeof z[1].data.issuer_name === 'string' ? z[1].data.issuer_name : '';
-        if (active && name) r.set(avail, '이용 가능한 기관', issuerLines(name + ' (내 기관 · 활성)'));
       }));
       return Promise.all(pending);
     });

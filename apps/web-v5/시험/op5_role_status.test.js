@@ -31,8 +31,8 @@ for (const persona of [
     assert.match(text, /공개 블록체인 연결 정보/);
     assert.match(text, /로컬 시연 체인\(Anvil\) · 체인 ID 31337/);
     assert.match(text, /이용 가능한 기관/);
-    if (persona.role === 'issuer') assert.match(text, /Origin Mock Bank \(내 기관 · 활성\)/);
-    else assert.match(text, /활성인 기관 목록은 알려 주는 서버 기능이 아직 없어/);
+    assert.match(text, /이용 가능한 기관\s*Origin Mock Bank\s*Origin Mock Office/);
+    assert.ok(f.calls.some(c => /\/v1\/chain\/issuers$/.test(c.url)), '활성 기관 목록은 서버에서 받음');
     menu(d, 'operations'); await sleep(30);
     assert.equal(find(d, '보관 선택 바꾸기'), undefined, '작업 이력 화면에도 없음');
   });
@@ -87,4 +87,17 @@ test('로그인한 기관이 ?mode=sample 로 보면: 예시 화면이어도 운
   for (const l of STAFF_BUTTONS) assert.equal(find(d, l), undefined, l);
   assert.ok(!t.includes('2-of-3'));
   assert.ok(find(d, '실서버 모드로 바꾸기'));
+});
+
+test('서버가 등록부 주소를 주면 그 값을 씀(로컬 Anvil 도 주소 표시, Etherscan 링크는 Sepolia 만)', async () => {
+  const addr = '0x' + '12'.repeat(20);
+  const net = { status: 200, body: { chain_target: 'anvil', chain_id: 31337, rpc_fallback_configured: false, registry_address: addr, approver_nodes: [] } };
+  const { d, text } = await open({ role: 'recipient', issuer_id: null }, u => u === '/v1/chain/network' ? net : null);
+  assert.ok(text.includes('등록부 계약 주소: ' + addr));
+  assert.equal(d.doc.querySelectorAll('#chatThread a').filter(x => /etherscan/.test(String(x.href))).length, 0);
+});
+
+test('활성 기관 목록을 못 받으면 지어내지 않고 오류를 보여 줌', async () => {
+  const { text } = await open({ role: 'recipient', issuer_id: null }, u => u === '/v1/chain/issuers' ? { status: 503, body: { detail: 'WALLET_REGISTRY_UNAVAILABLE' } } : null);
+  assert.ok(!/Origin Mock Office/.test(text));
 });
