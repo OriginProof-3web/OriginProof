@@ -968,7 +968,8 @@
   var RC_TEXT = '[Origin Mock Bank] 합성 지방세 납부 안내입니다. 납부 금액: 120,000원, 입금 계좌: 합성 은행 001234567890(예금주 합성 기관).';
   var DEMO_TEXTS = {   // op5_presets.js 시연 버튼도 이 글을 씀(한 곳에서만 고침)
     rc_normal: RC_TEXT + ' 기한 내 납부해 주세요.',
-    rc_risky: RC_TEXT + ' 납부 전 본인 확인을 위해 원격 지원 앱을 설치해 주세요.',
+    // 위험 요구는 분석기 단어 규칙(phishing.py _RULES)에 걸리지 않는 수법으로 골라 AI가 문맥으로 잡는 장면을 보여 줌(11-05 실제 AI 확인)
+    rc_risky: RC_TEXT + ' 납부가 늦어지면 내일 오전 담당 수사관이 직접 연락드립니다. 통화 내용은 수사 자료로 쓰이니 다른 곳에는 문의하지 마세요.',
     bank_genuine: '[Web발신]\n[오리진 목 은행] 카드 대금 85,000원 청구 안내입니다. 납부 계좌 001-234-500003 으로 11/10까지 입금 바랍니다.',
     bank_amount: '[Web발신]\n[오리진 목 은행] 카드 대금 86,000원 청구 안내입니다. 납부 계좌 001-234-500003 으로 11/10까지 입금 바랍니다.',
     bank_account: '[Web발신]\n[오리진 목 은행] 긴급! 카드 대금 85,000원 미납으로 오늘 정지 예정. 즉시 아래 계좌로 입금하세요. 입금계좌 001-234-599999',
@@ -982,7 +983,7 @@
     unregistered: { risk_level: 'HIGH', evidence: [{ rule_id: 'demo-prepared-remote-app', quote: '원격 지원 앱을 설치해 주세요', source: 'DEMO_PREPARED' }], extra: '고위험: 원격 지원 앱 설치를 유도하는 문장이 있어요.' },
     // 실서버 시연 입력(시연 버튼 RC 문자, 개발/시연_문자_모음.md 의 A1~A3·C1). 글은 DEMO_TEXTS 에 있음
     rc_normal: { risk_level: 'NO_CLEAR_INDICATORS', evidence: [], extra: '' },
-    rc_risky: { risk_level: 'HIGH', evidence: [{ rule_id: 'demo-prepared-remote-app', quote: '원격 지원 앱을 설치해 주세요', source: 'DEMO_PREPARED' }], extra: '고위험: 기관 안내에 원격 지원 앱 설치 요구가 붙어 있어요. 발행 기록이 맞아도 이 요구는 따르지 마세요.' },
+    rc_risky: { risk_level: 'HIGH', evidence: [{ rule_id: 'demo-prepared-isolation', quote: '다른 곳에는 문의하지 마세요', source: 'DEMO_PREPARED' }], extra: '고위험: 수사관을 내세워 다른 곳에 확인하지 못하게 막아요. 발행 기록이 맞아도 이 요구는 따르지 마세요.' },
     bank_genuine: { risk_level: 'NO_CLEAR_INDICATORS', evidence: [], extra: '' },
     // 위험 수준은 실제 AI(11-04 로컬 RC, OpenAI)가 같은 글에 준 값에 맞춤: 교체될 때 판단이 뒤집혀 보이지 않게
     bank_amount: { risk_level: 'CAUTION', evidence: [{ rule_id: 'demo-prepared-payment', quote: '11/10까지 입금 바랍니다', source: 'DEMO_PREPARED' }], extra: '주의: 입금을 요청하는 문자예요. 금액이 바뀌었는지는 AI가 아니라 블록체인 기록 대조가 판정해요.' },
@@ -990,15 +991,22 @@
     other_issuer: { risk_level: 'CAUTION', evidence: [{ rule_id: 'demo-prepared-refund-bait', quote: '본인 확인 후 수령하세요', source: 'DEMO_PREPARED' }], extra: '주의: 환급금을 미끼로 링크에서 본인 확인을 하라고 해요.' }
   };
   /* 시연 버튼이 누를 때마다 도는 다른 기관 장면(카드사·통신사·병원). 금액·계좌는 scripts/fixtures/wallet_demo_bulk.py SCENES 의 v2와 같음.
-     rc_normal_*·rc_risky_*: 등록 기관 원본 그대로 / 원격 앱 요구를 덧붙임. unreg_*: 등록되지 않은 기관 이름 + 원격 앱 유도(합성 문구) */
+     rc_normal_*·rc_risky_*: 등록 기관 원본 그대로 / 규칙에 없는 위험 요구를 덧붙임(금액·계좌 숫자를 더 넣으면 원본 찾기를 못 하므로 넣지 않음).
+     unreg_*: 등록되지 않은 기관 이름 + 원격 앱 유도(합성 문구) */
+  var RISKY = {
+    card: [' 연체 수수료를 면제받으려면 편의점에서 문화상품권을 구매해 핀번호를 답장으로 보내 주세요.', 'HIGH', '핀번호를 답장으로 보내 주세요', '고위험: 상품권을 사서 핀번호를 보내라는 건 돈을 빼내는 수법이에요.'],
+    telecom: [" 이번 달부터는 결제 대행 앱 '페이헬퍼'를 받아 로그인하시면 자동으로 납부돼요.", 'CAUTION', "결제 대행 앱 '페이헬퍼'를 받아 로그인하시면", '주의: 공식 앱이 아닌 결제 대행 앱 설치와 로그인을 권해요. 기관 공식 앱인지 먼저 확인하세요.'],
+    clinic: [' 검사 결과와 관련된 내용이니 가족이나 은행에는 알리지 말고, 담당자가 전화로 안내하는 대로만 진행해 주세요.', 'HIGH', '가족이나 은행에는 알리지 말고', '고위험: 가족·은행에 알리지 못하게 하고 전화 지시만 따르라고 해요.']
+  };
   [['card', 'Origin Mock Card', '합성 카드 이용 대금 청구 안내', '386,400', '002345600001', '합성 카드사'],
     ['telecom', 'Origin Mock Telecom', '합성 통신 요금 납부 안내', '68,250', '003456700001', '합성 통신사'],
     ['clinic', 'Origin Mock Clinic', '합성 진료비 납부 안내', '152,300', '004567800001', '합성 병원']].forEach(function (s) {
     var t = '[' + s[1] + '] ' + s[2] + '입니다. 납부 금액: ' + s[3] + '원, 입금 계좌: 합성 은행 ' + s[4] + '(예금주 ' + s[5] + ').';
+    var k = RISKY[s[0]];
     DEMO_TEXTS['rc_normal_' + s[0]] = t + ' 기한 내 납부해 주세요.';
-    DEMO_TEXTS['rc_risky_' + s[0]] = t + ' 납부 전 본인 확인을 위해 원격 지원 앱을 설치해 주세요.';
+    DEMO_TEXTS['rc_risky_' + s[0]] = t + k[0];
     PREPARED['rc_normal_' + s[0]] = PREPARED.rc_normal;
-    PREPARED['rc_risky_' + s[0]] = PREPARED.rc_risky;
+    PREPARED['rc_risky_' + s[0]] = { risk_level: k[1], evidence: [{ rule_id: 'demo-prepared-' + s[0], quote: k[2], source: 'DEMO_PREPARED' }], extra: k[3] };
   });
   DEMO_TEXTS.unreg_card = '[카드 보안센터] 고객님 카드로 해외 결제 1,980,000원 승인이 대기 중입니다. 본인 결제가 아니면 상담원 안내에 따라 지금 원격 지원 앱을 설치해 주세요.';
   DEMO_TEXTS.unreg_telecom = '[통신요금 환급센터] 고객님께 과오납 통신 요금 47,800원이 환급 대기 중입니다. 오늘 안에 원격 지원 앱을 설치하고 본인 확인을 해 주세요.';

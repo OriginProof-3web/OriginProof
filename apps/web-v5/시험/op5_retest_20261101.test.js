@@ -82,7 +82,7 @@ test('실서버 시연 버튼: 정상·위험 요구는 RC 시드와 같은 고�
   await sleep(30);
   const sent = d.win.fetch.calls.map(c => c.body).join('\n');
   assert.match(sent, /Origin Mock Bank/);
-  assert.match(sent, /원격 지원 앱을 설치해 주세요/);
+  assert.match(sent, /다른 곳에는 문의하지 마세요/);
 });
 
 test('DB 직접 조작 버튼: rc_presets.json 의 db_target(원래 받은 안내문)으로 검증만 보냄, 비교 기준 줄 없음', async () => {
