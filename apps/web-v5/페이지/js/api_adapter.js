@@ -1135,6 +1135,15 @@
     function build(text, p, v, four, a, log, order) {
       var holdExtra = v.kind === 'error' ? v.err.why : '';
       var ai = a.ai.obs;
+      // 원본 찾기로 금액·계좌가 기관 기록과 같다고 확인되면, 가린 계좌로 입금하라는 문장만 근거로 든 AI '주의'는 위험으로 치지 않음
+      // (계좌는 개인정보라 AI 에는 가려서 보내므로 AI 는 계좌가 맞는지 모름. 대표 지시 2026-11-04)
+      var evs = a.ai.report && Array.isArray(a.ai.report.evidence) ? a.ai.report.evidence : [];
+      if (v.lookup === 'MATCHED' && ai && ai.bubble_key === 'ai.caution' && evs.length && evs.every(function (e) { return /\((?:계좌번호|전화번호) 가림\)/.test(String(e.quote || '')); })) {
+        Object.assign(ai, obs('ai', 'ai.no_clear', 'CAUTION→ACCOUNT_MATCHED_RECORD'));
+        a.ai.why = '(입금 계좌·금액이 기관 발행 기록과 같아서, 그 계좌로 입금하라는 문장은 위험으로 보지 않았어요.)';
+        a.ai.quote = '';
+        a.ai.report = Object.assign({}, a.ai.report, { risk_level: 'NO_CLEAR_INDICATORS', evidence: [] });   // 형광펜·근거 줄도 그리지 않음
+      }
       var report = obs('report', 'report.ready', v.kind === 'result' ? str(v.data.verification_status) : '');
       nameOf(report);
       // 직원 순서 = 답이 도착한 순서(order). 빠진 직원이 있으면(있으면 안 됨) 정해진 순서로 뒤에 붙임
@@ -1189,6 +1198,8 @@
         // A7: 원본 찾기를 못 한 이유(v.reason)가 있으면 무엇을 못 읽었는지 함께 말함
         // 대표 결정(2026-11-04): 공식 기록으로 확인 못 한 문자는 '가짜 의심'으로 명시(엔진 값은 그대로, 표시만)
         conclusion = { badge: { tone: 'caution', icon: 'warn', text: '가짜 의심' }, text: v.reason ? '공식 기록으로 확인되지 않는 문자예요(가짜 의심). ' + v.why : v.why || '공식 기록으로 확인되지 않는 문자예요(가짜 의심).' };
+        // 사진만 받은 경우: 사진에서 금액·계좌를 꺼내 원본을 찾지 못하므로(대조 자체를 안 함) 가짜 의심이라 하지 않음
+        if (p.image && !v.lookup && !v.reason) conclusion = { badge: { tone: 'none', icon: 'dash', text: '확인 못 함' }, text: '사진만으로는 기관 발행 기록과 맞춰 보지 못했어요. 문자 글을 길게 눌러 복사해 붙여 넣으면 진짜인지 확인해요.' };
       } else if (v.chainDown) {
         conclusion = { badge: { tone: 'pending', icon: 'question', text: '판단 보류' }, text: v.why };
       } else {

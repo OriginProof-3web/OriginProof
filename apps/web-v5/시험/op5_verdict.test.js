@@ -38,3 +38,24 @@ test('실서버에서 원본을 못 찾은 문자 → 최종 판단 가짜 의�
   assert.match(t, /최종\s*! 가짜 의심/);
   assert.match(t, /가짜 의심/);
 });
+
+test('원본 찾기로 금액·계좌가 맞으면, 가린 계좌로 입금하라는 문장만 근거로 든 AI 주의는 빼고 진짜로', async () => {
+  const { serverDouble: sd } = require('./_review_harness.js');
+  const V = { session_id: 'vs_1', verification_status: 'INCONCLUSIVE', reason_codes: ['PARTIAL_COMPARISON'], comparison_scope: 'PARTIAL', lifecycle_status: 'ACTIVE' };
+  const job = { analysis_id: 'ana_1', status: 'COMPLETED', input_kind: 'TEXT', retain_report: false, retain_original: false,
+    report: { risk_level: 'CAUTION', evidence: [{ quote: '납부 계좌 (계좌번호 가림) 으로 11/10까지 입금 바랍니다.', source: 'LLM', reason: 'PAYMENT_REQUEST' }], limitations: ['phishing-rules-0.2'] } };
+  const f = sd({ persona: { role: 'recipient', issuer_id: null, username: 'kim' }, over: (u, m) => {
+    if (/document-lookups$/.test(u)) return { status: 200, body: { lookup_status: 'MATCHED', match_count: 1, document_ids: ['0x' + 'ab'.repeat(32)], reason_codes: [], verification: V } };
+    if (u === '/v3/analyses' && m === 'POST') return { status: 202, body: job };
+    return null;
+  } });
+  const d = build('?mode=api', f);
+  await sleep(20);
+  enter(d, '[Web발신]\n[오리진 목 은행] 카드 대금 85,000원 청구 안내입니다. 납부 계좌 001-234-500003 으로 11/10까지 입금 바랍니다.'); await sleep(500);
+  const t = threadText(d);
+  // 블록체인 칸은 이 대역이 원본 찾기 응답만 흉내 내서 보지 않음(진짜 판정은 op5_lookup_trackb 시험)
+  assert.ok(!/AI 주의/.test(t), 'AI 주의 줄 없음');
+  assert.ok(!/위험 요구 문장을 칠했어요/.test(t), '형광펜 없음');
+  assert.match(t, /AI 위험뚜렷한 신호 없음/);
+  assert.match(t, /그 계좌로 입금하라는 문장은 위험으로 보지 않았어요/);
+});

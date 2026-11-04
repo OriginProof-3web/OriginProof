@@ -46,6 +46,9 @@ test('문서 사진: /v3/inputs 에 DOCUMENT_IMAGE, 글은 보내지 않음, 검
   assert.deepEqual(inp, [{ kind: 'DOCUMENT_IMAGE', image_media_type: 'image/png', image_base64: 'iVBORw0KGgo=' }]);
   assert.equal(f.calls.filter(c => /verifications|document-lookups|card-notices/.test(c.url)).length, 0);
   assert.equal(a.details.find(d => d.label === '입력 종류').value, '문서 사진');
+  // 사진만으로는 원본 대조를 안 하므로 가짜 의심이라 하지 않음(진짜 안내문 사진을 가짜로 몰지 않게)
+  assert.equal(a.conclusion.badge.text, '확인 못 함');
+  assert.doesNotMatch(a.conclusion.text, /가짜 의심/);
 });
 
 test('첨부 함수: 문서 사진을 base64 로, 다른 형식·5MB 초과는 보내지 않음', async () => {

@@ -311,6 +311,7 @@
     var v;
     if (tones.indexOf('fail') >= 0) v = { tone: 'fail', head: '✕ 가짜이거나 바뀐 안내문이에요', sub: '이 문자대로 돈을 보내거나 링크를 누르지 마세요.' };
     else if (fact.length && tones.every(function (t) { return t === 'ok'; })) v = { tone: 'ok', head: '✓ 진짜 안내문이에요', sub: lookup ? '문자에서 읽은 금액·계좌(또는 공문번호)가 기관이 블록체인에 남긴 발행 기록과 같아요. 나머지 문구는 비교하지 않았어요.' : '기관이 블록체인에 남긴 발행 기록·서명·원본과 모두 같고, 지금도 유효해요.' };
+    else if (a.conclusion && a.conclusion.badge && a.conclusion.badge.tone === 'none') v = { tone: 'none', head: '· 사진으로는 원본과 맞춰 보지 못했어요', sub: a.conclusion.text };   // 대조를 안 한 것(가짜 의심 아님)
     else if (tones.indexOf('offline') >= 0) v = { tone: 'none', head: '· 지금은 확인하지 못했어요', sub: '서버나 블록체인에 연결하지 못해 판단을 미뤘어요. 잠시 뒤 다시 확인하고, 그 전에는 돈을 보내지 마세요.' };
     else v = { tone: 'caution', head: '! 가짜 의심 · 공식 기록으로 확인되지 않아요', sub: (a.conclusion && a.conclusion.text) || '등록된 기관의 발행 기록과 맞는 것이 없어요. 돈을 보내거나 링크를 누르지 말고, 기관 대표번호나 공식 앱으로 직접 확인하세요.' };   // 무엇이 맞지 않았는지(금액·계좌·공문번호)는 결론 문장에 있음
     if (ai && (ai.tone === 'caution' || ai.tone === 'fail')) {
