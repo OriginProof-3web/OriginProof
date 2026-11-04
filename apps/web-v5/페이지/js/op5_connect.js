@@ -686,14 +686,25 @@
   // 서버 상태 값 → 쉬운 말(표에 없는 값은 그대로 보여 줌, 지어내지 않음)
   var ISSUER_STATE_KO = { ACTIVE: '활성', SUSPENDED: '정지됨' };
   var APP_STATUS_KO = { PENDING_REVIEW: '검토 중', APPROVED_PENDING_CHAIN: '승인됨 · 블록체인 등록 대기', REJECTED: '거절됨' };
+  // 공동승인 패널과 같은 카드 모양(op-gov)을 그대로 씀: 기관마다 한 줄, 이름 + '활성' 표시
   function availableIssuers(r) {
     var title = '이용 가능한 기관';
-    var p = r.para(title, ['확인 중…']);
+    var box = el('div'), p = el('p');   // 자리를 먼저 잡아 순서를 지키고, 결과가 오면 같은 자리를 카드로 채움
+    box.append(p); r.box.append(box); r.set(p, title, ['확인 중…']);
     return client.get('/v1/chain/issuers').then(function (res) {
       var list = res.status === 200 && res.data && Array.isArray(res.data.issuers) ? res.data.issuers : null;
       if (!list) return r.set(p, title, errLines(res));
       var names = list.map(function (x) { return x && typeof x.name === 'string' ? x.name : ''; }).filter(Boolean);
-      r.set(p, title, names.length ? names : ['지금 활성인 기관이 없어요.']);
+      if (!names.length) return r.set(p, title, ['지금 활성인 기관이 없어요.']);
+      box.replaceChildren(); box.className = 'op-gov';
+      box.append(el('b', null, title + ' · ' + names.length + '곳'));
+      names.forEach(function (name, i) {
+        var row = el('div', 'op-gov-row');
+        row.append(el('span', 'op-gov-n', String(i + 1)), el('span', 'op-gov-who', name), el('span', 'op-chip t-ok', '활성 · 블록체인 확인'), el('span', 'op-body', '이 기관이 발행한 안내문은 원본을 확인할 수 있어요.'));
+        box.append(row);
+      });
+      box.append(el('p', 'op-foot', '블록체인에서 지금 활성으로 확인된 기관만 보여요. 목록에 없는 기관 이름으로 온 문자는 그 기관의 대표번호나 공식 앱으로 직접 확인하세요.'));
+      toBottom();
     });
   }
   function logoutFn(x) { x.dataset.done = '1'; return client.logout().then(function (o) { if (o.status === 200) lastRole = null; say(o.status === 200 ? '로그아웃했어요.' : errLines(o).join(' ')); }); }

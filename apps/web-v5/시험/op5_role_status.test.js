@@ -31,7 +31,8 @@ for (const persona of [
     assert.match(text, /공개 블록체인 연결 정보/);
     assert.match(text, /연결된 블록체인: 시연용 블록체인/);
     assert.match(text, /이용 가능한 기관/);
-    assert.match(text, /이용 가능한 기관\s*Origin Mock Bank\s*Origin Mock Office/);
+    assert.match(text, /이용 가능한 기관 · 2곳\s*1\s*Origin Mock Bank\s*활성 · 블록체인 확인[\s\S]*2\s*Origin Mock Office\s*활성 · 블록체인 확인/);
+    assert.equal(d.doc.querySelectorAll('#chatThread .op-gov-row').length, 2, '기관마다 카드 한 줄');
     assert.ok(f.calls.some(c => /\/v1\/chain\/issuers$/.test(c.url)), '활성 기관 목록은 서버에서 받음');
     menu(d, 'operations'); await sleep(30);
     assert.equal(find(d, '보관 선택 바꾸기'), undefined, '작업 이력 화면에도 없음');
