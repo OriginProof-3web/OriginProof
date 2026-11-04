@@ -72,7 +72,13 @@ test('가입 화면: 기관 가입은 서버로 보내지 않고 개인만 보�
   assert.match(join, /kind:"personal",email,password:pw,terms_accepted:true/);
   assert.doesNotMatch(join, /kind:biz|issuer_id:/);
   assert.match(join, /if\(biz\)\{[^}]*운영자가 발급/);
-  // AI 키는 가입이 된 뒤에만 저장하고(실패한 비밀번호로 암호화한 키를 남기지 않음), 연결 실패에도 키·비밀번호 칸을 비움
-  assert.ok(join.indexOf('V.save(') > join.indexOf('r.status===201'));
-  assert.match(join, /catch\(_\)\{\$\("apiKey"\)\.value="";\$\("password"\)\.value="";\$\("password2"\)\.value="";show\("err","서버에 연결하지/);
+  // 연결 실패에도 비밀번호 칸을 비움
+  assert.match(join, /catch\(_\)\{\$\("password"\)\.value="";\$\("password2"\)\.value="";show\("err","서버에 연결하지/);
+});
+
+test('가입 화면: AI 키 입력 없음(AI는 서버 키로 분석), 예전에 남은 키는 지움', () => {
+  const join = fs.readFileSync(path.join(WEB, 'join.html'), 'utf8');
+  assert.doesNotMatch(join, /id="apiKey"|name="provider"|op5_keyvault|OP5KeyVault|Anthropic|sk-ant/);
+  assert.match(join, /localStorage\.removeItem\("op5\.aikey"\)/);
+  assert.equal(fs.existsSync(path.join(WEB, 'js', 'op5_keyvault.js')), false);
 });
