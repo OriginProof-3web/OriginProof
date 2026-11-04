@@ -1618,6 +1618,26 @@
         "title": "GovernanceTransaction",
         "type": "object"
       },
+      "ImageText": {
+        "additionalProperties": false,
+        "description": "Text read from the caller's own uploaded photo, so the client can look up the original.",
+        "properties": {
+          "complete": {
+            "title": "Complete",
+            "type": "boolean"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text",
+          "complete"
+        ],
+        "title": "ImageText",
+        "type": "object"
+      },
       "InputReceipt": {
         "additionalProperties": false,
         "properties": {
@@ -6949,6 +6969,72 @@
           }
         },
         "summary": "Input Text",
+        "tags": [
+          "wallet analyses"
+        ]
+      }
+    },
+    "/v3/inputs/{input_ref}/text": {
+      "post": {
+        "description": "Read a stored DOCUMENT_IMAGE input once; the reply goes only to the account that uploaded it.",
+        "operationId": "image_text_v3_inputs__input_ref__text_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "input_ref",
+            "required": true,
+            "schema": {
+              "title": "Input Ref",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImageText"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "field_paths": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "MALFORMED_INPUT. /v3: {detail, request_id, field_paths}; others: {error, request_id}"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "Image Text",
         "tags": [
           "wallet analyses"
         ]

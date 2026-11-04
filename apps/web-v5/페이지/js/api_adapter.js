@@ -549,7 +549,9 @@
     INPUT_LIMIT: '글·사진 올리기는 계정당 10분에 20건까지 받아요.',
     VERIFICATION_SESSION_NOT_FOUND: '연결할 검증 기록을 찾지 못했어요.',
     VERIFICATION_SESSION_EXPIRED: '연결할 검증 기록의 보관 시간이 지났어요.',
-    RESULT_EXPIRED: '분석 결과 보관 시간이 지났어요.'
+    RESULT_EXPIRED: '분석 결과 보관 시간이 지났어요.',
+    INPUT_NOT_IMAGE: '사진으로 올린 입력만 글자를 읽을 수 있어요.',
+    IMAGE_TEXT_ALREADY_READ: '이 사진은 이미 글자를 읽었어요. 다시 올려 주세요.'
   };
 
   /* ---------------- 오류 응답 -> 말풍선 ---------------- */
@@ -1006,7 +1008,7 @@
     // AI: POST /v3/inputs -> POST /v3/analyses -> GET /v3/analyses/{id} 폴링. 로그인 없이 부르면 401 → 연결 전
     // onIntake: /v3/inputs 답이 오는 순간 접수 직원 말풍선을 넘김(직원 패널은 도착 순서대로 갱신)
     // image: { media_type, base64 } 이면 글 대신 문서 사진(DOCUMENT_IMAGE, #92)으로 접수
-    function analyze(text, log, onIntake, image) {
+    function analyze(text, log, onIntake, image, presend) {
       var offline = function (code, why) {
         return { ai: { obs: obs('ai', 'common.not_connected', code), why: why }, intake: obs('intake', 'common.not_connected', code) };
       };
@@ -1030,7 +1032,9 @@
         input = { kind: 'TEXT', text: masked };
         log.push({ label: '보낸 요청', value: 'POST /v3/inputs · 개인정보를 가린 글 ' + masked.length + '자' });
       }
-      return c.call('POST', '/v3/inputs', input, ms).then(function (res) {
+      // 글자 읽기용으로 이미 올린 사진이면 그 접수 결과(성공이면 번호, 실패면 그 실패)를 그대로 씀: 사진을 두 번 올리지 않음
+      var sent = presend ? Promise.resolve(presend) : c.call('POST', '/v3/inputs', input, ms);
+      return sent.then(function (res) {
         if (res.error || res.status !== 201 || !res.data || !res.data.input_ref) {
           var x0 = fromErr(res, '입력');
           if (onIntake) onIntake(x0.intake);
@@ -1260,7 +1264,39 @@
 
     /* opts.onStaff(obs): 직원 한 명의 결과가 정해지는 순간(응답이 도착한 순간) 부름.
        직원 패널은 이 순서대로 갱신하고, 돌려주는 답의 staff 도 같은 순서(기록 다시 보기도 그 순서). */
+    /* 문서 사진: 서버가 사진 글자를 먼저 읽어 주면(POST /v3/inputs/{ref}/text, 사진 한 장에 한 번) 그 글로
+       문자 붙여 넣기와 똑같이 확인(원본 찾기 + AI). 못 읽으면 예전처럼 사진 그대로 AI 분석만(최종 판단은 '확인 못 함'). */
+    function readImage(image, log) {
+      var body = { kind: 'DOCUMENT_IMAGE', image_media_type: image.media_type, image_base64: image.base64 };
+      return c.call('POST', '/v3/inputs', body, ms).then(function (r1) {
+        if (r1.error || r1.status !== 201 || !r1.data || !r1.data.input_ref) { log.push({ label: '사진 글자 읽기', value: '사진 접수 못 함 · ' + (r1.error ? str(r1.error) : 'HTTP ' + r1.status) }); return { text: null, sent: r1 }; }
+        return c.call('POST', '/v3/inputs/' + encodeURIComponent(str(r1.data.input_ref)) + '/text', {}, Math.max(ms, 70000)).then(function (r2) {
+          var d = r2.data || {};
+          var ref = str(r1.data.input_ref);
+          if (r2.error || r2.status !== 200 || typeof d.text !== 'string' || !d.text.trim()) {
+            log.push({ label: '사진 글자 읽기', value: '못 읽음 · ' + (r2.error ? str(r2.error) : 'HTTP ' + r2.status + (d.detail ? ' · ' + d.detail : '')) });
+            return { text: null, sent: { status: 201, data: { input_ref: ref } } };
+          }
+          return { text: d.text.trim(), complete: d.complete === true };
+        });
+      });
+    }
     function check(text, opts) {
+      opts = opts || {};
+      if (opts.image && !opts.imageRead) {
+        var rlog = [];
+        return readImage(opts.image, rlog).then(function (got) {
+          if (!got || !got.text) return checkCore(text, Object.assign({}, opts, { imageRead: true, imageSent: got ? got.sent : null })).then(function (res) { res.details = res.details.concat(rlog); return res; });
+          return checkCore(got.text, Object.assign({}, opts, { image: null, imageRead: true })).then(function (res) {
+            res.from_image = true;
+            res.details = [{ label: '입력 종류(원래)', value: '문서 사진 · 서버가 사진 글자를 읽어 그 글로 확인' + (got.complete ? '' : ' · 일부만 읽음') }].concat(res.details);
+            return res;
+          });
+        }, function () { return checkCore(text, Object.assign({}, opts, { imageRead: true })); });
+      }
+      return checkCore(text, opts);
+    }
+    function checkCore(text, opts) {
       opts = opts || {};
       var p;
       if (opts.image) p = { structured: false, first: null, refs: [], image: true };   // 문서 사진: 검증 링크를 읽을 글이 없음
@@ -1290,7 +1326,7 @@
       else vP = lookup(text, log);
       var aP = p.structured
         ? Promise.resolve({ ai: { obs: obs('ai', 'ai.none', 'NO_TEXT'), why: '항목 입력에는 문자 원문이 없어 AI 분석은 하지 않았어요.' } })
-        : analyze(text, log, emit, opts.image);
+        : analyze(text, log, emit, opts.image, opts.imageSent);
       var vDone = vP.then(function (v) {
         var four = fourOf(v, p.structured ? p : { candidate: {} });
         ['ledger', 'signature', 'original', 'status'].forEach(function (s) { emit(four[s]); });

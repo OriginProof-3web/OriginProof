@@ -253,3 +253,50 @@ async def test_image_only_lifespan_cleans_expired_originals_and_runs_maintenance
         with Session(wallet.engine) as db:
             original = db.get(WalletInputRow, "inp_expired_photo").original
             assert (original is None) is enabled
+
+
+@pytest.mark.parametrize("case", ["read", "again", "text_input", "no_converter", "provider_down"])
+async def test_image_text_reads_own_photo_once(wallet, case):
+    text = "[오리진 목 은행] 카드 대금 85,000원 청구 안내입니다. 납부 계좌 001-234-500003"
+    calls = []
+
+    async def converter(artifact, remaining):
+        calls.append(artifact.kind)
+        if case == "provider_down":
+            raise AnalyzerError(AnalyzerErrorCode.PROVIDER_UNAVAILABLE)
+        return ConvertedText(
+            kind="DOCUMENT_IMAGE", complete=True, segments=[{"text": text, "page": 1}]
+        )
+
+    app = create_app(
+        database=wallet.app.state.database,
+        settings=wallet.app.state.settings.model_copy(
+            update={"wallet_text_input_enabled": True, "wallet_image_input_enabled": True}
+        ),
+        analysis_processor=PhishingAnalyzer(),
+        image_converter=None if case == "no_converter" else converter,
+    )
+    app.dependency_overrides.update(wallet.app.dependency_overrides)
+    async with AsyncClient(
+        transport=ASGITransport(app=app), base_url="http://test", headers={"X-CSRF-Token": "csrf"}
+    ) as client:
+        body = {"kind": "TEXT", "text": "글"} if case == "text_input" else image_body("clear.png")
+        ref = (await client.post("/v3/inputs", json=body)).json()["input_ref"]
+        got = await client.post(f"/v3/inputs/{ref}/text")
+        if case == "text_input":
+            assert (got.status_code, got.json()["detail"]) == (409, "INPUT_NOT_IMAGE")
+            return
+        if case == "no_converter":
+            assert (got.status_code, got.json()["detail"]) == (503, "ANALYZER_UNAVAILABLE")
+            return
+        if case == "provider_down":
+            assert (got.status_code, got.json()["detail"]) == (503, "PROVIDER_UNAVAILABLE")
+            return
+        assert got.status_code == 200, got.text
+        assert got.json() == {"text": text, "complete": True}
+        if case == "again":
+            again = await client.post(f"/v3/inputs/{ref}/text")
+            assert (again.status_code, again.json()["detail"]) == (409, "IMAGE_TEXT_ALREADY_READ")
+            assert calls == ["image"]
+        missing = await client.post("/v3/inputs/inp_nope/text")
+        assert missing.status_code == 404

@@ -43,12 +43,35 @@ test('문서 사진: /v3/inputs 에 DOCUMENT_IMAGE, 글은 보내지 않음, 검
   const f = fakeFetch((url) => url === '/api/v1/auth/me' ? { status: 200, body: ME } : url === '/api/v3/inputs' ? { status: 409, body: { detail: 'INPUT_SUPPORT_UNDECIDED' } } : null);
   const a = await api(Hk, f).check('[문서 사진] a.png', { image: { media_type: 'image/png', base64: 'iVBORw0KGgo=' } });
   const inp = f.calls.filter(c => c.url === '/api/v3/inputs').map(c => JSON.parse(c.body));
+  // 사진 접수가 거절되면(409) 글자 읽기도 AI 분석도 없음: 사진은 한 번만 보냄
   assert.deepEqual(inp, [{ kind: 'DOCUMENT_IMAGE', image_media_type: 'image/png', image_base64: 'iVBORw0KGgo=' }]);
   assert.equal(f.calls.filter(c => /verifications|document-lookups|card-notices/.test(c.url)).length, 0);
   assert.equal(a.details.find(d => d.label === '입력 종류').value, '문서 사진');
   // 사진만으로는 원본 대조를 안 하므로 가짜 의심이라 하지 않음(진짜 안내문 사진을 가짜로 몰지 않게)
   assert.equal(a.conclusion.badge.text, '확인 못 함');
   assert.doesNotMatch(a.conclusion.text, /가짜 의심/);
+});
+
+test('문서 사진: 서버가 글자를 읽어 주면 그 글로 원본 찾기·AI(TEXT) 확인, 사진은 한 번만 접수', async () => {
+  const Hk = load();
+  const READ = '[Web발신]\n[오리진 목 은행] 카드 대금 85,000원 청구 안내입니다. 납부 계좌 001-234-500003 으로 11/10까지 입금 바랍니다.';
+  let n = 0;
+  const f = fakeFetch((url, init) => {
+    if (url === '/api/v1/auth/me') return { status: 200, body: ME };
+    if (url === '/api/v3/inputs') return { status: 201, body: { input_ref: 'inp_' + (++n), expires_at: 1 } };
+    if (url === '/api/v3/inputs/inp_1/text') return { status: 200, body: { text: READ, complete: true } };
+    if (url === '/api/v3/document-lookups') return { status: 200, body: { lookup_status: 'UNVERIFIED', match_count: 0, document_ids: [], reason_codes: ['NO_MATCHING_RETAINED_RECORD'] } };
+    return { status: 409, body: { detail: 'INPUT_SUPPORT_UNDECIDED' } };
+  });
+  const a = await api(Hk, f).check('[문서 사진] a.png', { image: { media_type: 'image/png', base64: 'iVBORw0KGgo=' } });
+  const inp = f.calls.filter(c => c.url === '/api/v3/inputs').map(c => JSON.parse(c.body).kind);
+  assert.deepEqual(inp, ['DOCUMENT_IMAGE', 'TEXT'], '사진 1번(글자 읽기용) + 읽은 글 1번(AI)');
+  const look = f.calls.find(c => c.url === '/api/v3/document-lookups');
+  assert.ok(look, '읽은 글로 원본 찾기');
+  assert.deepEqual(JSON.parse(look.body).key, { notice_type: 'PAYMENT_REQUEST', amount_minor: 85000, currency: 'KRW', payee_account_number: '001234500003' });
+  assert.equal(a.from_image, true);
+  assert.match(a.details[0].value, /사진 글자를 읽어/);
+  assert.notEqual(a.conclusion.badge.text, '확인 못 함');
 });
 
 test('첨부 함수: 문서 사진을 base64 로, 다른 형식·5MB 초과는 보내지 않음', async () => {

@@ -73,7 +73,7 @@ test('계약 원본과 대조: wallet_analyses.py 의 오류 코드 문자열이
   const Hk = loadWeb();
   const src = fs.readFileSync(CONTRACT, 'utf8');
   const all = new Set([...src.matchAll(/"([A-Z][A-Z_]{3,})"/g)].map(m => m[1]));
-  const NOT_CODES = new Set(['QUEUED', 'RUNNING', 'COMPLETED', 'FAILED', 'CANCELLED', 'EXPIRED', 'TEXT', 'LEGACY']);       // 상태·입력 종류
+  const NOT_CODES = new Set(['QUEUED', 'RUNNING', 'COMPLETED', 'FAILED', 'CANCELLED', 'EXPIRED', 'TEXT', 'LEGACY', 'DOCUMENT_IMAGE']);       // 상태·입력 종류
   const ELSEWHERE = { INPUT_SUPPORT_UNDECIDED: 'fromErr → AI 분석 연결 전', INPUT_EXPIRED: 'errorInfo 410 + AI_FAIL', ORIGINAL_UNAVAILABLE: 'op5_client CODE_TEXT(원본 받기)', NO_DOCUMENT_REFERENCE: 'verification_not_run_reason(자세히)', WORKER_STORAGE_UNAVAILABLE: '응답 코드 아님(app.state)', MAINTENANCE_STORAGE_UNAVAILABLE: '응답 코드 아님(app.state)' };
   const missing = [];
   for (const c of all) {
