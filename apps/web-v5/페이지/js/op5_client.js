@@ -256,7 +256,6 @@
       if (isDeleted(id)) return Promise.resolve({ status: 0, ignored: true });
       return get(path).then(function (res) { if (isDeleted(id)) return { status: 0, ignored: true }; return res; });
     }
-    function report(id) { return guardRead(id, '/v3/analyses/' + id + '/report'); }
     function original(id) { return guardRead(id, '/v3/analyses/' + id + '/original'); }
     function analysis(id) { return guardRead(id, '/v3/analyses/' + id); }
     function removeAnalysis(id) {
@@ -308,7 +307,7 @@
         return call('POST', '/v1/auth/login', { username: username, password: password });
       },
       logout: function () { return write('POST', '/v1/auth/logout', {}, { requestId: false }); },
-      listAnalyses: listAnalyses, analysis: analysis, report: report, original: original, removeAnalysis: removeAnalysis, isDeleted: isDeleted,
+      listAnalyses: listAnalyses, analysis: analysis, original: original, removeAnalysis: removeAnalysis, isDeleted: isDeleted,
       readOps: readOps, track: track, operation: operation, reconcile: reconcile, follow: follow,
       pending: function () { return Object.keys(inflight).length; }
     };

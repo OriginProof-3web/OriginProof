@@ -159,6 +159,7 @@
     var b = el('div', 'bubble');
     m.append(w, b); thread.append(m); toBottom();
     var api = {
+      msg: m,
       box: b,
       para: function (title, lines) {
         var p = el('p');
@@ -190,6 +191,13 @@
     return api;
   }
   function say(text, title) { var r = aiMsg(); r.para(title || null, [text]); return r; }
+  // 답을 기다리는 동안 'OriginProof AI' 아래에서 도는 표시. 돌려준 함수를 부르면 지움(다른 대화로 옮겨 보관된 경우 포함)
+  function pendingMsg(tag) {
+    var r = aiMsg(tag), sess = cur;
+    r.box.setAttribute('role', 'status');
+    r.box.append(el('span', 'op-spin'), el('span', 'op-spin-text', '확인하고 있어요…'));
+    return function () { r.msg.remove(); if (sess) sess.nodes = sess.nodes.filter(function (n) { return n !== r.msg; }); };
+  }
   function codeLine(e) { return e && e.code ? '코드: ' + e.code + (e.status ? ' · HTTP ' + e.status : '') + (e.retryAfter != null ? ' · Retry-After ' + e.retryAfter + '초' : '') : ''; }
   function errLines(res) { var e = client.say(res); return [e.text, codeLine(e)].filter(Boolean); }
 
@@ -330,9 +338,9 @@
     var wrap = el('div', 'op-report');
     // 맨 위 최종 판단 카드(이용 가능한 기관과 같은 카드 모양)
     var v = verdictOf(a, axes.filter(function (x) { return x.axis !== 'ai'; }), ai);
-    var vbox = el('div', 'op-gov');
+    var vbox = el('div', 'op-gov op-verdict');
     var vrow = el('div', 'op-gov-row');
-    vrow.append(el('span', 'op-gov-n', '최종'), el('span', 'op-gov-who', v.head), el('span', 'op-chip t-' + v.tone, v.chip || (v.tone === 'ok' ? '진짜' : v.tone === 'fail' ? '가짜·변조' : v.tone === 'caution' ? '가짜 의심' : '확인 못 함')), el('span', 'op-body', v.sub));
+    vrow.append(el('span', 'op-gov-n', '요약'), el('span', 'op-gov-who', v.head), el('span', 'op-chip t-' + v.tone, v.chip || (v.tone === 'ok' ? '진짜' : v.tone === 'fail' ? '가짜·변조' : v.tone === 'caution' ? '가짜 의심' : '확인 못 함')), el('span', 'op-body', v.sub));
     vbox.append(vrow);
     if (v.ai) vbox.append(el('p', 'op-foot', v.ai));
     r.box.append(vbox);
@@ -376,15 +384,22 @@
     if (files.length > sent) r.para(null, ['첨부 ' + (files.length - sent) + '개는 서버로 보내지 않았어요. 문서 사진은 \'이 사진 확인하기\' 단추를 눌렀을 때만 보내요.']);
     if (a.analysis_id && !a.analysis_deleted) {
       r.para('보관', ['분석 번호 ' + a.analysis_id + ' · 상태 ' + (a.analysis_status || '-'), '보고서 ' + (retain.report ? '7일 보관' : '끝난 뒤 10분만 보관') + ' · 원본 ' + (retain.original ? '7일 보관' : '처리 직후 삭제')]);
-      if (a.analysis_status === 'COMPLETED') r.btn('보고서 받기', function () { return downloadReport(a.analysis_id); });
       if (retain.original && a.analysis_status === 'COMPLETED') r.btn('원본 받기', function () { return downloadOriginal(a.analysis_id); });
       r.btn('이 분석 지우기', function (x) { return removeAnalysis(a.analysis_id, x); });
     }
-    r.btn('자세히 보기', function (x) {
-      x.dataset.done = '1';
-      var d = aiMsg();
-      d.para('자세히', (a.details || []).map(function (row) { return row.label + ': ' + row.value; }));
+    // 자세히: 이 답 안에서 단추 바로 아래 상자를 열고 닫음(맨 아래로 스크롤하지 않음)
+    var more = null;
+    var mb = r.btn('자세히 보기', function (x) {
+      if (!more) {
+        more = el('div', 'op-more');
+        (a.details || []).forEach(function (row) { more.append(el('p', null, row.label + ': ' + row.value)); });
+        if (!a.details || !a.details.length) more.append(el('p', null, '더 보여 드릴 정보가 없어요.'));
+        r.box.append(more);
+      } else more.hidden = !more.hidden;
+      x.textContent = more.hidden ? '자세히 보기' : '자세히 닫기';
+      x.setAttribute('aria-expanded', more.hidden ? 'false' : 'true');
     }, true);
+    mb.setAttribute('aria-expanded', 'false');
   }
 
   /* ---------------- 입력 → 결과 ---------------- */
@@ -398,18 +413,19 @@
     resetStaff(isApi() ? '직원 7명이 실제 응답이 온 순서대로 표시해요.' : '예시 모드: 예시 응답을 직원 순서대로 보여 줘요.');
     var api = isApi();
     var sess = cur;
+    var unpend = pendingMsg();
     var onStaff = api ? function (o) { if (att && o && o.bubble_key === 'intake.received') att.received = true; chipObs(o); } : null;
     var p = conn.check(text, { onStaff: onStaff, image: image || null }).then(function (a) {
       return new Promise(function (resolve) {
         animateStaff(Array.isArray(a.staff) ? a.staff : [], function () {
           var n = $('staffNote');
           if (n) n.textContent = api ? '실제 응답이 온 순서대로 갱신했어요. 판정은 서버 값 그대로예요.' : '예시 응답이에요. 서버에 보내지 않았어요.';
-          inSession(sess, function () { renderAnswer(a); }); resolve(a);
+          unpend(); inSession(sess, function () { renderAnswer(a); }); resolve(a);
         });
       });
     }, function (e) {
       IDS.forEach(function (id) { chip(id, 'wait'); });
-      inSession(sess, function () { say(e && e.userMessage ? e.userMessage : '입력을 확인하지 못했어요.'); });
+      unpend(); inSession(sess, function () { say(e && e.userMessage ? e.userMessage : '입력을 확인하지 못했어요.'); });
     }).then(function (x) { delete running[key]; return x; }, function (x) { delete running[key]; throw x; });
     running[key] = p;
     return p;
@@ -422,14 +438,15 @@
     var sess = ensureSession('예시 · ' + T.maskPersonal(text));
     userMsg(T.maskPersonal(text));
     resetStaff('예시 자료: 서버에 보내지 않은 예시 응답을 직원 순서대로 보여 줘요.');
+    var unpend = pendingMsg('예시 자료 · 서버에 보내지 않음');
     return Hk.sampleAdapter.check(text).then(function (a) {
       return new Promise(function (resolve) {
         animateStaff(Array.isArray(a.staff) ? a.staff : [], function () {
           var n = $('staffNote'); if (n) n.textContent = '예시 응답이에요. 서버에 보내지 않았어요.';
-          inSession(sess, function () { renderAnswer(a, '예시 자료 · 서버에 보내지 않음'); }); resolve(a);
+          unpend(); inSession(sess, function () { renderAnswer(a, '예시 자료 · 서버에 보내지 않음'); }); resolve(a);
         });
       });
-    }, function (e) { say(e && e.userMessage ? e.userMessage : '예시를 보여 드리지 못했어요.'); });
+    }, function (e) { unpend(); say(e && e.userMessage ? e.userMessage : '예시를 보여 드리지 못했어요.'); });
   }
   Hk.op5sampleCheck = sampleCheck;
   function submit(shown) {
@@ -539,14 +556,6 @@
       return true;
     } catch (e) { return false; }
   }
-  function downloadReport(id) {
-    return client.report(id).then(function (res) {
-      if (res.ignored) return say('지운 분석이라 늦게 온 응답은 버렸어요.');
-      if (res.status !== 200) return aiMsg().para('보고서 받기', errLines(res));
-      save(id + '-report.json', JSON.stringify(res.data, null, 2), 'application/json');
-      say('보고서를 내려받았어요(' + id + '-report.json).');
-    });
-  }
   function downloadOriginal(id) {
     return client.original(id).then(function (res) {
       if (res.ignored) return say('지운 분석이라 늦게 온 응답은 버렸어요.');
@@ -581,7 +590,6 @@
         return x.analysis_id + ' · ' + x.status + ' · 보고서 ' + (x.retain_report ? '보관' : '-') + ' · 원본 ' + (x.retain_original ? '보관' : '-') + (x.result_expires_at ? ' · 보고서 기한 ' + when(x.result_expires_at) : '');
       }).concat(items.length > 5 ? ['… 외 ' + (items.length - 5) + '건'] : []));
       items.slice(0, 5).forEach(function (x) {
-        if (x.retain_report) r.btn('보고서 받기 ' + x.analysis_id, function () { return downloadReport(x.analysis_id); });
         if (x.retain_original) r.btn('원본 받기 ' + x.analysis_id, function () { return downloadOriginal(x.analysis_id); });
         r.btn('지우기 ' + x.analysis_id, function (b) { return removeAnalysis(x.analysis_id, b); });
       });

@@ -157,12 +157,12 @@ test('410 만료: RESULT_EXPIRED(보고서)·INPUT_EXPIRED(분석) 를 그대로
   const Hk = load();
   const f = fakeFetch((url, init) => {
     if (url === '/api/v1/auth/me') return { status: 200, body: ME };
-    if (url === '/api/v3/analyses/ana_old/report') return { status: 410, body: { detail: 'RESULT_EXPIRED' } };
+    if (url === '/api/v3/analyses/ana_old') return { status: 410, body: { detail: 'RESULT_EXPIRED' } };
     if (url === '/api/v3/inputs') return { status: 201, body: { input_ref: 'inp_x', expires_at: 1 } };
     if (url === '/api/v3/analyses' && init.method === 'POST') return { status: 410, body: { detail: 'INPUT_EXPIRED' } };
   });
   const { api, client } = adapter(Hk, f);
-  const r = await client.report('ana_old');
+  const r = await client.analysis('ana_old');
   const e = client.say(r);
   assert.equal(e.status, 410);
   assert.equal(e.code, 'RESULT_EXPIRED');
@@ -342,7 +342,7 @@ test('삭제 후 늦은 응답 무시: 폴링 중 지우면 완료 응답이 와
     if (url === '/api/v3/analyses' && init.method === 'POST') return { status: 202, body: { analysis_id: 'ana_late', status: 'QUEUED', retain_report: true, retain_original: false } };
     if (url === '/api/v3/analyses/ana_late' && (init.method || 'GET') === 'GET') { client.removeAnalysis('ana_late'); return { status: 200, body: { analysis_id: 'ana_late', status: 'COMPLETED', retain_report: true, retain_original: false, report }, delay: 10 }; }
     if (url === '/api/v3/analyses/ana_late' && init.method === 'DELETE') return { status: 204 };
-    if (url === '/api/v3/analyses/ana_slow/report') return { status: 200, body: report, delay: 30 };
+    if (url === '/api/v3/analyses/ana_slow/original') return { status: 200, body: 'synthetic', delay: 30 };
     if (url === '/api/v3/analyses/ana_slow' && init.method === 'DELETE') return { status: 204 };
   });
   const x = adapter(Hk, f); client = x.client;
@@ -351,13 +351,13 @@ test('삭제 후 늦은 응답 무시: 폴링 중 지우면 완료 응답이 와
   assert.equal(a.analysis_deleted, true);
   assert.equal(a.staff.find(s => s.staff === 'ai').bubble_key, 'ai.cancelled');
   assert.ok(!a.axes.find(x => x.axis === 'ai').body.includes(report.evidence && report.evidence[0] ? report.evidence[0].quote : '@@없음@@'));
-  // 늦게 오는 보고서
-  const pending = client.report('ana_slow');
+  // 늦게 오는 원본
+  const pending = client.original('ana_slow');
   await client.removeAnalysis('ana_slow');
   const late = await pending;
   assert.equal(late.ignored, true);
   const n = f.calls.length;
-  const after = await client.report('ana_slow');
+  const after = await client.original('ana_slow');
   assert.equal(after.ignored, true);
   assert.equal(f.calls.length, n, '지운 뒤에 서버를 다시 부름');
 });

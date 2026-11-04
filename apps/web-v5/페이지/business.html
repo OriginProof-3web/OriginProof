@@ -164,6 +164,13 @@ html[data-theme="light"]{--z-fact:#4b55c9;--z-fact-bg:#f1f2ff;--z-fact-line:#c9c
 .op-gov-n{font-size:11px;font-weight:700;color:var(--z-fact)}
 .op-gov-who{font-weight:600}
 .op-gov-row .op-body{grid-column:2/-1;color:var(--c-muted2);font-size:12px}
+.op-verdict .op-gov-row{border-top:0;margin-top:0}
+.op-more{margin:8px 0 2px;padding:10px 12px;border:1px solid var(--c-line);border-radius:10px;background:var(--c-sunk);font-size:12.5px;color:var(--c-muted2)}
+.op-more p{margin:2px 0}
+.op-spin{display:inline-block;width:14px;height:14px;margin-right:8px;vertical-align:-2px;border:2px solid var(--c-line-strong);border-top-color:var(--c-accent);border-radius:50%;animation:op-spin .8s linear infinite}
+.op-spin-text{color:var(--c-muted)}
+@keyframes op-spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.op-spin{animation:none}}
 .op-roi{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:8px 0 0}
 @media(max-width:700px){.op-roi{grid-template-columns:1fr}}
 .op-roi-card{border:1px solid var(--c-line);background:var(--c-card);border-radius:12px;padding:10px 12px;display:grid;gap:2px}
