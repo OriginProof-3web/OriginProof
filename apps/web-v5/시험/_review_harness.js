@@ -63,7 +63,12 @@ const menu = (d, k) => vm.runInContext('selectAction(' + JSON.stringify(k) + ')'
 const buttons = d => d.doc.querySelectorAll('#chatThread button');
 const find = (d, label) => buttons(d).filter(b => (label instanceof RegExp ? label.test(b.textContent) : b.textContent === label)).pop();
 async function press(d, label, ms = 25) { const b = typeof label === 'object' && !(label instanceof RegExp) ? label : find(d, label); assert.ok(b, '단추 없음: ' + label); d.doc._dispatch(b, new Ev('click')); await sleep(ms); }
-const toSample = async d => { if (!find(d, '예시 모드로 바꾸기') || find(d, '예시 모드로 바꾸기').disabled) { menu(d, 'status'); await sleep(40); } await press(d, '예시 모드로 바꾸기'); };
+// 운영자 화면에만 '예시 모드로 바꾸기' 단추가 있음(개인·기관은 단추 없음) → 단추가 없으면 같은 동작의 손잡이로 바꿈
+const toSample = async d => {
+  if (!find(d, '예시 모드로 바꾸기') || find(d, '예시 모드로 바꾸기').disabled) { menu(d, 'status'); await sleep(40); }
+  if (find(d, '예시 모드로 바꾸기')) return press(d, '예시 모드로 바꾸기');
+  assert.equal(d.win.Hk.op5switchMode('sample'), true); await sleep(25);
+};
 
 const APP = 'app_1', PID = '0x' + 'ab'.repeat(32), ISS = '0x' + 'cd'.repeat(32), TX = '0x' + 'ef'.repeat(32), TX2 = '0x' + '12'.repeat(32);
 /* identifier_hash 와 같은 규칙: keccak256(utf8(값)) (packages/python/originproof_core/wallet_signatures.py:69-74).

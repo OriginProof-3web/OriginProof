@@ -91,7 +91,8 @@ test('T5-7 실서버 응답 대기 중 예시 모드로 전환: 뒤따르는 기
   const d = build(API, f);
   await sleep(60);
   menu(d, 'status');
-  await press(d, '예시 모드로 바꾸기', 80);
+  assert.equal(find(d, '예시 모드로 바꾸기'), undefined, '기관 화면에는 예시 모드 단추가 없음');
+  d.win.Hk.op5switchMode('sample'); await sleep(80);
   assert.equal(f.calls.filter(c => /issuer\/status|applications\/mine/.test(c.url)).length, 0);
 });
 test('T5-8 예시 모드 전환 뒤 실서버 응답의 체인 대조 단추: 바깥 요청 0건', async () => {
@@ -242,19 +243,19 @@ test('T6-9 권한 거부(403)는 재시도 대기로 남기지 않음(회귀 보
 
 test('T6-10a op5_auth 가 직접 모드를 되돌려도(비회원) 기다리던 입력에 안 들어감, 입력칸 글 유지', async () => {
   const f = serverDouble({ over: (u) => u === '/v1/auth/me' ? { status: 401, delay: 30, body: { detail: 'AUTH_REQUIRED' } } : null });
-  const d = build(API, f);
-  menu(d, 'status');
-  await press(d, '연결 주소 바꾸기', 1);
+  const d = build(API, f, win => { win.ethereum = eth(); });
+  menu(d, 'issue');
+  await press(d, '초안 보내기 시작', 1);
   await sleep(60);
-  enter(d, '/api2'); await sleep(10);
-  assert.equal(d.win.localStorage.getItem('op5.apiBase'), null);
-  assert.equal(d.doc.getElementById('chatInput').value, '/api2');
+  enter(d, '{"doc_key":"x"}'); await sleep(10);
+  assert.equal(posted(f, /document-drafts/).length, 0);
+  assert.equal(d.doc.getElementById('chatInput').value, '{"doc_key":"x"}');
 });
 test('T6-10b 단추를 거치지 않고 모드가 바뀌어도 기다리던 입력에 안 들어감, 입력칸 글 유지(submit 관문)', async () => {
   let conn = null;
-  const f = serverDouble({});
+  const f = serverDouble(OPERATOR);
   const d = build(API, f, win => { win.Hk = new Proxy({}, { set(t, k, v) { t[k] = k === 'createConnection' ? (o => (conn = v(o))) : v; return true; } }); });
-  menu(d, 'status');
+  menu(d, 'status'); await sleep(40);
   await press(d, '연결 주소 바꾸기', 1);
   assert.ok(conn);
   conn.setMode('sample');

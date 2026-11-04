@@ -464,15 +464,32 @@
   function when(sec) { try { return new Date(sec * 1000).toLocaleString('ko-KR'); } catch (e) { return String(sec); } }
 
   /* ---------------- 왼쪽 메뉴 → 말풍선 대화 ---------------- */
+  /* 역할별 화면(대표 지시 2026-11-04): 연결 설정·서버 상태·모드/주소/보관 단추·2-of-3 공동승인 패널은 운영자 화면에만.
+     개인(recipient)·기관(issuer) 화면에는 아이디, 공개 블록체인 연결 정보, 이용 가능한 기관만. 예시 모드는 ?demo=·?mode=sample 로 계속 들어감.
+     권한은 서버가 따로 막음(이 구분은 화면 정리일 뿐). */
+  var lastRole = null;
+  function myRole() {
+    if (lastRole) return lastRole;
+    var m = Hk.auth && Hk.auth.state && Hk.auth.state.me;
+    return m && typeof m.role === 'string' ? m.role : null;
+  }
+  // 운영자, 또는 로그인 없이 보는 예시 화면(비회원·?demo=)이면 예전 화면 그대로
+  function staffView() { var role = myRole(); return role === 'operator' || (!isApi() && role !== 'recipient' && role !== 'issuer'); }
+  function switchMode(to) {
+    var before = conn.mode();
+    if (conn.setMode(to) !== to) return false;   // 비회원 거절 등은 op5_auth.js 가 안내함
+    if (before !== to) dropAsk('모드 변경');
+    paintHint();
+    say(to === 'api' ? '실서버 모드로 바꿨어요. 연결 주소 ' + getBase() + ' 로 보내요.' : '예시 모드로 바꿨어요. 서버에 보내지 않고 예시 응답만 보여요.');
+    return true;
+  }
+  // 단추가 없는 역할의 시험·콘솔용(?mode=sample 과 같은 효과, 서버 권한과 무관)
+  Hk.op5switchMode = function (to) { return to === 'api' || to === 'sample' ? switchMode(to) : false; };
   function modeButtons(r) {
     var to = isApi() ? 'sample' : 'api';   // 단추 글자대로만 바꿈(오래된 단추가 반대로 뒤집지 않게)
+    if (to === 'sample' && myRole() !== 'operator') return;   // 개인·기관 화면에는 '예시 모드로 바꾸기' 없음
     r.btn(to === 'sample' ? '예시 모드로 바꾸기' : '실서버 모드로 바꾸기', function (x) {
-      var before = conn.mode();
-      if (conn.setMode(to) !== to) return;   // 비회원 거절 등은 op5_auth.js 가 안내함
-      x.dataset.done = '1';
-      if (before !== to) dropAsk('모드 변경');
-      paintHint();
-      say(to === 'api' ? '실서버 모드로 바꿨어요. 연결 주소 ' + getBase() + ' 로 보내요.' : '예시 모드로 바꿨어요. 서버에 보내지 않고 예시 응답만 보여요.');
+      if (switchMode(to)) x.dataset.done = '1';
     }, true);
   }
   function exampleOnly(what) {
@@ -639,47 +656,76 @@
     });
   }
 
+  /* 공개 블록체인 연결 정보: 체인 이름·ID 는 서버(/v1/chain/network), 등록부 주소는 배포 기록 설정에서.
+     PUBLIC_REGISTRY 는 packages/contracts/deployments/11155111.wallet.json 의 contracts.OriginProofWalletRegistry.address 를 옮긴 값
+     (시험이 원본 파일과 같은지 대조함). 서버 응답(/v1/chain/network)에 등록부 주소가 없어서 둔 설정(C 보완 필요). */
+  var PUBLIC_REGISTRY = { '11155111': '0xe540bf29622afff40174b76992b016112f372a2e' };
+  function publicChain(r) {
+    var title = '공개 블록체인 연결 정보';
+    var p = r.para(title, ['확인 중…']);
+    return client.get('/v1/chain/network').then(function (res) {
+      var d = res.data;
+      if (res.status !== 200 || !d || !/^[1-9][0-9]{0,15}$/.test(String(d.chain_id))) return r.set(p, title, errLines(res));
+      var id = String(d.chain_id), target = String(d.chain_target);
+      var registry = target === 'sepolia' ? PUBLIC_REGISTRY[id] || '' : '';
+      var lines = [];
+      if (target === 'sepolia') lines.push('체인: Sepolia 테스트넷 · 체인 ID ' + id);
+      else if (target === 'anvil') lines.push('체인: 로컬 시연 체인(Anvil) · 체인 ID ' + id);
+      else lines.push('체인: ' + target + ' · 체인 ID ' + id);
+      lines.push('등록부 계약 주소: ' + (registry || (target === 'anvil' ? '로컬 시연 체인은 실행할 때마다 주소가 바뀌어 서버가 알려 줄 때만 보여요.' : '서버가 아직 알려 주지 않았어요.')));
+      if (target === 'anvil') lines.push('로컬 시연 체인이라 공개 탐색기(Etherscan)에서는 볼 수 없어요.');
+      r.set(p, title, lines);
+      if (target === 'sepolia' && registry && Hk.chain && Hk.chain.explorerLinks) {
+        Hk.chain.explorerLinks(id, registry).forEach(function (l) { var k = el('a', null, l.label); k.href = l.href; k.target = '_blank'; k.rel = 'noopener noreferrer'; p.append(el('br'), k); });
+      }
+    });
+  }
+  /* 이용 가능한 기관: 체인에서 활성(ACTIVE)인 기관 이름 목록을 공개로 주는 서버 API 가 아직 없음(apps/api, C 담당).
+     지어낸 목록 대신, 기관 계정은 자기 기관(/v1/issuer/status 의 ACTIVE + 신청의 기관 이름)만 실제 값으로 보여 줌. */
+  function issuerLines(own) {
+    return (own ? [own] : []).concat([(own ? '다른 기관 목록은' : '지금 체인에서 활성인 기관 목록은') + ' 알려 주는 서버 기능이 아직 없어 보여 드리지 못해요.']);
+  }
+  function availableIssuers(r, own) { return r.para('이용 가능한 기관', issuerLines(own)); }
+  function logoutFn(x) { x.dataset.done = '1'; return client.logout().then(function (o) { if (o.status === 200) lastRole = null; say(o.status === 200 ? '로그아웃했어요.' : errLines(o).join(' ')); }); }
+  // 아이디는 /v1/auth/me 의 username(계정 이름). 역할 글자는 보여 주지 않음.
+  function loginLine(me) { return ['아이디 ' + String(me.username)]; }
   function showStatus() {
     var r = aiMsg();
-    r.para('연결 설정', ['지금 모드: ' + (isApi() ? '실서버 모드' : '예시 모드'), '연결 주소: ' + getBase() + (getBase() === '/api' ? ' (같은 출처 프록시)' : ''), retainText()]);
-    var h = r.para('서버 상태(/health/live · /health/ready)', ['확인 중…']);
-    var who = r.para('로그인', ['확인 중…']);
-    modeButtons(r);
-    r.btn('연결 다시 확인', function () { return showStatus(); }, true);
-    r.btn('연결 주소 바꾸기', function () {
-      ask('base', '새 연결 주소를 입력칸에 넣고 보내 주세요. 같은 출처 경로(예: /api) 또는 이 컴퓨터 주소(예: http://127.0.0.1:8000)만 받아요.', function (t) {
-        var b = O.parseBase(t);
-        if (!b.ok) return sayAgain(b.message);
-        T.storageSet(LS, BASE_KEY, b.value); rebuild();
-        say('연결 주소를 ' + b.value + ' 로 바꿨어요.' + (/^https?:/.test(b.value) ? ' 다른 주소는 서버가 이 화면 주소를 허용(CORS·Origin)해야 해요.' : ''));
-      });
-    }, true);
-    r.btn('보관 선택 바꾸기', function () { retainButtons(aiMsg()); }, true);
-    govPanel(r);
-    roiPanel(r);
     if (!isApi()) {
-      r.set(h, '서버 상태(/health/live · /health/ready)', ['예시 모드라 서버에 묻지 않았어요.']);
-      r.set(who, '로그인', ['예시 모드라 서버에 묻지 않았어요. 실서버 모드에서 기관 상태까지 확인해요. 로그인은 로그인 화면(login.html)에서 해요.']);
+      var staff = staffView();
+      if (staff) r.para('연결 설정', ['지금 모드: 예시 모드', '연결 주소: ' + getBase() + (getBase() === '/api' ? ' (같은 출처 프록시)' : ''), retainText()]);
+      if (staff) r.para('서버 상태(/health/live · /health/ready)', ['예시 모드라 서버에 묻지 않았어요.']);
+      r.para('로그인', ['예시 모드라 서버에 묻지 않았어요. 실서버 모드에서 기관 상태까지 확인해요. 로그인은 로그인 화면(login.html)에서 해요.']);
+      modeButtons(r);
+      if (staff) {
+        r.btn('연결 다시 확인', function () { return showStatus(); }, true);
+        r.btn('연결 주소 바꾸기', function () { changeBase(); }, true);
+        r.btn('보관 선택 바꾸기', function () { retainButtons(aiMsg()); }, true);
+      }
       r.btn('로그인 화면 열기', function (x) { x.dataset.done = '1'; location.href = 'login.html?next=business.html'; }, true);
+      if (staff) { govPanel(r); roiPanel(r); }
       return Promise.resolve();
     }
-    var pending = [client.health().then(function (x) {
-      r.set(h, '서버 상태(/health/live · /health/ready)', ['live: ' + x.live.text + ' (' + x.live.code + ')', 'ready: ' + x.ready.text + ' (' + x.ready.code + ')']);
-    })];
-    if (isApi()) pending.push(networkPara(r));
-    pending.push(client.me().then(function (res) {
+    var who = r.para('로그인', ['확인 중…']);
+    return client.me().then(function (res) {
+      if (!isApi()) return;   // 기다리는 사이 예시 모드로 바뀌면 멈춤
       if (res.status !== 200 || !res.data) {
+        lastRole = null;
         r.set(who, '로그인', errLines(res).concat(['로그인은 로그인 화면(login.html)에서 해요. 비밀번호는 이 대화에 쓰지 마세요.']));
         r.btn('로그인 화면 열기', function (x) { x.dataset.done = '1'; location.href = 'login.html?next=business.html'; }, true);
-        return;
+        return Promise.all([publicChain(r), availableIssuers(r, '')]);
       }
       var me = res.data;
-      r.set(who, '로그인', [String(me.username) + ' · 역할 ' + String(me.role) + (me.issuer_id ? ' · 기관 ' + String(me.issuer_id) : '')]);
-      r.btn('로그아웃', function (x) { x.dataset.done = '1'; return client.logout().then(function (o) { say(o.status === 200 ? '로그아웃했어요.' : errLines(o).join(' ')); }); });
-      if (me.role === 'issuer' || me.role === 'operator') governanceButtons(r, me.role);
-      if (me.role !== 'issuer') return;
+      lastRole = typeof me.role === 'string' ? me.role : null;
+      if (me.role === 'operator') return operatorStatus(r, who, me);
+      r.set(who, '로그인', loginLine(me));
+      r.btn('로그아웃', logoutFn);
+      if (me.role === 'issuer') governanceButtons(r, me.role);
+      var pending = [publicChain(r)];
+      if (me.role !== 'issuer') { availableIssuers(r, ''); return Promise.all(pending); }
+      var avail = availableIssuers(r, '');
       var iss = r.para('기관 상태(/v1/issuer/status · 신청)', ['확인 중…']);
-      return Promise.all([client.get('/v1/issuer/status'), client.get('/v1/issuer-applications/mine')]).then(function (z) {
+      pending.push(Promise.all([client.get('/v1/issuer/status'), client.get('/v1/issuer-applications/mine')]).then(function (z) {
         var lines = [];
         if (z[0].status === 200 && z[0].data) lines.push('기관 ' + z[0].data.issuer_id + ' · 상태 ' + z[0].data.status + ' · 체인 ' + z[0].data.chain_id);
         else if (client.say(z[0]).code === 'CHAIN_UNAVAILABLE') lines.push('기관 체인 상태(v1 장부)는 읽지 못했어요. wallet 장부만 쓰는 환경에서는 정상이고, 문서 발행·검증에는 영향이 없어요.');
@@ -688,9 +734,37 @@
         else if (z[1].status === 200) lines.push('기관 신청 기록이 없어요.');
         else lines = lines.concat(errLines(z[1]));
         r.set(iss, '기관 상태(/v1/issuer/status · 신청)', lines);
-      });
-    }));
-    return Promise.all(pending);
+        var active = z[0].status === 200 && z[0].data && z[0].data.status === 'ACTIVE';
+        var name = z[1].status === 200 && z[1].data && typeof z[1].data.issuer_name === 'string' ? z[1].data.issuer_name : '';
+        if (active && name) r.set(avail, '이용 가능한 기관', issuerLines(name + ' (내 기관 · 활성)'));
+      }));
+      return Promise.all(pending);
+    });
+  }
+  function changeBase() {
+    ask('base', '새 연결 주소를 입력칸에 넣고 보내 주세요. 같은 출처 경로(예: /api) 또는 이 컴퓨터 주소(예: http://127.0.0.1:8000)만 받아요.', function (t) {
+      var b = O.parseBase(t);
+      if (!b.ok) return sayAgain(b.message);
+      T.storageSet(LS, BASE_KEY, b.value); rebuild();
+      say('연결 주소를 ' + b.value + ' 로 바꿨어요.' + (/^https?:/.test(b.value) ? ' 다른 주소는 서버가 이 화면 주소를 허용(CORS·Origin)해야 해요.' : ''));
+    });
+  }
+  // 운영자 화면: 예전 기관 상태 내용 그대로(연결 설정·서버 상태·모드/주소/보관 단추·2-of-3 패널·참여 효과·체인 네트워크·공동승인 단추)
+  function operatorStatus(r, first, me) {
+    r.set(first, '연결 설정', ['지금 모드: 실서버 모드', '연결 주소: ' + getBase() + (getBase() === '/api' ? ' (같은 출처 프록시)' : ''), retainText()]);
+    var h = r.para('서버 상태(/health/live · /health/ready)', ['확인 중…']);
+    r.para('로그인', loginLine(me));
+    r.btn('로그아웃', logoutFn);
+    modeButtons(r);
+    r.btn('연결 다시 확인', function () { return showStatus(); }, true);
+    r.btn('연결 주소 바꾸기', function () { changeBase(); }, true);
+    r.btn('보관 선택 바꾸기', function () { retainButtons(aiMsg()); }, true);
+    govPanel(r);
+    roiPanel(r);
+    governanceButtons(r, me.role);
+    return Promise.all([client.health().then(function (x) {
+      r.set(h, '서버 상태(/health/live · /health/ready)', ['live: ' + x.live.text + ' (' + x.live.code + ')', 'ready: ' + x.ready.text + ' (' + x.ready.code + ')']);
+    }), networkPara(r)]);
   }
   function stepLine(r, p) { return function (s) { r.line(p, (s.ok ? '✓ ' : '✕ ') + s.text + (s.ok ? '' : (s.code ? ' (코드: ' + s.code + (s.data && s.data.status ? ' · HTTP ' + s.data.status : '') + ')' : ''))); }; }
   function needWallet(r) { var w = ethFn(); if (!w || typeof w.request !== 'function') { r.para('지갑 필요', ['이 브라우저에는 지갑(window.ethereum)이 없어요. 서명은 기관 지갑에서만 하고, 서버에는 개인키를 보내지 않아요.']); return true; } return false; }
@@ -808,7 +882,7 @@
     r.para('이 탭에서 만든 지갑 작업(v3)', ops.length ? ops.slice(0, 5).map(function (o) { return o.operation_id + ' · ' + o.kind + ' · ' + o.status + ' · 다음 ' + o.next_action; }) : ['아직 없어요.']);
     ops.slice(0, 3).forEach(function (o) { opButtons(r, o); });
     r.btn('내 확인 기록(보관한 분석) 보기', function () { return showAnalyses(); }, true);
-    r.btn('보관 선택 바꾸기', function () { retainButtons(aiMsg()); }, true);
+    if (staffView()) r.btn('보관 선택 바꾸기', function () { retainButtons(aiMsg()); }, true);
     if (!isApi()) { r.para(null, ['예시 모드라 서버 작업 목록은 부르지 않아요.']); modeButtons(r); return; }
     var p = r.para('서버 작업 이력(GET /v1/operations)', ['불러오는 중…']);
     return client.get('/v1/operations?limit=5').then(function (res) {
@@ -820,7 +894,7 @@
     var r = aiMsg();
     r.para('도움말', [
       '· 입력칸: 받은 문자·검증 링크·Proof ID 를 붙여 넣고 Enter. 문서 ID 는 {"document_id":"0x…","version":1} 처럼 넣어요.',
-      '· 기관 상태: 연결 모드·주소, 서버 상태, 로그인, 기관 상태',
+      staffView() ? '· 기관 상태: 연결 모드·주소, 서버 상태, 로그인, 기관 상태' : '· 기관 상태: 로그인 아이디, 공개 블록체인 연결 정보, 이용 가능한 기관' + (myRole() === 'issuer' ? ', 내 기관 상태' : ''),
       '· 새 Proof 발행 / 발행 목록(철회) / 공개키 관리(키 증명): 기관 지갑 단계를 대화로 진행',
       '· 작업 이력: 지갑 작업 상태·복구 조회, 내 확인 기록(보관·내려받기·지우기)',
       '· 발행 기록 검색칸: 0x…(문서 ID)·prf_…·ana_…·op_… 를 넣고 Enter',

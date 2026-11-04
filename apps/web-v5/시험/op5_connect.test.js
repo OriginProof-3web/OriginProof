@@ -229,7 +229,7 @@ const B = '/v3/issuer-applications/' + APP;
 
 test('기관 메뉴(신청자): 온보딩 경로로 가고, 내부 승인·제안 조회 단추는 없음, 긴급 정지는 자기 기관', async () => {
   const { d, has, press, posted } = await open('issuer', 'acct_applicant');
-  assert.match(d.doc.getElementById('chatThread').textContent, /anvil · 체인 31337/);
+  assert.match(d.doc.getElementById('chatThread').textContent, /로컬 시연 체인\(Anvil\) · 체인 ID 31337/);
   assert.equal(has('내부 승인하기(지정된 다른 계정)'), false);
   assert.equal(has('공동승인 제안 조회'), false);
   await press('업무 메일 코드 받기'); enter(d, 'staff@bank.example.invalid'); await sleep(40);

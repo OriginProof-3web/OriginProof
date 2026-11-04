@@ -69,7 +69,7 @@ test('금액 입력: 쉼표·원은 정수로, 숫자가 아니면 null(P2: 85,0
 
 test('가입 화면: 기관 가입은 서버로 보내지 않고 개인만 보냄', () => {
   const join = fs.readFileSync(path.join(WEB, 'join.html'), 'utf8');
-  assert.match(join, /kind:"personal",email,password:pw,terms_accepted:true/);
+  assert.match(join, /kind:"personal",email,username:user,password:pw,terms_accepted:true/);
   assert.doesNotMatch(join, /kind:biz|issuer_id:/);
   assert.match(join, /if\(biz\)\{[^}]*운영자가 발급/);
   // 연결 실패에도 비밀번호 칸을 비움
@@ -83,10 +83,10 @@ test('가입 화면: AI 키 입력 없음(AI는 서버 키로 분석), 예전에
   assert.equal(fs.existsSync(path.join(WEB, 'js', 'op5_keyvault.js')), false);
 });
 
-test('가입 성공 → 로그인 화면 이동, 이메일은 주소가 아닌 sessionStorage 로 넘기고 로그인 화면이 한 번 쓰고 지움', () => {
+test('가입 성공 → 로그인 화면 이동, 아이디는 주소가 아닌 sessionStorage 로 넘기고 로그인 화면이 한 번 쓰고 지움', () => {
   const join = fs.readFileSync(path.join(WEB, 'join.html'), 'utf8');
   const login = fs.readFileSync(path.join(WEB, 'login.html'), 'utf8');
-  assert.match(join, /sessionStorage\.setItem\("op5\.joinEmail",email\)[\s\S]*location\.href="login\.html\?next=business\.html"/);
-  assert.doesNotMatch(join, /login\.html\?[^"]*email/);
-  assert.match(login, /sessionStorage\.removeItem\("op5\.joinEmail"\);\$\("username"\)\.value=j/);
+  assert.match(join, /sessionStorage\.setItem\("op5\.joinId",user\)[\s\S]*location\.href="login\.html\?next=business\.html"/);
+  assert.doesNotMatch(join, /login\.html\?[^"]*(email|user)/);
+  assert.match(login, /sessionStorage\.removeItem\("op5\.joinId"\);\$\("username"\)\.value=j/);
 });
