@@ -1706,6 +1706,138 @@
         "title": "IssueInput",
         "type": "object"
       },
+      "IssuerChainState": {
+        "properties": {
+          "block_number": {
+            "title": "Block Number",
+            "type": "string"
+          },
+          "issuer_id": {
+            "title": "Issuer Id",
+            "type": "string"
+          },
+          "key_id": {
+            "title": "Key Id",
+            "type": "string"
+          },
+          "key_registered_block": {
+            "title": "Key Registered Block",
+            "type": "string"
+          },
+          "key_status": {
+            "enum": [
+              "ACTIVE",
+              "RETIRED",
+              "COMPROMISED"
+            ],
+            "title": "Key Status",
+            "type": "string"
+          },
+          "signer": {
+            "title": "Signer",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "ACTIVE",
+              "SUSPENDED"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "issuer_id",
+          "state",
+          "key_id",
+          "signer",
+          "key_status",
+          "key_registered_block",
+          "block_number"
+        ],
+        "title": "IssuerChainState",
+        "type": "object"
+      },
+      "IssuerDocument": {
+        "properties": {
+          "amount_minor": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount Minor"
+          },
+          "document_id": {
+            "title": "Document Id",
+            "type": "string"
+          },
+          "document_number": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Number"
+          },
+          "latest_version": {
+            "title": "Latest Version",
+            "type": "integer"
+          },
+          "notice_type": {
+            "title": "Notice Type",
+            "type": "string"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "document_id",
+          "version",
+          "latest_version",
+          "notice_type",
+          "summary",
+          "amount_minor",
+          "document_number"
+        ],
+        "title": "IssuerDocument",
+        "type": "object"
+      },
+      "IssuerDocuments": {
+        "properties": {
+          "documents": {
+            "items": {
+              "$ref": "#/components/schemas/IssuerDocument"
+            },
+            "title": "Documents",
+            "type": "array"
+          }
+        },
+        "required": [
+          "documents"
+        ],
+        "title": "IssuerDocuments",
+        "type": "object"
+      },
       "IssuerTrustStatus": {
         "enum": [
           "ACTIVE",
@@ -7459,6 +7591,114 @@
         "summary": "Internal Approval",
         "tags": [
           "wallet onboarding"
+        ]
+      }
+    },
+    "/v3/issuer/documents": {
+      "get": {
+        "operationId": "my_documents_v3_issuer_documents_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssuerDocuments"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "field_paths": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "MALFORMED_INPUT. /v3: {detail, request_id, field_paths}; others: {error, request_id}"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "My Documents",
+        "tags": [
+          "issuer views"
+        ]
+      }
+    },
+    "/v3/issuer/state": {
+      "get": {
+        "operationId": "my_chain_state_v3_issuer_state_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssuerChainState"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "field_paths": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "MALFORMED_INPUT. /v3: {detail, request_id, field_paths}; others: {error, request_id}"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "My Chain State",
+        "tags": [
+          "issuer views"
         ]
       }
     },

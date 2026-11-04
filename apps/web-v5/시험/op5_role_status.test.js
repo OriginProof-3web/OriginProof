@@ -136,6 +136,25 @@ test('기관 화면: 체인에서 활성인 기관은 v1 신청서가 검토 중
   for (const l of ['온보딩 상태 보기', '업무 메일 코드 받기', '메일 코드 확인', '내부 승인하기(지정된 다른 계정)']) assert.equal(find(d, l), undefined, l);
 });
 
+test('기관 공개키 관리·발행 목록: v5 Registry 경로(/v3/issuer/state·documents)로 키·안내문을 보여 줌, 옛 v1·v2 경로는 안 부름', async () => {
+  const f = serverDouble({ persona: { role: 'issuer', issuer_id: 'iss_origin_mock_bank', username: 'bank_staff' } });
+  const d = build('?mode=api', f);
+  await sleep(10);
+  menu(d, 'keys'); await sleep(60);
+  const k = threadText(d);
+  assert.match(k, /블록체인 기관 상태: 활성/);
+  assert.match(k, /사용 중인 키: 0xcccc…cccc · 사용 중/);
+  assert.match(k, /서명 지갑: 0x1515…1515/);
+  menu(d, 'proofs'); await sleep(60);
+  const t = threadText(d);
+  assert.match(t, /발행 목록 · 2건/);
+  assert.match(t, /1\. 합성 지방세 납부 안내 · 120,000원 · v2 · 최신/);
+  assert.match(t, /2\. 합성 지방세 납부 안내 · 154,000원 · v1 · 새 버전 있음/);
+  assert.doesNotMatch(k + t, /GET \/v|연결하지 못했어요/);
+  const urls = f.calls.map(c => c.url);
+  assert.ok(!urls.some(u => /\/v1\/issuer\/keys|\/v2\/issuer\/proofs/.test(u)), urls.join(' '));
+});
+
 test('화면 나누기: 메뉴를 바꾸면 앞 메뉴 내용이 남지 않고, 개인 계정의 맨 위 단추(issue)는 빈 새 대화 화면', async () => {
   const { d } = await open({ role: 'recipient', issuer_id: null, username: 'kim_tester' });
   assert.match(threadText(d), /이용 가능한 기관/);

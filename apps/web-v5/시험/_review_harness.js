@@ -171,6 +171,10 @@ function serverDouble(o) {
     if (u.startsWith('/v3/analyses?')) return { status: 200, body: { items: [{ analysis_id: 'ana_k', status: 'COMPLETED', retain_report: true, retain_original: true }] } };
     if (u.startsWith('/v3/analyses/')) return { status: 200, body: {} };
     if (u.startsWith('/v1/issuer/keys')) return isIssuer ? { status: 200, body: [] } : deny(403, 'FORBIDDEN');
+    if (u === '/v3/issuer/state') return isIssuer ? { status: 200, body: { issuer_id: '0x' + '9d'.repeat(32), state: 'ACTIVE', key_id: '0x' + 'cc'.repeat(32), signer: '0x' + '15'.repeat(20), key_status: 'ACTIVE', key_registered_block: '7', block_number: '29' } } : deny(403, 'FORBIDDEN');
+    if (u === '/v3/issuer/documents') return isIssuer ? { status: 200, body: { documents: [
+      { document_id: '0x' + 'ab'.repeat(32), version: 2, latest_version: 2, notice_type: 'PAYMENT_REQUEST', summary: '합성 지방세 납부 안내', amount_minor: 120000, document_number: null },
+      { document_id: '0x' + 'ab'.repeat(32), version: 1, latest_version: 2, notice_type: 'PAYMENT_REQUEST', summary: '합성 지방세 납부 안내', amount_minor: 154000, document_number: null }] } } : deny(403, 'FORBIDDEN');
     if (u.startsWith('/v2/issuer/proofs')) return isIssuer ? { status: 200, body: [] } : deny(403, 'FORBIDDEN');
     if (u.startsWith('/v1/operations')) return { status: 200, body: [] };
     if (u.startsWith('/v3/documents/')) return { status: 200, body: { document_id: PID, state: 'ACTIVE', version: 1, latest_version: 1, warnings: [] } };

@@ -1051,9 +1051,11 @@
       }, function (t) { return T.maskPersonal(t); });
     });
   }
+  function shortHex(h) { h = String(h || ''); return h.length > 12 ? h.slice(0, 6) + '…' + h.slice(-4) : h; }
+  var KEY_STATUS_KO = { ACTIVE: '사용 중', RETIRED: '교체되어 쓰지 않음', COMPROMISED: '유출 신고됨' };
   function showKeys() {
     var r = aiMsg();
-    var p = r.para('공개키 관리(GET /v1/issuer/keys)', [isApi() ? '불러오는 중…' : '예시 모드라 서버에 보내지 않아요.']);
+    var p = r.para('공개키 관리', [isApi() ? '불러오는 중…' : '예시 모드라 서버에 보내지 않아요.']);
     if (!isApi()) { modeButtons(r); return; }
     var start = function () {
       if (needWallet(r)) return;
@@ -1063,9 +1065,12 @@
         return wallet.keyProof(stepLine(rr, q));
       });
     };
-    return client.get('/v1/issuer/keys').then(function (res) {
-      if (res.status !== 200 || !Array.isArray(res.data)) r.set(p, '공개키 관리', errLines(res));
-      else r.set(p, '공개키 관리', res.data.length ? res.data.slice(0, 8).map(function (k) { return String(k.key_id).slice(0, 14) + '… · ' + k.status + (k.selected ? ' · 사용 중' : '') + ' · ' + String(k.signer).slice(0, 10) + '…'; }) : ['등록된 키가 없어요.']);
+    // v5 지갑 Registry 의 내 기관 기록: 상태·사용 중인 키·서명 지갑(옛 v1 키 목록은 v5 시연 환경에 없음)
+    return client.get('/v3/issuer/state').then(function (res) {
+      var d = res.status === 200 ? res.data : null;
+      if (!d) r.set(p, '공개키 관리', errLines(res));
+      else r.set(p, '공개키 관리', ['블록체인 기관 상태: ' + (d.state === 'ACTIVE' ? '활성' : '정지됨'), '사용 중인 키: ' + shortHex(d.key_id) + ' · ' + (KEY_STATUS_KO[d.key_status] || d.key_status),
+        '서명 지갑: ' + shortHex(d.signer), '키 등록 블록 #' + d.key_registered_block + ' · 블록 #' + d.block_number + ' 기준']);
       start();
     });
   }
@@ -1079,11 +1084,15 @@
         r.set(q, '발행 기록 ' + proofId, res.status === 200 && res.data ? [JSON.stringify(res.data).slice(0, 400)] : errLines(res));
       });
     }
-    var p = r.para('발행 목록(GET /v2/issuer/proofs)', ['불러오는 중…']);
-    return client.get('/v2/issuer/proofs').then(function (res) {
-      if (res.status !== 200 || !Array.isArray(res.data)) r.set(p, '발행 목록', errLines(res));
-      else r.set(p, '발행 목록', res.data.length ? res.data.slice(0, 8).map(function (x) { return x.proof_id + ' · ' + x.proof_type + ' · 등록 ' + x.registration_status + ' · 만료 ' + x.expires_at; }) : ['발행한 Proof 가 없어요.']);
-      r.para(null, ['v3 지갑 발행 문서는 목록 경로가 없어 문서 ID로 찾아요(왼쪽 발행 기록 검색칸에 0x… 입력).']);
+    // v5 지갑 Registry 에 발행한 내 기관 안내문(서버가 보관한 판). 새 버전이 있는 판은 표시
+    var p = r.para('발행 목록', ['불러오는 중…']);
+    return client.get('/v3/issuer/documents').then(function (res) {
+      var list = res.status === 200 && res.data && Array.isArray(res.data.documents) ? res.data.documents : null;
+      if (!list) r.set(p, '발행 목록', errLines(res));
+      else r.set(p, '발행 목록 · ' + list.length + '건', list.length ? list.slice(0, 20).map(function (x, i) {
+        var what = x.amount_minor != null ? Number(x.amount_minor).toLocaleString('ko-KR') + '원' : (x.document_number || '');
+        return (i + 1) + '. ' + (x.summary || x.notice_type) + (what ? ' · ' + what : '') + ' · v' + x.version + (x.version < x.latest_version ? ' · 새 버전 있음' : ' · 최신') + ' · 문서 ' + shortHex(x.document_id);
+      }).concat(list.length > 20 ? ['… 외 ' + (list.length - 20) + '건'] : []) : ['아직 발행한 안내문이 없어요.']);
       if (needWallet(r)) return;
       r.btn('철회 시작(revoke-drafts → revocations)', function () {
         ask('revoke', '철회할 문서 ID(0x + 64자리)와 버전을 "0x… 2" 처럼 입력칸에 넣고 보내 주세요.', function (t) {
