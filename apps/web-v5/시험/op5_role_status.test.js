@@ -120,3 +120,35 @@ test('화면 나누기: 메뉴를 바꾸면 앞 메뉴 내용이 남지 않고, 
   assert.equal(th.children[0].id, 'chatEmpty');
   assert.ok(!/작업 이력|새 Proof 발행/.test(threadText(d)));
 });
+
+test('작업 이력: 서버 작업을 카드 한 줄씩(쉬운 말 종류·상태), 작업 번호는 앞부분만', async () => {
+  const ops = { status: 200, body: [
+    { operation_id: 'op_f4b35149b69447fbbd676c19ff929f50', action: 'wallet_propose', status: 'CONFIRMED', next_action: 'NONE' },
+    { operation_id: 'op_0628ddbbbc1d4e708130cd2279049771', action: 'wallet_publish', status: 'UNKNOWN', next_action: 'RECONCILE' }
+  ] };
+  const { d } = await open({ role: 'recipient', issuer_id: null, username: 'kim_tester' }, u => /^\/v1\/operations/.test(u) ? ops : null);
+  menu(d, 'operations'); await sleep(60);
+  const t = threadText(d);
+  assert.equal(d.doc.querySelectorAll('#chatThread .op-gov-row').length, 2);
+  assert.match(t, /서버 작업 이력 · 2건/);
+  assert.match(t, /기관 등록 제안\s*완료/);
+  assert.match(t, /안내문 발행\s*확인 필요/);
+  assert.match(t, /복구 조회 필요/);
+  assert.ok(!t.includes('op_f4b35149b69447fbbd676c19ff929f50'), '작업 번호 전체를 늘어놓지 않음');
+});
+
+test('대화 보관: 확인한 대화는 메뉴를 다녀와도 같은 자리로 다시 열 수 있음(화면 말풍선 그대로)', async () => {
+  const { d } = await open({ role: 'recipient', issuer_id: null, username: 'kim_tester' });
+  const { enter } = require('./_review_harness.js');
+  menu(d, 'issue'); await sleep(10);
+  enter(d, '일반 안내문입니다'); await sleep(80);
+  const before = d.doc.querySelectorAll('#chatThread .msg').length;
+  assert.ok(before >= 1);
+  menu(d, 'status'); await sleep(40);
+  assert.ok(!threadText(d).includes('일반 안내문입니다'));
+  const back = d.win.Hk && d.win.Hk.op5sessions ? d.win.Hk.op5sessions() : null;
+  assert.ok(back && back.length === 1, '대화 하나가 보관됨');
+  back[0].open(); await sleep(10);
+  assert.ok(threadText(d).includes('일반 안내문입니다'));
+  assert.equal(d.doc.querySelectorAll('#chatThread .msg').length >= before, true);
+});

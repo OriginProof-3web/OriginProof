@@ -75,12 +75,72 @@
   /* 화면(페이지) 나누기: 메뉴(기관 상태·작업 이력 등)를 누르면 대화창을 비우고 그 메뉴 내용만 보여 줌.
      메뉴 화면에서 문자를 보내면 새 확인 화면으로 시작. '새 대화'는 처음 빈 화면으로 돌아감. */
   var emptyNode = $('chatEmpty'), page = 'chat';   // 처음 빈 화면 요소(지워져도 다시 붙여 씀)
-  function newPage(kind) { thread.replaceChildren(); page = kind; toBottom(); }
+  /* 대화 보관: 확인한 대화는 화면을 바꿔도 지우지 않고 왼쪽 '발행 기록' 목록에 남겨, 눌러서 그 자리로 돌아감.
+     이 탭 메모리에만 있음(새로고침하면 사라짐, 서버·저장소에 보내지 않음). 제목은 개인정보를 가린 첫 문장. */
+  var sessions = [], cur = null, seq = 0;
+  function stash() {
+    if (page !== 'chat' || !cur) return;
+    cur.nodes = Array.prototype.slice.call(thread.childNodes).filter(function (n) { return n !== emptyNode; });
+  }
+  function ensureSession(text) {
+    if (cur) return cur;
+    cur = { id: ++seq, title: String(text || '확인').replace(/\s+/g, ' ').trim().slice(0, 24) || '확인', nodes: [] };
+    sessions.unshift(cur); if (sessions.length > 20) sessions.length = 20;
+    paintRecents();
+    return cur;
+  }
+  // 응답이 늦게 와서 그 사이 다른 화면으로 옮겼으면, 말풍선을 그 대화의 보관분에 붙임(지금 화면에 섞이지 않게)
+  function inSession(sess, fn) {
+    if (!sess || (sess === cur && page === 'chat')) return fn();
+    var saved = thread, tmp = el('div');
+    thread = tmp;
+    try { return fn(); } finally { thread = saved; sess.nodes = sess.nodes.concat(Array.prototype.slice.call(tmp.childNodes)); }
+  }
+  function newPage(kind) { stash(); thread.replaceChildren(); page = kind; if (kind === 'chat') cur = null; paintRecents(); toBottom(); }
   function newChat() {
+    stash(); cur = null;
     thread.replaceChildren(); page = 'chat';
     if (emptyNode) thread.append(emptyNode);
-    toBottom(); if (input) input.focus();
+    paintRecents(); toBottom(); if (input) input.focus();
   }
+  function openSession(sess) {
+    stash(); dropAsk('기록 열기');
+    thread.replaceChildren(); page = 'chat'; cur = sess;
+    sess.nodes.forEach(function (n) { thread.append(n); });
+    paintRecents(); toBottom();
+  }
+  // 왼쪽 '발행 기록' 목록(번들이 비워 둔 자리)에 같은 모양의 줄 단추로 그림. 번들이 다시 그려도 다시 채움
+  // 번들(business.bundle.css)에 이미 있는 메뉴 줄 클래스 그대로(새 스타일 없음)
+  var ROW = 'sidebar-row relative z-10 mx-2 flex h-8 items-center rounded-[8px] px-2 text-left transition-[width,background-color,color,transform] duration-150 active:scale-[0.98]';
+  var ROW_TEXT = 'sidebar-copy min-w-0 flex-1 truncate text-[14px] font-medium text-ink-2';
+  function recentsBox() {
+    var side = $('sidebar-root'); if (!side || !side.querySelectorAll) return null;
+    var hdr = Array.prototype.filter.call(side.querySelectorAll('span'), function (e) { return e.childElementCount === 0 && e.textContent.trim() === '발행 기록'; })[0];
+    var sec = hdr && hdr.closest ? hdr.closest('.mt-3') : null;
+    if (!sec) return null;
+    var lists = sec.querySelectorAll('.gap-px');
+    return lists.length ? lists[lists.length - 1] : null;
+  }
+  var painting = false;
+  function paintRecents() {
+    var box = recentsBox(); if (!box) return;
+    painting = true;
+    Array.prototype.slice.call(box.querySelectorAll('[data-op5-recent]')).forEach(function (n) { n.remove(); });
+    sessions.forEach(function (sess) {
+      var b = el('button', ROW + (sess === cur && page === 'chat' ? ' bg-hover-2' : ''));
+      b.type = 'button'; b.setAttribute('data-op5-recent', String(sess.id)); b.title = sess.title;
+      b.append(el('span', ROW_TEXT, sess.title));
+      b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); openSession(sess); });
+      box.append(b);
+    });
+    painting = false;
+  }
+  // 시험·장면 재현용: 보관한 대화 목록과 열기(화면 단추와 같은 동작)
+  Hk.op5sessions = function () { return sessions.map(function (x) { return { title: x.title, open: function () { openSession(x); } }; }); };
+  (function watchSidebar() {
+    var side = $('sidebar-root');
+    if (side && window.MutationObserver) new MutationObserver(function () { if (!painting && sessions.length && recentsBox() && !recentsBox().querySelector('[data-op5-recent]')) paintRecents(); }).observe(side, { childList: true, subtree: true });
+  })();
   function userMsg(text) {
     clearEmpty();
     var m = el('div', 'msg msg-user');
@@ -302,18 +362,19 @@
     paintHint();
     resetStaff(isApi() ? '직원 7명이 실제 응답이 온 순서대로 표시해요.' : '예시 모드: 예시 응답을 직원 순서대로 보여 줘요.');
     var api = isApi();
+    var sess = cur;
     var onStaff = api ? function (o) { if (att && o && o.bubble_key === 'intake.received') att.received = true; chipObs(o); } : null;
     var p = conn.check(text, { onStaff: onStaff, image: image || null }).then(function (a) {
       return new Promise(function (resolve) {
         animateStaff(Array.isArray(a.staff) ? a.staff : [], function () {
           var n = $('staffNote');
           if (n) n.textContent = api ? '실제 응답이 온 순서대로 갱신했어요. 판정은 서버 값 그대로예요.' : '예시 응답이에요. 서버에 보내지 않았어요.';
-          renderAnswer(a); resolve(a);
+          inSession(sess, function () { renderAnswer(a); }); resolve(a);
         });
       });
     }, function (e) {
       IDS.forEach(function (id) { chip(id, 'wait'); });
-      say(e && e.userMessage ? e.userMessage : '입력을 확인하지 못했어요.');
+      inSession(sess, function () { say(e && e.userMessage ? e.userMessage : '입력을 확인하지 못했어요.'); });
     }).then(function (x) { delete running[key]; return x; }, function (x) { delete running[key]; throw x; });
     running[key] = p;
     return p;
@@ -323,13 +384,14 @@
   function sampleCheck(text) {
     if (page !== 'chat') newPage('chat');
     clearEmpty();
+    var sess = ensureSession('예시 · ' + T.maskPersonal(text));
     userMsg(T.maskPersonal(text));
     resetStaff('예시 자료: 서버에 보내지 않은 예시 응답을 직원 순서대로 보여 줘요.');
     return Hk.sampleAdapter.check(text).then(function (a) {
       return new Promise(function (resolve) {
         animateStaff(Array.isArray(a.staff) ? a.staff : [], function () {
           var n = $('staffNote'); if (n) n.textContent = '예시 응답이에요. 서버에 보내지 않았어요.';
-          renderAnswer(a, '예시 자료 · 서버에 보내지 않음'); resolve(a);
+          inSession(sess, function () { renderAnswer(a, '예시 자료 · 서버에 보내지 않음'); }); resolve(a);
         });
       });
     }, function (e) { say(e && e.userMessage ? e.userMessage : '예시를 보여 드리지 못했어요.'); });
@@ -346,6 +408,7 @@
     input.dispatchEvent(new Event('input'));     // 안쪽 스크립트의 높이·보내기 단추 상태 갱신
     if (w) return answerAsk(w, v.text);
     if (page !== 'chat') newPage('chat');
+    ensureSession(T.maskPersonal(v.text));
     userMsg(T.maskPersonal(v.text));
     return check(v.text);
   }
@@ -920,18 +983,39 @@
       });
     });
   }
+  /* 작업 이력 카드: '이용 가능한 기관'과 같은 카드 모양(op-gov). 작업 종류·상태·다음 행동은 쉬운 말로, 작업 번호는 앞부분만.
+     표에 없는 값은 서버 값 그대로 보여 줌(지어내지 않음). */
+  var OP_KIND_KO = { wallet_propose: '기관 등록 제안', wallet_approve: '공동승인', wallet_publish: '안내문 발행', wallet_revoke: '안내문 철회', wallet_suspend: '긴급 정지', wallet_key_proof: '키 보유 증명', publish: '안내문 발행', revoke: '안내문 철회', propose: '기관 등록 제안', approve: '공동승인', suspend: '긴급 정지' };
+  var OP_STATUS = { CONFIRMED: ['완료', 't-ok'], FAILED: ['실패', 't-fail'], REJECTED: ['거절됨', 't-fail'], UNKNOWN: ['확인 필요', 't-caution'], SUBMITTED: ['진행 중', 't-pending'], PENDING: ['진행 중', 't-pending'], QUEUED: ['대기 중', 't-pending'] };
+  var OP_NEXT = { NONE: '할 일 없음', WAIT: '기다리기', RECONCILE: '복구 조회 필요', RETRY: '다시 시도' };
+  function opCard(r, title, list, kindOf) {
+    var box = el('div', 'op-gov');
+    box.append(el('b', null, title + ' · ' + list.length + '건'));
+    list.forEach(function (o, i) {
+      var k = String(kindOf(o) || ''), st = OP_STATUS[o.status] || [String(o.status || '-'), 't-none'];
+      var row = el('div', 'op-gov-row');
+      row.append(el('span', 'op-gov-n', String(i + 1)), el('span', 'op-gov-who', OP_KIND_KO[k] || k || '작업'), el('span', 'op-chip ' + st[1], st[0]),
+        el('span', 'op-body', '작업 번호 ' + String(o.operation_id || '').slice(0, 14) + '… · 다음: ' + (OP_NEXT[o.next_action] || String(o.next_action || '-'))));
+      box.append(row);
+    });
+    r.box.append(box); toBottom();
+    return box;
+  }
   function showOps() {
     var r = aiMsg();
     var ops = client.readOps();
-    r.para('이 탭에서 만든 지갑 작업(v3)', ops.length ? ops.slice(0, 5).map(function (o) { return o.operation_id + ' · ' + o.kind + ' · ' + o.status + ' · 다음 ' + o.next_action; }) : ['아직 없어요.']);
+    if (ops.length) opCard(r, '이 탭에서 만든 지갑 작업', ops.slice(0, 5), function (o) { return o.kind; });
+    else r.para('이 탭에서 만든 지갑 작업', ['아직 없어요.']);
     ops.slice(0, 3).forEach(function (o) { opButtons(r, o); });
     r.btn('내 확인 기록(보관한 분석) 보기', function () { return showAnalyses(); }, true);
     if (staffView()) r.btn('보관 선택 바꾸기', function () { retainButtons(aiMsg()); }, true);
     if (!isApi()) { r.para(null, ['예시 모드라 서버 작업 목록은 부르지 않아요.']); modeButtons(r); return; }
-    var p = r.para('서버 작업 이력(GET /v1/operations)', ['불러오는 중…']);
+    var p = r.para('서버 작업 이력', ['불러오는 중…']);
     return client.get('/v1/operations?limit=5').then(function (res) {
       if (res.status !== 200 || !Array.isArray(res.data)) return r.set(p, '서버 작업 이력', errLines(res));
-      r.set(p, '서버 작업 이력(v1)', res.data.length ? res.data.map(function (o) { return o.operation_id + ' · ' + o.action + ' · ' + o.status + ' · 다음 ' + o.next_action; }) : ['작업이 없어요.']);
+      if (!res.data.length) return r.set(p, '서버 작업 이력', ['작업이 없어요.']);
+      p.remove();
+      opCard(r, '서버 작업 이력', res.data, function (o) { return o.action; });
     });
   }
   function showHelp() {
