@@ -13,11 +13,12 @@
   function textOf(id) { var s = DATA.filter(function (x) { return x.id === id; })[0]; return s && s.input ? s.input.text : ''; }
 
   // 실서버 모드에서는 예시 자료 대신 rc_local.sh 시연 데이터와 맞는 입력을 보냄.
-  // 문자는 어느 RC에서나 같은 값(기관·금액·계좌)이라 고정하고, 문서 JSON(ID·기한)은 RC마다 달라 rc_local.sh 가 data/rc_presets.json 으로 만든다.
-  var RC_TEXT = '[Origin Mock Bank] 합성 지방세 납부 안내입니다. 납부 금액: 120,000원, 입금 계좌: 합성 은행 001234567890(예금주 합성 기관).';
+  // 문자는 어느 RC에서나 같은 값(기관·금액·계좌)이라 고정(api_adapter.js DEMO_TEXTS, AI 지연 대체 응답과 같은 글),
+  // 문서 JSON(ID·기한)은 RC마다 달라 rc_local.sh 가 data/rc_presets.json 으로 만든다.
+  var DT = (window.Hk && window.Hk.api && window.Hk.api.DEMO_TEXTS) || {};
   var SERVER_INPUT = {
-    normal: { text: RC_TEXT + ' 기한 내 납부해 주세요.' },
-    risky: { text: RC_TEXT + ' 납부 전 본인 확인을 위해 원격 지원 앱을 설치해 주세요.' },
+    normal: { text: DT.rc_normal },
+    risky: { text: DT.rc_risky },
     tamper: { file: 'tamper', vs: '발행 원본' },
     superseded: { file: 'superseded', vs: '최신판' }
   };

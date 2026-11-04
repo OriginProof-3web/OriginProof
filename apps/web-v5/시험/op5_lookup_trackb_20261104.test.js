@@ -132,10 +132,11 @@ test('A1 실패한 검사가 있거나 서명이 확인되지 않으면 긍정 �
     assert.notEqual(r.axes.find(x => x.axis === 'original').status, '읽은 항목 일치');
   }
 });
-test('W 틀린 값: UNVERIFIED 면 긍정 결론 없음, 가짜 의심으로 표시(대표 결정 11/4)', async () => {
+test('W 틀린 값: UNVERIFIED 면 긍정 결론 없음, 가짜라 하지 않고 확인할 수 없음(이유와 함께)', async () => {
   const { r } = await run('[Origin Mock Bank] 자동차세 32,501원 입금계좌 001-234-500001', { lookup_status: 'UNVERIFIED', match_count: 0, document_ids: [], reason_codes: ['NO_MATCHING_RETAINED_RECORD'] });
-  assert.equal(r.conclusion.badge.text, '가짜 의심');
-  assert.match(r.conclusion.text, /가짜 의심/);
+  assert.equal(r.conclusion.badge.text, '확인할 수 없음');
+  assert.doesNotMatch(r.conclusion.text, /가짜 의심/);
+  assert.equal(r.conclusion.verdict.head, '· 확인할 수 없어요 · 등록된 기관의 기록에서 찾지 못했어요');
 });
 test('A3 Proof ID 없는 링크 + 읽을 값: 원본 찾기를 보냄(링크 주소는 보내지 않음)', async () => {
   const { r, sent } = await run('Origin Mock Bank 연회비 99,000원 청구. 계좌 001-234-500009 자세히 보기 https://bank.example.invalid/pay', REAL);
@@ -168,7 +169,8 @@ test('원본을 못 찾은 이유를 보여 줌: 같은 계좌 금액 다름 / �
   ];
   for (const [msg, code, re] of cases) {
     const { r } = await run(msg, { lookup_status: 'UNVERIFIED', match_count: 0, document_ids: [], reason_codes: ['NO_MATCHING_RETAINED_RECORD', code] });
-    assert.equal(r.conclusion.badge.text, '가짜 의심', code);
+    assert.equal(r.conclusion.badge.text, '기록과 다름', code);
+    assert.equal(r.conclusion.verdict.chip, '기록과 다름', code);
     assert.match(r.conclusion.text, re, code);
   }
 });

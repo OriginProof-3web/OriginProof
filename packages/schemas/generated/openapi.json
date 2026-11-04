@@ -6664,7 +6664,7 @@
     },
     "/v3/document-lookups": {
       "post": {
-        "description": "Track B (#88): match only records this service still retains; the request is not stored.",
+        "description": "Track B (#88): match only records this service still retains; the request is not stored.\n\nMembers only: the miss reasons say whether an account or amount is in an issuer's records.",
         "operationId": "lookup_document_v3_document_lookups_post",
         "requestBody": {
           "content": {

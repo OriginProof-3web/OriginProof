@@ -48,22 +48,28 @@ test('답 화면: 기다리는 동안 스피너, 자세히는 그 답 안에서 
   assert.equal(btn.textContent, '자세히 보기');
   assert.ok(!buttons(d).some(b => /보고서 받기|이 분석 지우기/.test(b.textContent)));
 });
-test('미등록 기관 사칭 예시 → 진짜라고 하지 않음(가짜·변조 또는 확인 불가) + AI 위험 한 줄', async () => {
+test('미등록 기관 사칭 예시 → 진짜라고도 가짜라고도 하지 않고 등록된 기록이 없어 확인할 수 없음 + AI 위험 한 줄', async () => {
   const t = await run('unregistered');
   assert.ok(!/✓ 진짜 안내문이에요/.test(t));
-  assert.match(t, /(가짜이거나 바뀐|가짜 의심)/);
+  assert.match(t, /요약\s*· 확인할 수 없어요 · 등록된 발행 기록이 없어요\s*확인 불가/);
+  assert.ok(!/가짜이거나 바뀐|가짜 의심/.test(t));
   assert.match(t, /AI .*위험 문장이 있어요/);
 });
 
-test('실서버에서 원본을 못 찾은 문자 → 최종 판단 가짜 의심(확인 불가라고만 쓰지 않음)', async () => {
+test('실서버에서 원본을 못 찾은 문자 → 가짜 의심이 아니라 등록된 기관 기록에서 찾지 못해 확인할 수 없음', async () => {
   const { serverDouble: sd } = require('./_review_harness.js');
   const f = sd({ persona: { role: 'recipient', issuer_id: null, username: 'kim' }, over: u => /document-lookups$/.test(u) ? { status: 200, body: { lookup_status: 'UNVERIFIED', match_count: 0, reason_codes: ['NO_MATCH'] } } : null });
   const d = build('?mode=api', f);
   await sleep(20);
   enter(d, '[오리진 목 은행] 카드 대금 85,001원 청구 안내입니다. 입금계좌 001-234-500003'); await sleep(400);
   const t = threadText(d);
-  assert.match(t, /요약\s*! 가짜 의심/);
-  assert.match(t, /가짜 의심/);
+  assert.match(t, /요약\s*· 확인할 수 없어요 · 등록된 기관의 기록에서 찾지 못했어요\s*확인 불가/);
+  assert.ok(!/가짜 의심/.test(t));
+  // 걸린 시간: 답 이름 옆은 합(N.N s), 직원 확인 현황 아래는 블록체인·AI 각각
+  const shown = d.doc.querySelectorAll('#chatThread .op-time').filter(x => !x.hidden).map(x => x.textContent);
+  assert.equal(shown.length, 1);
+  assert.match(shown[0], /^\d+\.\d s$/);
+  assert.match(d.doc.getElementById('staffTime').textContent, /^블록체인 검증 \d+\.\d s · AI 분석 (\d+\.\d s|안 함)$/);
 });
 
 test('원본 찾기로 금액·계좌가 맞으면, 가린 계좌로 입금하라는 문장만 근거로 든 AI 주의는 빼고 진짜로', async () => {

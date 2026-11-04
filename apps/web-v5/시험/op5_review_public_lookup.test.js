@@ -26,7 +26,8 @@ test('T4 로그인 상태: 조회 전송, AI 입력도 CSRF 를 그대로 붙임
 test('T4 회원 UNVERIFIED: 가짜라 하지 않음', async () => {
   const { a } = adapter(load(), (u) => u === '/api/v1/auth/me' ? ME_OK : u === '/api/v3/document-lookups' ? { status: 200, body: { lookup_status: 'UNVERIFIED', match_count: 0, document_ids: [], reason_codes: ['NO_MATCHING_RETAINED_RECORD'] } } : null);
   const r = await a.check(MSG, {});
-  assert.match(r.conclusion.text, /가짜 의심/);
+  assert.doesNotMatch(r.conclusion.text, /가짜 의심/);
+  assert.equal(r.conclusion.badge.text, '확인할 수 없음');
 });
 test('T4 화면(가짜 DOM): 비회원은 로그인 확인 뒤 예시 모드로 돌아가 조회가 나가지 않음(op5_auth.js 설계)', async () => {
   const d = page((u) => u === '/api/v1/auth/me' ? LOGOUT : u === '/api/v3/document-lookups' ? { status: 200, body: REAL } : { status: 404, body: { detail: 'Not Found' } });

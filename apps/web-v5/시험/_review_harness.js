@@ -41,6 +41,7 @@ function build(search, fetchFn, pre) {
   e('ol', { class: 'staff-list', id: 'staffList' }, aside);
   e('span', { class: 'pcard-count', id: 'staffCount' }, aside, '0/7');
   e('p', { class: 'pcard-note', id: 'staffNote' }, aside, 'n');
+  e('p', { class: 'pcard-note staff-time', id: 'staffTime' }, aside);
   e('span', { class: 'pcard-count', id: 'fileCount' }, aside, '0개');
   e('div', { class: 'drop', id: 'dropZone' }, aside);
   e('input', { id: 'fileInput', type: 'file' }, aside);

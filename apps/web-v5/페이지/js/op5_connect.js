@@ -20,6 +20,8 @@
   var S = Hk.op5scenes;
   var scene = S && S.valid(Q.get('demo')) ? Q.get('demo') : '';
   var fileMode = location.protocol === 'file:' && !scene;
+  // 시연용 AI 지연 대체(기본 꺼짐): ?demo_ai_fallback=5 처럼 명시했을 때만. 3~10초로 제한(api_adapter.js demoFallbackSec). 장면 재현에서는 안 씀
+  var demoAiSec = !scene && Hk.api && Hk.api.demoFallbackSec ? Hk.api.demoFallbackSec(Q.get('demo_ai_fallback')) : 0;
 
   /* ---------------- 저장소(장면이면 메모리만) ---------------- */
   function memStore() { var m = {}; return { getItem: function (k) { return k in m ? m[k] : null; }, setItem: function (k, v) { m[k] = String(v); }, removeItem: function (k) { delete m[k]; } }; }
@@ -55,7 +57,7 @@
         var a = Hk.createApiAdapter({
           fetch: fetchFn, base: getBase(), csrf: client.csrf, retain: function () { return retain; }, isDeleted: client.isDeleted,
           loginWhy: '분석은 로그인이 필요해요. 왼쪽 메뉴 기관 상태에서 로그인 화면을 열어 주세요.',
-          timeoutMs: 25000, pollMs: scene ? 30 : 2000
+          timeoutMs: 25000, pollMs: scene ? 30 : 2000, demoAiFallbackSec: demoAiSec
         });
         a.serverUrl = o.serverUrl;
         return a;
@@ -65,7 +67,7 @@
   }
   rebuild();
   function isApi() { return conn.mode() === 'api'; }
-  function paintHint() { if (hint) hint.textContent = 'Enter 보내기 · Shift+Enter 줄바꿈 · ' + (isApi() ? '실서버 모드(' + getBase() + ')' : '예시 모드(예시 응답)'); }
+  function paintHint() { if (hint) hint.textContent = 'Enter 보내기 · Shift+Enter 줄바꿈 · ' + (isApi() ? '실서버 모드(' + getBase() + ')' + (demoAiSec ? ' · 시연 AI 대체 ' + demoAiSec + '초 켜짐(준비된 시연 응답)' : '') : '예시 모드(예시 응답)'); }
   if (isApi()) paintHint();
   if (Hk.auth && Hk.auth.checked) Hk.auth.checked.then(function () { if (isApi()) paintHint(); });
   Hk.op5live = function () { return !scene && isApi(); };   // 시연 버튼이 실서버 모드인지 볼 때 씀
@@ -155,11 +157,13 @@
     clearEmpty();
     var m = el('div', 'msg msg-ai');
     var w = el('div', 'who');
-    w.append(el('i', null, '✓'), el('span', null, 'OriginProof AI'), el('span', 'tag-offline', tag || modeTag()));
+    var tm = el('span', 'op-time'); tm.hidden = true;   // 걸린 시간(답이 오면 채움)
+    w.append(el('i', null, '✓'), el('span', null, 'OriginProof AI'), tm, el('span', 'tag-offline', tag || modeTag()));
     var b = el('div', 'bubble');
     m.append(w, b); thread.append(m); toBottom();
     var api = {
       msg: m,
+      time: tm,
       box: b,
       para: function (title, lines) {
         var p = el('p');
@@ -222,6 +226,7 @@
     finished = {};
     IDS.forEach(function (id, i) { chip(id, 'run', firstWhere[i] || ''); });
     var n = $('staffNote'); if (n && note) n.textContent = note;
+    var t = $('staffTime'); if (t) { t.textContent = ''; t.hidden = true; }
   }
   // 응답 모양 → 기존 칩 5가지. '보류'·'해당 없음' 칩은 화면에 없어(자리 없음) 대기 칩 + 아래 줄 사유 글로 보여 줌
   function stateOf(tone) { return tone === 'ok' || tone === 'info' ? 'ok' : tone === 'fail' || tone === 'caution' ? 'bad' : tone === 'offline' ? 'off' : 'wait'; }
@@ -267,7 +272,7 @@
     (m || []).forEach(function (q) { qs.push({ quote: q.slice(1, -1) }); });
     return calc(text, qs);
   }
-  var SRC = { RULE: ['규칙 검사', 'info'], LLM: ['AI 모델', 'none'] };     // 기존 칩 모양(.op-chip.t-info / .t-none) 재사용
+  var SRC = { RULE: ['규칙 검사', 'info'], LLM: ['AI 모델', 'none'], DEMO_PREPARED: ['준비된 시연 응답 · 실제 AI 결과 아님', 'none'] };     // 기존 칩 모양(.op-chip.t-info / .t-none) 재사용
   function srcOf(s) { return SRC[s] || ['출처 미상', 'none']; }
   function markedText(text, spans) {
     var box = el('div', 'op-quote'), at = 0;
@@ -310,20 +315,23 @@
   /* 최종 판단(한눈에): 블록체인 세 칸(공식 발행·원본 일치·현재 상태)만으로 정함. AI 는 진위를 정하지 않음.
      - 한 칸이라도 문제(fail) → 가짜이거나 바뀐 안내문
      - 세 칸 모두 확인(ok) → 진짜(원본 찾기면 '읽은 항목이 진짜 기록과 같음')
-     - 연결 문제(서버·체인에 묻지 못함, offline) → 지금은 확인 못 함(가짜 의심 아님)
-     - 그 밖(공식 기록으로 확인 못 함) → 가짜 의심(대표 결정 2026-11-04: '확인 불가'는 '가짜 의심'으로 명시)
+     - 연결 문제(서버·체인에 묻지 못함, offline) → 지금은 확인 못 함
+     - 우리 서비스 기록으로 확인할 수 없음(미등록 기관·기록 없음·못 읽음) → '확인할 수 없어요' + 이유. 가짜라고 하지 않음
+       (기관 기록과 금액·계좌·공문번호가 다를 때만 '기록과 다름', 원본 찾기 결과의 conclusion.verdict 를 그대로 씀)
      AI 가 주의·위험이면 한 줄을 덧붙임(진짜여도 송금 요청이면 계좌 확인을 권함). 서버 판정 값은 바꾸지 않음. */
   function verdictOf(a, fact, ai) {
     var tones = fact.map(function (x) { return x.tone; });
     var lookup = fact.some(function (x) { return x.status === '읽은 항목 일치'; });
     var v;
-    if (tones.indexOf('fail') >= 0) v = { tone: 'fail', head: '✕ 가짜이거나 바뀐 안내문이에요', sub: '이 문자대로 돈을 보내거나 링크를 누르지 마세요.' };
+    if (a.conclusion && a.conclusion.verdict) v = Object.assign({}, a.conclusion.verdict);
+    else if (a.verification_status === 'NOT_REGISTERED') v = { tone: 'none', chip: '확인 불가', head: '· 확인할 수 없어요 · 등록된 발행 기록이 없어요', sub: 'OriginProof에 등록된 기관이 이 안내문을 발행한 기록이 없어요. 가짜라고 단정할 수는 없지만, 링크를 누르거나 돈을 보내기 전에 기관 공식 번호로 직접 확인하세요.' };
+    else if (tones.indexOf('fail') >= 0) v = { tone: 'fail', head: '✕ 가짜이거나 바뀐 안내문이에요', sub: '이 문자대로 돈을 보내거나 링크를 누르지 마세요.' };
     else if (fact.length && tones.every(function (t) { return t === 'ok'; })) v = { tone: 'ok', head: '✓ 진짜 안내문이에요', sub: lookup ? '문자에서 읽은 금액·계좌(또는 공문번호)가 기관이 블록체인에 남긴 발행 기록과 같아요. 나머지 문구는 비교하지 않았어요.' : '기관이 블록체인에 남긴 발행 기록·서명·원본과 모두 같고, 지금도 유효해요.' };
     // 구버전: 발행·원본은 맞으니 '공식 기록으로 확인 안 됨'이 아님
     else if (fact.some(function (x) { return x.status === '새 버전 있음'; })) v = { tone: 'caution', chip: '새 버전 있음', head: '! 예전 버전 안내문이에요 · 새 버전을 확인하세요', sub: '기관이 실제로 발행했지만 내용을 고친 새 버전이 있어요. 이 안내대로 보내지 말고 새 버전의 금액·기한을 확인하세요.' };
     else if (a.conclusion && a.conclusion.badge && a.conclusion.badge.tone === 'none') v = { tone: 'none', head: '· 사진으로는 원본과 맞춰 보지 못했어요', sub: a.conclusion.text };   // 대조를 안 한 것(가짜 의심 아님)
     else if (tones.indexOf('offline') >= 0) v = { tone: 'none', head: '· 지금은 확인하지 못했어요', sub: '서버나 블록체인에 연결하지 못해 판단을 미뤘어요. 잠시 뒤 다시 확인하고, 그 전에는 돈을 보내지 마세요.' };
-    else v = { tone: 'caution', head: '! 가짜 의심 · 공식 기록으로 확인되지 않아요', sub: (a.conclusion && a.conclusion.text) || '등록된 기관의 발행 기록과 맞는 것이 없어요. 돈을 보내거나 링크를 누르지 말고, 기관 대표번호나 공식 앱으로 직접 확인하세요.' };   // 무엇이 맞지 않았는지(금액·계좌·공문번호)는 결론 문장에 있음
+    else v = { tone: 'none', chip: '확인 불가', head: '· 확인할 수 없어요', sub: (a.conclusion && a.conclusion.text) || 'OriginProof에 등록된 기관의 발행 기록과 맞춰 볼 수 없었어요. 돈을 보내기 전에 기관 공식 번호로 직접 확인하세요.' };
     if (ai && (ai.tone === 'caution' || ai.tone === 'fail')) {
       v.ai = v.tone === 'ok'
         ? 'AI ' + ai.status + ': 돈을 보내라는 문장이 있어요. 진짜 안내문이어도 받는 계좌가 기관 공식 계좌인지 확인한 뒤 보내세요.'
@@ -340,7 +348,7 @@
     var v = verdictOf(a, axes.filter(function (x) { return x.axis !== 'ai'; }), ai);
     var vbox = el('div', 'op-gov op-verdict');
     var vrow = el('div', 'op-gov-row');
-    vrow.append(el('span', 'op-gov-n', '요약'), el('span', 'op-gov-who', v.head), el('span', 'op-chip t-' + v.tone, v.chip || (v.tone === 'ok' ? '진짜' : v.tone === 'fail' ? '가짜·변조' : v.tone === 'caution' ? '가짜 의심' : '확인 못 함')), el('span', 'op-body', v.sub));
+    vrow.append(el('span', 'op-gov-n', '요약'), el('span', 'op-gov-who', v.head), el('span', 'op-chip t-' + v.tone, v.chip || (v.tone === 'ok' ? '진짜' : v.tone === 'fail' ? '가짜·변조' : v.tone === 'caution' ? '주의' : '확인 못 함')), el('span', 'op-body', v.sub));
     vbox.append(vrow);
     if (v.ai) vbox.append(el('p', 'op-foot', v.ai));
     r.box.append(vbox);
@@ -371,11 +379,23 @@
 
     wrap.append(fact, aiz);
     r.box.append(wrap); toBottom();
+    return aiz;
   }
 
+  // 걸린 시간: 답 이름 옆에는 블록체인 검증 + AI 분석의 합, 직원 확인 현황 아래에는 각각. 요청을 보내지 않은 쪽은 '안 함'
+  function secs(ms) { return (ms / 1000).toFixed(1) + ' s'; }
+  function showTime(r, t) {
+    if (!t || (t.chain_ms == null && t.ai_ms == null)) return;
+    r.time.textContent = secs((t.chain_ms || 0) + (t.ai_ms || 0)); r.time.hidden = false;
+    var s = $('staffTime');
+    if (s) { s.textContent = '블록체인 검증 ' + (t.chain_ms == null ? '안 함' : secs(t.chain_ms)) + ' · AI 분석 ' + (t.ai_ms == null ? '안 함' : secs(t.ai_ms) + (t.ai_prepared ? '(준비된 응답까지)' : '')); s.hidden = false; }
+  }
   function renderAnswer(a, tag) {
     var r = aiMsg(tag);
-    renderReport(r, a);
+    showTime(r, a.timing);
+    if (a.ai_replaced) r.para('AI 칸 교체', ['서버 분석 결과가 도착해 위의 준비된 시연 응답을 이 결과로 바꿨어요. 발행 검증 칸은 처음 결과 그대로예요.']);
+    var aiZone = renderReport(r, a);
+    if (a.ai_prepared) r.para('준비된 시연 응답', ['AI 칸은 실제 AI 결과가 아니에요. 실서버 AI 분석이 늦어 미리 준비한 시연 설명을 먼저 보여 줬어요. 실제 결과가 오면 아래에 교체해 보여 드려요.']);
     if (a.next_action && a.next_action.text) r.para('다음 행동', [a.next_action.text]);
     if (a.sample) r.para(null, ['예시 응답이에요. ' + (a.assumption || '')]);
     var files = attachedIds();
@@ -399,6 +419,7 @@
       x.setAttribute('aria-expanded', more.hidden ? 'false' : 'true');
     }, true);
     mb.setAttribute('aria-expanded', 'false');
+    return aiZone;
   }
 
   /* ---------------- 입력 → 결과 ---------------- */
@@ -414,12 +435,26 @@
     var sess = cur;
     var unpend = pendingMsg();
     var onStaff = api ? function (o) { if (att && o && o.bubble_key === 'intake.received') att.received = true; chipObs(o); } : null;
-    var p = conn.check(text, { onStaff: onStaff, image: image || null }).then(function (a) {
+    var zone = null;   // 처음 그린 답의 AI 구역(교체 표시용)
+    // 시연 대체(기본 꺼짐) 뒤 실제 결과: 준비 응답 답이 다 그려진 뒤(p) 교체 답을 아래에 그리고 위 AI 칸에 교체 표시
+    var onAiLater = api ? function (ev) {
+      if (!ev || ev.reason === 'deleted') return;      // 지운 분석은 기존 삭제 흐름이 알림
+      p.then(function () {
+        if (ev.replaced && ev.answer) {
+          chipObs(ev.obs);
+          if (zone) zone.append(el('p', 'op-foot', '→ 이 준비된 시연 응답은 아래 서버 분석 결과로 교체됐어요.'));
+          inSession(sess, function () { renderAnswer(ev.answer); });
+          return;
+        }
+        say('서버 분석 결과를 시간 안에 받지 못해 위 AI 칸은 준비된 시연 응답 그대로예요(실제 AI 결과 아님).', '준비된 시연 응답');
+      }, function () {});
+    } : null;
+    var p = conn.check(text, { onStaff: onStaff, image: image || null, onAiLater: onAiLater }).then(function (a) {
       return new Promise(function (resolve) {
         animateStaff(Array.isArray(a.staff) ? a.staff : [], function () {
           var n = $('staffNote');
           if (n) n.textContent = api ? '실제 응답이 온 순서대로 갱신했어요. 판정은 서버 값 그대로예요.' : '예시 응답이에요. 서버에 보내지 않았어요.';
-          unpend(); inSession(sess, function () { renderAnswer(a); }); resolve(a);
+          unpend(); inSession(sess, function () { zone = renderAnswer(a); }); resolve(a);
         });
       });
     }, function (e) {

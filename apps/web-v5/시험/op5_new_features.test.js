@@ -27,7 +27,7 @@ test('Track B MATCHED → 검증 결과 그대로, UNVERIFIED → 가짜라 하�
     const sent = f.calls.find(c => c.url === '/api/v3/document-lookups');
     assert.ok(sent && /^req_/.test(JSON.parse(sent.body).request_id));
     if (st === 'MATCHED') assert.equal(a.verification_status, 'INCONCLUSIVE');
-    else { assert.equal(a.verification_status, null); assert.match(a.conclusion.text, /가짜 의심/); }
+    else { assert.equal(a.verification_status, null); assert.doesNotMatch(a.conclusion.text, /가짜 의심/); assert.equal(a.conclusion.badge.text, '확인할 수 없음'); }
   }
 });
 
