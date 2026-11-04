@@ -186,7 +186,9 @@ test('T1 참조 없음: "공식 기록으로 확인할 수 없는 문자예요" 
   });
   conn.setMode('api');
   const ans = await conn.check('엄마 나 폰 고장났어 ' + PII.mobile + ' 로 ' + PII.account + ' 에 보내줘 ' + PII.rrn);
-  assert.equal(ans.conclusion.text, '공식 기록으로 확인할 수 없는 문자예요.');
+  // A7(2026-11-04): 무엇을 못 읽었는지(여기서는 기관 이름) 덧붙임
+  assert.match(ans.conclusion.text, /^공식 기록으로 확인할 수 없는 문자예요\. 문자에서 기관 이름을 찾지 못했어요/);
+  assert.doesNotMatch(ans.conclusion.text + JSON.stringify(ans.axes), /검증 링크가 없어/);
   assert.deepEqual(j(ans.axes.slice(0, 3).map(x => x.status)), ['확인할 수 없음', '확인할 수 없음', '확인할 수 없음']);
   assert.deepEqual(f.calls.map(c => c.url.replace('http://127.0.0.1:8000', '')), ['/v3/inputs', '/v3/analyses']);
   assert.ok(ans.details.some(d => d.label === '찾은 검증 링크·Proof ID' && d.value === '없음'));
