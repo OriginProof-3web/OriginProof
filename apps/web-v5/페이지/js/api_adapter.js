@@ -183,7 +183,7 @@
     var k = A.bubble_key;
     var unran = llmUnran ? ' AI 상세 분석 미실행(규칙 검사 결과만)' : '';
     var map = {
-      'ai.no_clear': { status: '뚜렷한 신호 없음', tone: 'info', icon: 'info', body: '뚜렷한 위험 신호는 못 찾았어요. 문제가 없다는 뜻은 아니에요.' + unran },
+      'ai.no_clear': { status: '뚜렷한 신호 없음', tone: 'info', icon: 'info', body: '뚜렷한 위험 신호는 못 찾았어요. 문제가 없다는 뜻은 아니에요.' + unran + (why ? ' ' + why : '') },
       'ai.caution': { status: '주의', tone: 'caution', icon: 'caution', body: '주의: ' + quote + unran },
       'ai.high': { status: '위험 신호', tone: 'fail', icon: 'warn', body: '위험 신호: ' + quote + unran },
       'ai.undetermined': { status: '판단하기 어려움', tone: 'pending', icon: 'question', body: 'AI가 판단하기 어려운 내용이에요.' + unran },
@@ -455,8 +455,20 @@
       verification_not_run_reason: rep.verification_not_run_reason == null ? null : str(rep.verification_not_run_reason)
     };
   }
+  /* 개인정보 가림 자리만 근거인 '주의': 이 화면은 AI 에 보내기 전에 계좌·전화·주민번호를 '(계좌번호 가림)' 등으로 바꾼다.
+     AI 가 그 가림 자리(예: "입금계좌 (계좌번호 가림)")만 보고 '출처를 알 수 없는 계좌'라며 주의를 내면, 우리가 가린 탓이지 문자의 위험이 아님.
+     근거 문장에서 가림 표시와 계좌 이름표(입금계좌·납부 계좌 등)·문장부호를 빼면 남는 것이 없을 때만 그 근거를 뺀다.
+     HIGH 는 건드리지 않음. 원래 값은 자세히(detail)에 그대로 남김(감추지 않음). */
+  var MASK_ONLY_RE = /\((?:계좌번호|전화번호|주민번호) 가림\)|(?:입금|납부|송금|이체|가상|받는|결제)?\s*계좌(?:번호)?|예금주|은행|[\s.,:;：·()\[\]"'“”‘’-]/g;
+  function maskOnly(quote) { return /\((?:계좌번호|전화번호|주민번호) 가림\)/.test(quote) && !quote.replace(MASK_ONLY_RE, '').trim(); }
   function mapReport(raw) {
     var rep = cleanReport(raw);
+    var original = rep.risk_level, masked = 0;
+    if (rep.risk_level === 'CAUTION' && rep.evidence.length) {
+      var kept = rep.evidence.filter(function (e) { return !maskOnly(e.quote); });
+      masked = rep.evidence.length - kept.length;
+      if (masked) rep = { risk_level: kept.length ? rep.risk_level : 'NO_CLEAR_INDICATORS', evidence: kept, dropped: rep.dropped, limitations: rep.limitations, verification_not_run_reason: rep.verification_not_run_reason };
+    }
     var lim = rep.limitations;
     var rules = lim.filter(function (x) { return /^phishing-rules-/.test(x); })[0] || '';      // G4
     var unran = lim.some(function (x) { return /^LLM_ANALYSIS_UNAVAILABLE/.test(x); });
@@ -470,7 +482,8 @@
     return {
       obs: obs('ai', key, [rep.risk_level, rules].filter(Boolean).join(' · '), { quote: quote }, line3),
       quote: quote, unran: unran, report: rep,
-      detail: 'risk_level=' + rep.risk_level + ' · evidence ' + rep.evidence.length + '건' + (rep.dropped ? '(모양 틀린 ' + rep.dropped + '건 버림)' : '') +
+      why: masked ? '(개인정보 보호로 가린 계좌번호 자리만 근거로 든 주의 ' + masked + '건은 뺐어요.)' : '',
+      detail: (masked ? 'AI 원래 판단 ' + original + ' · 가림 자리만 근거인 ' + masked + '건 제외 · ' : '') + 'risk_level=' + rep.risk_level + ' · evidence ' + rep.evidence.length + '건' + (rep.dropped ? '(모양 틀린 ' + rep.dropped + '건 버림)' : '') +
         rep.evidence.map(function (e, i) { return ' · [' + (i + 1) + '] source=' + e.source + ' rule_id=' + e.rule_id + ' offset=' + (e.start_offset == null ? '-' : e.start_offset + '~' + e.end_offset); }).join('') +
         (lim.length ? ' · limitations: ' + lim.join(' | ') : '') + (rep.verification_not_run_reason ? ' · verification_not_run_reason=' + rep.verification_not_run_reason : '')
     };

@@ -220,3 +220,17 @@ test('화면: 위치가 틀린 근거가 섞여도 깨지지 않고 맞는 곳�
   assert.ok(rows.every(r => !/위치 표시 안 함|X_REV|X_OUT/.test(r)), rows.join(' / '));
   log('모양 틀린 근거(빈 quote) 안내', zone.querySelectorAll('.op-tech').map(p => p.textContent).filter(t => /모양이 틀린/.test(t)).join(''));
 });
+
+test('가린 계좌번호 자리만 근거인 주의는 뺌(우리가 가린 탓이지 문자 위험이 아님), 진짜 위험 근거가 있으면 그대로', async () => {
+  const Hk = loadWeb();
+  const text = '[오리진 목 은행] 카드 대금 85,000원 청구 안내입니다. 입금계좌 (계좌번호 가림)';
+  const job = (ev) => ({ analysis_id: 'ana_m', status: 'COMPLETED', report: { risk_level: 'CAUTION', evidence: ev, limitations: [], verification_not_run_reason: 'ANALYZER_DOES_NOT_VERIFY' } });
+  const masked = await run(Hk, job([{ rule_id: 'x', quote: '입금계좌 (계좌번호 가림)', start_offset: null, end_offset: null, source: 'LLM' }]), text);
+  const ax = masked.axes.find(x => x.axis === 'ai');
+  assert.equal(ax.status, '뚜렷한 신호 없음');
+  assert.match(ax.body, /가린 계좌번호 자리만 근거로 든 주의 1건은 뺐어요/);
+  assert.equal(masked.ai_report.evidence.length, 0);
+  assert.ok(masked.details.some(d => /AI 원래 판단 CAUTION/.test(d.value)), '원래 값은 자세히에 남김');
+  const real = await run(Hk, job([{ rule_id: 'y', quote: '카드 대금 85,000원 청구 안내입니다', start_offset: null, end_offset: null, source: 'LLM' }]), text);
+  assert.equal(real.axes.find(x => x.axis === 'ai').status, '주의');
+});
