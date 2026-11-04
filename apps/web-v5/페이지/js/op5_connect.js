@@ -1038,6 +1038,19 @@
     r.box.append(box); toBottom();
     return box;
   }
+  // 워크스페이스 설정(사이드바 아래 단추, op5_auth.js): 계정·화면 밝기·로그인 상태. 운영자 연결 설정은 기관 상태에 그대로
+  function showSettings() {
+    var r = aiMsg(), A = Hk.auth && Hk.auth.state, me = A && A.me;
+    r.para('워크스페이스', ['OriginProof']);
+    r.para('계정', me && me.username ? loginLine(me) : ['로그인하지 않았어요. 로그인하면 기관 기록 대조와 AI 분석을 쓸 수 있어요.']);
+    if (me && me.username) r.btn('로그아웃', logoutFn);
+    else r.btn('로그인 화면 열기', function (x) { x.dataset.done = '1'; location.href = 'login.html?next=business.html'; }, true);
+    var light = document.documentElement.dataset.theme === 'light';
+    r.para('화면', ['지금 ' + (light ? '밝은 화면' : '어두운 화면') + '이에요. 오른쪽 위 해 모양 단추로도 바꿀 수 있어요.']);
+    r.btn(light ? '어두운 화면으로' : '밝은 화면으로', function (x) { var t = document.getElementById('themeBtn'); if (t) t.click(); x.dataset.done = '1'; }, true);
+    if (myRole() === 'operator') r.para('운영자', ['연결 주소·서버 상태·보관 선택은 기관 상태 화면에 있어요.']);
+    return Promise.resolve();
+  }
   function showOps() {
     var r = aiMsg();
     var ops = client.readOps();
@@ -1102,7 +1115,7 @@
     });
   }
 
-  var MENU = { issue: startIssue, status: showStatus, keys: showKeys, proofs: showProofs, operations: showOps };
+  var MENU = { issue: startIssue, status: showStatus, keys: showKeys, proofs: showProofs, operations: showOps, settings: showSettings };
   window.addEventListener('originproof-action', function (e) {
     var d = e && e.detail ? e.detail : {};
     var fn = MENU[d.key];
