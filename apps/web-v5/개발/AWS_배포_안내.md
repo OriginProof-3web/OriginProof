@@ -89,6 +89,7 @@ OP5_PUBLIC_ORIGIN=$PUB RC_WEB_PORT=8790 RC_LLM=openai API_LOGINS_PER_MINUTE=120 
 ```bash
 echo "${PUB#https://} {
   encode gzip
+  redir / /entry.html
   reverse_proxy 127.0.0.1:8790
 }" | sudo tee /etc/caddy/Caddyfile && sudo systemctl restart caddy
 ```
