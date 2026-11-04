@@ -53,6 +53,8 @@ api_env() {
   export API_WALLET_IMAGE_INPUT_ENABLED=true API_SIGNUP_ENABLED=true API_WALLET_RELAY_ENABLED=false
   # 실제 AI 확인용 합성 계정만 10분 5건 제한에서 뺀다(#116 이후 적용, 그 전 서버는 이 값을 무시).
   export API_ANALYSIS_LIMIT_EXEMPT_USERNAMES='["rc-ai-tester@example.invalid"]'
+  # 시연용 공격 재현('DB 직접 조작' 단추)은 이 노트북 시연 계정만. 공개 서버(AWS)에는 넣지 않는다.
+  export API_DEMO_ATTACK_USERNAMES='["rc-ai-tester@example.invalid"]'
   [ -f "$RUN/secrets/email-secret" ] || (umask 077; openssl rand -base64 32 > "$RUN/secrets/email-secret")
   API_WALLET_EMAIL_SECRET="$(cat "$RUN/secrets/email-secret")"; export API_WALLET_EMAIL_SECRET
   # shellcheck disable=SC1091
@@ -70,6 +72,13 @@ start_db() {
 start_chain() {
   # 재기동 뒤에도 배포 블록의 과거 상태가 있어야 Registry 배포 확인(CREATE·코드)이 통과한다.
   alive anvil && return 0
+  # Anvil은 끌 때 상태 파일을 쓴다. 쓰는 도중 끊기면 파일이 잘려 다음에 켜지지 않으므로, 켤 때마다 정상 파일을 백업하고 잘렸으면 백업으로 되살린다.
+  local state="$RUN/anvil-state.json"
+  if [ -s "$state" ]; then
+    if python3 -c 'import json,sys; json.load(open(sys.argv[1]))' "$state" 2>/dev/null; then cp "$state" "$state.bak"
+    elif [ -s "$state.bak" ]; then say "Anvil 상태 파일이 잘려 있어 마지막 정상 백업으로 되살려요"; cp "$state.bak" "$state"
+    else die "Anvil 상태 파일이 잘려 있고 백업이 없어요(logs/anvil.log). 시연 데이터를 새로 만들어야 해요"; fi
+  fi
   nohup anvil --host 127.0.0.1 --port "$RPC_PORT" --chain-id 31337 --state "$RUN/anvil-state.json" \
     --preserve-historical-states \
     > "$RUN/logs/anvil.log" 2>&1 & echo $! > "$RUN/anvil.pid"
@@ -197,7 +206,14 @@ status() {
 }
 
 down() {
-  for p in web api anvil; do alive $p && kill "$(cat "$RUN/$p.pid")" 2>/dev/null; rm -f "$RUN/$p.pid"; done
+  for p in web api anvil; do
+    if alive $p; then
+      local pid; pid=$(cat "$RUN/$p.pid"); kill "$pid" 2>/dev/null
+      # Anvil은 끝나면서 상태 파일을 쓰므로 다 쓸 때까지 기다린다(중간에 끊기면 파일이 잘림)
+      for _ in $(seq 1 50); do kill -0 "$pid" 2>/dev/null || break; sleep 0.2; done
+    fi
+    rm -f "$RUN/$p.pid"
+  done
   docker stop "$PG_NAME" >/dev/null 2>&1 || true
   say "껐어요. 데이터는 남아 있어요(다시 켜기: scripts/rc_local.sh up)"
 }

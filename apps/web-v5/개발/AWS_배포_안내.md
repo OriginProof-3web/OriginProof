@@ -82,6 +82,7 @@ OP5_PUBLIC_ORIGIN=$PUB RC_WEB_PORT=8790 RC_LLM=openai API_LOGINS_PER_MINUTE=120 
 ```
 - `OP5_PUBLIC_ORIGIN`: 웹 프록시가 이 공개 주소의 접속을 받도록 함(이번에 추가한 설정).
 - `API_SESSION_COOKIE_SECURE=true` 는 넣지 않음: 서버 안 준비 스크립트가 http 로 로그인해서 시연 데이터 발행이 실패함(브라우저 구간은 Caddy 가 HTTPS 로 감쌈).
+- `API_DEMO_ATTACK_USERNAMES`(시연용 공격 재현, 'DB 직접 조작' 단추)는 **넣지 않음**: 넣은 계정이 서버 DB의 시연 안내문 금액을 바꿀 수 있어요. 로컬 노트북(rc_local.sh)에서만 켭니다.
 - 분당 제한 상향: 모든 접속이 프록시(127.0.0.1)를 거쳐 API 에는 한 사람처럼 보여서, 기본값(로그인 분당 10번)이면 심사위원 여럿이 동시에 로그인할 때 막힙니다.
 
 ## 5. Caddy(HTTPS) 연결

@@ -1225,5 +1225,7 @@
   var ui = { submitText: function (t) { input.value = t; return submit(); }, menu: function (k) { return MENU[k](); }, showAnalyses: showAnalyses, removeAnalysis: removeAnalysis, client: function () { return client; } };
   // 시연 버튼이 문서 JSON을 보낼 때 말풍선에는 이름만 보임(날 JSON·가림 처리된 기한 대신)
   Hk.op5send = function (t, shown) { input.value = t; return submit(shown); };
+  // 시연용 공격 재현(op5_presets.js 'DB 직접 조작'): 서버가 시연 계정에만 여는 경로. 다른 계정·꺼진 서버는 404
+  Hk.op5demoAttack = function (action) { return client.write('POST', '/v3/demo/' + action, {}, { requestId: false }); };
   if (scene) setTimeout(function () { S.run(scene, ui); }, 0);
 })();

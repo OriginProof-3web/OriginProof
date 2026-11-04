@@ -2,7 +2,8 @@
    - 예시 문자(data/sample_data.js)를 입력칸에 넣고 바로 보냄. 결과는 예시 응답이며 칩에 '예시 모드'가 붙음.
    - 실서버 모드에서는 RC 시연 데이터와 맞는 버튼(정상·위험 요구·변조·구버전·미등록 사칭)만 실제로 보내고,
      나머지는 서버에 보내지 않고 예시 결과를 '예시 자료 · 서버에 보내지 않음' 표시로 보여 줌.
-   - DB 직접 조작: 터미널에서 scripts/rc_local.sh db-tamper 로 서버 DB의 금액을 바꾼 뒤 누르면, 원래 받은 안내문으로 검증해 변조로 잡힘(db-restore 로 되돌림).
+   - DB 직접 조작: 시연 계정(서버 API_DEMO_ATTACK_USERNAMES)이 누르면 서버 DB의 은행 #10 금액을 바꾸고(시연용 공격 재현), 원래 받은 안내문으로 검증해 변조로 잡힘.
+     말풍선의 'DB 되돌리기'로 되돌림. 시연 계정이 아니면 DB는 그대로 두고 검증만 함(터미널 scripts/rc_local.sh db-tamper 로도 바꿀 수 있음).
    - 예시 자료로 재현할 수 있는 것만 바로 실행. 서버·체인이 있어야 재현되는 공격(권한 도용·서명 재사용·키 유출 정지)은
      지어낸 결과를 보여 주지 않고, 무엇을 보여 주는 장면인지와 '실서버 연결 뒤 재현'만 알려 줌. */
 (function () {
@@ -50,7 +51,7 @@
     { label: '금액 1원 변조', id: 'tamper', tip: '문구는 그대로, 금액만 1원 바꿈 → 원본과 다름' },
     { label: '사진 고지서 변조', id: 'tamper_image', tip: '고지서 사진의 금액을 바꾼 경우 → 원본과 다름' },
     { label: '구버전 재사용', id: 'superseded', tip: '정정 전 v1 안내문을 다시 보냄 → 새 버전 있음' },
-    { label: 'DB 직접 조작', id: 'db', tip: '해커가 서버 DB의 금액을 몰래 바꿔도 기관 서명·블록체인 기록과 대조해 변조로 잡아요(먼저 터미널에서 scripts/rc_local.sh db-tamper)' },
+    { label: 'DB 직접 조작', id: 'db', tip: '해커가 서버 DB의 금액을 몰래 바꿔도 기관 서명·블록체인 기록과 대조해 변조로 잡아요(시연 계정 전용 공격 재현)' },
     { label: '철회된 안내', id: 'revoked', tip: '기관이 철회한 안내문 → 철회됨' },
     { label: '미등록 기관 사칭', id: 'unregistered', tip: '체인에 없는 기관 + 원격 앱 설치 유도 → 기록 없음 + AI 위험 신호' }
   ];
@@ -79,6 +80,31 @@
     lines.forEach(function (t) { para.append(el('br'), document.createTextNode(t)); });
     bub.append(para); m.append(w, bub); thread.append(m);
     var sc = document.getElementById('chatScroll'); if (sc) sc.scrollTop = sc.scrollHeight;
+    return bub;
+  }
+  function won(n) { return Number(n).toLocaleString('ko-KR') + '원'; }
+  // DB 직접 조작 장면: 시연용 공격 재현으로 서버 DB 금액을 바꾼 뒤(시연 계정만) 원래 받은 안내문으로 검증
+  function dbScene(go) {
+    var attack = window.Hk && window.Hk.op5demoAttack;
+    (attack ? attack('db-tamper') : Promise.resolve(null)).then(function (res) {
+      var d = res && res.status === 200 && res.data;
+      if (!d) {
+        bubble('시연용 공격 재현', 'DB를 바꾸지 않았어요', ['이 계정은 시연 계정이 아니거나 서버에서 시연 기능이 꺼져 있어요. 원래 안내문으로 확인만 해요.']);
+        return go();
+      }
+      var bub = bubble('시연용 공격 재현 · 실서비스에는 없는 기능', '해커가 서버 DB를 몰래 바꿨어요', ['서버 DB에 저장된 은행 안내문의 금액을 ' + won(d.amount_before) + ' → ' + won(d.amount_after) + '으로 바꿨어요. 기관 서명과 블록체인 기록은 그대로예요.', '이제 원래 받은 안내문으로 확인해요.']);
+      var undo = el('button', 'add-btn', 'DB 되돌리기');
+      undo.type = 'button';
+      undo.addEventListener('click', function () {
+        undo.disabled = true;
+        attack('db-restore').then(function (r) {
+          if (r && r.status === 200 && r.data) { undo.textContent = 'DB를 ' + won(r.data.amount_after) + '으로 되돌렸어요'; return; }
+          undo.disabled = false; bubble('시연용 공격 재현', 'DB를 되돌리지 못했어요', ['잠시 뒤 다시 눌러 주세요. 터미널 scripts/rc_local.sh db-restore 로도 되돌릴 수 있어요.']);
+        });
+      });
+      bub.append(undo);
+      go();
+    });
   }
 
   function canLive(p) { return !!SERVER_INPUT[p.id] || p.id === 'unregistered'; }
@@ -90,6 +116,7 @@
     b.addEventListener('click', function () {
       if (live() && s && s.text) { send(s.text); return; }
       if (live() && s && s.file) {
+        var sendFile = function () {
         window.fetch('data/rc_presets.json', { cache: 'no-store' })
           .then(function (r) { return r.ok ? r.json() : null; })
           .catch(function () { return null; })
@@ -99,6 +126,8 @@
             else if (doc) send(JSON.stringify(doc));
             else bubble('시연 데이터 없음', '시연 · ' + p.label, ['이 컴퓨터의 시연 데이터 파일(data/rc_presets.json)이 없어 보내지 않았어요.', 'scripts/rc_local.sh up 으로 시연 데이터를 만든 뒤 새로고침해 주세요.']);
           });
+        };
+        if (p.id === 'db') dbScene(sendFile); else sendFile();
         return;
       }
       // 예시 자료의 ID는 실서버에 없어 '기록 없음'으로 잘못 나온다. 실서버 모드에서는 서버에 보내지 않고 예시 결과를 '예시 자료'로 보여 줌.

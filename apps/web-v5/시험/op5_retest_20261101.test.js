@@ -101,6 +101,27 @@ test('DB 직접 조작 버튼: rc_presets.json 의 db_target(원래 받은 안�
   // 서버 DB가 체인 기록과 다르면(STORED_CONTENT_MISMATCH) 받은 글이 아니라 서버 기록이 바뀌었다고 말함
   await sleep(400);
   assert.match(d.doc.getElementById('chatThread').textContent, /서버 기록이 바뀌었어요 · 블록체인 기록과 달라요/);
+  // 시연 계정이 아니면(서버 404) DB는 그대로 두고 검증만 했다고 알림
+  assert.match(d.doc.getElementById('chatThread').textContent, /DB를 바꾸지 않았어요/);
+});
+
+test('DB 직접 조작(시연 계정): 시연용 공격 재현으로 DB 금액을 바꾼 걸 보여 주고, 되돌리기 단추가 db-restore 를 부름', async () => {
+  const TARGET = { document_id: DOC, version: 1, protected_fields: { amount_minor: 430000, payee_account_number: '001234500010' } };
+  const d = page(u => u === '/api/v1/auth/me' ? ME('recipient') : u === 'data/rc_presets.json' ? { status: 200, body: { genuine: TARGET, db_target: TARGET } }
+    : u === '/api/v3/demo/db-tamper' ? { status: 200, body: { document_id: DOC, version: 1, amount_before: 430000, amount_after: 4300000 } }
+    : u === '/api/v3/demo/db-restore' ? { status: 200, body: { document_id: DOC, version: 1, amount_before: 4300000, amount_after: 430000 } } : { status: 404, body: {} });
+  await sleep(10);
+  presetBtn(d, 'DB 직접 조작').click();
+  await sleep(80);
+  const shown = d.doc.getElementById('chatThread').textContent;
+  assert.match(shown, /시연용 공격 재현 · 실서비스에는 없는 기능/);
+  assert.match(shown, /430,000원 → 4,300,000원/);
+  const calls = d.win.fetch.calls.map(c => c.url);
+  assert.ok(calls.indexOf('/api/v3/demo/db-tamper') < calls.findIndex(u => u.startsWith('/api/v3/verifications')), '바꾼 뒤 검증');
+  const undo = d.doc.querySelectorAll('#chatThread button').find(b => b.textContent === 'DB 되돌리기');
+  undo.click(); await sleep(40);
+  assert.ok(d.win.fetch.calls.some(c => c.url === '/api/v3/demo/db-restore'));
+  assert.equal(undo.textContent, 'DB를 430,000원으로 되돌렸어요');
 });
 
 test('실서버 시연 버튼: 변조·구버전은 data/rc_presets.json 의 문서를 보내고, 파일이 없으면 보내지 않고 알림', async () => {

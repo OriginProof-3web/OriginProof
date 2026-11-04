@@ -6598,6 +6598,73 @@
         ]
       }
     },
+    "/v3/demo/{action}": {
+      "post": {
+        "operationId": "demo_attack_v3_demo__action__post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "action",
+            "required": true,
+            "schema": {
+              "enum": [
+                "db-tamper",
+                "db-restore"
+              ],
+              "title": "Action",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "413": {
+            "description": "REQUEST_TOO_LARGE: request body exceeds configured limit"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "detail": {
+                      "type": "string"
+                    },
+                    "error": {
+                      "type": "string"
+                    },
+                    "field_paths": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "MALFORMED_INPUT. /v3: {detail, request_id, field_paths}; others: {error, request_id}"
+          },
+          "429": {
+            "description": "RATE_LIMITED: retry after Retry-After seconds"
+          }
+        },
+        "summary": "Demo Attack",
+        "tags": [
+          "demo attack (local demo only)"
+        ]
+      }
+    },
     "/v3/document-drafts": {
       "post": {
         "operationId": "document_draft_v3_document_drafts_post",

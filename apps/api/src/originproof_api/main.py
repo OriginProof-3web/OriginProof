@@ -29,6 +29,7 @@ from .applications import router as applications_router
 from .chain_management import router as chain_router
 from .chain_network import router as chain_network_router
 from .database import Database
+from .demo_attacks import router as demo_attacks_router
 from .finals_proofs import router as finals_router
 from .operations import router as operations_router
 from .projection import (
@@ -200,6 +201,7 @@ def create_app(
     app.include_router(wallet_governance_router)
     app.include_router(wallet_documents_router)
     app.include_router(wallet_analyses_router)
+    app.include_router(demo_attacks_router)
     app.state.verification_service = verification_service or VerificationService(
         SqlAlchemyProofRepository(app_database.session_factory),
         configured_blockchain_reader(app_settings),
