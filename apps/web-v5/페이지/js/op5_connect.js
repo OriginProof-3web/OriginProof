@@ -832,7 +832,8 @@
       toBottom();
     });
   }
-  function logoutFn(x) { x.dataset.done = '1'; return client.logout().then(function (o) { if (o.status === 200) lastRole = null; say(o.status === 200 ? '로그아웃했어요.' : errLines(o).join(' ')); }); }
+  // 로그아웃하면 시작 페이지(entry.html)로
+  function logoutFn(x) { x.dataset.done = '1'; return client.logout().then(function (o) { if (o.status === 200) { lastRole = null; say('로그아웃했어요. 시작 페이지로 이동해요.'); setTimeout(function () { location.href = 'entry.html'; }, 600); return; } say(errLines(o).join(' ')); }); }
   // 아이디는 /v1/auth/me 의 username(계정 이름). 역할 글자는 보여 주지 않음.
   function loginLine(me) { return ['아이디 ' + String(me.username)]; }
   function showStatus() {

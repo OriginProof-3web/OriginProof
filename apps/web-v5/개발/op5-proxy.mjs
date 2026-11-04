@@ -162,6 +162,8 @@ export function createHandler(opts = {}) {
     /* ----- 정적(../페이지) ----- */
     if (method !== 'GET' && method !== 'HEAD') { done(405); return send(res, 405, { allow: 'GET, HEAD', 'content-type': 'text/plain; charset=utf-8' }, 'method not allowed'); }
     if (!clean || clean.split('/').some((s) => s.startsWith('.') && s !== '')) { done(404); return send(res, 404, { 'content-type': 'text/plain; charset=utf-8' }, 'not found'); }
+    // 예전 메인(index.html)은 시작 페이지로 보냄(번들 로그아웃·예전 로그인 화면 링크가 index.html 로 가도 시작 페이지가 열림)
+    if (clean === '/index.html') { done(302); return send(res, 302, { location: 'entry.html' }, ''); }
     const rel = clean === '/' ? 'business.html' : clean.slice(1);
     const file = path.resolve(root, rel);
     if (!file.startsWith(root + path.sep)) { done(404); return send(res, 404, { 'content-type': 'text/plain; charset=utf-8' }, 'not found'); }

@@ -188,3 +188,9 @@ test('서버 배포: OP5_PUBLIC_ORIGIN 의 Host·Origin 만 더 받고, 다른 �
   assert.equal(parsePublicOrigin('https://1-2-3-4.sslip.io/').value, PUB);
   for (const v of ['1-2-3-4.sslip.io', 'https://a.test/path', 'https://u:p@a.test', 'ftp://a.test', 'https://a.test?x=1']) assert.equal(parsePublicOrigin(v).ok, false, v);
 });
+
+test('예전 메인 index.html 은 시작 페이지 entry.html 로 302', async () => {
+  const res = await run(createHandler({ port: PORT, forward: fakeUpstream(ok({})) }), 'GET', '/index.html');
+  assert.equal(res.status, 302);
+  assert.equal(res.headers.location, 'entry.html');
+});

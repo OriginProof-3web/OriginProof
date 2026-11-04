@@ -6,7 +6,7 @@
   'use strict';
   var Hk = (root.Hk = root.Hk || {});
   var state = { member: false, me: null, checked: false };
-  var LOGIN = 'login.html?next=business.html', SIGNUP = 'join.html';
+  var LOGIN = 'login.html?next=business.html', SIGNUP = 'join.html', START = 'entry.html';   // 로그아웃 뒤에는 시작 페이지(예전 index.html 아님)
   var GUEST_KEY = 'op5.guestSample', ORG_ONLY = ['새 Proof 발행', '공개키 관리', '발행 목록'];
   var authBtn = null;
   function guestMark(v) { try { if (v) root.localStorage.setItem(GUEST_KEY, '1'); else if (root.localStorage.getItem(GUEST_KEY)) { root.localStorage.removeItem(GUEST_KEY); return true; } } catch (e) {} return false; }
@@ -128,7 +128,7 @@
     if (!state.member) { location.href = LOGIN; return; }
     if (btn) btn.disabled = true;
     fetch('/api/v1/auth/logout', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': (state.me && state.me.csrf_token) || '' }, body: '{}' })
-      .then(function () { location.reload(); }, function () { if (btn) btn.disabled = false; notice('로그아웃하지 못했어요. 잠시 뒤 다시 눌러 주세요.'); });
+      .then(function () { location.href = START; }, function () { if (btn) btn.disabled = false; notice('로그아웃하지 못했어요. 잠시 뒤 다시 눌러 주세요.'); });
   }
   var WS_DROP = ['새 워크스페이스', '워크스페이스 설정', '팀원 초대', '로그아웃'];
   function sideFooter() {
@@ -154,8 +154,9 @@
     // 워크스페이스 메뉴(번들이 body 에 붙임): 빼거나 밖으로 옮긴 줄과 구분선 숨김
     function trimMenu() {
       document.querySelectorAll('[data-workspace-menu]').forEach(function (m) {
-        m.querySelectorAll('button').forEach(function (b) { if (WS_DROP.indexOf(b.textContent.trim()) >= 0) b.hidden = true; });
-        m.querySelectorAll('div.h-px').forEach(function (d) { d.hidden = true; });
+        // hidden 속성은 번들의 flex 클래스가 덮어써서 안 숨겨짐 → display 로 숨김
+        m.querySelectorAll('button').forEach(function (b) { if (WS_DROP.indexOf(b.textContent.trim()) >= 0) b.style.display = 'none'; });
+        m.querySelectorAll('div.h-px').forEach(function (d) { d.style.display = 'none'; });
       });
     }
     apply();
