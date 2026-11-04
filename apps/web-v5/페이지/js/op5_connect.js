@@ -385,7 +385,6 @@
     if (a.analysis_id && !a.analysis_deleted) {
       r.para('보관', ['분석 번호 ' + a.analysis_id + ' · 상태 ' + (a.analysis_status || '-'), '보고서 ' + (retain.report ? '7일 보관' : '끝난 뒤 10분만 보관') + ' · 원본 ' + (retain.original ? '7일 보관' : '처리 직후 삭제')]);
       if (retain.original && a.analysis_status === 'COMPLETED') r.btn('원본 받기', function () { return downloadOriginal(a.analysis_id); });
-      r.btn('이 분석 지우기', function (x) { return removeAnalysis(a.analysis_id, x); });
     }
     // 자세히: 이 답 안에서 단추 바로 아래 상자를 열고 닫음(맨 아래로 스크롤하지 않음)
     var more = null;

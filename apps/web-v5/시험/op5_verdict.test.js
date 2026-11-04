@@ -46,7 +46,7 @@ test('답 화면: 기다리는 동안 스피너, 자세히는 그 답 안에서 
   await press(d, btn);
   assert.equal(first.querySelectorAll('.op-more')[0].hidden, true);
   assert.equal(btn.textContent, '자세히 보기');
-  assert.ok(!buttons(d).some(b => /보고서 받기/.test(b.textContent)));
+  assert.ok(!buttons(d).some(b => /보고서 받기|이 분석 지우기/.test(b.textContent)));
 });
 test('미등록 기관 사칭 예시 → 진짜라고 하지 않음(가짜·변조 또는 확인 불가) + AI 위험 한 줄', async () => {
   const t = await run('unregistered');
