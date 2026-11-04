@@ -48,14 +48,16 @@ test('세션이 끊기면 다시 불러오기 전에도 단추가 로그인으�
   assert.equal(d.win.Hk.auth.state.member, false);
 });
 
-test('K1: 실서버 모드의 예시 버튼은 서버에 보내지 않고 이유를 알림', async () => {
+test('K1: 실서버 모드의 예시 버튼은 서버에 보내지 않고 예시 결과를 \'예시 자료\' 표시로 보여 줌', async () => {
   const d = page(u => u === '/api/v1/auth/me' ? ME('issuer') : { status: 404, body: {} });
   await sleep(10);
   const before = d.win.fetch.calls.length;
   presetBtn(d, '정상 안내문').click();
-  await sleep(30);
-  assert.equal(d.win.fetch.calls.length, before);
-  assert.match(d.doc.getElementById('chatThread').textContent, /예시 자료라 실서버 기록과 맞지 않아 보내지 않았어요/);
+  await sleep(3000);
+  assert.equal(d.win.fetch.calls.length, before, '서버 요청 없음');
+  const t = d.doc.getElementById('chatThread').textContent;
+  assert.match(t, /예시 자료 · 서버에 보내지 않음/);
+  assert.match(t, /예시 응답이에요/);
 });
 
 test('K1: 미등록 사칭은 실서버에서도 그대로 보냄', async () => {

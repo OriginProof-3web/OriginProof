@@ -270,8 +270,8 @@
     r.box.append(wrap); toBottom();
   }
 
-  function renderAnswer(a) {
-    var r = aiMsg();
+  function renderAnswer(a, tag) {
+    var r = aiMsg(tag);
     renderReport(r, a);
     if (a.next_action && a.next_action.text) r.para('다음 행동', [a.next_action.text]);
     if (a.sample) r.para(null, ['예시 응답이에요. ' + (a.assumption || '')]);
@@ -318,6 +318,23 @@
     running[key] = p;
     return p;
   }
+  /* 시연 버튼(op5_presets.js): 실서버 모드에서도 예시 결과를 보여 줌. 예시 어댑터로만 그리고 서버에는 보내지 않음.
+     예시 자료의 문서 ID는 실서버 장부에 없어서 실서버로 보내면 '기록 없음'으로 잘못 나오기 때문. */
+  function sampleCheck(text) {
+    if (page !== 'chat') newPage('chat');
+    clearEmpty();
+    userMsg(T.maskPersonal(text));
+    resetStaff('예시 자료: 서버에 보내지 않은 예시 응답을 직원 순서대로 보여 줘요.');
+    return Hk.sampleAdapter.check(text).then(function (a) {
+      return new Promise(function (resolve) {
+        animateStaff(Array.isArray(a.staff) ? a.staff : [], function () {
+          var n = $('staffNote'); if (n) n.textContent = '예시 응답이에요. 서버에 보내지 않았어요.';
+          renderAnswer(a, '예시 자료 · 서버에 보내지 않음'); resolve(a);
+        });
+      });
+    }, function (e) { say(e && e.userMessage ? e.userMessage : '예시를 보여 드리지 못했어요.'); });
+  }
+  Hk.op5sampleCheck = sampleCheck;
   function submit() {
     var v = Hk.validateInput(input.value);
     if (!v.ok) { if (input.value.trim()) say(v.message); return null; }
