@@ -75,9 +75,17 @@ start_chain() {
   # Anvil은 끌 때 상태 파일을 쓴다. 쓰는 도중 끊기면 파일이 잘려 다음에 켜지지 않으므로, 켤 때마다 정상 파일을 백업하고 잘렸으면 백업으로 되살린다.
   local state="$RUN/anvil-state.json"
   if [ -s "$state" ]; then
-    if python3 -c 'import json,sys; json.load(open(sys.argv[1]))' "$state" 2>/dev/null; then cp "$state" "$state.bak"
-    elif [ -s "$state.bak" ]; then say "Anvil 상태 파일이 잘려 있어 마지막 정상 백업으로 되살려요"; cp "$state.bak" "$state"
-    else die "Anvil 상태 파일이 잘려 있고 백업이 없어요(logs/anvil.log). 시연 데이터를 새로 만들어야 해요"; fi
+    # 저장소 파이썬으로 검사(터미널의 python3 는 pyenv 등으로 다를 수 있음). 검사를 못 하면 그냥 켜 보고 anvil.log 로 판단
+    local check; check=$("${UVR[@]}" python -c 'import json, sys
+try:
+    json.load(open(sys.argv[1])); print("ok")
+except ValueError:
+    print("bad")' "$state" 2>/dev/null)
+    if [ "$check" = ok ]; then cp "$state" "$state.bak"
+    elif [ "$check" = bad ]; then
+      [ -s "$state.bak" ] || die "Anvil 상태 파일이 잘려 있고 백업이 없어요(logs/anvil.log). 시연 데이터를 새로 만들어야 해요"
+      say "Anvil 상태 파일이 잘려 있어 마지막 정상 백업으로 되살려요"; cp "$state.bak" "$state"
+    fi
   fi
   nohup anvil --host 127.0.0.1 --port "$RPC_PORT" --chain-id 31337 --state "$RUN/anvil-state.json" \
     --preserve-historical-states \
