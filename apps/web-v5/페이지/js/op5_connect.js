@@ -311,6 +311,8 @@
     var v;
     if (tones.indexOf('fail') >= 0) v = { tone: 'fail', head: '✕ 가짜이거나 바뀐 안내문이에요', sub: '이 문자대로 돈을 보내거나 링크를 누르지 마세요.' };
     else if (fact.length && tones.every(function (t) { return t === 'ok'; })) v = { tone: 'ok', head: '✓ 진짜 안내문이에요', sub: lookup ? '문자에서 읽은 금액·계좌(또는 공문번호)가 기관이 블록체인에 남긴 발행 기록과 같아요. 나머지 문구는 비교하지 않았어요.' : '기관이 블록체인에 남긴 발행 기록·서명·원본과 모두 같고, 지금도 유효해요.' };
+    // 구버전: 발행·원본은 맞으니 '공식 기록으로 확인 안 됨'이 아님
+    else if (fact.some(function (x) { return x.status === '새 버전 있음'; })) v = { tone: 'caution', chip: '새 버전 있음', head: '! 예전 버전 안내문이에요 · 새 버전을 확인하세요', sub: '기관이 실제로 발행했지만 내용을 고친 새 버전이 있어요. 이 안내대로 보내지 말고 새 버전의 금액·기한을 확인하세요.' };
     else if (a.conclusion && a.conclusion.badge && a.conclusion.badge.tone === 'none') v = { tone: 'none', head: '· 사진으로는 원본과 맞춰 보지 못했어요', sub: a.conclusion.text };   // 대조를 안 한 것(가짜 의심 아님)
     else if (tones.indexOf('offline') >= 0) v = { tone: 'none', head: '· 지금은 확인하지 못했어요', sub: '서버나 블록체인에 연결하지 못해 판단을 미뤘어요. 잠시 뒤 다시 확인하고, 그 전에는 돈을 보내지 마세요.' };
     else v = { tone: 'caution', head: '! 가짜 의심 · 공식 기록으로 확인되지 않아요', sub: (a.conclusion && a.conclusion.text) || '등록된 기관의 발행 기록과 맞는 것이 없어요. 돈을 보내거나 링크를 누르지 말고, 기관 대표번호나 공식 앱으로 직접 확인하세요.' };   // 무엇이 맞지 않았는지(금액·계좌·공문번호)는 결론 문장에 있음
@@ -330,7 +332,7 @@
     var v = verdictOf(a, axes.filter(function (x) { return x.axis !== 'ai'; }), ai);
     var vbox = el('div', 'op-gov');
     var vrow = el('div', 'op-gov-row');
-    vrow.append(el('span', 'op-gov-n', '최종'), el('span', 'op-gov-who', v.head), el('span', 'op-chip t-' + v.tone, v.tone === 'ok' ? '진짜' : v.tone === 'fail' ? '가짜·변조' : v.tone === 'caution' ? '가짜 의심' : '확인 못 함'), el('span', 'op-body', v.sub));
+    vrow.append(el('span', 'op-gov-n', '최종'), el('span', 'op-gov-who', v.head), el('span', 'op-chip t-' + v.tone, v.chip || (v.tone === 'ok' ? '진짜' : v.tone === 'fail' ? '가짜·변조' : v.tone === 'caution' ? '가짜 의심' : '확인 못 함')), el('span', 'op-body', v.sub));
     vbox.append(vrow);
     if (v.ai) vbox.append(el('p', 'op-foot', v.ai));
     r.box.append(vbox);

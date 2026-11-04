@@ -21,6 +21,11 @@ test('금액 1원 변조 예시 → 최종 판단 가짜·변조', async () => {
   const t = await run('tamper');
   assert.match(t, /최종\s*✕ 가짜이거나 바뀐 안내문이에요\s*가짜·변조/);
 });
+test('구버전 예시 → 발행·원본은 맞으니 가짜 의심이 아니라 새 버전 확인으로', async () => {
+  const t = await run('superseded');
+  assert.match(t, /최종\s*! 예전 버전 안내문이에요 · 새 버전을 확인하세요\s*새 버전 있음/);
+  assert.ok(!/공식 기록으로 확인되지 않아요/.test(t));
+});
 test('미등록 기관 사칭 예시 → 진짜라고 하지 않음(가짜·변조 또는 확인 불가) + AI 위험 한 줄', async () => {
   const t = await run('unregistered');
   assert.ok(!/✓ 진짜 안내문이에요/.test(t));
