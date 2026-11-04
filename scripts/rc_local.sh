@@ -175,7 +175,11 @@ case "${1:-}" in
     mkdir -p "$RUN/logs" "$RUN/secrets"; chmod 700 "$RUN/secrets"
     llm_env
     start_db; start_chain
-    if [ -f "$RUN/wallet.env" ]; then api_env; start_api; ensure_accounts; [ -f "$PRESET_FILE" ] || write_samples; else first_setup; fi
+    if [ -f "$RUN/wallet.env" ]; then
+      api_env   # 이미 만든 환경도 새 migration(예: #139 accounts.email)을 받아야 API가 뜸
+      "${UVR[@]}" alembic -c apps/api/alembic.ini upgrade head > "$RUN/logs/migrate.log" 2>&1 || die "migration 실패(logs/migrate.log)"
+      start_api; ensure_accounts; [ -f "$PRESET_FILE" ] || write_samples
+    else first_setup; fi
     echo; status
     echo; say "로그인 계정 v5_bank · 비밀번호: $RUN/secrets/test-accounts.json 의 password 값"
     say "개인 회원 rc-viewer@example.invalid · 비밀번호 같음"
