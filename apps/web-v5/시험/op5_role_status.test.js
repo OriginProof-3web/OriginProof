@@ -66,17 +66,36 @@ test('로컬 Anvil 이면 Etherscan 링크 없음', async () => {
   assert.match(threadText(d), /시연용 블록체인이라 공개 탐색기\(Etherscan\)에서는 볼 수 없어요/);
 });
 
-test('비로그인: 로그인 확인 뒤 예시 모드로 돌아가 예전 예시 화면 그대로(서버 요청은 로그인 확인뿐)', async () => {
+test('비로그인: 개인 화면과 같음(운영자 연결 설정·2-of-3·모드 단추 없음), 공개 목록만 읽고 기관 전용 메뉴는 숨김', async () => {
   const f = serverDouble({ over: u => u === '/v1/auth/me' ? { status: 401, body: { detail: 'AUTH_REQUIRED' } } : null });
-  const d = build('?mode=api', f);
+  const d = build('?mode=api', f, w => { const b = w.document.createElement('button'); b.id = 'authBtn'; w.document.body.append(b); });
+  const side = d.doc.getElementById('sidebar-root');
+  for (const t of ['공개키 관리', '발행 목록', '기관 상태']) { const b = d.doc.createElement('button'); b.textContent = t; side.append(b); }
   await sleep(10);
   menu(d, 'status'); await sleep(60);
-  assert.deepEqual(f.calls.map(c => c.url).filter(u => !/auth\/me$/.test(u)), []);
+  assert.deepEqual(f.calls.map(c => c.url).filter(u => !/auth\/me$/.test(u)).sort(), ['/api/v1/chain/issuers', '/api/v1/chain/network'], '공개 목록 GET 두 개만');
+  assert.ok(f.calls.every(c => (c.init.method || 'GET') === 'GET'));
   const t = threadText(d);
-  assert.match(t, /연결 설정/);
-  assert.match(t, /기관 활성화 · 2-of-3 공동승인 \(예시 진행\)/);
-  assert.ok(find(d, '실서버 모드로 바꾸기'));
+  for (const x of ['연결 설정', '2-of-3', '서버 상태']) assert.ok(!t.includes(x), x);
+  assert.match(t, /로그인하지 않았어요/);
+  assert.match(t, /이용 가능한 기관 · 2곳/);
+  assert.match(t, /공개 블록체인 연결 정보/);
+  for (const l of STAFF_BUTTONS) assert.equal(find(d, l), undefined, l);
+  assert.equal(find(d, '실서버 모드로 바꾸기'), undefined);
   assert.ok(find(d, '로그인 화면 열기'));
+  const shown = side.querySelectorAll('button').filter(b => b.style.display !== 'none').map(b => b.textContent);
+  for (const x of ['공개키 관리', '발행 목록']) assert.ok(!shown.includes(x), x);
+  assert.ok(shown.includes('기관 상태'));   // '새 Proof 발행'→'새 대화' 글자 바꾸기는 번들 DOM(글자 노드)에서만 확인 가능
+});
+
+test('?demo= 시연 화면은 비로그인이어도 예전 예시 화면 그대로(연결 설정·2-of-3)', async () => {
+  const f = serverDouble({ over: u => u === '/v1/auth/me' ? { status: 401, body: { detail: 'AUTH_REQUIRED' } } : null });
+  const d = build('?mode=sample', f, w => { w.Hk = w.Hk || {}; });
+  await sleep(10);
+  d.win.Hk.auth.demo = true;
+  menu(d, 'status'); await sleep(40);
+  assert.match(threadText(d), /연결 설정/);
+  assert.match(threadText(d), /2-of-3/);
 });
 
 test('로그인한 기관이 ?mode=sample 로 보면: 예시 화면이어도 운영자 단추·2-of-3 패널 없음', async () => {

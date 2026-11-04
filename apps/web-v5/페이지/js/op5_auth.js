@@ -108,7 +108,8 @@
     foldNarrow(20);
     var btn = authBtn = document.getElementById('authBtn'); if (!btn) return;
     paint(btn);
-    checked.then(function () { paint(btn); if (state.me && state.me.role !== 'issuer') hideOrgMenu(); });
+    // 비로그인도 개인 화면과 같은 메뉴(기관 전용 메뉴 숨김). ?demo= 시연 화면만 예전 그대로
+    checked.then(function () { paint(btn); if (!demo && !(state.me && state.me.role === 'issuer')) hideOrgMenu(); });
     btn.addEventListener('click', function () {
       if (!state.member) { location.href = LOGIN; return; }
       btn.disabled = true;
@@ -133,5 +134,5 @@
     }
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
-  Hk.auth = { state: state, notice: notice, checked: checked, expired: expired };
+  Hk.auth = { state: state, notice: notice, checked: checked, expired: expired, demo: demo };
 })(window);

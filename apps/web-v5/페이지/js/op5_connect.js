@@ -36,7 +36,9 @@
 
   // 예시 모드의 마지막 안전장치: 진행 중이던 흐름이 전환 뒤 이어져도 서버로 나가지 않음(op5_auth.js 의 로그인 확인은 별도)
   var fetchFn = scene ? S.fetchFor(scene) : function (u, i) {
-    if (!isApi()) { var e = new Error('sample mode'); e.name = 'SampleMode'; return Promise.reject(e); }
+    // 비로그인 개인 화면의 공개 목록(블록체인 연결 정보·활성 기관)만 예외: 로그인 없이 읽는 GET 두 개
+    var pub = guest() && !(i && i.method && i.method !== 'GET') && /\/v1\/chain\/(network|issuers)$/.test(String(u));
+    if (!isApi() && !pub) { var e = new Error('sample mode'); e.name = 'SampleMode'; return Promise.reject(e); }
     return window.fetch(u, i).then(function (r) {
       if (r && r.status === 401 && !/\/auth\/login$/.test(String(u)) && Hk.auth && Hk.auth.expired) Hk.auth.expired();
       return r;
@@ -593,8 +595,10 @@
     var m = Hk.auth && Hk.auth.state && Hk.auth.state.me;
     return m && typeof m.role === 'string' ? m.role : null;
   }
-  // 운영자, 또는 로그인 없이 보는 예시 화면(비회원·?demo=)이면 예전 화면 그대로
-  function staffView() { var role = myRole(); return role === 'operator' || (!isApi() && role !== 'recipient' && role !== 'issuer'); }
+  // 비로그인(로그인 확인을 마친 비회원)은 개인 화면과 같게 본다. ?demo= 시연 화면만 예전 그대로
+  function guest() { var A = Hk.auth; return !!(A && A.state && A.state.checked && !A.state.me && !A.demo); }
+  // 운영자, 또는 ?demo= 시연 화면이면 예전 화면 그대로
+  function staffView() { var role = myRole(); return role === 'operator' || (!isApi() && role !== 'recipient' && role !== 'issuer' && !guest()); }
   function switchMode(to) {
     var before = conn.mode();
     if (conn.setMode(to) !== to) return false;   // 비회원 거절 등은 op5_auth.js 가 안내함
@@ -836,8 +840,9 @@
       var staff = staffView();
       if (staff) r.para('연결 설정', ['지금 모드: 예시 모드', '연결 주소: ' + getBase() + (getBase() === '/api' ? ' (같은 출처 프록시)' : ''), retainText()]);
       if (staff) r.para('서버 상태(/health/live · /health/ready)', ['예시 모드라 서버에 묻지 않았어요.']);
-      r.para('로그인', ['예시 모드라 서버에 묻지 않았어요. 실서버 모드에서 기관 상태까지 확인해요. 로그인은 로그인 화면(login.html)에서 해요.']);
-      modeButtons(r);
+      if (guest()) r.para('로그인', ['로그인하지 않았어요. 받은 문자를 기관 발행 기록과 정확히 대조하고 AI 분석까지 보려면 로그인해 주세요.']);
+      else r.para('로그인', ['예시 모드라 서버에 묻지 않았어요. 실서버 모드에서 기관 상태까지 확인해요. 로그인은 로그인 화면(login.html)에서 해요.']);
+      if (!guest()) modeButtons(r);
       if (staff) {
         r.btn('연결 다시 확인', function () { return showStatus(); }, true);
         r.btn('연결 주소 바꾸기', function () { changeBase(); }, true);
@@ -845,6 +850,8 @@
       }
       r.btn('로그인 화면 열기', function (x) { x.dataset.done = '1'; location.href = 'login.html?next=business.html'; }, true);
       if (staff) { govPanel(r); roiPanel(r); }
+      // 비로그인: 개인 화면처럼 공개 블록체인 정보·이용 가능한 기관(로그인 없이 읽는 공개 목록)
+      if (guest()) return Promise.all([publicChain(r), availableIssuers(r)]);
       return Promise.resolve();
     }
     var who = r.para('로그인', ['확인 중…']);
@@ -1103,7 +1110,7 @@
     dropAsk('메뉴 이동');
     // 기관이 아닌 계정에서는 맨 위 단추가 '새 대화'(op5_auth.js): 빈 확인 화면으로
     var role = Hk.auth && Hk.auth.state && Hk.auth.state.me ? Hk.auth.state.me.role : null;
-    if (d.key === 'issue' && role && role !== 'issuer') return newChat();
+    if (d.key === 'issue' && ((role && role !== 'issuer') || guest())) return newChat();
     newPage(d.key);
     if (d.key === 'proofs' && d.proofId) return showProofs(d.proofId);
     fn();

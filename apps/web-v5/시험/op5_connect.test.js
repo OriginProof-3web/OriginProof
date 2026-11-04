@@ -125,12 +125,15 @@ test('왼쪽 메뉴(selectAction 이벤트) → 말풍선, 도움말은 알림�
   d.doc.getElementById('sidebar-root')._l.push({ type: 'click', fn: () => reached++, cap: false });
   // 메뉴마다 화면을 새로 그림(앞 메뉴 내용이 한 대화창에 쌓이지 않음)
   const now = () => d.doc.getElementById('chatThread').textContent;
+  // 비로그인은 개인 화면과 같음: 운영자용 연결 설정 없음, 맨 위 단추는 빈 새 대화
+  await sleep(10);   // 로그인 확인(401)이 끝난 뒤
   vm.runInContext('selectAction("status")', d.win); await sleep(10);
-  assert.match(now(), /연결 설정/);
+  assert.match(now(), /로그인하지 않았어요/);
+  assert.doesNotMatch(now(), /연결 설정/);
   assert.ok(d.doc.querySelectorAll('#chatThread .add-btn').length > 0);
   vm.runInContext('selectAction("issue")', d.win); await sleep(10);
-  assert.match(now(), /새 Proof 발행\(기관 지갑\)/);
-  assert.doesNotMatch(now(), /연결 설정/);
+  assert.match(now(), /무엇을 확인할까요/);
+  assert.doesNotMatch(now(), /로그인하지 않았어요/);
   d.doc.querySelectorAll('#sidebar-root button')[0].click(); await sleep(10);
   assert.match(now(), /도움말/);
   assert.doesNotMatch(now(), /새 Proof 발행\(기관 지갑\)/);
