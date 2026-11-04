@@ -670,11 +670,12 @@
       var given = typeof d.registry_address === 'string' && /^0x[0-9a-fA-F]{40}$/.test(d.registry_address) ? d.registry_address : '';
       var registry = given || (target === 'sepolia' ? PUBLIC_REGISTRY[id] || '' : '');
       var lines = [];
-      if (target === 'sepolia') lines.push('체인: Sepolia 테스트넷 · 체인 ID ' + id);
-      else if (target === 'anvil') lines.push('체인: 로컬 시연 체인(Anvil) · 체인 ID ' + id);
-      else lines.push('체인: ' + target + ' · 체인 ID ' + id);
-      lines.push('등록부 계약 주소: ' + (registry || (target === 'anvil' ? '로컬 시연 체인은 실행할 때마다 주소가 바뀌어 서버가 알려 줄 때만 보여요.' : '서버가 아직 알려 주지 않았어요.')));
-      if (target === 'anvil') lines.push('로컬 시연 체인이라 공개 탐색기(Etherscan)에서는 볼 수 없어요.');
+      if (target === 'sepolia') lines.push('연결된 블록체인: 이더리움 Sepolia 공개 테스트넷');
+      else if (target === 'anvil') lines.push('연결된 블록체인: 시연용 블록체인');
+      else lines.push('연결된 블록체인: ' + target);
+      // 주소 전체는 Etherscan 링크에 있으니 화면에는 앞뒤만(전문가용)
+      lines.push('등록부 주소(전문가용): ' + (registry ? registry.slice(0, 8) + '…' + registry.slice(-4) : '서버가 아직 알려 주지 않았어요.'));
+      if (target === 'anvil') lines.push('시연용 블록체인이라 공개 탐색기(Etherscan)에서는 볼 수 없어요.');
       r.set(p, title, lines);
       if (target === 'sepolia' && registry && Hk.chain && Hk.chain.explorerLinks) {
         Hk.chain.explorerLinks(id, registry).forEach(function (l) { var k = el('a', null, l.label); k.href = l.href; k.target = '_blank'; k.rel = 'noopener noreferrer'; p.append(el('br'), k); });
@@ -682,6 +683,9 @@
     });
   }
   /* 이용 가능한 기관: 체인에서 지금 활성(ACTIVE)인 기관의 이름만(/v1/chain/issuers, 로그인 없이 공개). 지어낸 목록 없음. */
+  // 서버 상태 값 → 쉬운 말(표에 없는 값은 그대로 보여 줌, 지어내지 않음)
+  var ISSUER_STATE_KO = { ACTIVE: '활성', SUSPENDED: '정지됨' };
+  var APP_STATUS_KO = { PENDING_REVIEW: '검토 중', APPROVED_PENDING_CHAIN: '승인됨 · 블록체인 등록 대기', REJECTED: '거절됨' };
   function availableIssuers(r) {
     var title = '이용 가능한 기관';
     var p = r.para(title, ['확인 중…']);
@@ -729,16 +733,16 @@
       if (me.role === 'issuer') governanceButtons(r, me.role);
       var pending = [publicChain(r), availableIssuers(r)];
       if (me.role !== 'issuer') return Promise.all(pending);
-      var iss = r.para('기관 상태(/v1/issuer/status · 신청)', ['확인 중…']);
+      var iss = r.para('내 기관 상태 · 신청', ['확인 중…']);
       pending.push(Promise.all([client.get('/v1/issuer/status'), client.get('/v1/issuer-applications/mine')]).then(function (z) {
         var lines = [];
-        if (z[0].status === 200 && z[0].data) lines.push('기관 ' + z[0].data.issuer_id + ' · 상태 ' + z[0].data.status + ' · 체인 ' + z[0].data.chain_id);
-        else if (client.say(z[0]).code === 'CHAIN_UNAVAILABLE') lines.push('기관 체인 상태(v1 장부)는 읽지 못했어요. wallet 장부만 쓰는 환경에서는 정상이고, 문서 발행·검증에는 영향이 없어요.');
+        if (z[0].status === 200 && z[0].data) lines.push('블록체인 등록 상태: ' + (ISSUER_STATE_KO[z[0].data.status] || String(z[0].data.status)));
+        else if (client.say(z[0]).code === 'CHAIN_UNAVAILABLE') lines.push('블록체인에 등록된 기관 상태를 지금은 불러오지 못했어요. 문서 발행과 검증은 그대로 쓸 수 있어요.');
         else lines = lines.concat(errLines(z[0]));
-        if (z[1].status === 200 && z[1].data) { lines.push('신청 ' + z[1].data.application_id + ' · ' + z[1].data.issuer_name + ' · ' + z[1].data.status); onboardingButtons(r, z[1].data, me); }
+        if (z[1].status === 200 && z[1].data) { lines.push('신청 기관 ' + z[1].data.issuer_name + ' · ' + (APP_STATUS_KO[z[1].data.status] || String(z[1].data.status))); onboardingButtons(r, z[1].data, me); }
         else if (z[1].status === 200) lines.push('기관 신청 기록이 없어요.');
         else lines = lines.concat(errLines(z[1]));
-        r.set(iss, '기관 상태(/v1/issuer/status · 신청)', lines);
+        r.set(iss, '내 기관 상태 · 신청', lines);
       }));
       return Promise.all(pending);
     });

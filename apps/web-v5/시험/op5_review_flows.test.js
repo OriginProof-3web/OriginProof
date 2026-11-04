@@ -579,7 +579,7 @@ test('T8-21 화면: 슬러그를 기관 ID 로 넣으면 형식 안내, 서버�
   const d = build(API, f);
   await ready(d);
   menu(d, 'status'); await sleep(40);
-  assert.match(threadText(d), /기관 iss_origin_mock_bank/);
+  assert.match(threadText(d), /블록체인 등록 상태: (활성|정지됨|[A-Z_]+)/);
   assert.ok(!threadText(d).includes(BANK_HASH), '화면이 해시를 보여 주게 되었다면 보고 내용을 고칠 것');
   await press(d, '긴급 정지 거래 알리기');
   enter(d, 'iss_origin_mock_bank'); await sleep(20);

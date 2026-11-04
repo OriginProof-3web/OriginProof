@@ -29,7 +29,7 @@ for (const persona of [
     assert.equal(f.calls.filter(c => /\/health\//.test(c.url)).length, 0, '서버 상태를 묻지 않음');
     assert.match(text, persona.role === 'recipient' ? /아이디 kim_tester/ : /아이디 bank_staff/);
     assert.match(text, /공개 블록체인 연결 정보/);
-    assert.match(text, /로컬 시연 체인\(Anvil\) · 체인 ID 31337/);
+    assert.match(text, /연결된 블록체인: 시연용 블록체인/);
     assert.match(text, /이용 가능한 기관/);
     assert.match(text, /이용 가능한 기관\s*Origin Mock Bank\s*Origin Mock Office/);
     assert.ok(f.calls.some(c => /\/v1\/chain\/issuers$/.test(c.url)), '활성 기관 목록은 서버에서 받음');
@@ -52,8 +52,8 @@ test('Sepolia 이면 등록부 주소와 Etherscan 링크, 주소는 배포 기�
   const dep = JSON.parse(fs.readFileSync(path.join(ROOT, '../../packages/contracts/deployments/11155111.wallet.json'), 'utf8'));
   const addr = dep.contracts.OriginProofWalletRegistry.address.toLowerCase();
   const { d, text } = await open({ role: 'recipient', issuer_id: null }, u => u === '/v1/chain/network' ? SEPOLIA_NET : null);
-  assert.match(text, /Sepolia 테스트넷 · 체인 ID 11155111/);
-  assert.ok(text.includes('등록부 계약 주소: ' + addr));
+  assert.match(text, /연결된 블록체인: 이더리움 Sepolia 공개 테스트넷/);
+  assert.ok(text.includes('등록부 주소(전문가용): ' + addr.slice(0, 8) + '…' + addr.slice(-4)));
   const a = d.doc.querySelectorAll('#chatThread a').filter(x => x.href === 'https://sepolia.etherscan.io/address/' + addr);
   assert.equal(a.length, 1);
   assert.equal(a[0].rel, 'noopener noreferrer');
@@ -62,7 +62,7 @@ test('Sepolia 이면 등록부 주소와 Etherscan 링크, 주소는 배포 기�
 test('로컬 Anvil 이면 Etherscan 링크 없음', async () => {
   const { d } = await open({ role: 'recipient', issuer_id: null });
   assert.equal(d.doc.querySelectorAll('#chatThread a').filter(x => /etherscan/.test(String(x.href))).length, 0);
-  assert.match(threadText(d), /공개 탐색기\(Etherscan\)에서는 볼 수 없어요/);
+  assert.match(threadText(d), /시연용 블록체인이라 공개 탐색기\(Etherscan\)에서는 볼 수 없어요/);
 });
 
 test('비로그인: 로그인 확인 뒤 예시 모드로 돌아가 예전 예시 화면 그대로(서버 요청은 로그인 확인뿐)', async () => {
@@ -93,11 +93,17 @@ test('서버가 등록부 주소를 주면 그 값을 씀(로컬 Anvil 도 주�
   const addr = '0x' + '12'.repeat(20);
   const net = { status: 200, body: { chain_target: 'anvil', chain_id: 31337, rpc_fallback_configured: false, registry_address: addr, approver_nodes: [] } };
   const { d, text } = await open({ role: 'recipient', issuer_id: null }, u => u === '/v1/chain/network' ? net : null);
-  assert.ok(text.includes('등록부 계약 주소: ' + addr));
+  assert.ok(text.includes('등록부 주소(전문가용): ' + addr.slice(0, 8) + '…' + addr.slice(-4)));
   assert.equal(d.doc.querySelectorAll('#chatThread a').filter(x => /etherscan/.test(String(x.href))).length, 0);
 });
 
 test('활성 기관 목록을 못 받으면 지어내지 않고 오류를 보여 줌', async () => {
   const { text } = await open({ role: 'recipient', issuer_id: null }, u => u === '/v1/chain/issuers' ? { status: 503, body: { detail: 'WALLET_REGISTRY_UNAVAILABLE' } } : null);
   assert.ok(!/Origin Mock Office/.test(text));
+});
+
+test('기관 화면: API 경로·영문 상태 코드·신청 번호 대신 쉬운 말', async () => {
+  const { text } = await open({ role: 'issuer', issuer_id: 'iss_origin_mock_bank', username: 'bank_staff' });
+  assert.match(text, /내 기관 상태 · 신청/);
+  for (const t of ['/v1/issuer/status', 'PENDING_REVIEW', 'APPROVED_PENDING_CHAIN', 'app_', 'v1 장부', 'wallet 장부']) assert.ok(!text.includes(t), t);
 });

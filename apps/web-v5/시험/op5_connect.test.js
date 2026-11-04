@@ -229,7 +229,7 @@ const B = '/v3/issuer-applications/' + APP;
 
 test('기관 메뉴(신청자): 온보딩 경로로 가고, 내부 승인·제안 조회 단추는 없음, 긴급 정지는 자기 기관', async () => {
   const { d, has, press, posted } = await open('issuer', 'acct_applicant');
-  assert.match(d.doc.getElementById('chatThread').textContent, /로컬 시연 체인\(Anvil\) · 체인 ID 31337/);
+  assert.match(d.doc.getElementById('chatThread').textContent, /연결된 블록체인: 시연용 블록체인/);
   assert.equal(has('내부 승인하기(지정된 다른 계정)'), false);
   assert.equal(has('공동승인 제안 조회'), false);
   await press('업무 메일 코드 받기'); enter(d, 'staff@bank.example.invalid'); await sleep(40);
@@ -244,7 +244,7 @@ test('기관 메뉴(신청자): 온보딩 경로로 가고, 내부 승인·제�
 test('기관 상태: wallet 전용 환경의 v1 503 CHAIN_UNAVAILABLE은 오류 대신 안내로 보여 줌', async () => {
   const { d } = await open('issuer', 'acct_v1_down');
   const t = d.doc.getElementById('chatThread').textContent;
-  assert.match(t, /wallet 장부만 쓰는 환경에서는 정상/);
+  assert.match(t, /기관 상태를 지금은 불러오지 못했어요\. 문서 발행과 검증은 그대로/);
   assert.doesNotMatch(t, /CHAIN_UNAVAILABLE/);
 });
 
