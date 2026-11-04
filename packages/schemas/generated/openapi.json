@@ -6976,7 +6976,7 @@
     },
     "/v3/inputs/{input_ref}/text": {
       "post": {
-        "description": "Read a stored DOCUMENT_IMAGE input once; the reply goes only to the account that uploaded it.",
+        "description": "Read a stored DOCUMENT_IMAGE input once; only its uploader gets the text.",
         "operationId": "image_text_v3_inputs__input_ref__text_post",
         "parameters": [
           {

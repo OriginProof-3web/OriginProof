@@ -38,7 +38,7 @@ from originproof_core import DependencyUnavailableError
 from originproof_core.wallet_contract import DocumentView, SigningRequest
 from originproof_core.wallet_ports import WalletDocument
 from originproof_core.wallet_signatures import identifier_hash, wallet_digest, wallet_signer
-from sqlalchemy import func, select, text
+from sqlalchemy import func, insert, select, text
 from test_w6_c_recovery import LiveState, command, port, wait_http
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -312,8 +312,9 @@ async def wallet_live(tmp_path):
                 ("operator", "operator", None),
                 ("recipient", "recipient", None),
             ):
-                db.add(
-                    AccountRow(
+                # Name only the 0006 columns; accounts.email arrives with head.
+                await db.execute(
+                    insert(AccountRow).values(
                         account_id="acct_" + username,
                         username=username,
                         role=role,

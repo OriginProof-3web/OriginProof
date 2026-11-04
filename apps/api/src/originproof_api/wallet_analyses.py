@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from originproof_analyzer.converted_inputs import analyze_conversion, prepare_conversion
+from originproof_analyzer.errors import AnalyzerError
 from originproof_analyzer.inputs import SemanticInput
 from originproof_core.wallet_contract import (
     AnalysisJob,
@@ -333,7 +334,12 @@ async def image_text(input_ref: str, request: Request, identity: Identity):
         raise HTTPException(
             503, str(getattr(code, "value", code) or "ANALYZER_UNAVAILABLE")
         ) from None
-    return ImageText(text=prepare_conversion(converted).text, complete=converted.complete)
+    # Incomplete text or invalid spans stay a recorded failure: a contract code, no retry.
+    try:
+        prepared = prepare_conversion(converted)
+    except AnalyzerError as problem:
+        raise HTTPException(422, problem.code.value) from None
+    return ImageText(text=prepared.text, complete=converted.complete)
 
 
 @router.post("/analyses", response_model=AnalysisJob, status_code=202)

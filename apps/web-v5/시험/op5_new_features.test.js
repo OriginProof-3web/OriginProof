@@ -98,6 +98,21 @@ test('문서 사진: 사진 읽기가 기관 이름을 비슷하게 잘못 읽�
   }
 });
 
+test('문서 사진: 서버가 판독 실패(422 INCOMPLETE_OUTPUT)로 남기면 AI 분석에 다시 보내지 않고 이유를 보여 줌', async () => {
+  const Hk = load();
+  const f = fakeFetch(url => {
+    if (url === '/api/v1/auth/me') return { status: 200, body: ME };
+    if (url === '/api/v3/inputs') return { status: 201, body: { input_ref: 'inp_1', expires_at: 1 } };
+    if (url === '/api/v3/inputs/inp_1/text') return { status: 422, body: { detail: 'INCOMPLETE_OUTPUT' } };
+    return { status: 500, body: { detail: 'UNEXPECTED' } };
+  });
+  const a = await api(Hk, f).check('[문서 사진] a.png', { image: { media_type: 'image/png', base64: 'iVBORw0KGgo=' } });
+  assert.equal(f.calls.filter(c => c.url === '/api/v3/inputs').length, 1, '사진은 한 번만');
+  assert.equal(f.calls.filter(c => /\/v3\/analyses/.test(c.url)).length, 0, '분석 다시 맡기지 않음');
+  assert.equal(a.conclusion.badge.text, '확인 못 함');
+  assert.ok(JSON.stringify(a).includes('사진 글자를 다 읽지 못했어요'));
+});
+
 test('첨부 함수: 문서 사진을 base64 로, 다른 형식·5MB 초과는 보내지 않음', async () => {
   class FR { readAsDataURL(f) { this.result = 'data:' + f.type + ';base64,QUJD'; this.onload(); } }
   const sb = { console, setTimeout, clearTimeout, AbortController, AbortSignal, TextEncoder, URL, crypto: globalThis.crypto, Promise, FileReader: FR }; sb.window = sb; sb.self = sb; vm.createContext(sb);

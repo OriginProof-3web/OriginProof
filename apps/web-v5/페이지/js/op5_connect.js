@@ -305,11 +305,28 @@
      - 연결 문제(서버·체인에 묻지 못함, offline) → 지금은 확인 못 함(가짜 의심 아님)
      - 그 밖(공식 기록으로 확인 못 함) → 가짜 의심(대표 결정 2026-11-04: '확인 불가'는 '가짜 의심'으로 명시)
      AI 가 주의·위험이면 한 줄을 덧붙임(진짜여도 송금 요청이면 계좌 확인을 권함). 서버 판정 값은 바꾸지 않음. */
+  // 발행 진위(공식 발행·원본 일치)와 지금 쓸 수 있는지(현재 상태)를 따로 읽음(리뷰 #139 P1):
+  // 정상 발행된 구버전·철회 문서를 '가짜'라 하지 않고, 진위가 확인됐다는 것과 지금 쓰면 안 되는 이유를 함께 말함
+  var STATE_VERDICT = {
+    '새 버전 있음': { tone: 'caution', chip: '구버전', head: '! 기관이 발행한 예전 안내문이에요', sub: '진짜로 발행된 안내문이지만 새 버전이 있어요. 이 안내 대신 기관의 최신 안내를 확인하세요.' },
+    '만료': { tone: 'caution', chip: '만료', head: '! 기관이 발행했지만 기간이 지난 안내문이에요', sub: '진짜로 발행된 안내문이지만 유효기간이 지났어요. 기관에 최신 안내를 확인하세요.' },
+    '철회됨': { tone: 'fail', chip: '철회됨', head: '! 기관이 발행했다가 철회한 안내문이에요', sub: '진짜로 발행됐지만 기관이 철회했어요. 이 안내대로 돈을 보내지 말고 기관에 직접 확인하세요.' },
+    '기관 정지': { tone: 'fail', chip: '사용 중지', head: '! 지금은 믿을 수 없는 기관의 안내문이에요', sub: '발행 기록은 있지만 이 기관이 지금 정지 상태예요. 돈을 보내지 말고 기관 대표번호로 확인하세요.' },
+    '서명 키 유출': { tone: 'fail', chip: '사용 중지', head: '! 서명 키가 유출된 안내문이에요', sub: '발행 기록은 있지만 이 기관의 서명 키가 유출 처리됐어요. 돈을 보내지 말고 기관 대표번호로 확인하세요.' },
+    '서명 키 무효': { tone: 'fail', chip: '사용 중지', head: '! 서명 키가 지금 무효인 안내문이에요', sub: '발행 기록은 있지만 서명 키가 지금 유효하지 않아요. 돈을 보내지 말고 기관 대표번호로 확인하세요.' }
+  };
   function verdictOf(a, fact, ai) {
+    var by = {};
+    fact.forEach(function (x) { by[x.axis] = x; });
+    var issued = [by.official, by.original].filter(Boolean);
+    var state = by.status;
     var tones = fact.map(function (x) { return x.tone; });
     var lookup = fact.some(function (x) { return x.status === '읽은 항목 일치'; });
     var v;
-    if (tones.indexOf('fail') >= 0) v = { tone: 'fail', head: '✕ 가짜이거나 바뀐 안내문이에요', sub: '이 문자대로 돈을 보내거나 링크를 누르지 마세요.' };
+    var issuedOk = issued.length === 2 && issued.every(function (x) { return x.tone === 'ok'; });
+    if (issued.some(function (x) { return x.tone === 'fail'; })) v = { tone: 'fail', head: '✕ 가짜이거나 바뀐 안내문이에요', sub: '이 문자대로 돈을 보내거나 링크를 누르지 마세요.' };
+    else if (issuedOk && state && STATE_VERDICT[state.status]) v = Object.assign({}, STATE_VERDICT[state.status]);
+    else if (issuedOk && state && state.tone === 'fail') v = { tone: 'fail', chip: '사용 중지', head: '! 기관이 발행했지만 지금은 쓰면 안 되는 안내문이에요', sub: (state.body || '') + ' 돈을 보내지 말고 기관에 직접 확인하세요.' };
     else if (fact.length && tones.every(function (t) { return t === 'ok'; })) v = { tone: 'ok', head: '✓ 진짜 안내문이에요', sub: lookup ? '문자에서 읽은 금액·계좌(또는 공문번호)가 기관이 블록체인에 남긴 발행 기록과 같아요. 나머지 문구는 비교하지 않았어요.' : '기관이 블록체인에 남긴 발행 기록·서명·원본과 모두 같고, 지금도 유효해요.' };
     else if (a.conclusion && a.conclusion.badge && a.conclusion.badge.tone === 'none') v = { tone: 'none', head: '· 사진으로는 원본과 맞춰 보지 못했어요', sub: a.conclusion.text };   // 대조를 안 한 것(가짜 의심 아님)
     else if (tones.indexOf('offline') >= 0) v = { tone: 'none', head: '· 지금은 확인하지 못했어요', sub: '서버나 블록체인에 연결하지 못해 판단을 미뤘어요. 잠시 뒤 다시 확인하고, 그 전에는 돈을 보내지 마세요.' };
@@ -330,7 +347,7 @@
     var v = verdictOf(a, axes.filter(function (x) { return x.axis !== 'ai'; }), ai);
     var vbox = el('div', 'op-gov');
     var vrow = el('div', 'op-gov-row');
-    vrow.append(el('span', 'op-gov-n', '최종'), el('span', 'op-gov-who', v.head), el('span', 'op-chip t-' + v.tone, v.tone === 'ok' ? '진짜' : v.tone === 'fail' ? '가짜·변조' : v.tone === 'caution' ? '가짜 의심' : '확인 못 함'), el('span', 'op-body', v.sub));
+    vrow.append(el('span', 'op-gov-n', '최종'), el('span', 'op-gov-who', v.head), el('span', 'op-chip t-' + v.tone, v.chip || (v.tone === 'ok' ? '진짜' : v.tone === 'fail' ? '가짜·변조' : v.tone === 'caution' ? '가짜 의심' : '확인 못 함')), el('span', 'op-body', v.sub));
     vbox.append(vrow);
     if (v.ai) vbox.append(el('p', 'op-foot', v.ai));
     r.box.append(vbox);
@@ -430,6 +447,7 @@
     }, function (e) { say(e && e.userMessage ? e.userMessage : '예시를 보여 드리지 못했어요.'); });
   }
   Hk.op5sampleCheck = sampleCheck;
+  Hk.op5verdictOf = verdictOf;   // 시험용: 최종 카드 판단만 따로 확인
   function submit() {
     var v = Hk.validateInput(input.value);
     if (!v.ok) { if (input.value.trim()) say(v.message); return null; }

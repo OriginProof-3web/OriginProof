@@ -551,7 +551,9 @@
     VERIFICATION_SESSION_EXPIRED: '연결할 검증 기록의 보관 시간이 지났어요.',
     RESULT_EXPIRED: '분석 결과 보관 시간이 지났어요.',
     INPUT_NOT_IMAGE: '사진으로 올린 입력만 글자를 읽을 수 있어요.',
-    IMAGE_TEXT_ALREADY_READ: '이 사진은 이미 글자를 읽었어요. 다시 올려 주세요.'
+    IMAGE_TEXT_ALREADY_READ: '이 사진은 이미 글자를 읽었어요. 다시 올려 주세요.',
+    INCOMPLETE_OUTPUT: '사진 글자를 다 읽지 못했어요. 더 크고 선명한 사진을 올리거나 문자 글을 붙여 넣어 주세요.',
+    SCHEMA_MISMATCH: '사진에서 읽은 글의 모양이 맞지 않아 쓰지 않았어요. 문자 글을 붙여 넣어 주세요.'
   };
 
   /* ---------------- 오류 응답 -> 말풍선 ---------------- */
@@ -1275,6 +1277,8 @@
           var ref = str(r1.data.input_ref);
           if (r2.error || r2.status !== 200 || typeof d.text !== 'string' || !d.text.trim()) {
             log.push({ label: '사진 글자 읽기', value: '못 읽음 · ' + (r2.error ? str(r2.error) : 'HTTP ' + r2.status + (d.detail ? ' · ' + d.detail : '')) });
+            // 서버가 판독 실패를 계약 오류(422)로 남기면 같은 사진을 AI 분석에 다시 보내지 않음(재과금 없음)
+            if (!r2.error && r2.status === 422) return { text: null, sent: { status: 422, data: { detail: str(d.detail) } } };
             return { text: null, sent: { status: 201, data: { input_ref: ref } } };
           }
           return { text: d.text.trim(), complete: d.complete === true };

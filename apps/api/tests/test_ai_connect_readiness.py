@@ -255,7 +255,9 @@ async def test_image_only_lifespan_cleans_expired_originals_and_runs_maintenance
             assert (original is None) is enabled
 
 
-@pytest.mark.parametrize("case", ["read", "again", "text_input", "no_converter", "provider_down"])
+@pytest.mark.parametrize(
+    "case", ["read", "again", "text_input", "no_converter", "provider_down", "incomplete"]
+)
 async def test_image_text_reads_own_photo_once(wallet, case):
     text = "[오리진 목 은행] 카드 대금 85,000원 청구 안내입니다. 납부 계좌 001-234-500003"
     calls = []
@@ -264,9 +266,9 @@ async def test_image_text_reads_own_photo_once(wallet, case):
         calls.append(artifact.kind)
         if case == "provider_down":
             raise AnalyzerError(AnalyzerErrorCode.PROVIDER_UNAVAILABLE)
-        return ConvertedText(
-            kind="DOCUMENT_IMAGE", complete=True, segments=[{"text": text, "page": 1}]
-        )
+        segments = [{"text": text, "page": 1}]
+        complete = case != "incomplete"
+        return ConvertedText(kind="DOCUMENT_IMAGE", complete=complete, segments=segments)
 
     app = create_app(
         database=wallet.app.state.database,
@@ -291,6 +293,13 @@ async def test_image_text_reads_own_photo_once(wallet, case):
             return
         if case == "provider_down":
             assert (got.status_code, got.json()["detail"]) == (503, "PROVIDER_UNAVAILABLE")
+            return
+        if case == "incomplete":
+            # A contract error, not a 500; the paid read is not repeated on a second request.
+            assert (got.status_code, got.json()["detail"]) == (422, "INCOMPLETE_OUTPUT")
+            again = await client.post(f"/v3/inputs/{ref}/text")
+            assert (again.status_code, again.json()["detail"]) == (409, "IMAGE_TEXT_ALREADY_READ")
+            assert calls == ["image"]
             return
         assert got.status_code == 200, got.text
         assert got.json() == {"text": text, "complete": True}

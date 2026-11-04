@@ -59,3 +59,32 @@ test('원본 찾기로 금액·계좌가 맞으면, 가린 계좌로 입금하�
   assert.match(t, /AI 위험뚜렷한 신호 없음/);
   assert.match(t, /그 계좌로 입금하라는 문장은 위험으로 보지 않았어요/);
 });
+
+// 리뷰 #139 P1: 발행 진위와 현재 상태를 최종 카드에서 구분(정상 발행된 구버전·철회 문서를 '가짜'라 하지 않음)
+test('구버전(새 버전 있음) 예시 → 가짜 의심이 아니라 "기관이 발행한 예전 안내문"(구버전)', async () => {
+  const t = await run('superseded');
+  assert.match(t, /최종\s*! 기관이 발행한 예전 안내문이에요\s*구버전/);
+  assert.ok(!/최종\s*! 가짜 의심/.test(t) && !/최종\s*✕ 가짜이거나/.test(t));
+});
+
+test('철회 예시 → 가짜·변조가 아니라 "기관이 발행했다가 철회한 안내문"(철회됨)', async () => {
+  const t = await run('revoked');
+  assert.match(t, /최종\s*! 기관이 발행했다가 철회한 안내문이에요\s*철회됨/);
+  assert.ok(!/최종\s*✕ 가짜이거나/.test(t));
+});
+
+test('판단 규칙: 정상 키 교체(서명·원본 확인, 상태 유효)는 진짜, 원본 불일치는 상태와 상관없이 가짜·변조', () => {
+  const d = build('?mode=sample', serverDouble({}));
+  const v = d.win.Hk.op5verdictOf;
+  const ax = (official, original, status, label) => [
+    { axis: 'official', tone: official, status: '확인됨' },
+    { axis: 'original', tone: original, status: '일치' },
+    { axis: 'status', tone: status, status: label }
+  ];
+  assert.equal(v({}, ax('ok', 'ok', 'ok', '유효'), null).head, '✓ 진짜 안내문이에요', '정상 키 교체 뒤 새 키 서명');
+  assert.equal(v({}, ax('ok', 'fail', 'caution', '새 버전 있음'), null).head, '✕ 가짜이거나 바뀐 안내문이에요');
+  const leak = v({}, ax('ok', 'ok', 'fail', '서명 키 유출'), null);
+  assert.equal(leak.chip, '사용 중지');
+  assert.doesNotMatch(leak.head, /가짜/);
+  assert.equal(v({}, ax('ok', 'ok', 'caution', '만료'), null).chip, '만료');
+});
