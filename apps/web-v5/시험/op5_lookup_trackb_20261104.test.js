@@ -151,6 +151,8 @@ test('A3 Proof ID 없는 링크 + 읽을 값 없음: 예전처럼 연결 전 + �
   assert.equal(r.conclusion.badge.text, '연결 전');
   assert.match(r.conclusion.text, /Proof ID가 없어/);
   assert.match(r.conclusion.text, /기관 이름을 찾지 못했어요/);
+  // 요약 박스는 연결 장애처럼 말하지 않음
+  assert.equal(r.conclusion.verdict.head, '· 확인할 수 없어요 · OriginProof에 등록된 기관의 문자가 아니에요');
 });
 test('A7 못 읽은 이유를 구체적으로, "검증 링크가 없어" 문구 없음', async () => {
   for (const [text, re] of [['Origin Mock Bank 자동차세 32,500원 납부 안내', /입금 계좌번호를 찾지 못했어요/], ['Origin Mock Bank 32,500원(가산금 포함 33,475원) 계좌 001-234-500001', /하나로 고를 수 없었어요/], ['자동차세 32,500원 계좌 001-234-500001', /기관 이름을 찾지 못했어요/]]) {

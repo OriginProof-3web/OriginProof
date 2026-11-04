@@ -334,7 +334,7 @@
     else v = { tone: 'none', chip: '확인 불가', head: '· 확인할 수 없어요', sub: (a.conclusion && a.conclusion.text) || 'OriginProof에 등록된 기관의 발행 기록과 맞춰 볼 수 없었어요. 돈을 보내기 전에 기관 공식 번호로 직접 확인하세요.' };
     if (ai && (ai.tone === 'caution' || ai.tone === 'fail')) {
       v.ai = v.tone === 'ok'
-        ? 'AI ' + ai.status + ': 돈을 보내라는 문장이 있어요. 진짜 안내문이어도 받는 계좌가 기관 공식 계좌인지 확인한 뒤 보내세요.'
+        ? 'AI ' + ai.status + ': 조심해야 할 요구가 있어요. 진짜 안내문이어도 앱 설치·개인정보 입력·다른 계좌 송금 요구는 기관 공식 번호로 확인하기 전에는 따르지 마세요.'
         : 'AI ' + ai.status + ': 돈·개인정보를 요구하는 위험 문장이 있어요. 특히 조심하세요.';
     }
     return v;

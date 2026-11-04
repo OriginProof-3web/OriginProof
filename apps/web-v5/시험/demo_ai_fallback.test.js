@@ -275,7 +275,7 @@ test('실서버 시연 문자(시연 버튼·A1~A3·C1)도 준비 응답이 있�
     assert.equal(Hk.api.preparedScenario(T[id].replace(/^\[Web발신\]\n/, '')), id, id + ' [Web발신] 없이 붙여 넣어도');
   }
   const src = fs.readFileSync(path.join(__dirname, '..', '페이지', 'js', 'api_adapter.js'), 'utf8');
-  for (const [id, quote] of [['rc_risky', '원격 지원 앱을 설치해 주세요'], ['bank_account', '오늘 정지 예정'], ['bank_account', '즉시 아래 계좌로 입금하세요'], ['other_issuer', '본인 확인 후 수령하세요']]) {
+  for (const [id, quote] of [['rc_risky', '원격 지원 앱을 설치해 주세요'], ['bank_amount', '11/10까지 입금 바랍니다'], ['bank_account', '오늘 정지 예정'], ['bank_account', '즉시 아래 계좌로 입금하세요'], ['other_issuer', '본인 확인 후 수령하세요']]) {
     assert.ok(src.includes("quote: '" + quote + "'"), quote);
     assert.ok(Hk.text.maskPersonal(T[id]).includes(quote), id + ': ' + quote);
   }

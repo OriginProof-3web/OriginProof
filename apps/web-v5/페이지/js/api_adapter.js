@@ -978,9 +978,10 @@
     rc_normal: { risk_level: 'NO_CLEAR_INDICATORS', evidence: [], extra: '' },
     rc_risky: { risk_level: 'HIGH', evidence: [{ rule_id: 'demo-prepared-remote-app', quote: '원격 지원 앱을 설치해 주세요', source: 'DEMO_PREPARED' }], extra: '고위험: 기관 안내에 원격 지원 앱 설치 요구가 붙어 있어요. 발행 기록이 맞아도 이 요구는 따르지 마세요.' },
     bank_genuine: { risk_level: 'NO_CLEAR_INDICATORS', evidence: [], extra: '' },
-    bank_amount: { risk_level: 'NO_CLEAR_INDICATORS', evidence: [], extra: '금액이 바뀌었는지는 AI가 아니라 블록체인 기록 대조가 판정해요.' },
+    // 위험 수준은 실제 AI(11-04 로컬 RC, OpenAI)가 같은 글에 준 값에 맞춤: 교체될 때 판단이 뒤집혀 보이지 않게
+    bank_amount: { risk_level: 'CAUTION', evidence: [{ rule_id: 'demo-prepared-payment', quote: '11/10까지 입금 바랍니다', source: 'DEMO_PREPARED' }], extra: '주의: 입금을 요청하는 문자예요. 금액이 바뀌었는지는 AI가 아니라 블록체인 기록 대조가 판정해요.' },
     bank_account: { risk_level: 'HIGH', evidence: [{ rule_id: 'demo-prepared-urgency', quote: '오늘 정지 예정', source: 'DEMO_PREPARED' }, { rule_id: 'demo-prepared-pay-now', quote: '즉시 아래 계좌로 입금하세요', source: 'DEMO_PREPARED' }], extra: '고위험: 정지를 내세워 바로 다른 계좌로 입금하라고 재촉해요.' },
-    other_issuer: { risk_level: 'HIGH', evidence: [{ rule_id: 'demo-prepared-refund-bait', quote: '본인 확인 후 수령하세요', source: 'DEMO_PREPARED' }], extra: '고위험: 환급금을 미끼로 링크에서 본인 확인을 하라고 해요.' }
+    other_issuer: { risk_level: 'CAUTION', evidence: [{ rule_id: 'demo-prepared-refund-bait', quote: '본인 확인 후 수령하세요', source: 'DEMO_PREPARED' }], extra: '주의: 환급금을 미끼로 링크에서 본인 확인을 하라고 해요.' }
   };
   // 주소 값 → 초(0 = 꺼짐). 값 없음(?demo_ai_fallback)이면 5초, 숫자면 3~10으로 제한, 0·숫자 아닌 값·없음은 꺼짐
   function demoFallbackSec(raw) {
@@ -1317,6 +1318,8 @@
         conclusion = { badge: { tone: 'offline', icon: 'plug', text: '연결 전' }, text: v.reason === 'NO_PROOF_ID_IN_LINK'
           ? '검증 링크는 찾았지만 링크 안에 Proof ID가 없어 공식 기록을 확인하지 못했어요.' + (v.lookupWhy ? ' ' + v.lookupWhy : '')
           : '검증 엔진이 아직 연결 전이라 공식 기록을 확인하지 못했어요.' };
+        // 링크가 OriginProof 검증 링크가 아닌 것(연결 장애 아님): 요약 박스는 확인할 수 없음 + 이유
+        if (v.reason === 'NO_PROOF_ID_IN_LINK') conclusion.verdict = { tone: 'none', chip: '확인 불가', head: '· 확인할 수 없어요 · ' + (v.lookupReason === 'NO_ISSUER' ? 'OriginProof에 등록된 기관의 문자가 아니에요' : 'OriginProof 검증 링크가 아니에요'), sub: conclusion.text };
       }
 
       var details = [{ label: '연결 방식', value: typeof c.opts.base === 'string' ? '5안 연결 ' + c.opts.base + ' (로그인 쿠키·CSRF)' : (c.opts.viaProxy ? '중계 프로그램 /api → ' : '직접 → ') + c.serverUrl }];
@@ -1456,7 +1459,7 @@
         // A3: Proof ID 없는 링크만 있으면 문자 내용으로 원본 찾기를 이어서 함. 읽을 값이 없으면 예전처럼 '연결 전'(이유를 덧붙임)
         vP = lookup(text, log).then(function (v) {
           if (v.kind !== 'none' || v.lookup || v.login) return v;
-          return { kind: 'offline', reason: 'NO_PROOF_ID_IN_LINK', why: '첫 번째 링크 안에 Proof ID가 없어 검증을 요청하지 않았어요.' + (v.why ? ' ' + v.why : ''), lookupWhy: v.why || '' };
+          return { kind: 'offline', reason: 'NO_PROOF_ID_IN_LINK', why: '첫 번째 링크 안에 Proof ID가 없어 검증을 요청하지 않았어요.' + (v.why ? ' ' + v.why : ''), lookupWhy: v.why || '', lookupReason: v.reason || '' };
         });
       }
       else if (p.image) vP = Promise.resolve({ kind: 'none' });
