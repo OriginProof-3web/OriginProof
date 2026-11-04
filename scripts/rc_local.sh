@@ -19,12 +19,13 @@ MANIFEST="$PWD/packages/contracts/deployments/31337.wallet.local.json"
 KEY_FILE="$RUN/secrets/openai.key"
 # 실서버 모드 시연 버튼(op5_presets.js)이 읽는 문서 JSON. ID·기한이 RC마다 달라 Git에 넣지 않는다.
 PRESET_FILE="$PWD/apps/web-v5/페이지/data/rc_presets.json"
-# Anvil 기본 공개 시험 계정(실제 자산 없음): 0 배포, 1~3 승인자, 4 합성 기관 지갑
+# Anvil 기본 공개 시험 계정(실제 자산 없음): 0 배포, 1~3 승인자, 4 합성 기관(은행) 지갑, 5 합성 오피스 지갑
 DEPLOYER=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 APPROVER1=0x70997970C51812dc3A010C7d01b50e0d17dc79C8
 APPROVER2=0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC
 APPROVER3=0x90F79bf6EB2c4f870365E785982E1f101E93b906
 INSTITUTION=0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65
+OFFICE=0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc
 
 export UV_PROJECT_ENVIRONMENT=.uv-venv
 export PYTHONPATH=apps/api/src:packages/python:services/analyzer/src:services/indexer/src
@@ -114,6 +115,7 @@ first_setup() {
     --signer rpc --approver1 $APPROVER1 --approver2 $APPROVER2 --institution $INSTITUTION | tee "$RUN/logs/demo.log"
   ensure_accounts
   write_samples
+  write_bulk
 }
 
 # /health/ready는 recipient 계정도 있어야 200이라 개인 계정을 만들고, 실제 AI 확인용 계정도 만든다.
@@ -140,7 +142,9 @@ write_samples() {
 import json, sys
 run = sys.argv[1]
 docs = [json.loads(line) for line in open(f"{run}/docs.jsonl") if line.strip()]
-v1, v2 = docs[0], docs[-1]
+# 정정된 시드 안내문(v2)과 그 v1. 시연 문자 원본(write_bulk, 모두 v1)이 섞여도 같은 문서의 두 판을 고른다.
+v2 = max(docs, key=lambda d: d["version"])
+v1 = next(d for d in docs if d["document_id"] == v2["document_id"] and d["version"] == 1)
 tampered = dict(v2, protected_fields=dict(v2["protected_fields"], amount_minor=v2["protected_fields"]["amount_minor"] + 1))
 unknown = dict(v2, document_id="0x" + "ab" * 32)
 lines = [("J1 정본 v2", v2), ("J2 금액 1원 변조", tampered), ("J3 정정 전 v1", v1),
@@ -151,6 +155,19 @@ with open(f"{run}/verify-samples.txt", "w", encoding="utf-8") as out:
 with open(sys.argv[2], "w", encoding="utf-8") as out:
     json.dump({"genuine": v2, "tamper": tampered, "superseded": v1}, out, ensure_ascii=False)
 PY
+}
+
+# 시연 문자 모음(apps/web-v5/개발/시연_문자_모음.md)의 원본: 은행 납부 안내 10건·오피스 공문 10건.
+# 두 번 발행하면 같은 금액·계좌 기록이 2건이 되어 원본 찾기가 '여러 개'가 되므로 한 번만 발행한다.
+write_bulk() {
+  [ -s "$RUN/bulk-docs.jsonl" ] && return 0
+  [ -e "$RUN/bulk-docs.jsonl.part" ] && die "시연 문자 원본 발행이 전에 중간에 멈췄어요(logs/bulk.log). 중복을 막으려고 다시 발행하지 않아요: scripts/rc_local.sh purge 후 up"
+  say "시연 문자 원본: 은행 납부 안내 10건·오피스 공문 10건 발행(1~2분)"
+  "${UVR[@]}" python scripts/fixtures/wallet_demo_bulk.py --api "$API" --rpc-url "$RPC" \
+    --registry "$API_WALLET_REGISTRY_ADDRESS" --manifest "$MANIFEST" --credentials "$RUN/secrets/test-accounts.json" \
+    --out "$RUN/bulk-docs.jsonl.part" --approver1 $APPROVER1 --approver2 $APPROVER2 \
+    --institution $INSTITUTION --office $OFFICE > "$RUN/logs/bulk.log" 2>&1 || die "시연 문자 원본 발행 실패(logs/bulk.log)"
+  mv "$RUN/bulk-docs.jsonl.part" "$RUN/bulk-docs.jsonl"
 }
 
 status() {
@@ -178,7 +195,7 @@ case "${1:-}" in
     if [ -f "$RUN/wallet.env" ]; then
       api_env   # 이미 만든 환경도 새 migration(예: #139 accounts.email)을 받아야 API가 뜸
       "${UVR[@]}" alembic -c apps/api/alembic.ini upgrade head > "$RUN/logs/migrate.log" 2>&1 || die "migration 실패(logs/migrate.log)"
-      start_api; ensure_accounts; [ -f "$PRESET_FILE" ] || write_samples
+      start_api; ensure_accounts; [ -f "$PRESET_FILE" ] || write_samples; write_bulk
     else first_setup; fi
     echo; status
     echo; say "로그인 계정 v5_bank · 비밀번호: $RUN/secrets/test-accounts.json 의 password 값"
