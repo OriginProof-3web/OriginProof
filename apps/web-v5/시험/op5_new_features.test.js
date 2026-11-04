@@ -74,6 +74,30 @@ test('문서 사진: 서버가 글자를 읽어 주면 그 글로 원본 찾기�
   assert.notEqual(a.conclusion.badge.text, '확인 못 함');
 });
 
+test('문서 사진: 사진 읽기가 기관 이름을 비슷하게 잘못 읽으면(오렌지 몰 은행) 등록 기관으로 맞춰 원본 찾기, 먼 이름은 그대로', async () => {
+  for (const [read, want] of [
+    ['[Web발신]\n[오렌지 몰 은행] 카드 대금 85,000원 청구 안내입니다. 납부 계좌\n001-234-500003 으로 11/10까지 입금 바랍니다.', true],
+    ['[국민 행복 은행] 카드 대금 85,000원 청구 안내입니다. 납부 계좌 001-234-500003', false]
+  ]) {
+    const Hk = load();
+    let n = 0;
+    const f = fakeFetch(url => {
+      if (url === '/api/v1/auth/me') return { status: 200, body: ME };
+      if (url === '/api/v3/inputs') return { status: 201, body: { input_ref: 'inp_' + (++n), expires_at: 1 } };
+      if (url === '/api/v3/inputs/inp_1/text') return { status: 200, body: { text: read, complete: true } };
+      if (url === '/api/v3/document-lookups') return { status: 200, body: { lookup_status: 'UNVERIFIED', match_count: 0, document_ids: [], reason_codes: [] } };
+      return { status: 409, body: { detail: 'INPUT_SUPPORT_UNDECIDED' } };
+    });
+    const a = await api(Hk, f).check('[문서 사진] a.png', { image: { media_type: 'image/png', base64: 'iVBORw0KGgo=' } });
+    const look = f.calls.find(c => c.url === '/api/v3/document-lookups');
+    assert.equal(!!look, want, read);
+    if (want) {
+      assert.equal(JSON.parse(look.body).issuer_id, Hk.api.lookupKey('[오리진 목 은행] 1000원 계좌 001-234-500003').issuer_id);
+      assert.match(a.details.find(d => d.label === '사진 속 기관 이름').value, /오렌지 몰 은행.*오리진 목 은행/);
+    } else assert.equal(a.details.find(d => d.label === '사진 속 기관 이름'), undefined);
+  }
+});
+
 test('첨부 함수: 문서 사진을 base64 로, 다른 형식·5MB 초과는 보내지 않음', async () => {
   class FR { readAsDataURL(f) { this.result = 'data:' + f.type + ';base64,QUJD'; this.onload(); } }
   const sb = { console, setTimeout, clearTimeout, AbortController, AbortSignal, TextEncoder, URL, crypto: globalThis.crypto, Promise, FileReader: FR }; sb.window = sb; sb.self = sb; vm.createContext(sb);

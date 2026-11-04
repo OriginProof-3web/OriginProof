@@ -1281,15 +1281,37 @@
         });
       });
     }
+    /* 사진에서 읽은 글만: 맨 앞 [ ] 안 보낸 곳 이름이 등록 기관 한글 이름과 글자 3개 이내로 다르면 그 기관으로 맞춰 봄
+       (예: 사진 읽기가 '오리진 목 은행'을 '오렌지 몰 은행'으로 읽음). 진짜 판정은 여전히 금액·계좌(공문번호)가 기관 기록과 같아야만 나옴. */
+    var IMG_ISSUERS = ['오리진 목 은행', '오리진 목 오피스'];
+    function editDistance(a, b) {
+      var d = [];
+      for (var i = 0; i <= a.length; i++) { d[i] = [i]; for (var j = 1; j <= b.length; j++) d[i][j] = i ? Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)) : j; }
+      return d[a.length][b.length];
+    }
+    function fixImageIssuer(text) {
+      if (lookupKey(text)) return { text: text };
+      var m = /\[([^\[\]\n]{2,20})\]/.exec(text.replace(/^\s*\[Web발신\]\s*/, ''));
+      if (!m) return { text: text };
+      var seen = m[1].trim();
+      var best = IMG_ISSUERS.map(function (n) { return { n: n, d: editDistance(seen.replace(/\s+/g, ''), n.replace(/\s+/g, '')) }; })
+        .filter(function (x) { return x.d <= 3 && x.n.slice(-2) === seen.replace(/\s+/g, '').slice(-2); })
+        .sort(function (a, b) { return a.d - b.d; })[0];
+      if (!best) return { text: text };
+      return { text: text.replace('[' + m[1] + ']', '[' + best.n + ']'), from: seen, to: best.n };
+    }
     function check(text, opts) {
       opts = opts || {};
       if (opts.image && !opts.imageRead) {
         var rlog = [];
         return readImage(opts.image, rlog).then(function (got) {
           if (!got || !got.text) return checkCore(text, Object.assign({}, opts, { imageRead: true, imageSent: got ? got.sent : null })).then(function (res) { res.details = res.details.concat(rlog); return res; });
-          return checkCore(got.text, Object.assign({}, opts, { image: null, imageRead: true })).then(function (res) {
+          var fx = fixImageIssuer(got.text);
+          return checkCore(fx.text, Object.assign({}, opts, { image: null, imageRead: true })).then(function (res) {
             res.from_image = true;
-            res.details = [{ label: '입력 종류(원래)', value: '문서 사진 · 서버가 사진 글자를 읽어 그 글로 확인' + (got.complete ? '' : ' · 일부만 읽음') }].concat(res.details);
+            var head = [{ label: '입력 종류(원래)', value: '문서 사진 · 서버가 사진 글자를 읽어 그 글로 확인' + (got.complete ? '' : ' · 일부만 읽음') }];
+            if (fx.from) head.push({ label: '사진 속 기관 이름', value: "'" + fx.from + "'(으)로 읽혀 등록 기관 '" + fx.to + "'(으)로 맞춰 봤어요 · 금액·계좌가 같아야만 진짜" });
+            res.details = head.concat(res.details);
             return res;
           });
         }, function () { return checkCore(text, Object.assign({}, opts, { imageRead: true })); });
