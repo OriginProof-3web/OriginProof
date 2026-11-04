@@ -46,6 +46,8 @@
   const next=new URLSearchParams(location.search).get("next")==="business.html"?"business.html":"business.html"; // 돌아갈 곳은 메인만 허용(열린 리다이렉트 방지)
   const ERR={INVALID_CREDENTIALS:"계정 이름이나 비밀번호가 맞지 않아요.",ACCOUNT_DISABLED:"사용이 정지된 계정이에요. 운영자에게 문의해 주세요.",RATE_LIMITED:"시도가 많아 잠시 막혔어요. 잠시 뒤 다시 해 주세요."};
   function show(kind,text){msg.className="a-msg show "+kind;msg.textContent=text}
+  // 회원가입 직후: 가입한 이메일을 계정 이름 칸에 채우고 비밀번호 칸으로 보냄(한 번만 쓰고 지움)
+  try{const j=sessionStorage.getItem("op5.joinEmail");if(j){sessionStorage.removeItem("op5.joinEmail");$("username").value=j;show("ok","가입했어요. 비밀번호를 넣고 로그인해 주세요.");$("password").focus()}}catch(_){}
   $("peek").addEventListener("click",function(){const p=$("password"),on=p.type==="password";p.type=on?"text":"password";this.textContent=on?"숨기기":"보기";this.setAttribute("aria-pressed",String(on))});
   form.addEventListener("submit",async e=>{
     e.preventDefault();

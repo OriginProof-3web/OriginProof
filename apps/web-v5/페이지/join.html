@@ -160,7 +160,10 @@
       }catch(_){$("password").value="";$("password2").value="";show("err","서버에 연결하지 못했어요. 잠시 뒤 다시 해 주세요. 입력한 비밀번호는 지웠어요.");return}
       // 비밀번호 칸은 바로 비운다(화면·메모리에 오래 두지 않음)
       $("password").value="";$("password2").value="";
-      if(r.status===201){show("ok","개인 회원으로 가입했어요. 로그인할 때 계정 이름 자리에 이메일("+email+")을 넣어 주세요.");sync();return}
+      if(r.status===201){
+        // 가입 성공 → 로그인 화면으로 이동. 이메일은 주소에 넣지 않고 이 탭의 sessionStorage 로만 넘김(로그인 화면이 읽고 바로 지움)
+        try{sessionStorage.setItem("op5.joinEmail",email)}catch(_){}
+        show("ok","개인 회원으로 가입했어요. 로그인 화면으로 이동해요.");setTimeout(()=>{location.href="login.html?next=business.html"},1200);return}
       try{const d=await r.json();code=typeof d.detail==="string"?d.detail:""}catch(_){}
       show("err",ERR[code]||(r.status===404||r.status===405?"이 서버에는 회원가입 기능이 없어요. 계정은 운영자가 발급해요.":r.status===429?ERR.RATE_LIMITED:"가입하지 못했어요(HTTP "+r.status+")."));
       sync();
