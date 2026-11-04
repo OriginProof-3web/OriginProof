@@ -61,6 +61,8 @@ exit
 
 ## 4. 서버에서: 코드 풀고 켜기
 
+컨트랙트 의존성(처음 한 번): `./packages/contracts/script/bootstrap_dependencies.sh`
+
 ```bash
 git clone -b fix/remove-ai-key-input ~/op.bundle ~/OriginProof && cp ~/wallet_demo_bulk.py ~/OriginProof/scripts/fixtures/ && cd ~/OriginProof
 ```
@@ -76,10 +78,10 @@ export PUB=https://3-35-1-2.sslip.io
 ```
 
 ```bash
-OP5_PUBLIC_ORIGIN=$PUB RC_WEB_PORT=8790 RC_LLM=openai API_SESSION_COOKIE_SECURE=true API_LOGINS_PER_MINUTE=120 API_REQUESTS_PER_MINUTE=3000 scripts/rc_local.sh up
+OP5_PUBLIC_ORIGIN=$PUB RC_WEB_PORT=8790 RC_LLM=openai API_LOGINS_PER_MINUTE=120 API_REQUESTS_PER_MINUTE=3000 scripts/rc_local.sh up
 ```
 - `OP5_PUBLIC_ORIGIN`: 웹 프록시가 이 공개 주소의 접속을 받도록 함(이번에 추가한 설정).
-- `API_SESSION_COOKIE_SECURE=true`: 로그인 쿠키를 HTTPS 에서만 보냄.
+- `API_SESSION_COOKIE_SECURE=true` 는 넣지 않음: 서버 안 준비 스크립트가 http 로 로그인해서 시연 데이터 발행이 실패함(브라우저 구간은 Caddy 가 HTTPS 로 감쌈).
 - 분당 제한 상향: 모든 접속이 프록시(127.0.0.1)를 거쳐 API 에는 한 사람처럼 보여서, 기본값(로그인 분당 10번)이면 심사위원 여럿이 동시에 로그인할 때 막힙니다.
 
 ## 5. Caddy(HTTPS) 연결
@@ -96,12 +98,16 @@ echo "${PUB#https://} {
 
 은행 안내문 10건·관공서 공문 10건:
 ```bash
+export UV_PROJECT_ENVIRONMENT=.uv-venv PYTHONPATH=apps/api/src:packages/python:services/analyzer/src:services/indexer/src
+```
+
+```bash
 . build/rc-local/wallet.env && for o in bank office; do uv run --all-packages --all-groups --frozen python scripts/fixtures/wallet_demo_bulk.py --only $o --api http://127.0.0.1:18000 --rpc-url http://127.0.0.1:18545 --registry "$API_WALLET_REGISTRY_ADDRESS" --manifest packages/contracts/deployments/31337.wallet.local.json --credentials build/rc-local/secrets/test-accounts.json --out build/rc-local/bulk-docs.jsonl --approver1 0x70997970C51812dc3A010C7d01b50e0d17dc79C8 --approver2 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC --institution 0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65 --office 0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc; done
 ```
 
 운영자 계정 `originproof` (비밀번호는 입력 칸에 직접, 화면에 안 보임). 공개 서버라 `password` 보다 긴 비밀번호를 권합니다.
 ```bash
-read -rs -p '운영자 비밀번호: ' P; echo; PYTHONPATH=apps/api/src:packages/python API_DATABASE_URL=postgresql+asyncpg://originproof:originproof@127.0.0.1:55433/originproof P="$P" uv run --all-packages --all-groups --frozen python -c 'import asyncio,os,sys; sys.path.insert(0,"scripts/fixtures"); from seed_accounts import create_account; asyncio.run(create_account("originproof","operator",None,os.environ["P"]))'; unset P
+read -rs -p '운영자 비밀번호: ' P; echo; UV_PROJECT_ENVIRONMENT=.uv-venv PYTHONPATH=apps/api/src:packages/python API_DATABASE_URL=postgresql+asyncpg://originproof:originproof@127.0.0.1:55433/originproof P="$P" uv run --all-packages --all-groups --frozen python -c 'import asyncio,os,sys; sys.path.insert(0,"scripts/fixtures"); from seed_accounts import create_account; asyncio.run(create_account("originproof","operator",None,os.environ["P"]))'; unset P
 ```
 개인 계정(노랑이 등)은 `$PUB/join.html` 에서 새로 가입합니다(내 Mac 의 DB 는 옮겨지지 않음).
 
@@ -115,6 +121,7 @@ scripts/rc_local.sh status && curl -s $PUB/api/health/ready
 
 ## 서버 재부팅·코드 갱신
 
+- 키를 바꾼 뒤: `scripts/rc_local.sh down` 후 다시 `up`(API 가 켜질 때 키를 읽음).
 - 재부팅 뒤: 4번의 `export PUB=…` 와 `… scripts/rc_local.sh up` 한 줄만 다시(데이터는 남아 있음, Caddy 는 자동 시작).
 - 코드 갱신: Mac 에서 2번(번들·scp) → 서버에서 `cd ~/OriginProof && git pull ~/op.bundle fix/remove-ai-key-input && scripts/rc_local.sh down` 후 다시 `up`.
 - 로그: `build/rc-local/logs/` (api.log·web.log), `sudo journalctl -u caddy`.
