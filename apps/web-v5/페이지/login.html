@@ -27,7 +27,7 @@
     <p class="a-sub">정확한 확인(기관 기록 대조)과 AI 분석은 로그인 후에 쓸 수 있어요.</p>
     <p class="a-msg" id="msg" role="alert"></p>
     <form id="form" novalidate autocomplete="on">
-      <div class="a-field"><label for="username">계정 이름</label><input id="username" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="120" required></div>
+      <div class="a-field"><label for="username">아이디 또는 이메일</label><input id="username" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="120" required></div>
       <div class="a-field"><label for="password">비밀번호</label>
         <div class="a-key"><input id="password" name="password" type="password" autocomplete="current-password" maxlength="256" required><button type="button" id="peek" aria-pressed="false">보기</button></div>
       </div>
@@ -44,15 +44,15 @@
   const $=id=>document.getElementById(id),form=$("form"),msg=$("msg"),btn=$("submit");
   const served=/^https?:$/.test(location.protocol);
   const next=new URLSearchParams(location.search).get("next")==="business.html"?"business.html":"business.html"; // 돌아갈 곳은 메인만 허용(열린 리다이렉트 방지)
-  const ERR={INVALID_CREDENTIALS:"계정 이름이나 비밀번호가 맞지 않아요.",ACCOUNT_DISABLED:"사용이 정지된 계정이에요. 운영자에게 문의해 주세요.",RATE_LIMITED:"시도가 많아 잠시 막혔어요. 잠시 뒤 다시 해 주세요."};
+  const ERR={INVALID_CREDENTIALS:"아이디(이메일)나 비밀번호가 맞지 않아요.",ACCOUNT_DISABLED:"사용이 정지된 계정이에요. 운영자에게 문의해 주세요.",RATE_LIMITED:"시도가 많아 잠시 막혔어요. 잠시 뒤 다시 해 주세요."};
   function show(kind,text){msg.className="a-msg show "+kind;msg.textContent=text}
-  // 회원가입 직후: 가입한 이메일을 계정 이름 칸에 채우고 비밀번호 칸으로 보냄(한 번만 쓰고 지움)
-  try{const j=sessionStorage.getItem("op5.joinEmail");if(j){sessionStorage.removeItem("op5.joinEmail");$("username").value=j;show("ok","가입했어요. 비밀번호를 넣고 로그인해 주세요.");$("password").focus()}}catch(_){}
+  // 회원가입 직후: 가입한 아이디를 채우고 비밀번호 칸으로 보냄(한 번만 쓰고 지움)
+  try{const j=sessionStorage.getItem("op5.joinId");if(j){sessionStorage.removeItem("op5.joinId");$("username").value=j;show("ok","가입했어요. 비밀번호를 넣고 로그인해 주세요.");$("password").focus()}}catch(_){}
   $("peek").addEventListener("click",function(){const p=$("password"),on=p.type==="password";p.type=on?"text":"password";this.textContent=on?"숨기기":"보기";this.setAttribute("aria-pressed",String(on))});
   form.addEventListener("submit",async e=>{
     e.preventDefault();
     const username=$("username").value.trim(),password=$("password").value;
-    if(!username||!password){show("err","계정 이름과 비밀번호를 모두 넣어 주세요.");(username?$("password"):$("username")).focus();return}
+    if(!username||!password){show("err","아이디(이메일)와 비밀번호를 모두 넣어 주세요.");(username?$("password"):$("username")).focus();return}
     if(!served){show("err","서버에 연결되지 않아 로그인할 수 없어요.");return}
     btn.disabled=true;btn.textContent="확인 중…";
     try{

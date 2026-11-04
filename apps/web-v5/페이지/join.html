@@ -37,7 +37,7 @@
       </fieldset>
 
       <div class="a-field"><label for="displayName">이름</label><input id="displayName" autocomplete="name" maxlength="60" required></div>
-      <div class="a-field"><label for="username">계정 이름</label><input id="username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="120" required><span class="a-help">영문·숫자·_ 3~40자 · 로그인은 아래 이메일로 해요</span></div>
+      <div class="a-field"><label for="username">아이디</label><input id="username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="120" required><span class="a-help">영문·한글·숫자·_ 3~40자 · 로그인할 때 이 아이디를 써요</span></div>
       <div class="a-field"><label for="email" id="emailLabel">이메일</label><input id="email" type="email" autocomplete="email" autocapitalize="none" spellcheck="false" maxlength="254" required></div>
       <div class="a-field"><label for="password">비밀번호</label><div class="a-key"><input id="password" type="password" autocomplete="new-password" minlength="8" maxlength="256" required><button type="button" class="peek" data-for="password" aria-pressed="false">보기</button></div><span class="a-help" id="pwHelp">8자 이상 · 영문과 숫자를 섞어 주세요</span></div>
       <div class="a-field"><label for="password2">비밀번호 확인</label><input id="password2" type="password" autocomplete="new-password" maxlength="256" required></div>
@@ -136,7 +136,7 @@
     e.preventDefault();
     const name=$("displayName").value.trim(),user=$("username").value.trim(),email=$("email").value.trim(),pw=$("password").value,pw2=$("password2").value;
     if(!name)return show("err","이름을 넣어 주세요."),$("displayName").focus();
-    if(!/^[A-Za-z0-9_]{3,40}$/.test(user))return show("err","계정 이름은 영문·숫자·_ 3~40자예요."),$("username").focus();
+    if(!/^[A-Za-z0-9_가-힣]{3,40}$/.test(user))return show("err","아이디는 영문·한글·숫자·_ 3~40자예요."),$("username").focus();
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return show("err","이메일 형식이 아니에요."),$("email").focus();
     if(pw.length<8||!/[A-Za-z]/.test(pw)||!/[0-9]/.test(pw))return show("err","비밀번호는 8자 이상, 영문과 숫자를 섞어 주세요."),$("password").focus();
     if(pw!==pw2)return show("err","비밀번호 확인이 달라요."),$("password2").focus();
@@ -148,21 +148,21 @@
     const btn=$("submit");btn.disabled=true;
     try{
       // POST /v1/auth/register 는 개인만 받는다. 메일 도메인만으로 직원 권한을 줄 수 없어 기관 계정은 운영자가 발급한다(서버는 403 BUSINESS_SIGNUP_DISABLED).
-      // 계정 이름은 서버가 이메일로 정한다(로그인도 이메일로).
-      const ERR={SIGNUP_DISABLED:"이 서버는 회원가입을 켜 두지 않았어요. 계정은 운영자가 발급해요.",SYNTHETIC_EMAIL_REQUIRED:"시연용 서비스라 실제 메일은 받지 않아요. 끝이 .invalid 인 메일(예: me@example.invalid)로 가입해 주세요.",BUSINESS_SIGNUP_DISABLED:"기관 회원은 가입으로 만들 수 없어요. 계정은 운영자가 발급해요.",WEAK_PASSWORD:"비밀번호는 영문과 숫자를 섞어 주세요.",ACCOUNT_EXISTS:"이미 가입된 이메일이에요. 로그인해 주세요.",MALFORMED_INPUT:"입력 형식을 확인해 주세요.",RATE_LIMITED:"시도가 많아 잠시 막혔어요. 잠시 뒤 다시 해 주세요."};
+      // 아이디(username)로 로그인한다. 이메일로도 로그인할 수 있다.
+      const ERR={SIGNUP_DISABLED:"이 서버는 회원가입을 켜 두지 않았어요. 계정은 운영자가 발급해요.",SYNTHETIC_EMAIL_REQUIRED:"시연용 서비스라 실제 메일은 받지 않아요. 끝이 .invalid 인 메일(예: me@example.invalid)로 가입해 주세요.",BUSINESS_SIGNUP_DISABLED:"기관 회원은 가입으로 만들 수 없어요. 계정은 운영자가 발급해요.",WEAK_PASSWORD:"비밀번호는 영문과 숫자를 섞어 주세요.",INVALID_USERNAME:"아이디는 영문·한글·숫자·_ 3~40자예요.",ACCOUNT_EXISTS:"이미 쓰고 있는 아이디나 이메일이에요.",MALFORMED_INPUT:"입력 형식을 확인해 주세요.",RATE_LIMITED:"시도가 많아 잠시 막혔어요. 잠시 뒤 다시 해 주세요."};
       if(biz){$("password").value="";$("password2").value="";show("info","기관 계정은 가입으로 만들 수 없고 운영자가 발급해요. 입력한 내용은 서버로 보내지 않았어요. 계정을 받은 뒤 위 순서대로 기관을 활성화해요.");return}
       if(!/^https?:$/.test(location.protocol)){$("password").value="";$("password2").value="";show("info","입력 내용을 확인했어요. 서버에 연결되지 않아 계정은 만들지 않았어요.");return}
       let r,code="";
       try{
         const ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),15000);
-        r=await fetch("/api/v1/auth/register",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({kind:"personal",email,password:pw,terms_accepted:true}),signal:ctl.signal});
+        r=await fetch("/api/v1/auth/register",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({kind:"personal",email,username:user,password:pw,terms_accepted:true}),signal:ctl.signal});
         clearTimeout(t);
       }catch(_){$("password").value="";$("password2").value="";show("err","서버에 연결하지 못했어요. 잠시 뒤 다시 해 주세요. 입력한 비밀번호는 지웠어요.");return}
       // 비밀번호 칸은 바로 비운다(화면·메모리에 오래 두지 않음)
       $("password").value="";$("password2").value="";
       if(r.status===201){
-        // 가입 성공 → 로그인 화면으로 이동. 이메일은 주소에 넣지 않고 이 탭의 sessionStorage 로만 넘김(로그인 화면이 읽고 바로 지움)
-        try{sessionStorage.setItem("op5.joinEmail",email)}catch(_){}
+        // 가입 성공 → 로그인 화면으로 이동. 아이디는 주소에 넣지 않고 이 탭의 sessionStorage 로만 넘김(로그인 화면이 읽고 바로 지움)
+        try{sessionStorage.setItem("op5.joinId",user)}catch(_){}
         show("ok","개인 회원으로 가입했어요. 로그인 화면으로 이동해요.");setTimeout(()=>{location.href="login.html?next=business.html"},1200);return}
       try{const d=await r.json();code=typeof d.detail==="string"?d.detail:""}catch(_){}
       show("err",ERR[code]||(r.status===404||r.status===405?"이 서버에는 회원가입 기능이 없어요. 계정은 운영자가 발급해요.":r.status===429?ERR.RATE_LIMITED:"가입하지 못했어요(HTTP "+r.status+")."));

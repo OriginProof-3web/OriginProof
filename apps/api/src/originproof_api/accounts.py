@@ -50,6 +50,8 @@ class RegisterInput(BaseModel):
     model_config = ConfigDict(extra="forbid")
     kind: Literal["personal", "business"]
     email: str = Field(min_length=3, max_length=120)
+    # Member ID used to log in. Omitted → the mail is the ID (earlier clients).
+    username: str | None = Field(default=None, min_length=1, max_length=120)
     password: str = Field(min_length=8, max_length=256)
     terms_accepted: Literal[True]
     issuer_id: str | None = Field(default=None, max_length=128)
@@ -113,7 +115,10 @@ def require_csrf(request: Request, session: SessionRow) -> None:
 async def login(body: LoginInput, request: Request, response: Response) -> AccountView:
     async with request.app.state.database.session_factory() as db:
         account = await db.scalar(
-            select(AccountRow).where(AccountRow.username == account_name(body.username))
+            select(AccountRow).where(
+                (AccountRow.username == account_name(body.username))
+                | (AccountRow.email == account_name(body.username))
+            )
         )
         matches = await run_in_threadpool(
             password_matches,
@@ -171,17 +176,25 @@ async def register(body: RegisterInput, request: Request) -> RegisteredView:
         r"[^@\s\x00-\x1f\x7f]+@[a-z0-9-]+(?:\.[a-z0-9-]+)*\.invalid", email
     ):
         raise HTTPException(422, "SYNTHETIC_EMAIL_REQUIRED")
+    member_id = email
+    if body.username is not None:
+        member_id = account_name(body.username)
+        # Letters (Latin or Hangul), digits and _ only: never '@', so an ID cannot shadow a mail.
+        if not re.fullmatch(r"[a-z0-9_가-힣]{3,40}", member_id):
+            raise HTTPException(422, "INVALID_USERNAME")
+        if member_id in request.app.state.settings.analysis_limit_exempt_usernames:
+            raise HTTPException(409, "ACCOUNT_EXISTS")
     if not (re.search(r"[A-Za-z]", body.password) and re.search(r"[0-9]", body.password)):
         raise HTTPException(422, "WEAK_PASSWORD")
     view = RegisteredView(
         account_id=f"acct_{uuid4().hex}",
-        username=email,
+        username=member_id,
         role="recipient",
         issuer_id=None,
     )
     hashed = await run_in_threadpool(password_hash, body.password)
     async with request.app.state.database.session_factory() as db:
-        db.add(AccountRow(**view.model_dump(), password_hash=hashed))
+        db.add(AccountRow(**view.model_dump(), email=email, password_hash=hashed))
         try:
             await db.commit()
         except IntegrityError:
