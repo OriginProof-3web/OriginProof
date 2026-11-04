@@ -114,12 +114,12 @@ def require_csrf(request: Request, session: SessionRow) -> None:
 @router.post("/login", response_model=AccountView)
 async def login(body: LoginInput, request: Request, response: Response) -> AccountView:
     async with request.app.state.database.session_factory() as db:
-        account = await db.scalar(
-            select(AccountRow).where(
-                (AccountRow.username == account_name(body.username))
-                | (AccountRow.email == account_name(body.username))
-            )
-        )
+        name = account_name(body.username)
+        # Username first: older accounts keep their mail as username with email unset, so a
+        # later sign-up reusing that mail must not shadow them.
+        account = await db.scalar(select(AccountRow).where(AccountRow.username == name))
+        if account is None:
+            account = await db.scalar(select(AccountRow).where(AccountRow.email == name))
         matches = await run_in_threadpool(
             password_matches,
             body.password,

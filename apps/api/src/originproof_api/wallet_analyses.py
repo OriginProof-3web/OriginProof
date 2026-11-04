@@ -327,8 +327,10 @@ async def image_text(input_ref: str, request: Request, identity: Identity):
     try:
         converted = await asyncio.wait_for(converter(artifact, 60), timeout=60)
     except TimeoutError:
+        done.discard(input_ref)  # nothing was read, so the same photo may be retried
         raise HTTPException(504, "ANALYSIS_TIMEOUT") from None
     except Exception as problem:
+        done.discard(input_ref)
         code = getattr(problem, "code", None)
         raise HTTPException(
             503, str(getattr(code, "value", code) or "ANALYZER_UNAVAILABLE")

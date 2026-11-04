@@ -291,6 +291,9 @@ async def test_image_text_reads_own_photo_once(wallet, case):
             return
         if case == "provider_down":
             assert (got.status_code, got.json()["detail"]) == (503, "PROVIDER_UNAVAILABLE")
+            retry = await client.post(f"/v3/inputs/{ref}/text")  # a failed read is not spent
+            assert (retry.status_code, retry.json()["detail"]) == (503, "PROVIDER_UNAVAILABLE")
+            assert calls == ["image", "image"]
             return
         assert got.status_code == 200, got.text
         assert got.json() == {"text": text, "complete": True}
