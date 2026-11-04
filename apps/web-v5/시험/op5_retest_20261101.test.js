@@ -48,23 +48,25 @@ test('세션이 끊기면 다시 불러오기 전에도 단추가 로그인으�
   assert.equal(d.win.Hk.auth.state.member, false);
 });
 
-test('K1: 실서버 모드의 예시 버튼은 서버에 보내지 않고 이유를 알림', async () => {
+test('K1: 실서버 모드의 예시 버튼은 서버에 보내지 않고 예시 결과를 \'예시 자료\' 표시로 보여 줌', async () => {
   const d = page(u => u === '/api/v1/auth/me' ? ME('issuer') : { status: 404, body: {} });
   await sleep(10);
   const before = d.win.fetch.calls.length;
   presetBtn(d, '철회된 안내').click();
-  await sleep(30);
-  assert.equal(d.win.fetch.calls.length, before);
-  assert.match(d.doc.getElementById('chatThread').textContent, /예시 자료라 실서버 기록과 맞지 않아 보내지 않았어요/);
+  await sleep(3000);
+  assert.equal(d.win.fetch.calls.length, before, '서버 요청 없음');
+  const t = d.doc.getElementById('chatThread').textContent;
+  assert.match(t, /예시 자료 · 서버에 보내지 않음/);
+  assert.match(t, /예시 응답이에요/);
 });
 
-test('시연 줄: 실서버 시연 / 예시 모드 전용 / 설명만 으로 나뉘고 양 끝에 좌우 이동 단추가 있음', async () => {
+test('시연 줄: 실서버 시연 / 예시 결과 / 설명만 으로 나뉘고 양 끝에 좌우 이동 단추가 있음', async () => {
   const d = page(u => u === '/api/v1/auth/me' ? ME('issuer') : { status: 404, body: {} });
   await sleep(10);
   const order = d.doc.getElementById('presetBar').children.map(n => n.textContent);
   const at = s => order.indexOf(s);
-  assert.ok(at('실서버 시연') < at('진짜 안내 + 위험 요구') && at('미등록 기관 사칭') < at('예시 모드 전용'), order.join(' | '));
-  assert.ok(at('예시 모드 전용') < at('철회된 안내') && at('철회된 안내') < at('설명만') && at('설명만') < at('DB 직접 조작'), order.join(' | '));
+  assert.ok(at('실서버 시연') < at('진짜 안내 + 위험 요구') && at('미등록 기관 사칭') < at('예시 결과'), order.join(' | '));
+  assert.ok(at('예시 결과') < at('철회된 안내') && at('철회된 안내') < at('설명만') && at('설명만') < at('DB 직접 조작'), order.join(' | '));
   const navs = d.doc.querySelectorAll('#presetBar button').map(b => b.getAttribute('aria-label')).filter(Boolean);
   assert.deepEqual(navs, ['시연 버튼 왼쪽으로', '시연 버튼 오른쪽으로']);
 });

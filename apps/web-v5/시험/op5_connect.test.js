@@ -123,20 +123,26 @@ test('왼쪽 메뉴(selectAction 이벤트) → 말풍선, 도움말은 알림�
   load(d);
   let reached = 0;
   d.doc.getElementById('sidebar-root')._l.push({ type: 'click', fn: () => reached++, cap: false });
-  vm.runInContext('selectAction("status")', d.win);
-  vm.runInContext('selectAction("issue")', d.win);
-  d.doc.querySelectorAll('#sidebar-root button')[0].click();
+  // 메뉴마다 화면을 새로 그림(앞 메뉴 내용이 한 대화창에 쌓이지 않음)
+  const now = () => d.doc.getElementById('chatThread').textContent;
+  // 비로그인은 개인 화면과 같음: 운영자용 연결 설정 없음, 맨 위 단추는 빈 새 대화
+  await sleep(10);   // 로그인 확인(401)이 끝난 뒤
+  vm.runInContext('selectAction("status")', d.win); await sleep(10);
+  assert.match(now(), /로그인하지 않았어요/);
+  assert.doesNotMatch(now(), /연결 설정/);
+  assert.ok(d.doc.querySelectorAll('#chatThread .add-btn').length > 0);
+  vm.runInContext('selectAction("issue")', d.win); await sleep(10);
+  assert.match(now(), /무엇을 확인할까요/);
+  assert.doesNotMatch(now(), /로그인하지 않았어요/);
+  d.doc.querySelectorAll('#sidebar-root button')[0].click(); await sleep(10);
+  assert.match(now(), /도움말/);
+  assert.doesNotMatch(now(), /새 Proof 발행\(기관 지갑\)/);
   const box = d.doc.querySelector('#sidebar-root input');
   box.value = 'ana_fixture';
   d.doc._dispatch(box, new Ev('keydown', { key: 'Enter' }));
   await sleep(20);
-  const all = d.doc.getElementById('chatThread').textContent;
-  assert.match(all, /연결 설정/);
-  assert.match(all, /새 Proof 발행\(기관 지갑\)/);
-  assert.match(all, /도움말/);
-  assert.match(all, /발행 기록 검색: ana_fixture/);
+  assert.match(now(), /발행 기록 검색: ana_fixture/);
   assert.equal(reached, 0, '도움말 클릭이 번들(알림창)까지 감');
-  assert.ok(d.doc.querySelectorAll('#chatThread .add-btn').length > 0);
 });
 
 test('장면 재현은 ?demo= 일 때만: wallet 장면은 503 WALLET_REGISTRY_UNAVAILABLE 에서 멈춤, retention 장면은 지우기 뒤 목록', async () => {
@@ -197,7 +203,7 @@ function serverLike(role, accountId) {
     const m = init.method || 'GET';
     if (url === '/api/v1/auth/me') return { status: 200, body: { account_id: accountId, username: 'u', role, issuer_id: role === 'issuer' ? 'iss_origin_mock_bank' : null, csrf_token: 'c' } };
     if (url === '/api/v1/chain/network') return { status: 200, body: { chain_target: 'anvil', chain_id: 31337, rpc_fallback_configured: false, approver_nodes: [{ role: 'approver_1', label: '승인 노드 #1', notice: 'n' }] } };
-    if (url === '/api/v1/issuer/status') return role === 'issuer' ? { status: 200, body: { issuer_id: 'i', status: 'ACTIVE', chain_id: 31337 } } : deny(403, 'FORBIDDEN');
+    if (url === '/api/v1/issuer/status') return role !== 'issuer' ? deny(403, 'FORBIDDEN') : accountId === 'acct_v1_down' ? deny(503, 'CHAIN_UNAVAILABLE') : { status: 200, body: { issuer_id: 'i', status: 'ACTIVE', chain_id: 31337 } };
     if (url === '/api/v1/issuer-applications/mine') return role === 'issuer' ? { status: 200, body: { application_id: APP, applicant_account_id: APPLICANT, issuer_name: 'Origin Mock Bank', status: 'APPROVED' } } : deny(403, 'FORBIDDEN');
     if (url.startsWith('/api/v3/issuer-applications/')) {
       if (role !== 'issuer') return deny(403, 'FORBIDDEN');
@@ -229,7 +235,7 @@ const B = '/v3/issuer-applications/' + APP;
 
 test('기관 메뉴(신청자): 온보딩 경로로 가고, 내부 승인·제안 조회 단추는 없음, 긴급 정지는 자기 기관', async () => {
   const { d, has, press, posted } = await open('issuer', 'acct_applicant');
-  assert.match(d.doc.getElementById('chatThread').textContent, /anvil · 체인 31337/);
+  assert.match(d.doc.getElementById('chatThread').textContent, /연결된 블록체인: 시연용 블록체인/);
   assert.equal(has('내부 승인하기(지정된 다른 계정)'), false);
   assert.equal(has('공동승인 제안 조회'), false);
   await press('업무 메일 코드 받기'); enter(d, 'staff@bank.example.invalid'); await sleep(40);
@@ -239,6 +245,13 @@ test('기관 메뉴(신청자): 온보딩 경로로 가고, 내부 승인·제�
   assert.deepEqual(posted(B + '/email-verifications'), [{ code: '123456' }]);
   await press('긴급 정지 거래 알리기'); enter(d, ISS); await sleep(40); enter(d, TX); await sleep(40);
   assert.equal(posted('/v3/issuers/' + ISS + '/suspensions')[0].tx_hash, TX);
+});
+
+test('기관 상태: wallet 전용 환경의 v1 503 CHAIN_UNAVAILABLE은 오류 대신 안내로 보여 줌', async () => {
+  const { d } = await open('issuer', 'acct_v1_down');
+  const t = d.doc.getElementById('chatThread').textContent;
+  assert.match(t, /기관 상태를 지금은 불러오지 못했어요\. 문서 발행과 검증은 그대로/);
+  assert.doesNotMatch(t, /CHAIN_UNAVAILABLE/);
 });
 
 test('기관 메뉴(지정 승인자): 내부 승인만 보이고 계약 경로로 간다', async () => {

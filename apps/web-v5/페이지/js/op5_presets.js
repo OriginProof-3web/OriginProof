@@ -1,5 +1,7 @@
 /* 시연 프리셋 버튼 (3회차 멘토링 D 전략·W6 과제 '5대 공격 시나리오 프리셋 버튼화').
    - 예시 문자(data/sample_data.js)를 입력칸에 넣고 바로 보냄. 결과는 예시 응답이며 칩에 '예시 모드'가 붙음.
+   - 실서버 모드에서는 RC 시연 데이터와 맞는 버튼(정상·위험 요구·변조·구버전·미등록 사칭)만 실제로 보내고,
+     나머지는 서버에 보내지 않고 예시 결과를 '예시 자료 · 서버에 보내지 않음' 표시로 보여 줌.
    - 예시 자료로 재현할 수 있는 것만 바로 실행. 서버·체인이 있어야 재현되는 공격(DB 조작·권한 도용·서명 재사용·키 유출 정지)은
      지어낸 결과를 보여 주지 않고, 무엇을 보여 주는 장면인지와 '실서버 연결 뒤 재현'만 알려 줌. */
 (function () {
@@ -96,8 +98,10 @@
           });
         return;
       }
-      // 예시 자료의 ID는 실서버에 없어 '기록 없음'으로 잘못 나온다. 미등록 사칭만 실서버에서도 그 결과가 맞다.
+      // 예시 자료의 ID는 실서버에 없어 '기록 없음'으로 잘못 나온다. 실서버 모드에서는 서버에 보내지 않고 예시 결과를 '예시 자료'로 보여 줌.
+      // 미등록 사칭만 실서버에서도 그 결과가 맞아 실제로 보냄(실제 AI 위험 분석까지).
       if (live() && p.id !== 'unregistered') {
+        if (window.Hk && window.Hk.op5sampleCheck) { window.Hk.op5sampleCheck(t); return; }
         bubble('예시 자료', '시연 · ' + p.label, ['이 버튼은 예시 자료라 실서버 기록과 맞지 않아 보내지 않았어요. 예시 모드에서 볼 수 있어요.', '실서버로 확인하려면 기관이 발행한 문자를 입력칸에 붙여 넣어 주세요.']);
         return;
       }
@@ -120,7 +124,7 @@
   }
   bar.append(navL, el('span', 'preset-title', '실서버 시연'));
   LIVE.filter(canLive).forEach(addLive);
-  bar.append(el('span', 'preset-title', '예시 모드 전용'));
+  bar.append(el('span', 'preset-title', '예시 결과'));
   LIVE.filter(function (p) { return !canLive(p); }).forEach(addLive);
   bar.append(el('span', 'preset-title', '설명만'));
   SERVER.forEach(function (p) {

@@ -2,7 +2,9 @@
 //   - 정적: ../페이지/ 를 그대로 내보냄(GET·HEAD). "/" 는 business.html.
 //   - API: /api/v1/ · /api/v2/ · /api/v3/ · /api/health/ 의 GET·HEAD·POST·DELETE 를 "/api" 를 떼고 업스트림(d0111d8 API)으로 넘김.
 //   - 듣는 곳: 127.0.0.1 만. 포트 기본 8790(8768·8770·8780·8000·3000·8001 은 쓰지 않음).
-//   - 환경변수: OP5_PROXY_PORT(기본 8790), OP5_UPSTREAM(기본 http://127.0.0.1:8000, 이 컴퓨터 http 주소만).
+//   - 환경변수: OP5_PROXY_PORT(기본 8790), OP5_UPSTREAM(기본 http://127.0.0.1:8000, 이 컴퓨터 http 주소만),
+//     OP5_PUBLIC_ORIGIN(서버 배포 때만: 앞단 HTTPS 서버(Caddy)의 공개 주소 하나, 예 https://1-2-3-4.sslip.io).
+//     넣으면 그 주소의 Host·Origin 도 받는다. 듣는 곳은 그대로 127.0.0.1 이라 앞단 서버를 거쳐야만 들어온다.
 //   - Origin: 쓰기 요청은 이 프록시가 d0111d8 security.py:59-63 과 같은 규칙으로 먼저 검사(자기 출처만 허용)한 뒤,
 //     Origin·Sec-Fetch-* 를 빼고 넘김 → 업스트림에서는 origin None + sec-fetch-site 없음이라 통과(자세한 근거는 docs/T2_T5_개발메모.md).
 //   - 로그에는 메서드·경로·상태만 남김(쿠키·토큰·본문은 남기지 않음).
@@ -40,6 +42,14 @@ export function parseUpstream(v) {
   const s = v == null || v === '' ? DEFAULT_UPSTREAM : String(v).replace(/\/+$/, '');
   const m = /^http:\/\/(127\.0\.0\.1|localhost|\[::1\]):(\d{1,5})$/.exec(s);
   if (!m || Number(m[2]) < 1 || Number(m[2]) > 65535) return { ok: false, why: '업스트림은 이 컴퓨터 http 주소만 받아요(예: http://127.0.0.1:8000)' };
+  return { ok: true, value: s };
+}
+
+// 공개 주소: http(s)://호스트[:포트] 하나만(경로·쿼리·계정 정보 없음). 비우면 예전처럼 로컬 주소만.
+export function parsePublicOrigin(v) {
+  if (v == null || v === '') return { ok: true, value: null };
+  const s = String(v).replace(/\/+$/, '').toLowerCase();
+  if (!/^https?:\/\/[a-z0-9.-]+(:\d{1,5})?$/.test(s)) return { ok: false, why: '공개 주소는 https://호스트 모양만 받아요(예: https://1-2-3-4.sslip.io)' };
   return { ok: true, value: s };
 }
 
@@ -101,6 +111,7 @@ export function createHandler(opts = {}) {
   const log = opts.log ?? (() => {});
   const hosts = [`127.0.0.1:${port}`, `localhost:${port}`];
   const origins = hosts.map((h) => 'http://' + h);
+  if (opts.publicOrigin) { origins.push(opts.publicOrigin); hosts.push(new URL(opts.publicOrigin).host); }
 
   return async function handle(req, res) {
     const method = String(req.method || 'GET').toUpperCase();
@@ -151,6 +162,8 @@ export function createHandler(opts = {}) {
     /* ----- 정적(../페이지) ----- */
     if (method !== 'GET' && method !== 'HEAD') { done(405); return send(res, 405, { allow: 'GET, HEAD', 'content-type': 'text/plain; charset=utf-8' }, 'method not allowed'); }
     if (!clean || clean.split('/').some((s) => s.startsWith('.') && s !== '')) { done(404); return send(res, 404, { 'content-type': 'text/plain; charset=utf-8' }, 'not found'); }
+    // 예전 메인(index.html)은 시작 페이지로 보냄(번들 로그아웃·예전 로그인 화면 링크가 index.html 로 가도 시작 페이지가 열림)
+    if (clean === '/index.html') { done(302); return send(res, 302, { location: 'entry.html' }, ''); }
     const rel = clean === '/' ? 'business.html' : clean.slice(1);
     const file = path.resolve(root, rel);
     if (!file.startsWith(root + path.sep)) { done(404); return send(res, 404, { 'content-type': 'text/plain; charset=utf-8' }, 'not found'); }
@@ -169,11 +182,13 @@ export function createHandler(opts = {}) {
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const p = parsePort(process.env.OP5_PROXY_PORT);
   const u = parseUpstream(process.env.OP5_UPSTREAM);
-  if (!p.ok || !u.ok) { console.error('설정 오류: ' + (p.ok ? '' : p.why + ' ') + (u.ok ? '' : u.why)); process.exit(2); }
-  const handler = createHandler({ port: p.value, upstream: u.value, log: (s) => console.log(new Date().toISOString().slice(11, 19), s) });
+  const o = parsePublicOrigin(process.env.OP5_PUBLIC_ORIGIN);
+  if (!p.ok || !u.ok || !o.ok) { console.error('설정 오류: ' + [p, u, o].filter((x) => !x.ok).map((x) => x.why).join(' ')); process.exit(2); }
+  const handler = createHandler({ port: p.value, upstream: u.value, publicOrigin: o.value, log: (s) => console.log(new Date().toISOString().slice(11, 19), s) });
   const server = http.createServer((req, res) => { handler(req, res).catch(() => { try { send(res, 500, { 'content-type': 'text/plain; charset=utf-8' }, 'proxy error'); } catch {} }); });
   server.listen(p.value, '127.0.0.1', () => {
     console.log(`5안 프록시: http://127.0.0.1:${p.value}/business.html?mode=api  →  ${u.value} (/api 를 떼고 전달)`);
+    if (o.value) console.log(`공개 주소: ${o.value} (앞단 HTTPS 서버를 거친 요청만)`);
     console.log('끄기: Ctrl+C');
   });
 }

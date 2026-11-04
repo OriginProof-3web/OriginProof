@@ -46,6 +46,7 @@
     'original.no_source': ['확인할 원본 없음', '해당 없음'],
     'original.not_run': ['앞 단계에서 멈춰 확인 안 함', '해당 없음'],
     'original.held': ['원본 자료가 없어 비교 보류', '보류'],
+    'original.lookup_match': ['문자에서 읽은 항목 일치', '확인됨'],     // 새 키(A1): 원본 찾기 MATCHED + 부분 비교(읽은 키만 맞춤)
     'status.active': ['현재 유효', '확인됨'],
     'status.key_compromised': ['서명 키가 유출 처리된 기관이에요', '경고'],
     'status.revoked': ['철회된 안내예요', '경고'],
@@ -156,6 +157,7 @@
       if (compare) more.compare = compare;
     } else if (k === 'original.changed_unknown') s = { status: '불일치', tone: 'fail', icon: 'warn', body: '보호 항목 중 바뀐 곳이 있어요.' };
     else if (k === 'original.no_source') s = AX_NO_SOURCE;
+    else if (k === 'original.lookup_match') s = { status: '읽은 항목 일치', tone: 'ok', icon: 'check', body: '문자에서 읽은 항목(' + (O.fields || '키') + ')이 이 발행 기록과 같아요. 나머지 문구는 비교하지 않았어요.' };
     else s = AX_NOT_RUN;
     return axis('original', '원본 일치', ['original'], s, more);
   }
@@ -181,7 +183,7 @@
     var k = A.bubble_key;
     var unran = llmUnran ? ' AI 상세 분석 미실행(규칙 검사 결과만)' : '';
     var map = {
-      'ai.no_clear': { status: '뚜렷한 신호 없음', tone: 'info', icon: 'info', body: '뚜렷한 위험 신호는 못 찾았어요. 문제가 없다는 뜻은 아니에요.' + unran },
+      'ai.no_clear': { status: '뚜렷한 신호 없음', tone: 'info', icon: 'info', body: '뚜렷한 위험 신호는 못 찾았어요. 문제가 없다는 뜻은 아니에요.' + unran + (why ? ' ' + why : '') },
       'ai.caution': { status: '주의', tone: 'caution', icon: 'caution', body: '주의: ' + quote + unran },
       'ai.high': { status: '위험 신호', tone: 'fail', icon: 'warn', body: '위험 신호: ' + quote + unran },
       'ai.undetermined': { status: '판단하기 어려움', tone: 'pending', icon: 'question', body: 'AI가 판단하기 어려운 내용이에요.' + unran },
@@ -453,8 +455,20 @@
       verification_not_run_reason: rep.verification_not_run_reason == null ? null : str(rep.verification_not_run_reason)
     };
   }
+  /* 개인정보 가림 자리만 근거인 '주의': 이 화면은 AI 에 보내기 전에 계좌·전화·주민번호를 '(계좌번호 가림)' 등으로 바꾼다.
+     AI 가 그 가림 자리(예: "입금계좌 (계좌번호 가림)")만 보고 '출처를 알 수 없는 계좌'라며 주의를 내면, 우리가 가린 탓이지 문자의 위험이 아님.
+     근거 문장에서 가림 표시와 계좌 이름표(입금계좌·납부 계좌 등)·문장부호를 빼면 남는 것이 없을 때만 그 근거를 뺀다.
+     HIGH 는 건드리지 않음. 원래 값은 자세히(detail)에 그대로 남김(감추지 않음). */
+  var MASK_ONLY_RE = /\((?:계좌번호|전화번호|주민번호) 가림\)|(?:입금|납부|송금|이체|가상|받는|결제)?\s*계좌(?:번호)?|예금주|은행|[\s.,:;：·()\[\]"'“”‘’-]/g;
+  function maskOnly(quote) { return /\((?:계좌번호|전화번호|주민번호) 가림\)/.test(quote) && !quote.replace(MASK_ONLY_RE, '').trim(); }
   function mapReport(raw) {
     var rep = cleanReport(raw);
+    var original = rep.risk_level, masked = 0;
+    if (rep.risk_level === 'CAUTION' && rep.evidence.length) {
+      var kept = rep.evidence.filter(function (e) { return !maskOnly(e.quote); });
+      masked = rep.evidence.length - kept.length;
+      if (masked) rep = { risk_level: kept.length ? rep.risk_level : 'NO_CLEAR_INDICATORS', evidence: kept, dropped: rep.dropped, limitations: rep.limitations, verification_not_run_reason: rep.verification_not_run_reason };
+    }
     var lim = rep.limitations;
     var rules = lim.filter(function (x) { return /^phishing-rules-/.test(x); })[0] || '';      // G4
     var unran = lim.some(function (x) { return /^LLM_ANALYSIS_UNAVAILABLE/.test(x); });
@@ -468,7 +482,8 @@
     return {
       obs: obs('ai', key, [rep.risk_level, rules].filter(Boolean).join(' · '), { quote: quote }, line3),
       quote: quote, unran: unran, report: rep,
-      detail: 'risk_level=' + rep.risk_level + ' · evidence ' + rep.evidence.length + '건' + (rep.dropped ? '(모양 틀린 ' + rep.dropped + '건 버림)' : '') +
+      why: masked ? '(개인정보 보호로 가린 계좌번호 자리만 근거로 든 주의 ' + masked + '건은 뺐어요.)' : '',
+      detail: (masked ? 'AI 원래 판단 ' + original + ' · 가림 자리만 근거인 ' + masked + '건 제외 · ' : '') + 'risk_level=' + rep.risk_level + ' · evidence ' + rep.evidence.length + '건' + (rep.dropped ? '(모양 틀린 ' + rep.dropped + '건 버림)' : '') +
         rep.evidence.map(function (e, i) { return ' · [' + (i + 1) + '] source=' + e.source + ' rule_id=' + e.rule_id + ' offset=' + (e.start_offset == null ? '-' : e.start_offset + '~' + e.end_offset); }).join('') +
         (lim.length ? ' · limitations: ' + lim.join(' | ') : '') + (rep.verification_not_run_reason ? ' · verification_not_run_reason=' + rep.verification_not_run_reason : '')
     };
@@ -534,7 +549,9 @@
     INPUT_LIMIT: '글·사진 올리기는 계정당 10분에 20건까지 받아요.',
     VERIFICATION_SESSION_NOT_FOUND: '연결할 검증 기록을 찾지 못했어요.',
     VERIFICATION_SESSION_EXPIRED: '연결할 검증 기록의 보관 시간이 지났어요.',
-    RESULT_EXPIRED: '분석 결과 보관 시간이 지났어요.'
+    RESULT_EXPIRED: '분석 결과 보관 시간이 지났어요.',
+    INPUT_NOT_IMAGE: '사진으로 올린 입력만 글자를 읽을 수 있어요.',
+    IMAGE_TEXT_ALREADY_READ: '이 사진은 이미 글자를 읽었어요. 다시 올려 주세요.'
   };
 
   /* ---------------- 오류 응답 -> 말풍선 ---------------- */
@@ -700,46 +717,79 @@
   }
 
   /* Track B(#88): 검증 코드 없는 문자에서 기관·금액·계좌(또는 공문 번호)를 읽어 POST /v3/document-lookups 본문을 만든다.
-     기관 ID = identifier_hash("iss_…")(keccak256). 합성 명부(wallet_onboarding.ROSTER) 두 곳만 안다. 못 읽으면 null(보내지 않음). */
+     기관 ID = identifier_hash("iss_…")(keccak256). 합성 명부(wallet_onboarding.ROSTER) 두 곳만 안다. 못 읽으면 null(보내지 않음).
+     A2: 같은 두 기관의 한글 표기(오리진 목 은행·오리진목은행, 오리진 목 오피스)와 붙임표·점·가운뎃점 변형만 더함. 새 기관은 만들지 않음. */
+  var LOOKUP_SEP = '[\\s\\-‐-―._·]*';
   var LOOKUP_ISSUERS = [
-    { re: /origin\s*mock\s*bank|iss_origin_mock_bank/i, id: '0x9d6e623a821f35508c0c970540013aa75041537806d71a2e318ac7ca5358a217' },
-    { re: /origin\s*mock\s*office|iss_origin_mock_office/i, id: '0xa079131abb1c9fafcee45cedda0cb5ae9a0aa8d8e2f3112e1ad0e85da89a9bbe' }
+    { re: new RegExp('origin' + LOOKUP_SEP + 'mock' + LOOKUP_SEP + 'bank|iss_origin_mock_bank|오리진' + LOOKUP_SEP + '목' + LOOKUP_SEP + '(?:은행|뱅크)', 'i'), id: '0x9d6e623a821f35508c0c970540013aa75041537806d71a2e318ac7ca5358a217' },
+    { re: new RegExp('origin' + LOOKUP_SEP + 'mock' + LOOKUP_SEP + 'office|iss_origin_mock_office|오리진' + LOOKUP_SEP + '목' + LOOKUP_SEP + '오피스', 'i'), id: '0xa079131abb1c9fafcee45cedda0cb5ae9a0aa8d8e2f3112e1ad0e85da89a9bbe' }
   ];
   /* 값을 고를 수 없으면 null(조회 안 함). 맞을 것 같은 일부 숫자를 보내지 않음: 틀린 값의 UNVERIFIED·다른 값의 MATCHED 모두 사실과 달라짐. */
   var LOOKUP_UNIT = '십백천만억조';
   var LOOKUP_RE = {
     hidden: /[­​-‏‪-‮⁠-⁤﻿]/,
-    hangulAmount: new RegExp('(?:^|[^가-힣])[일이삼사오육칠팔구' + LOOKUP_UNIT + ']*[' + LOOKUP_UNIT + '][ \\t]?원'),
-    foreignBefore: /(?:₩|￦|\$|€|¥|£|KRW|USD|EUR|JPY)[ \t]*$/i,
+    // 한글 숫자 금액(오십만원·백만원)은 읽지 않음. 아라비아 숫자 바로 뒤 단위(43만원)는 lookupHangulWon 이 따로 셈
+    hangulAmount: new RegExp('(?:^|[^가-힣0-9])[일이삼사오육칠팔구' + LOOKUP_UNIT + ']*[' + LOOKUP_UNIT + '][ \\t]?원'),
+    wonSign: /[₩￦][ \t]*$/,
+    foreignBefore: /(?:\$|€|¥|£|KRW|USD|EUR|JPY)[ \t]*$/i,
     foreignAfter: /^[ \t]*(?:KRW|USD|EUR|JPY|달러|유로|위안|파운드|엔(?![가-힣]))/i,
-    unitAfter: new RegExp('^[ \\t]?[' + LOOKUP_UNIT + '][0-9,' + LOOKUP_UNIT + ' \\t]*원'),
+    unitStart: new RegExp('^[ \\t]?[' + LOOKUP_UNIT + ']'),
+    unitAfter: new RegExp('^[ \\t]?[' + LOOKUP_UNIT + '][0-9,.' + LOOKUP_UNIT + ' \\t]*원'),
     unitBefore: new RegExp('[' + LOOKUP_UNIT + '][ \\t]?$'),
     signBefore: /(?:[-−–—+△▲±~∼〜～]|\([-−+]\))[ \t]*$/,
     gluedBefore: /[A-Za-z_,.\/#]$/,
     approxBefore: /(?:약|최대|최소|최고|최저|대략|평균)[ \t]*$/,
     rangeAfter: /^[ \t]*(?:이상|이하|미만|초과|내외|가량|정도|상당|안팎|부터|까지|[-~∼〜～])/,
     wonEnd: /^(?:정|을|이|은|의|으로|입니다|이며|이고|이니|이므로|이에요|예요|임)?(?![가-힣A-Za-z0-9])/,
-    won: /^[ \t ]*원/,
+    won: /^[ \t ]*원/,
     amount: /^(?:[1-9][0-9]*|[1-9][0-9]{0,2}(?:,[0-9]{3})+)$/,
     payLabel: /(?:납부|납입|결제|청구|입금|이체|송금)[ \t]*(?:금액|액)[ \t]*(?:은|는|이|:|：|=)?[ \t]*$/,
-    feeLabel: /(?:수수료|부가세|부가가치세|할인|연체료|가산금|이자|배송비)(?:[ \t]*(?:금액|액))?[ \t]*(?:은|는|이|:|：|=)?[ \t]*$/,
+    // A6: '이자'는 뺌(대출이자·이자 납입은 내야 할 본금액). 덧붙는 이자만 '연체이자'로 남김
+    feeLabel: /(?:수수료|부가세|부가가치세|할인|연체료|연체[ \t]*이자|가산금|배송비)(?:[ \t]*(?:금액|액))?[ \t]*(?:은|는|이|:|：|=)?[ \t]*$/,
     accountLabel: /계좌(?:[ \t]*번호)?([^0-9]{0,15})$/,
-    depositLabel: /입금[ \t]*[:：]?[ \t]*$/,
+    // A4: 입금·이체·송금·입금처·받는 계좌 + (선택) 은행 이름, 또는 은행 이름 바로 뒤 숫자
+    depositLabel: /(?:입금처|납부처|입금|이체|송금|받는[ \t]*(?:분[ \t]*)?계좌)[ \t]*[:：]?[ \t]*(?:[가-힣A-Za-z]{1,12}[ \t]?(?:은행|뱅크))?[ \t]*[:：]?[ \t]*$/,
+    bankLabel: /(?:은행|뱅크|bank)[ \t]*[:：]?[ \t]*$/i,
+    // 계좌가 아닌 번호라고 적힌 숫자는 후보에서 뺌(고객번호 123456789 때문에 계좌를 포기하지 않게)
+    otherIdLabel: /(?:고객|회원|주문|사업자(?:[ \t]*등록)?|가맹점|승인|접수|확인|관리|납부자|전자[ \t]*납부|고지서?|문서|공문|발송|시행|우편|사건|등록|예약|운송장|송장)[ \t]*(?:번호|No\.?)[ \t]*[:：]?[ \t]*$/i,
     notAccountGap: /문의|상담|연락|전화|콜센터|고객|아님|아닌|말고|이전|변경|잔액|만료|기한|일자/,
     gluedLeft: /[A-Za-z0-9_\-−–—－.,\/#]$/,
-    gluedRight: /^(?:[A-Za-z_\-−–—－\/#]|[.,][0-9])/
+    gluedRight: /^(?:[A-Za-z_\-−–—－\/#]|[.,][0-9])/,
+    url: /(?:https?:\/\/|www\.)[^\s<>"']+/gi
   };
   function lookupDistinct(list) { return list.filter(function (x, i) { return list.indexOf(x) === i; }); }
-  // 돌려줌: 금액(원) · 고를 수 없으면 null. found: 금액처럼 보이는 것이 하나라도 있으면 true(공문 판단에 씀)
+  /* 한글 단위 금액: 아라비아 숫자 + 단위가 큰 단위부터 한 번씩만 나올 때만 셈(예: 43만원=430000, 3만2천5백원=32500, 3만5000원=35000).
+     거부(null): 소수점(1.5만원)·쉼표 섞임(1,000만원)·한글 숫자(오십만원)·단위 순서가 뒤섞임·끝 숫자가 가장 작은 단위 이상(3만2천5000원)·
+     억 뒤에 만 없이 작은 값(1억5000원 = 1억5000만원을 줄여 쓴 것일 수 있음). 그 밖의 해석 여지가 있는 표기는 모두 보내지 않음. */
+  function lookupHangulWon(str) {
+    var m = /^(?:([1-9][0-9]{0,3})억)?[ \t]?(?:([1-9][0-9]{0,3})만)?[ \t]?(?:([1-9])천)?[ \t]?(?:([1-9])백)?[ \t]?(?:([1-9])십)?[ \t]?([1-9][0-9]{0,3})?[ \t]?원/.exec(str);
+    if (!m || !(m[1] || m[2] || m[3] || m[4] || m[5])) return null;
+    var small = m[5] ? 10 : m[4] ? 100 : m[3] ? 1000 : m[2] ? 10000 : 0;
+    if (m[1] && !m[2] && (m[3] || m[4] || m[5] || m[6])) return null;
+    if (m[6] && (!small || +m[6] >= small)) return null;
+    var n = (+m[1] || 0) * 100000000 + (+m[2] || 0) * 10000 + (+m[3] || 0) * 1000 + (+m[4] || 0) * 100 + (+m[5] || 0) * 10 + (+m[6] || 0);
+    return { value: n, len: m[0].length };
+  }
+  // 돌려줌: 금액(원) · 고를 수 없으면 null. found: 금액처럼 보이는 것이 하나라도 있으면 true
   function lookupAmount(s) {
     var R = LOOKUP_RE, re = /[0-9](?:[0-9,.]*[0-9])?/g, m, bad = R.hangulAmount.test(s), pay = [], fee = [], other = [];
     while ((m = re.exec(s))) {
-      var before = s.slice(0, m.index), after = s.slice(m.index + m[0].length);
-      if (R.foreignBefore.test(before) || R.foreignAfter.test(after) || R.unitAfter.test(after)) { bad = true; continue; }
-      var won = R.won.exec(after);
-      if (!won) continue;
-      var rest = after.slice(won[0].length), n = Number(m[0].replace(/,/g, ''));
-      if (!R.amount.test(m[0]) || !Number.isSafeInteger(n) || R.unitBefore.test(before) || R.signBefore.test(before) || R.gluedBefore.test(before) ||
+      var before = s.slice(0, m.index), after = s.slice(m.index + m[0].length), n, rest;
+      // ₩·￦ 은 원화 기호라 '원'과 같이 봄(₩48,000 = 48000원). 다른 통화 기호·단위는 계속 거부
+      var krw = R.wonSign.exec(before);
+      if (R.unitStart.test(after)) {
+        var h = lookupHangulWon(s.slice(m.index));
+        if (!h || krw) { if (krw || R.unitAfter.test(after)) bad = true; continue; }   // '3만 명'처럼 돈이 아닌 단위는 건너뜀
+        re.lastIndex = m.index + h.len; n = h.value; rest = s.slice(m.index + h.len);
+      } else {
+        if (R.foreignBefore.test(before) || R.foreignAfter.test(after)) { bad = true; continue; }
+        var won = R.won.exec(after);
+        if (!won && !krw) continue;
+        if (!R.amount.test(m[0])) { bad = true; continue; }
+        n = Number(m[0].replace(/,/g, '')); rest = won ? after.slice(won[0].length) : after;
+      }
+      if (krw) before = before.slice(0, krw.index);
+      if (!Number.isSafeInteger(n) || n <= 0 || R.unitBefore.test(before) || R.signBefore.test(before) || R.gluedBefore.test(before) ||
         R.approxBefore.test(before) || R.rangeAfter.test(rest) || !R.wonEnd.test(rest)) { bad = true; continue; }
       (R.payLabel.test(before) ? pay : R.feeLabel.test(before) ? fee : other).push(n);
     }
@@ -760,57 +810,124 @@
     if (/^01[016789][0-9]{7,8}$/.test(digits) || /^0(?:2|[3-6][1-5]|70|50[0-9])[0-9]{7,8}$/.test(digits) || /^1[5-9][0-9]{6}$/.test(digits)) return true;   // 전화
     return /^[0-9]{6}-[1-8][0-9]{6}$/.test(token) || /^[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{4}$/.test(token);   // 주민번호·카드번호 모양은 보내지 않음
   }
-  function lookupAccount(s) {
-    var R = LOOKUP_RE, re = /[0-9][0-9-]*[0-9]/g, m, labelled = [], all = [];
+  /* 숫자 덩어리 나누기. A4: '001 234 500008'·'001 - 234 - 500002'처럼 숫자 사이 공백을 허용하되,
+     한 덩어리 안 구분 방식이 한 가지일 때만 이음. 공백으로만 이을 때는 각 조각이 2~8자리여야 함('…500001 2회' 같은 뒤 숫자를 붙이지 않음).
+     구분이 섞이면('2026-10-31 300') 공백 자리에서 나눠 따로 봄. */
+  function lookupNumberTokens(s) {
+    var re = /[0-9]+(?:(?:[ \t]*-[ \t]*|[ \t])[0-9]+)*/g, m, out = [];
     while ((m = re.exec(s))) {
-      var t = m[0], digits = t.replace(/-/g, ''), before = s.slice(0, m.index), after = s.slice(m.index + t.length);
-      if (digits.length < 6 || R.won.test(after)) continue;
+      var seps = m[0].match(/[^0-9]+/g) || [];
+      var kinds = lookupDistinct(seps.map(function (x) { return x === '-' ? 'h' : /-/.test(x) ? 'sh' : 's'; }));
+      var groups = m[0].split(/[^0-9]+/);
+      var spaced = kinds[0] === 's' || kinds[0] === 'sh';
+      if (kinds.length <= 1 && (!spaced || groups.every(function (g) { return g.length >= 2 && g.length <= 8; }))) { out.push({ i: m.index, t: m[0], groups: groups }); continue; }
+      var sub = /[0-9]+(?:-[0-9]+)*/g, x;
+      while ((x = sub.exec(m[0]))) out.push({ i: m.index + x.index, t: x[0], groups: x[0].split('-') });
+    }
+    return out;
+  }
+  // 돌려줌: { value: 계좌 숫자 또는 null, count: 계좌 후보 수, broken: 표시어 뒤 숫자가 계좌로 쓸 수 없는 모양 }
+  function lookupAccount(s) {
+    var R = LOOKUP_RE, labelled = [], all = [], broken = false;
+    lookupNumberTokens(s).forEach(function (tk) {
+      var digits = tk.groups.join(''), norm = tk.groups.join('-'), before = s.slice(0, tk.i), after = s.slice(tk.i + tk.t.length);
+      if (digits.length < 6 || R.won.test(after)) return;
+      if (R.otherIdLabel.test(before)) return;
       var a = R.accountLabel.exec(before);
-      var isLabel = (a && !R.notAccountGap.test(a[1])) || R.depositLabel.test(before);
-      var notAcc = lookupNotAccount(t, digits);
+      var isLabel = (a && !R.notAccountGap.test(a[1])) || R.depositLabel.test(before) || R.bankLabel.test(before);
+      var notAcc = lookupNotAccount(norm, digits);
       var glued = R.gluedLeft.test(before) || R.gluedRight.test(after);
-      if (isLabel && (notAcc || glued || digits.length > 32)) return null;
-      if (notAcc) continue;
+      if (isLabel && (notAcc || glued || digits.length > 32)) { broken = true; return; }
+      if (notAcc) return;
       all.push(digits);
       if (isLabel) labelled.push(digits);
-    }
+    });
     labelled = lookupDistinct(labelled); all = lookupDistinct(all);
-    return labelled.length === 1 && all.length === 1 ? labelled[0] : null;
+    return { value: !broken && labelled.length === 1 && all.length === 1 ? labelled[0] : null, count: all.length, broken: broken };
   }
-  // 돌려줌: undefined(공문 번호 표시 없음) · null(표시는 있으나 값을 못 정함) · 문자열
+  /* 공문 번호 정규화(A5): 끝의 '호'와 조사를 떼고, 기관 번호 형식([A-Z]{2,}-YYYY-N)만 대문자로 맞춤.
+     합성 기관은 번호를 대문자로 발행함(bulk-docs OMO-2026-0101…). 다른 모양 번호의 대소문자는 원래 값일 수 있어 바꾸지 않음. */
+  function lookupDocToken(raw) {
+    var token = raw.replace(/\.$/, '').replace(/(?:입니다|이에요|이며|이고|으로|로|을|를|임)$/, '').replace(/([0-9])호$/, '$1');
+    return /^[A-Za-z]{2,}-[0-9]{4}-[0-9]+$/.test(token) ? token.toUpperCase() : token;
+  }
+  // 돌려줌: { value: undefined(공문 번호 없음) · null(표시는 있으나 값을 못 정함) · 문자열, spans: 번호가 있던 자리 }
+  var LOOKUP_DOC_LABEL = /(?:공문|문서|접수|발송|시행)[ \t]*번호|\bNo\.|\bNo(?=[ \t]*[:：])/g;
+  var LOOKUP_DOC_BRACKET = /[(\[（［][ \t]*([A-Za-z]{2,}-[0-9]{4}-[0-9]+)호?[ \t]*[)\]）］]/g;
   function lookupDocNumber(s) {
-    var re = /(?:공문|문서)[ \t]*번호/g, m, out = [];
+    var re = new RegExp(LOOKUP_DOC_LABEL.source, 'g'), m, out = [], spans = [];
     while ((m = re.exec(s))) {
-      var after = s.slice(m.index + m[0].length).replace(/^\s*(?:는|은|:|：|=)?\s*/, '');
+      var lead = /^\s*(?:는|은|:|：|=)?\s*/.exec(s.slice(m.index + m[0].length))[0];
+      var start = m.index + m[0].length + lead.length, after = s.slice(start);
       var raw = /^[^\s,;()\[\]{}<>"'「」『』]*/.exec(after)[0];
-      var token = raw.replace(/\.$/, '').replace(/(?:입니다|이에요|이며|이고|으로|로|을|를|임)$/, '');
-      if (!/^[A-Za-z0-9가-힣][A-Za-z0-9가-힣_\-\/.]{0,119}$/.test(token) || !/[0-9]/.test(token)) return null;
+      var token = lookupDocToken(raw);
+      if (!/^[A-Za-z0-9가-힣][A-Za-z0-9가-힣_\-\/.]{0,119}$/.test(token) || !/[0-9]/.test(token)) return { value: null, spans: [] };
       // '문서번호 2026 17' 처럼 띄어 쓴 번호일 수 있으면 앞 조각만 쓰지 않음(날짜는 제외)
       var next = /^\s+([0-9A-Za-z][0-9A-Za-z_\-\/.]*)(?=\s|$)/.exec(after.slice(raw.length));
-      if (next && !/^(?:19|20)[0-9]{2}[-.\/][0-9]{1,2}[-.\/][0-9]{1,2}$/.test(next[1])) return null;
-      out.push(token);
+      if (next && !/^(?:19|20)[0-9]{2}[-.\/][0-9]{1,2}[-.\/][0-9]{1,2}$/.test(next[1])) return { value: null, spans: [] };
+      out.push(token); spans.push([start, start + raw.length]);
     }
-    if (!out.length) return undefined;
+    // 표시어 없이 괄호 안에만 있는 기관 번호(확인서(OMO-2026-0105))는 형식이 정확할 때만 씀
+    if (!out.length) {
+      var b = new RegExp(LOOKUP_DOC_BRACKET.source, 'g');
+      while ((m = b.exec(s))) { out.push(lookupDocToken(m[1])); spans.push([m.index, m.index + m[0].length]); }
+    }
+    if (!out.length) return { value: undefined, spans: [] };
     out = lookupDistinct(out);
-    return out.length === 1 ? out[0] : null;
+    return { value: out.length === 1 ? out[0] : null, spans: spans };
   }
-  function lookupKey(text) {
-    var s = String(text || '');
+  /* 돌려줌: { key: 요청 본문 또는 null, why: 못 읽은 이유 코드(LOOKUP_SKIP), fields: 읽은 항목 이름 } */
+  function lookupExplain(text) {
+    var s = String(text || '').replace(LOOKUP_RE.url, ' ');   // 링크 주소 안 숫자·이름은 문자 내용이 아님(A3: 링크만 있는 문자도 원본 찾기)
     var iss = LOOKUP_ISSUERS.filter(function (x) { return x.re.test(s); });
-    if (iss.length !== 1) return null;
-    if (LOOKUP_RE.hidden.test(s) || /\p{Nd}/u.test(s.replace(/[0-9]/g, ''))) return null;   // 전각·보이지 않는 글자가 숫자를 가르면 일부만 읽게 됨
-    var amount = lookupAmount(s), doc = lookupDocNumber(s);
-    if (doc !== undefined) {
-      // 공문 번호와 납부 정보가 함께 있으면 번호만 맞춰 보고 다른 계좌를 놓칠 수 있어 고르지 않음
-      if (doc === null || amount.found || /계좌|입금/.test(s)) return null;
-      return { issuer_id: iss[0].id, key: { notice_type: 'OFFICIAL_DOCUMENT', document_number: doc } };
+    if (!iss.length) return { key: null, why: 'NO_ISSUER' };
+    if (iss.length > 1) return { key: null, why: 'MANY_ISSUERS' };
+    if (LOOKUP_RE.hidden.test(s) || /\p{Nd}/u.test(s.replace(/[0-9]/g, ''))) return { key: null, why: 'HIDDEN_CHARS' };   // 전각·보이지 않는 글자가 숫자를 가르면 일부만 읽게 됨
+    var doc = lookupDocNumber(s);
+    if (doc.value !== undefined) {
+      if (doc.value === null) return { key: null, why: 'DOC_UNCLEAR' };
+      /* A8: 공문 번호가 있으면 번호로 먼저 찾음(고지서의 금액은 화면 참고). 결론은 '공문번호만 맞춰 봄·나머지 문구는 비교 안 함'으로 한정됨.
+         다만 계좌번호로 보이는 숫자가 함께 있으면 찾지 않음: 진짜 공문 번호에 다른 입금 계좌를 붙인 문자가 '번호 일치'로 보이면 위험하기 때문.
+         '지정 계좌로 납부'처럼 숫자 없는 말만 있으면 보낼 곳이 문자에 없어 번호로 찾음. */
+      var rest = s;
+      doc.spans.forEach(function (p) { rest = rest.slice(0, p[0]) + ' '.repeat(p[1] - p[0]) + rest.slice(p[1]); });
+      var acc0 = lookupAccount(rest);
+      if (acc0.count || acc0.broken) return { key: null, why: 'DOC_WITH_ACCOUNT' };
+      return { key: { issuer_id: iss[0].id, key: { notice_type: 'OFFICIAL_DOCUMENT', document_number: doc.value } }, fields: '공문번호' };
     }
-    var digits = lookupAccount(s);
-    if (amount.value === null || digits === null) return null;
-    return { issuer_id: iss[0].id, key: { notice_type: 'PAYMENT_REQUEST', amount_minor: amount.value, currency: 'KRW', payee_account_number: digits } };
+    var amount = lookupAmount(s), acc = lookupAccount(s);
+    if (amount.value === null) return { key: null, why: amount.found ? 'AMOUNT_UNCLEAR' : 'NO_AMOUNT' };
+    if (acc.value === null) return { key: null, why: acc.count || acc.broken ? 'ACCOUNT_UNCLEAR' : 'NO_ACCOUNT' };
+    return { key: { issuer_id: iss[0].id, key: { notice_type: 'PAYMENT_REQUEST', amount_minor: amount.value, currency: 'KRW', payee_account_number: acc.value } }, fields: '금액·계좌' };
+  }
+  function lookupKey(text) { return lookupExplain(text).key || null; }
+  // A7: 원본 찾기를 하지 않은 이유(무엇을 못 읽었는지). 문자를 서버로 보내지 않았음을 함께 알림
+  var LOOKUP_SKIP_END = ' 그래서 원본 찾기를 하지 않았어요. 기관 공식 번호로 직접 확인해 주세요.';
+  var LOOKUP_SKIP = {
+    NO_ISSUER: '문자에서 기관 이름을 찾지 못했어요(지금 찾을 수 있는 기관: Origin Mock Bank·오리진 목 은행, Origin Mock Office·오리진 목 오피스).',
+    MANY_ISSUERS: '기관 이름이 둘 이상 있어 어느 기관의 기록을 찾을지 정하지 않았어요.',
+    HIDDEN_CHARS: '숫자 사이에 보이지 않는 글자나 전각 숫자가 있어 값을 정확히 읽을 수 없었어요.',
+    DOC_UNCLEAR: '공문번호를 하나로 정확히 읽지 못했어요.',
+    DOC_WITH_ACCOUNT: '공문번호와 계좌번호가 함께 있어요. 번호만 맞춰 보면 다른 입금 계좌를 놓칠 수 있어요.',
+    NO_AMOUNT: '납부 금액(예: 32,500원)을 찾지 못했어요.',
+    AMOUNT_UNCLEAR: '금액이 여러 개이거나 표기가 애매해 하나로 고를 수 없었어요.',
+    NO_ACCOUNT: '입금 계좌번호를 찾지 못했어요.',
+    ACCOUNT_UNCLEAR: '계좌번호로 보이는 숫자가 여러 개이거나 모양이 애매해 하나로 고를 수 없었어요.'
+  };
+  /* 원본을 못 찾은 이유(서버 reason_codes, 저장된 값은 알려 주지 않음). 금액·계좌 중 무엇이 기관 기록과 다른지 쉬운 말로. */
+  var LOOKUP_MISS = {
+    AMOUNT_DIFFERS_FOR_ACCOUNT: '이 기관이 이 계좌로 발행한 안내문은 있지만 금액이 달라요. 금액이 바뀐 문자일 수 있어요(가짜 의심). 돈을 보내지 말고 기관 공식 번호로 직접 확인해 주세요.',
+    ACCOUNT_NOT_IN_RECORDS: '이 기관이 발행한 안내문 중에 이 계좌로 돈을 받는 것은 없어요. 기관 공식 계좌가 아닐 수 있어요(가짜 의심). 이 계좌로 돈을 보내지 마세요.',
+    DOCUMENT_NUMBER_NOT_IN_RECORDS: '이 기관이 이 공문번호로 발행한 기록이 없어요. 번호가 바뀌었거나 꾸며낸 공문일 수 있어요(가짜 의심). 기관 공식 번호로 직접 확인해 주세요.',
+    ISSUER_HAS_NO_RETAINED_RECORDS: '이 기관이 지금 블록체인에 남긴 발행 기록이 없어요. 공식 기록으로 확인되지 않는 문자예요(가짜 의심). 기관 공식 번호로 직접 확인해 주세요.'
+  };
+  function lookupWhy(d) {
+    var codes = Array.isArray(d.reason_codes) ? d.reason_codes : [];
+    for (var i = 0; i < codes.length; i++) if (Object.prototype.hasOwnProperty.call(LOOKUP_MISS, codes[i])) return LOOKUP_MISS[codes[i]];
+    return LOOKUP_WHY[d.lookup_status];
   }
   var LOOKUP_WHY = {
-    UNVERIFIED: '문자에서 읽은 값으로 찾았지만 보관 중인 발행 기록과 맞는 것이 없어요. 가짜라는 뜻은 아니니 기관 공식 번호로 직접 확인해 주세요.',
+    UNVERIFIED: '등록된 기관의 발행 기록 중 문자에서 읽은 값과 맞는 것이 없어요(가짜 의심). 돈을 보내지 말고 기관 공식 번호로 직접 확인해 주세요.',
     AMBIGUOUS: '문자에서 읽은 값과 맞는 발행 기록이 여러 개라 하나로 정하지 않았어요. 기관 공식 번호나 검증 링크로 다시 확인해 주세요.'
   };
 
@@ -868,27 +985,30 @@
 
     // Track B: 코드 없는 문자 → POST /v3/document-lookups. 읽을 값이 없거나 경로가 없으면 기존처럼 'none'
     function lookup(text, log) {
-      var k = lookupKey(text);
-      if (!k) return Promise.resolve({ kind: 'none' });
+      var x = lookupExplain(text), k = x.key;
+      if (!k) {
+        log.push({ label: '원본 찾기', value: '보내지 않음 · ' + x.why });
+        return Promise.resolve({ kind: 'none', reason: x.why, why: LOOKUP_SKIP[x.why] + LOOKUP_SKIP_END });
+      }
       var body = { request_id: rid(), issuer_id: k.issuer_id, key: k.key };
       return c.call('POST', '/v3/document-lookups', body, ms).then(function (res) {
         // 원본 찾기는 회원만: 로그인이 확인되지 않으면 요청을 보내지 않음(callBase 의 CSRF 확인). 서버는 공개 경로라 이 화면에서 막음
-        if (res.local) { log.push({ label: '원본 찾기', value: '로그인 필요 · 보내지 않음' }); return { kind: 'none', why: '원본 찾기는 로그인한 회원만 쓸 수 있어요. 문자는 서버로 보내지 않았어요.' }; }
+        if (res.local) { log.push({ label: '원본 찾기', value: '로그인 필요 · 보내지 않음' }); return { kind: 'none', login: true, why: '원본 찾기는 로그인한 회원만 쓸 수 있어요. 문자는 서버로 보내지 않았어요.' }; }
         log.push({ label: '보낸 요청', value: 'POST /v3/document-lookups · request_id ' + body.request_id + ' · ' + k.key.notice_type });
         var d = res.data || {};
-        if (!res.error && (res.status === 404 || res.status === 405)) { log.push({ label: '원본 찾기', value: '경로 없음 · HTTP ' + res.status }); return { kind: 'none' }; }
+        if (!res.error && (res.status === 404 || res.status === 405)) { log.push({ label: '원본 찾기', value: '경로 없음 · HTTP ' + res.status }); return { kind: 'none', why: '이 서버에는 원본 찾기 경로가 없어 공식 기록과 맞춰 보지 못했어요.' }; }
         if (res.error || res.status !== 200 || typeof d.lookup_status !== 'string') return { kind: 'error', err: errorInfo(res), res: res };
         log.push({ label: '원본 찾기', value: d.lookup_status + ' · 일치 ' + str(d.match_count) + '건' + (d.reason_codes && d.reason_codes.length ? ' · ' + d.reason_codes.join(', ') : '') });
-        if (d.lookup_status === 'MATCHED' && d.verification && typeof d.verification.verification_status === 'string') return { kind: 'result', api: 'v3', data: d.verification, res: res, lookup: d.lookup_status };
+        if (d.lookup_status === 'MATCHED' && d.verification && typeof d.verification.verification_status === 'string') return { kind: 'result', api: 'v3', data: d.verification, res: res, lookup: d.lookup_status, fields: x.fields };
         if (!Object.prototype.hasOwnProperty.call(LOOKUP_WHY, d.lookup_status)) return { kind: 'error', err: { key: 'common.held_error', line2: 'UPSTREAM_SCHEMA_MISMATCH', why: '서버 응답 모양이 예상과 달라요.' }, res: res };
-        return { kind: 'none', lookup: d.lookup_status, why: LOOKUP_WHY[d.lookup_status] };
+        return { kind: 'none', lookup: d.lookup_status, why: lookupWhy(d) };
       });
     }
 
     // AI: POST /v3/inputs -> POST /v3/analyses -> GET /v3/analyses/{id} 폴링. 로그인 없이 부르면 401 → 연결 전
     // onIntake: /v3/inputs 답이 오는 순간 접수 직원 말풍선을 넘김(직원 패널은 도착 순서대로 갱신)
     // image: { media_type, base64 } 이면 글 대신 문서 사진(DOCUMENT_IMAGE, #92)으로 접수
-    function analyze(text, log, onIntake, image) {
+    function analyze(text, log, onIntake, image, presend) {
       var offline = function (code, why) {
         return { ai: { obs: obs('ai', 'common.not_connected', code), why: why }, intake: obs('intake', 'common.not_connected', code) };
       };
@@ -912,7 +1032,9 @@
         input = { kind: 'TEXT', text: masked };
         log.push({ label: '보낸 요청', value: 'POST /v3/inputs · 개인정보를 가린 글 ' + masked.length + '자' });
       }
-      return c.call('POST', '/v3/inputs', input, ms).then(function (res) {
+      // 글자 읽기용으로 이미 올린 사진이면 그 접수 결과(성공이면 번호, 실패면 그 실패)를 그대로 씀: 사진을 두 번 올리지 않음
+      var sent = presend ? Promise.resolve(presend) : c.call('POST', '/v3/inputs', input, ms);
+      return sent.then(function (res) {
         if (res.error || res.status !== 201 || !res.data || !res.data.input_ref) {
           var x0 = fromErr(res, '입력');
           if (onIntake) onIntake(x0.intake);
@@ -957,6 +1079,17 @@
       });
     }
 
+    function lookupPartialMatch(v, four) {
+      var d = v.data || {};
+      if (v.lookup !== 'MATCHED' || v.api !== 'v3' || !v.fields || d.verification_status !== 'INCONCLUSIVE') return false;
+      if (d.comparison_scope !== 'PARTIAL_COMPARISON' && !has(d.reason_codes, 'CONTENT_PARTIALLY_COMPARED')) return false;
+      if ((d.checks || []).some(function (c) { return c && c.status === 'FAILED'; })) return false;
+      var st = four.status.bubble_key;
+      return /^ledger\.recorded/.test(four.ledger.bubble_key) && four.signature.bubble_key === 'signature.match' &&
+        (four.original.bubble_key === 'original.held' || four.original.bubble_key === 'original.not_run') &&
+        !HOLD_RANK[st] && kind(st) === 'result';
+    }
+
     // 검증 결과 -> 기록관·감정사·대조관·상태 확인관 말풍선 (응답 값을 표대로 옮기기만 함)
     function fourOf(v, p) {
       var four;
@@ -968,6 +1101,12 @@
         if (v.api === 'v1' && !Object.keys(p.candidate || {}).length && four.original.bubble_key === 'original.same') {
           four.original = obs('original', 'common.not_connected', 'NO_COMPARISON_BASIS · candidate_match=' + str(v.data.checks && v.data.checks.candidate_match) + ' · 보낸 비교 항목 0개');
           four.original.noBasis = true;
+        }
+        /* A1: 원본 찾기 MATCHED 인데 서버가 읽은 키만 맞춰 INCONCLUSIVE·PARTIAL_COMPARISON 을 준 경우.
+           서명·발행 기록·현재 상태가 확인되고 실패한 검사가 없을 때만 원본 칸을 '읽은 항목 일치'로 둠(표시만 바꿈, verification_status 는 그대로). */
+        if (lookupPartialMatch(v, four)) {
+          four.original = obs('original', 'original.lookup_match', 'PARTIAL_COMPARISON · ' + str(v.fields) + ' · ' + (v.data.reason_codes || []).join(' · '));
+          four.original.fields = v.fields;
         }
       }
       else if (v.kind === 'error') {
@@ -1000,6 +1139,15 @@
     function build(text, p, v, four, a, log, order) {
       var holdExtra = v.kind === 'error' ? v.err.why : '';
       var ai = a.ai.obs;
+      // 원본 찾기로 금액·계좌가 기관 기록과 같다고 확인되면, 가린 계좌로 입금하라는 문장만 근거로 든 AI '주의'는 위험으로 치지 않음
+      // (계좌는 개인정보라 AI 에는 가려서 보내므로 AI 는 계좌가 맞는지 모름. 대표 지시 2026-11-04)
+      var evs = a.ai.report && Array.isArray(a.ai.report.evidence) ? a.ai.report.evidence : [];
+      if (v.lookup === 'MATCHED' && ai && ai.bubble_key === 'ai.caution' && evs.length && evs.every(function (e) { return /\((?:계좌번호|전화번호) 가림\)/.test(String(e.quote || '')); })) {
+        Object.assign(ai, obs('ai', 'ai.no_clear', 'CAUTION→ACCOUNT_MATCHED_RECORD'));
+        a.ai.why = '(입금 계좌·금액이 기관 발행 기록과 같아서, 그 계좌로 입금하라는 문장은 위험으로 보지 않았어요.)';
+        a.ai.quote = '';
+        a.ai.report = Object.assign({}, a.ai.report, { risk_level: 'NO_CLEAR_INDICATORS', evidence: [] });   // 형광펜·근거 줄도 그리지 않음
+      }
       var report = obs('report', 'report.ready', v.kind === 'result' ? str(v.data.verification_status) : '');
       nameOf(report);
       // 직원 순서 = 답이 도착한 순서(order). 빠진 직원이 있으면(있으면 안 됨) 정해진 순서로 뒤에 붙임
@@ -1030,7 +1178,7 @@
       });
       if (v.kind === 'none') axes.slice(0, 3).forEach(function (x) {
         x.status = '확인할 수 없음'; x.tone = 'none'; x.icon = 'dash';
-        x.body = v.why || (p.image ? '사진에서는 검증 링크를 읽지 않아 공식 기록과 맞춰 볼 수 없어요.' : '검증 링크가 없어 공식 기록과 맞춰 볼 수 없어요.');
+        x.body = v.why || (p.image ? '사진에서는 검증 링크를 읽지 않아 공식 기록과 맞춰 볼 수 없어요.' : '문자에서 공식 기록과 맞춰 볼 값을 읽지 못했어요.');
       });
 
       var conclusion;
@@ -1042,21 +1190,30 @@
         // 1.8 합성 규칙 1: 발행 기록이 확인돼도 현재 상태 칸에 문제가 있으면 그 칸 배지를 앞에
         var sAx = axes[2];
         if (vs === 'VERIFIED' && (sAx.tone === 'fail' || sAx.tone === 'caution')) conclusion.badge = { tone: sAx.tone, icon: sAx.icon, text: sAx.status };
+        // A1: 읽은 항목 일치(원본 찾기). 긍정 결론 + 한계를 한 문장에. 현재 상태 칸에 문제가 있으면 그 배지를 앞에(합성 규칙 1과 같음)
+        if (four.original.bubble_key === 'original.lookup_match') {
+          conclusion = { badge: { tone: 'ok', icon: 'check', text: '읽은 항목 일치' }, text: '문자에서 읽은 항목(' + four.original.fields + ')이 기관 발행 기록과 일치해요 · 나머지 문구는 비교하지 않았어요.' };
+          if (sAx.tone === 'fail' || sAx.tone === 'caution') conclusion.badge = { tone: sAx.tone, icon: sAx.icon, text: sAx.status };
+        }
         if (vs === 'TAMPERED' || vs === 'NOT_REGISTERED' || axes.some(function (x) { return x.axis !== 'ai' && x.tone === 'fail'; })) next = NEXT_BAD;
       } else if (v.kind === 'error') {
         conclusion = { badge: { tone: 'pending', icon: 'question', text: '판단 보류' }, text: '서버 응답을 받지 못해 판단을 보류했어요.' + (v.err.why ? ' ' + v.err.why : '') };
       } else if (v.kind === 'none') {
-        conclusion = { badge: { tone: 'none', icon: 'dash', text: '확인할 수 없음' }, text: v.why || '공식 기록으로 확인할 수 없는 문자예요.' };
+        // A7: 원본 찾기를 못 한 이유(v.reason)가 있으면 무엇을 못 읽었는지 함께 말함
+        // 대표 결정(2026-11-04): 공식 기록으로 확인 못 한 문자는 '가짜 의심'으로 명시(엔진 값은 그대로, 표시만)
+        conclusion = { badge: { tone: 'caution', icon: 'warn', text: '가짜 의심' }, text: v.reason ? '공식 기록으로 확인되지 않는 문자예요(가짜 의심). ' + v.why : v.why || '공식 기록으로 확인되지 않는 문자예요(가짜 의심).' };
+        // 사진만 받은 경우: 사진에서 금액·계좌를 꺼내 원본을 찾지 못하므로(대조 자체를 안 함) 가짜 의심이라 하지 않음
+        if (p.image && !v.lookup && !v.reason) conclusion = { badge: { tone: 'none', icon: 'dash', text: '확인 못 함' }, text: '사진만으로는 기관 발행 기록과 맞춰 보지 못했어요. 문자 글을 길게 눌러 복사해 붙여 넣으면 진짜인지 확인해요.' };
       } else if (v.chainDown) {
         conclusion = { badge: { tone: 'pending', icon: 'question', text: '판단 보류' }, text: v.why };
       } else {
         conclusion = { badge: { tone: 'offline', icon: 'plug', text: '연결 전' }, text: v.reason === 'NO_PROOF_ID_IN_LINK'
-          ? '검증 링크는 찾았지만 링크 안에 Proof ID가 없어 공식 기록을 확인하지 못했어요.'
+          ? '검증 링크는 찾았지만 링크 안에 Proof ID가 없어 공식 기록을 확인하지 못했어요.' + (v.lookupWhy ? ' ' + v.lookupWhy : '')
           : '검증 엔진이 아직 연결 전이라 공식 기록을 확인하지 못했어요.' };
       }
 
       var details = [{ label: '연결 방식', value: typeof c.opts.base === 'string' ? '5안 연결 ' + c.opts.base + ' (로그인 쿠키·CSRF)' : (c.opts.viaProxy ? '중계 프로그램 /api → ' : '직접 → ') + c.serverUrl }];
-      details.push({ label: '입력 종류', value: p.image ? '문서 사진' : p.structured ? '항목 입력(JSON)' : (p.first ? (p.first.type === 'proof' ? 'Proof ID 가 든 문자' : '검증 링크가 든 문자') : (v.lookup ? '코드 없는 문자(원본 찾기 ' + v.lookup + ')' : '문자')) });
+      details.push({ label: '입력 종류', value: p.image ? '문서 사진' : p.structured ? '항목 입력(JSON)' : (p.first ? (p.first.type === 'proof' ? 'Proof ID 가 든 문자' : '검증 링크가 든 문자') + (v.lookup ? ' · Proof ID 없어 원본 찾기 ' + v.lookup : '') : (v.lookup ? '코드 없는 문자(원본 찾기 ' + v.lookup + ')' : '문자')) });
       if (p.structured && p.ignored.length) details.push({ label: '보내지 않은 키', value: p.ignored.join(', ') });
       // 찾은 링크·Proof ID: 첫 번째만 쓰고, 나머지는 '더 찾은 … (쓰지 않음)'으로 자세히에만(adapter.js refDetails)
       if (!p.structured && p.refs.length) details = details.concat(Hk.refDetails({ refs: p.refs }));
@@ -1079,6 +1236,7 @@
         details.push({ label: 'session_id · request_id', value: str(d.session_id) + ' · ' + str(d.request_id || (v.res && v.res.requestId) || '') });
         if (v.v3note) details.push({ label: 'v3 검증', value: v.v3note + ' 그래서 v1 결과를 씀' });
         details.push({ label: '쉬운 설명', value: VS[vs] ? VS[vs].text : '쉬운 설명 없음' });
+        if (four.original.bubble_key === 'original.lookup_match') details.push({ label: '화면 결론', value: '읽은 항목 일치(' + four.original.fields + ') · 원본 찾기 MATCHED 를 화면에서만 이렇게 표시 · 검증 엔진 값 ' + str(vs) + ' · ' + str(v.data.comparison_scope) + ' 은 그대로' });
       }
       if (v.kind === 'error') details.push({ label: '오류', value: v.err.line2 });
 
@@ -1106,7 +1264,61 @@
 
     /* opts.onStaff(obs): 직원 한 명의 결과가 정해지는 순간(응답이 도착한 순간) 부름.
        직원 패널은 이 순서대로 갱신하고, 돌려주는 답의 staff 도 같은 순서(기록 다시 보기도 그 순서). */
+    /* 문서 사진: 서버가 사진 글자를 먼저 읽어 주면(POST /v3/inputs/{ref}/text, 사진 한 장에 한 번) 그 글로
+       문자 붙여 넣기와 똑같이 확인(원본 찾기 + AI). 못 읽으면 예전처럼 사진 그대로 AI 분석만(최종 판단은 '확인 못 함'). */
+    function readImage(image, log) {
+      var body = { kind: 'DOCUMENT_IMAGE', image_media_type: image.media_type, image_base64: image.base64 };
+      return c.call('POST', '/v3/inputs', body, ms).then(function (r1) {
+        if (r1.error || r1.status !== 201 || !r1.data || !r1.data.input_ref) { log.push({ label: '사진 글자 읽기', value: '사진 접수 못 함 · ' + (r1.error ? str(r1.error) : 'HTTP ' + r1.status) }); return { text: null, sent: r1 }; }
+        return c.call('POST', '/v3/inputs/' + encodeURIComponent(str(r1.data.input_ref)) + '/text', {}, Math.max(ms, 70000)).then(function (r2) {
+          var d = r2.data || {};
+          var ref = str(r1.data.input_ref);
+          if (r2.error || r2.status !== 200 || typeof d.text !== 'string' || !d.text.trim()) {
+            log.push({ label: '사진 글자 읽기', value: '못 읽음 · ' + (r2.error ? str(r2.error) : 'HTTP ' + r2.status + (d.detail ? ' · ' + d.detail : '')) });
+            return { text: null, sent: { status: 201, data: { input_ref: ref } } };
+          }
+          return { text: d.text.trim(), complete: d.complete === true };
+        });
+      });
+    }
+    /* 사진에서 읽은 글만: 맨 앞 [ ] 안 보낸 곳 이름이 등록 기관 한글 이름과 글자 3개 이내로 다르면 그 기관으로 맞춰 봄
+       (예: 사진 읽기가 '오리진 목 은행'을 '오렌지 몰 은행'으로 읽음). 진짜 판정은 여전히 금액·계좌(공문번호)가 기관 기록과 같아야만 나옴. */
+    var IMG_ISSUERS = ['오리진 목 은행', '오리진 목 오피스'];
+    function editDistance(a, b) {
+      var d = [];
+      for (var i = 0; i <= a.length; i++) { d[i] = [i]; for (var j = 1; j <= b.length; j++) d[i][j] = i ? Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)) : j; }
+      return d[a.length][b.length];
+    }
+    function fixImageIssuer(text) {
+      if (lookupKey(text)) return { text: text };
+      var m = /\[([^\[\]\n]{2,20})\]/.exec(text.replace(/^\s*\[Web발신\]\s*/, ''));
+      if (!m) return { text: text };
+      var seen = m[1].trim();
+      var best = IMG_ISSUERS.map(function (n) { return { n: n, d: editDistance(seen.replace(/\s+/g, ''), n.replace(/\s+/g, '')) }; })
+        .filter(function (x) { return x.d <= 3 && x.n.slice(-2) === seen.replace(/\s+/g, '').slice(-2); })
+        .sort(function (a, b) { return a.d - b.d; })[0];
+      if (!best) return { text: text };
+      return { text: text.replace('[' + m[1] + ']', '[' + best.n + ']'), from: seen, to: best.n };
+    }
     function check(text, opts) {
+      opts = opts || {};
+      if (opts.image && !opts.imageRead) {
+        var rlog = [];
+        return readImage(opts.image, rlog).then(function (got) {
+          if (!got || !got.text) return checkCore(text, Object.assign({}, opts, { imageRead: true, imageSent: got ? got.sent : null })).then(function (res) { res.details = res.details.concat(rlog); return res; });
+          var fx = fixImageIssuer(got.text);
+          return checkCore(fx.text, Object.assign({}, opts, { image: null, imageRead: true })).then(function (res) {
+            res.from_image = true;
+            var head = [{ label: '입력 종류(원래)', value: '문서 사진 · 서버가 사진 글자를 읽어 그 글로 확인' + (got.complete ? '' : ' · 일부만 읽음') }];
+            if (fx.from) head.push({ label: '사진 속 기관 이름', value: "'" + fx.from + "'(으)로 읽혀 등록 기관 '" + fx.to + "'(으)로 맞춰 봤어요 · 금액·계좌가 같아야만 진짜" });
+            res.details = head.concat(res.details);
+            return res;
+          });
+        }, function () { return checkCore(text, Object.assign({}, opts, { imageRead: true })); });
+      }
+      return checkCore(text, opts);
+    }
+    function checkCore(text, opts) {
       opts = opts || {};
       var p;
       if (opts.image) p = { structured: false, first: null, refs: [], image: true };   // 문서 사진: 검증 링크를 읽을 글이 없음
@@ -1125,12 +1337,18 @@
         // 문자에서 비교 항목은 뽑지 않음 → 후보 항목 0개, 원본 일치 칸은 fourOf 에서 "연결 전"(근거 없음)
         vP = verify({ structured: false, proofId: p.first.proofId, documentId: '', candidate: {} }, log);
       }
-      else if (p.first) vP = Promise.resolve({ kind: 'offline', reason: 'NO_PROOF_ID_IN_LINK', why: '첫 번째 링크 안에 Proof ID가 없어 검증을 요청하지 않았어요.' });
+      else if (p.first) {
+        // A3: Proof ID 없는 링크만 있으면 문자 내용으로 원본 찾기를 이어서 함. 읽을 값이 없으면 예전처럼 '연결 전'(이유를 덧붙임)
+        vP = lookup(text, log).then(function (v) {
+          if (v.kind !== 'none' || v.lookup || v.login) return v;
+          return { kind: 'offline', reason: 'NO_PROOF_ID_IN_LINK', why: '첫 번째 링크 안에 Proof ID가 없어 검증을 요청하지 않았어요.' + (v.why ? ' ' + v.why : ''), lookupWhy: v.why || '' };
+        });
+      }
       else if (p.image) vP = Promise.resolve({ kind: 'none' });
       else vP = lookup(text, log);
       var aP = p.structured
         ? Promise.resolve({ ai: { obs: obs('ai', 'ai.none', 'NO_TEXT'), why: '항목 입력에는 문자 원문이 없어 AI 분석은 하지 않았어요.' } })
-        : analyze(text, log, emit, opts.image);
+        : analyze(text, log, emit, opts.image, opts.imageSent);
       var vDone = vP.then(function (v) {
         var four = fourOf(v, p.structured ? p : { candidate: {} });
         ['ledger', 'signature', 'original', 'status'].forEach(function (s) { emit(four[s]); });
@@ -1154,5 +1372,5 @@
   Hk.DEMO_TERM = DEMO_TERM;
   Hk.demoTermRows = demoTermRows;
   Hk.api = { mapV1: mapV1, mapV3: mapV3, mapAnalysisJob: mapAnalysisJob, isLoopback: isLoopback, READY_MSG: READY_MSG, errorInfo: errorInfo, makeCaller: makeCaller, rid: rid,
-    lookupKey: lookupKey, evidenceSpans: evidenceSpans, SPAN_WHY: SPAN_WHY, AI_FAIL: AI_FAIL, AI_HTTP: AI_HTTP };
+    lookupKey: lookupKey, lookupExplain: lookupExplain, LOOKUP_SKIP: LOOKUP_SKIP, evidenceSpans: evidenceSpans, SPAN_WHY: SPAN_WHY, AI_FAIL: AI_FAIL, AI_HTTP: AI_HTTP };
 })();
