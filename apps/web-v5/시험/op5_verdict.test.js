@@ -72,11 +72,12 @@ test('실서버에서 원본을 못 찾은 문자 → 가짜 의심이 아니라
   assert.match(d.doc.getElementById('staffTime').textContent, /^블록체인 검증 \d+\.\d s · AI 분석 (\d+\.\d s|안 함)$/);
 });
 
-test('원본 찾기로 금액·계좌가 맞으면, 가린 계좌로 입금하라는 문장만 근거로 든 AI 주의는 빼고 진짜로', async () => {
+test('원본 찾기로 금액·계좌가 맞으면, 그 계좌로 납부하라는 문장만 근거로 든 AI 주의는 빼고 진짜로(앱 설치 등은 그대로 주의)', async () => {
+  for (const [quote, dropped] of [['납부 계좌 (계좌번호 가림) 으로 11/10까지 입금 바랍니다.', true], ['11/10까지 입금 바랍니다.', true], ["결제 대행 앱 '페이헬퍼'를 받아 로그인하시면 자동으로 납부돼요.", false]]) {
   const { serverDouble: sd } = require('./_review_harness.js');
   const V = { session_id: 'vs_1', verification_status: 'INCONCLUSIVE', reason_codes: ['PARTIAL_COMPARISON'], comparison_scope: 'PARTIAL', lifecycle_status: 'ACTIVE' };
   const job = { analysis_id: 'ana_1', status: 'COMPLETED', input_kind: 'TEXT', retain_report: false, retain_original: false,
-    report: { risk_level: 'CAUTION', evidence: [{ quote: '납부 계좌 (계좌번호 가림) 으로 11/10까지 입금 바랍니다.', source: 'LLM', reason: 'PAYMENT_REQUEST' }], limitations: ['phishing-rules-0.2'] } };
+    report: { risk_level: 'CAUTION', evidence: [{ quote, source: 'LLM', reason: 'PAYMENT_REQUEST' }], limitations: ['phishing-rules-0.2'] } };
   const f = sd({ persona: { role: 'recipient', issuer_id: null, username: 'kim' }, over: (u, m) => {
     if (/document-lookups$/.test(u)) return { status: 200, body: { lookup_status: 'MATCHED', match_count: 1, document_ids: ['0x' + 'ab'.repeat(32)], reason_codes: [], verification: V } };
     if (u === '/v3/analyses' && m === 'POST') return { status: 202, body: job };
@@ -87,10 +88,12 @@ test('원본 찾기로 금액·계좌가 맞으면, 가린 계좌로 입금하�
   enter(d, '[Web발신]\n[오리진 목 은행] 카드 대금 85,000원 청구 안내입니다. 납부 계좌 001-234-500003 으로 11/10까지 입금 바랍니다.'); await sleep(500);
   const t = threadText(d);
   // 블록체인 칸은 이 대역이 원본 찾기 응답만 흉내 내서 보지 않음(진짜 판정은 op5_lookup_trackb 시험)
-  assert.ok(!/AI 주의/.test(t), 'AI 주의 줄 없음');
+  if (!dropped) { assert.match(t, /AI 위험주의/, quote); continue; }
+  assert.ok(!/AI 주의/.test(t), 'AI 주의 줄 없음: ' + quote);
   assert.ok(!/위험 요구 문장을 칠했어요/.test(t), '형광펜 없음');
   assert.match(t, /AI 위험뚜렷한 신호 없음/);
   assert.match(t, /그 계좌로 입금하라는 문장은 위험으로 보지 않았어요/);
+  }
 });
 
 test('블록체인 증거 한 줄(확인 블록·계약·기관 키), 금액이 다르면 받은 글의 그 금액에 밑줄', async () => {

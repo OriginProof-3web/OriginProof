@@ -1269,8 +1269,10 @@
       var ai = a.ai.obs;
       // 원본 찾기로 금액·계좌가 기관 기록과 같다고 확인되면, 가린 계좌로 입금하라는 문장만 근거로 든 AI '주의'는 위험으로 치지 않음
       // (계좌는 개인정보라 AI 에는 가려서 보내므로 AI 는 계좌가 맞는지 모름. 대표 지시 2026-11-04)
+      // 계좌 없이 '11/10까지 입금 바랍니다'처럼 납부만 안내하는 문장도 같음(11-05 리허설: 진짜 A1이 '주의'로 보임). 링크·앱·재촉 등이 섞이면 그대로 둠
+      var payOnly = function (q) { return /(?:입금|납부|이체)\s*(?:바랍니다|해\s*주(?:세요|십시오)|하시기\s*바랍니다)[.!]?\s*$/.test(q) && !/링크|앱|설치|인증|비밀번호|OTP|개인|즉시|긴급|당장|오늘|정지|압류|수사|새|변경|다른|http/i.test(q); };
       var evs = a.ai.report && Array.isArray(a.ai.report.evidence) ? a.ai.report.evidence : [];
-      if (v.lookup === 'MATCHED' && ai && ai.bubble_key === 'ai.caution' && evs.length && evs.every(function (e) { return /\((?:계좌번호|전화번호) 가림\)/.test(String(e.quote || '')); })) {
+      if (v.lookup === 'MATCHED' && ai && ai.bubble_key === 'ai.caution' && evs.length && evs.every(function (e) { var q = String(e.quote || ''); return /\((?:계좌번호|전화번호) 가림\)/.test(q) || payOnly(q); })) {
         Object.assign(ai, obs('ai', 'ai.no_clear', 'CAUTION→ACCOUNT_MATCHED_RECORD'));
         a.ai.why = '(입금 계좌·금액이 기관 발행 기록과 같아서, 그 계좌로 입금하라는 문장은 위험으로 보지 않았어요.)';
         a.ai.quote = '';
