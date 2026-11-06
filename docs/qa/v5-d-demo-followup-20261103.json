@@ -1,0 +1,59 @@
+{
+  "phase": "9baa6d9c79a5751af39e3b9297d5a8f325bcdfab",
+  "runtime_head": "a5cba6c264609f84cc84fa6eec0f9458142b360f",
+  "pr136_head": "16b8693c8ed0ed92b1105d4c1e1b5a0b5a3f6c33",
+  "provider": "mock",
+  "paid_calls": 0,
+  "checks": {
+    "phase_issuer_status_readable": "PASS",
+    "phase_evidence_quote_only": "PASS",
+    "phase_J1": "PASS",
+    "phase_J2": "PASS",
+    "phase_J3": "PASS",
+    "pr136_prepared_label": "PASS",
+    "pr136_late_mock_response_replacement": "PASS",
+    "pr136_verification_unchanged": "PASS",
+    "pr136_default_off": "PASS"
+  },
+  "legacy_v1_status": 503,
+  "evidence_rows": 2,
+  "findings": [
+    {
+      "id": "D-DEMO-01",
+      "severity": "P2",
+      "pr": 136,
+      "file": "apps/web-v5/페이지/js/op5_connect.js",
+      "line": 269,
+      "condition": "Actual API provider=mock; delay the first GET /v3/analyses/{id} by 7500ms with demo_ai_fallback=3",
+      "observed": "The result caption correctly says rule inspection / AI unavailable, but replacement narration says an actual AI result arrived.",
+      "requested": "Use provider-neutral server analysis result wording for replacement narration/history/details, keeping source-specific caption and error statuses."
+    }
+  ],
+  "cleanup": {
+    "original_running_containers_preserved": 0,
+    "container_sets_equal": true,
+    "paid_calls": 0,
+    "generated_runtime_removed": true
+  },
+  "tests": {
+    "node": "22.18.0",
+    "pr136_web": {
+      "pass": 321,
+      "skip": 5,
+      "fail": 0
+    },
+    "browser_checks": 9
+  },
+  "screenshots": {
+    "phase-issuer.png": "e646093c7ed2eea2c2b61faade87e0441d1160891a09c7289b8cbeca4a89de7e",
+    "phase-evidence.png": "13c5c81d00d9fd3ea2b23f2fd75c084038a8397fc002c9467ab4a87f0ac5d101",
+    "pr136-replaced.png": "3de2f90530261fd3a1cc8d049aec3f65150a93ddaa7915b375871e54ed6e7043",
+    "pr136-prepared.png": "1ab950dd9a47d4a46c01b9484350a2196e5e8b4360a170f5f4d5c0393d707e02"
+  },
+  "execution_limits": [
+    "same physical Mac",
+    "local PostgreSQL/Anvil/real HTTP/Chromium; mock provider",
+    "GET response latency injected in browser; not a measured provider timeout",
+    "not final RC acceptance, no user study, no physical network switch"
+  ]
+}

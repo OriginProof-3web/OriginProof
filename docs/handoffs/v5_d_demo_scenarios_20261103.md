@@ -4,6 +4,14 @@
 
 관련 결정은 [#117](https://github.com/OriginProof-3web/OriginProof/issues/117)에서 합의합니다. [최종 검증·리허설 작업표](../qa/v5-d-final-rc-workbook.md)와 연결합니다. 최종 RC SHA·manifest·발표 데이터는 C가 지정합니다. W7 phase가 없어 최신 integration에서 작성한 준비 문서이며 W6 기능을 integration에 승격하는 PR이 아닙니다.
 
+## 2026-11-03 후속 결정·실제 확인
+
+#131은 integration에 병합됐습니다. #117에서 C는 검증과 AI를 두 장면으로 설명하고, 문서 ID/정보가 없는 문자에는 “미등록” 대신 **발행 검증을 하지 않음**이라고 구분하도록 인계했습니다. 아래 S05는 J5와 위험 TEXT의 독립 경로이며 결합 보고서 구현을 요구하는 확정 범위가 아닙니다.
+
+C는 별도로 `fb6e23b`의 실제 OpenAI에서 Track B 문자를 확인했습니다. 같은 카드의 발행 기록 확인/현재 유효와 원본 일치 보류·AI 위험이 함께 표시된 사례도 있지만, 이것은 TEXT의 `verification_session_id=null` 경로와 별개로 원본 전체 일치·검증 JSON의 AI 실행을 뜻하지 않습니다. 정상에 가까운 문자도 AI 수준이 달랐다는 C 관찰을 보존하며 D의 새 실측으로 합산하지 않습니다. 정확한 시연 입력·반복 확인 범위는 팀이 확정합니다.
+
+A의 #136 AI 지연 준비 응답·#137 리허설 절차가 추가됐습니다. #136의 준비 응답은 실제 모델 결과가 아니며 기본 꺼짐입니다. D는 고정 소스의 웹321 PASS/5 SKIP과 실제 mock API/Chromium9개 확인을 마쳤고, mock 교체에도 “실제 AI 결과”라고 안내하는 D-DEMO-01 문구를 A 검토 항목으로 남겼습니다. [검증·미실행·담당별 요청](../qa/v5-d-demo-followup-20261103.md). #137의 순서/약4분은 A 제안이며 팀 합의·리허설 성공으로 채우지 않습니다.
+
 ## 준비된 원본과 보존 기준
 
 - 재사용 소스: `0466633576e7e5ce6a0ec3eee5ba5ba5581ab0fd`의 [검토된 합성60개](https://github.com/OriginProof-3web/OriginProof/blob/0466633576e7e5ce6a0ec3eee5ba5ba5581ab0fd/fixtures/synthetic/phishing_sources_v1.json), SHA256 `3c3b0c66fd3c4f851dce01255855f6a5db5f28397f9ade20469ec27918522199`.
