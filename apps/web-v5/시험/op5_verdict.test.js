@@ -53,7 +53,8 @@ test('미등록 기관 사칭 예시 → 진짜라고도 가짜라고도 하지 
   assert.ok(!/✓ 진짜 안내문이에요/.test(t));
   assert.match(t, /요약\s*· 확인할 수 없어요 · 등록된 발행 기록이 없어요\s*확인 불가/);
   assert.ok(!/가짜이거나 바뀐|가짜 의심/.test(t));
-  assert.match(t, /AI .*위험 문장이 있어요/);
+  assert.match(t, /AI 위험: (“.+”를 위험한 요구로 봤어요|위험한 요구가 있어요)\. 이 요구대로 보내지 말고/);
+  assert.ok(!/돈·개인정보를 요구하는 위험 문장/.test(t), '근거 없는 고정 문장 없음');
 });
 
 test('실서버에서 원본을 못 찾은 문자 → 가짜 의심이 아니라 등록된 기관 기록에서 찾지 못해 확인할 수 없음', async () => {
@@ -110,7 +111,11 @@ test('블록체인 증거 한 줄(확인 블록·계약·기관 키), 금액이 
   enter(d, '[오리진 목 은행] 카드 대금 86,000원 청구 안내입니다. 입금계좌 001-234-500003'); await sleep(500);
   const marks = d.doc.querySelectorAll('#chatThread .op-diff').map(m => m.textContent);
   assert.deepEqual(marks, ['86,000원']);
-  assert.match(threadText(d), /기관 기록과 다른 값은 빨간 밑줄로 표시했어요/);
+  // 기록과 다른 값은 블록체인 대조가 찾은 것: 블록체인 칸에 두고 AI 칸(받은 글 상자)에는 그리지 않음
+  assert.match(threadText(d), /받은 글에서 기관 기록과 다른 값: 86,000원/);
+  const last = d.doc.querySelectorAll('#chatThread .msg-ai').pop();
+  assert.equal(last.querySelectorAll('.op-fact .op-diff').length, 1);
+  assert.equal(last.querySelectorAll('.op-ai .op-diff').length, 0);
 });
 test('진짜 안내문에 AI 위험·주의가 나오면 요약도 진짜 · 위험 요구/주의로, AI가 짚은 문장을 요약에 보여 줌', async () => {
   const { page, REAL, Ev } = require('./_review_common.js');

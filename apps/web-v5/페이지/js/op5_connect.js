@@ -365,7 +365,9 @@
         return v;
       }
       if (v.tone === 'none') v.chip = (v.chip || '확인 불가') + ' · ' + (risky ? '위험 요구' : '주의');
-      v.ai = 'AI ' + ai.status + ': 돈·개인정보를 요구하는 위험 문장이 있어요. 특히 조심하세요.';
+      // AI가 실제로 짚은 문장과 수준(위험/주의)을 그대로 말함. 금액·계좌가 기록과 다른지는 AI가 아니라 블록체인 칸이 판정
+      v.ai = 'AI ' + (risky ? '위험' : '주의') + ': ' + (q ? '“' + q + '”를 ' + (risky ? '위험한 요구로 봤어요.' : '주의할 요구로 봤어요.') : (risky ? '위험한 요구가 있어요.' : '주의할 요구가 있어요.')) +
+        ' 이 요구대로 보내지 말고 기관 공식 번호로 먼저 확인하세요.';
     }
     return v;
   }
@@ -400,6 +402,10 @@
     concl.append(el('b', null, '종합 '), el('span', 'op-chip t-' + (c.badge.tone || 'none'), c.badge.text || '-'));
     r.box.append(concl);
     axes.filter(function (x) { return x.axis !== 'ai'; }).forEach(function (x) { fact.append(opRow(x)); if (x.axis === 'official' && a.chain_proof) fact.append(chainLine(a.chain_proof)); });
+    // 기관 기록과 다른 값(금액·계좌·공문번호)은 블록체인 대조가 찾은 것이라 이 칸에 둠(AI 칸에 두면 AI 근거처럼 보임). 원래 값은 보여 주지 않음
+    var text = a.input && typeof a.input.text === 'string' && !O.docInput(a) ? a.input.text : '';
+    var dsp = text ? diffSpan(text, a.lookup_diff) : null;
+    if (dsp) { var dl = el('p', 'op-tech', '받은 글에서 기관 기록과 다른 값: '); dl.append(el('span', 'op-diff', text.slice(dsp.start, dsp.end))); fact.append(dl); }
     fact.append(el('p', 'op-foot', '이 영역은 AI 없이 기관 서명과 블록체인 기록만으로 판정해요. ①공식 발행 ②원본 일치 ③현재 상태'));
     chainButton(fact, a);
 
@@ -407,13 +413,9 @@
     aiz.setAttribute('aria-label', 'AI 위험 설명');
     aiz.append(el('span', 'op-zone-tag', O.analysisCaption(a)), el('h4', null, 'AI 위험 설명 · 맥락'));
     if (ai) aiz.append(opRow(ai));
-    var text = a.input && typeof a.input.text === 'string' && !O.docInput(a) ? a.input.text : '';
     var sp = riskSpans(a, ai, text);
     evidenceRows(aiz, a);
-    var dsp = text ? diffSpan(text, a.lookup_diff) : null;
-    var spans = sp.spans;
-    if (dsp && !spans.some(function (s) { return s.start < dsp.end && dsp.start < s.end; })) spans = spans.concat([dsp]).sort(function (x, y) { return x.start - y.start; });
-    if (text) aiz.append(el('p', 'op-tech', (sp.spans.length ? '받은 글에서 위험 요구 문장을 칠했어요' : '받은 글') + (dsp ? ' · 기관 기록과 다른 값은 빨간 밑줄로 표시했어요' : '')), markedText(text, spans));
+    if (text) aiz.append(el('p', 'op-tech', sp.spans.length ? '받은 글에서 AI가 짚은 위험 요구 문장을 칠했어요' : '받은 글'), markedText(text, sp.spans));
     var ids = a.ai_report && Array.isArray(a.ai_report.matched_technique_ids) ? a.ai_report.matched_technique_ids : null;
     // 4차 멘토링: 'RAG 연결 전' 문구는 빼고, 일치한 수법이 있을 때만 보여 줌
     if (ids && ids.length) aiz.append(el('p', 'op-tech', '일치한 공개 피싱 수법: ' + ids.join(', ')));
