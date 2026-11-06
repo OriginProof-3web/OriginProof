@@ -1,0 +1,165 @@
+{
+  "reviewed_head": "ff693de4e43d0f1b7ece2feff8e3832f3ad6376a",
+  "date": "2026-11-04",
+  "python": {
+    "passed": 1523,
+    "skipped": 20,
+    "warnings": 1,
+    "seconds": 47.9,
+    "environment": "Python3.13 existing locked environment; fixed Git archive; mock; no .env"
+  },
+  "web": {
+    "passed": 403,
+    "skipped": 5,
+    "failed": 0,
+    "node": "24.8.0",
+    "seconds": 11.76,
+    "note": "CI Node22 differs"
+  },
+  "ruff": "PASS",
+  "paid_calls": 0,
+  "d_paid_total_unchanged": 133,
+  "adversarial": {
+    "head": "ff693de4e43d0f1b7ece2feff8e3832f3ad6376a",
+    "mode": "VM DOM and recorded HTTP responses; no live provider",
+    "paid_calls": 0,
+    "lifecycle": [
+      {
+        "id": "normal",
+        "verification_status": "VERIFIED",
+        "axes": [
+          {
+            "status": "확인됨",
+            "tone": "ok"
+          },
+          {
+            "status": "일치",
+            "tone": "ok"
+          },
+          {
+            "status": "유효",
+            "tone": "ok"
+          }
+        ],
+        "final_titles": [
+          "✓ 진짜 안내문이에요"
+        ]
+      },
+      {
+        "id": "superseded",
+        "verification_status": "VERIFIED",
+        "axes": [
+          {
+            "status": "확인됨",
+            "tone": "ok"
+          },
+          {
+            "status": "일치",
+            "tone": "ok"
+          },
+          {
+            "status": "새 버전 있음",
+            "tone": "caution"
+          }
+        ],
+        "final_titles": [
+          "! 가짜 의심 · 공식 기록으로 확인되지 않아요"
+        ]
+      },
+      {
+        "id": "revoked",
+        "verification_status": "VERIFIED",
+        "axes": [
+          {
+            "status": "확인됨",
+            "tone": "ok"
+          },
+          {
+            "status": "일치",
+            "tone": "ok"
+          },
+          {
+            "status": "철회됨",
+            "tone": "fail"
+          }
+        ],
+        "final_titles": [
+          "✕ 가짜이거나 바뀐 안내문이에요"
+        ]
+      }
+    ],
+    "partial_image": {
+      "complete": false,
+      "input_kinds": [
+        "DOCUMENT_IMAGE",
+        "TEXT"
+      ],
+      "lookup_requested": true,
+      "from_image": true,
+      "axes": [
+        {
+          "axis": "official",
+          "status": "확인됨",
+          "tone": "ok"
+        },
+        {
+          "axis": "original",
+          "status": "읽은 항목 일치",
+          "tone": "ok"
+        },
+        {
+          "axis": "status",
+          "status": "유효",
+          "tone": "ok"
+        },
+        {
+          "axis": "ai",
+          "status": "보류",
+          "tone": "pending"
+        }
+      ],
+      "display_verdict": {
+        "tone": "ok",
+        "head": "✓ 진짜 안내문이에요",
+        "sub": "문자에서 읽은 금액·계좌(또는 공문번호)가 기관이 블록체인에 남긴 발행 기록과 같아요. 나머지 문구는 비교하지 않았어요."
+      },
+      "partial_note_in_details": true,
+      "scope": "Nonconforming HTTP200/complete=false fault injection only; actual prepare_conversion rejects incomplete output. Not a demonstrated positive verdict through the conforming backend."
+    },
+    "regression_expectations": {
+      "superseded_not_fake": false,
+      "revoked_not_fake": false
+    }
+  },
+  "incomplete_image_api": {
+    "converter_calls": 1,
+    "first_status": 500,
+    "first_content_type": "text/plain; charset=utf-8",
+    "first_body": "Internal Server Error",
+    "second_status": 409,
+    "second_error": "IMAGE_TEXT_ALREADY_READ",
+    "paid_calls": 0
+  },
+  "openapi_generation": {
+    "before_sha256": "feed2ee96ef9f096271a5a032d0fd7c9ff7584c92f651977e51b8b6d674c00fa",
+    "after_sha256": "e8d51b03383bfb4e8289bb7bf484cb43b2ff1947e72d4a1f5771adfef7bfdfc1",
+    "equal": false,
+    "original_description": "Read a stored DOCUMENT_IMAGE input once; the reply goes only to the account that uploaded it.",
+    "generated_description": "Read a stored DOCUMENT_IMAGE input once; only its uploader gets the text."
+  },
+  "remote_ci_failures": {
+    "run_ids": [
+      41819999550,
+      41819945487
+    ],
+    "python_quality": "Generated OpenAPI description differs from source docstring",
+    "c_recovery": "accounts.email absent while seeding revision20261003_0006 with latest AccountRow; older run readiness failure"
+  },
+  "execution_limits": [
+    "No AWS changes or external authenticated tests",
+    "No actual OpenAI calls",
+    "Live DB/Anvil recovery results are GitHub CI findings, not a new local live execution",
+    "Adversarial JS uses existing VM DOM/fake HTTP harness; incomplete-photo API uses injected converter and SQLite/ASGI",
+    "Actual backend rejects incomplete conversion; nonconforming HTTP200/complete=false probe is not a demonstrated positive verdict through that backend"
+  ]
+}
