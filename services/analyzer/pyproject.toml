@@ -6,7 +6,7 @@ dependencies = [
   "fastapi>=0.115,<0.116",
   "openai>=2.54,<3",
   "originproof-core",
-  "pillow>=12.3,<13",
+  "pillow>=12.3,<14",
   "pydantic-settings>=2.7,<3",
   "uvicorn[standard]>=0.34,<0.35",
 ]
