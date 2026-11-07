@@ -73,7 +73,7 @@ test('계약 원본과 대조: wallet_analyses.py 의 오류 코드 문자열이
   const Hk = loadWeb();
   const src = fs.readFileSync(CONTRACT, 'utf8');
   const all = new Set([...src.matchAll(/"([A-Z][A-Z_]{3,})"/g)].map(m => m[1]));
-  const NOT_CODES = new Set(['QUEUED', 'RUNNING', 'COMPLETED', 'FAILED', 'CANCELLED', 'EXPIRED', 'TEXT', 'LEGACY']);       // 상태·입력 종류
+  const NOT_CODES = new Set(['QUEUED', 'RUNNING', 'COMPLETED', 'FAILED', 'CANCELLED', 'EXPIRED', 'TEXT', 'LEGACY', 'DOCUMENT_IMAGE']);       // 상태·입력 종류
   const ELSEWHERE = { INPUT_SUPPORT_UNDECIDED: 'fromErr → AI 분석 연결 전', INPUT_EXPIRED: 'errorInfo 410 + AI_FAIL', ORIGINAL_UNAVAILABLE: 'op5_client CODE_TEXT(원본 받기)', NO_DOCUMENT_REFERENCE: 'verification_not_run_reason(자세히)', WORKER_STORAGE_UNAVAILABLE: '응답 코드 아님(app.state)', MAINTENANCE_STORAGE_UNAVAILABLE: '응답 코드 아님(app.state)' };
   const missing = [];
   for (const c of all) {
@@ -171,15 +171,17 @@ async function render(job, text) {
   return zone;
 }
 
-test('화면: HIGH 예시 → 형광펜 2곳(글자 일치), 근거 줄에 규칙 검사/AI 모델 칩 구분, 문장만(규칙 번호는 자세히에만)', async () => {
+test('화면: HIGH 예시 → 형광펜 2곳(글자 일치), 근거 줄은 문장만(규칙 검사/AI 모델 칩·규칙 번호는 자세히에만)', async () => {
   const zone = await render(EX.jobs.HIGH, EX.text);
   const marks = zone.querySelectorAll('mark');
   log('형광펜', marks.map(m => JSON.stringify(m.textContent) + ' title=' + m.getAttribute('title')).join(' | '));
   assert.deepEqual(marks.map(m => m.textContent), ['인증번호를 입력하세요', '원격 지원 앱을 설치해 주세요']);
   const rows = zone.querySelectorAll('.op-row').map(r => r.textContent);
   rows.forEach(r => log('줄', r));
-  const chips = zone.querySelectorAll('.op-row .op-chip').map(c => c.className + ' ' + c.textContent);
-  assert.ok(chips.includes('op-chip t-info 규칙 검사') && chips.includes('op-chip t-none AI 모델'), chips.join(' / '));
+  const evRows = zone.querySelectorAll('.op-row').filter(r => /^근거/.test(r.textContent));
+  assert.equal(evRows.length, 2);
+  assert.ok(evRows.every(r => r.querySelectorAll('.op-chip').length === 0), '근거 줄에 출처 칩 없음');
+  assert.doesNotMatch(zone.textContent, /규칙 검사|AI 모델/);
   assert.ok(rows.some(r => r.includes('“인증번호를 입력하세요”')) && rows.some(r => r.includes('“원격 지원 앱을 설치해 주세요”')));
   assert.ok(rows.every(r => !r.includes('규칙 번호') && !r.includes('R_OTP_REQUEST') && !r.includes('L_REMOTE_APP')), rows.join(' / '));
 });
@@ -199,7 +201,7 @@ test('화면: ANALYZER_UNAVAILABLE → 머리표 "연결 전", AI 칸에 위험 
   log('AI 칸 전체', zone.textContent);
   assert.equal(tag.className, 'op-zone-tag');                      // class 그대로
   assert.equal(Object.keys(tag.style).length, 0); assert.equal(tag.getAttribute('style'), null);   // 인라인 스타일 없음(변경 전과 같음)
-  assert.match(tag.textContent, /연결 전/);
+  assert.equal(tag.textContent, 'AI 위험 분석 · 결과 없음');
   assert.doesNotMatch(tag.textContent, /Hybrid|Analyzer/);           // 옛 '작동 중' 인상 문구 없음
   assert.match(zone.textContent, /AI 분석 연결 전/);
   // 결과 값 없음: 위험 등급 4종 화면 글·영문 등급 코드, 근거 줄·규칙 번호·출처 칩, 형광펜, 수법 ID
@@ -219,4 +221,18 @@ test('화면: 위치가 틀린 근거가 섞여도 깨지지 않고 맞는 곳�
   const rows = zone.querySelectorAll('.op-row').map(r => r.textContent);
   assert.ok(rows.every(r => !/위치 표시 안 함|X_REV|X_OUT/.test(r)), rows.join(' / '));
   log('모양 틀린 근거(빈 quote) 안내', zone.querySelectorAll('.op-tech').map(p => p.textContent).filter(t => /모양이 틀린/.test(t)).join(''));
+});
+
+test('가린 계좌번호 자리만 근거인 주의는 뺌(우리가 가린 탓이지 문자 위험이 아님), 진짜 위험 근거가 있으면 그대로', async () => {
+  const Hk = loadWeb();
+  const text = '[오리진 목 은행] 카드 대금 85,000원 청구 안내입니다. 입금계좌 (계좌번호 가림)';
+  const job = (ev) => ({ analysis_id: 'ana_m', status: 'COMPLETED', report: { risk_level: 'CAUTION', evidence: ev, limitations: [], verification_not_run_reason: 'ANALYZER_DOES_NOT_VERIFY' } });
+  const masked = await run(Hk, job([{ rule_id: 'x', quote: '입금계좌 (계좌번호 가림)', start_offset: null, end_offset: null, source: 'LLM' }]), text);
+  const ax = masked.axes.find(x => x.axis === 'ai');
+  assert.equal(ax.status, '뚜렷한 신호 없음');
+  assert.match(ax.body, /가린 계좌번호 자리만 근거로 든 주의 1건은 뺐어요/);
+  assert.equal(masked.ai_report.evidence.length, 0);
+  assert.ok(masked.details.some(d => /AI 원래 판단 CAUTION/.test(d.value)), '원래 값은 자세히에 남김');
+  const real = await run(Hk, job([{ rule_id: 'y', quote: '카드 대금 85,000원 청구 안내입니다', start_offset: null, end_offset: null, source: 'LLM' }]), text);
+  assert.equal(real.axes.find(x => x.axis === 'ai').status, '주의');
 });

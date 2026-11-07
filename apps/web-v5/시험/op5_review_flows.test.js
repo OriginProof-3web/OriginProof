@@ -68,11 +68,14 @@ test('T5-6 전수 훑기: 실서버에서 만든 모든 단추를 예시 모드 
   const f = serverDouble({});
   const d = build(API, f, win => { win.ethereum = eth(); win.sessionStorage.setItem('op5.ops.v1', JSON.stringify([{ operation_id: 'op_1', request_id: 'r', kind: 'publish', status: 'UNKNOWN', next_action: 'RECONCILE', at: 1 }])); });
   await ready(d);
-  for (const k of ['status', 'issue', 'keys', 'proofs', 'operations']) { menu(d, k); await sleep(40); }
-  await press(d, '내 확인 기록(보관한 분석) 보기', 40);
-  const box = d.doc.querySelector('#sidebar-root input'); box.value = PID; d.doc._dispatch(box, new Ev('keydown', { key: 'Enter' })); await sleep(30);
-  enter(d, '일반 안내문입니다'); await sleep(60);
-  const all = buttons(d).filter(b => !/모드로 바꾸기|로그인 화면/.test(b.textContent));
+  // 메뉴마다 화면이 새로 그려지므로 화면마다 단추를 모아 둠
+  let seen = [];
+  const keep = () => { seen = seen.concat(buttons(d).filter(b => seen.indexOf(b) < 0)); };
+  for (const k of ['status', 'issue', 'keys', 'proofs', 'operations']) { menu(d, k); await sleep(40); keep(); }
+  await press(d, '내 확인 기록(보관한 분석) 보기', 40); keep();
+  const box = d.doc.querySelector('#sidebar-root input'); box.value = PID; d.doc._dispatch(box, new Ev('keydown', { key: 'Enter' })); await sleep(30); keep();
+  enter(d, '일반 안내문입니다'); await sleep(60); keep();
+  const all = seen.filter(b => !/모드로 바꾸기|로그인 화면/.test(b.textContent));
   await toSample(d);
   const n = f.calls.length;
   const walked = [];
@@ -91,7 +94,8 @@ test('T5-7 실서버 응답 대기 중 예시 모드로 전환: 뒤따르는 기
   const d = build(API, f);
   await sleep(60);
   menu(d, 'status');
-  await press(d, '예시 모드로 바꾸기', 80);
+  assert.equal(find(d, '예시 모드로 바꾸기'), undefined, '기관 화면에는 예시 모드 단추가 없음');
+  d.win.Hk.op5switchMode('sample'); await sleep(80);
   assert.equal(f.calls.filter(c => /issuer\/status|applications\/mine/.test(c.url)).length, 0);
 });
 test('T5-8 예시 모드 전환 뒤 실서버 응답의 체인 대조 단추: 바깥 요청 0건', async () => {
@@ -242,19 +246,19 @@ test('T6-9 권한 거부(403)는 재시도 대기로 남기지 않음(회귀 보
 
 test('T6-10a op5_auth 가 직접 모드를 되돌려도(비회원) 기다리던 입력에 안 들어감, 입력칸 글 유지', async () => {
   const f = serverDouble({ over: (u) => u === '/v1/auth/me' ? { status: 401, delay: 30, body: { detail: 'AUTH_REQUIRED' } } : null });
-  const d = build(API, f);
-  menu(d, 'status');
-  await press(d, '연결 주소 바꾸기', 1);
+  const d = build(API, f, win => { win.ethereum = eth(); });
+  menu(d, 'issue');
+  await press(d, '초안 보내기 시작', 1);
   await sleep(60);
-  enter(d, '/api2'); await sleep(10);
-  assert.equal(d.win.localStorage.getItem('op5.apiBase'), null);
-  assert.equal(d.doc.getElementById('chatInput').value, '/api2');
+  enter(d, '{"doc_key":"x"}'); await sleep(10);
+  assert.equal(posted(f, /document-drafts/).length, 0);
+  assert.equal(d.doc.getElementById('chatInput').value, '{"doc_key":"x"}');
 });
 test('T6-10b 단추를 거치지 않고 모드가 바뀌어도 기다리던 입력에 안 들어감, 입력칸 글 유지(submit 관문)', async () => {
   let conn = null;
-  const f = serverDouble({});
+  const f = serverDouble(OPERATOR);
   const d = build(API, f, win => { win.Hk = new Proxy({}, { set(t, k, v) { t[k] = k === 'createConnection' ? (o => (conn = v(o))) : v; return true; } }); });
-  menu(d, 'status');
+  menu(d, 'status'); await sleep(40);
   await press(d, '연결 주소 바꾸기', 1);
   assert.ok(conn);
   conn.setMode('sample');
@@ -578,7 +582,7 @@ test('T8-21 화면: 슬러그를 기관 ID 로 넣으면 형식 안내, 서버�
   const d = build(API, f);
   await ready(d);
   menu(d, 'status'); await sleep(40);
-  assert.match(threadText(d), /기관 iss_origin_mock_bank/);
+  assert.match(threadText(d), /블록체인 등록 상태: (활성|정지됨|[A-Z_]+)/);
   assert.ok(!threadText(d).includes(BANK_HASH), '화면이 해시를 보여 주게 되었다면 보고 내용을 고칠 것');
   await press(d, '긴급 정지 거래 알리기');
   enter(d, 'iss_origin_mock_bank'); await sleep(20);

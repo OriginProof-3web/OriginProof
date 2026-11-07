@@ -31,34 +31,16 @@
       <fieldset style="border:0;padding:0;margin:0">
         <legend class="sr-only">가입 종류</legend>
         <div class="a-choice">
-          <label class="a-opt"><input type="radio" name="kind" value="personal" checked><b>개인 회원</b><span>받은 문자 확인 · 내 AI(GPT/Claude)로 분석</span></label>
+          <label class="a-opt"><input type="radio" name="kind" value="personal" checked><b>개인 회원</b><span>받은 문자 확인 · AI 위험 분석</span></label>
           <label class="a-opt"><input type="radio" name="kind" value="business"><b>기업(기관) 회원</b><span>안내문 발행 · 키 관리 · 공동승인 신청</span></label>
         </div>
       </fieldset>
 
       <div class="a-field"><label for="displayName">이름</label><input id="displayName" autocomplete="name" maxlength="60" required></div>
-      <div class="a-field"><label for="username">계정 이름</label><input id="username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="120" required><span class="a-help">영문·숫자·_ 3~40자 · 로그인은 아래 이메일로 해요</span></div>
+      <div class="a-field"><label for="username">아이디</label><input id="username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="120" required><span class="a-help">영문·한글·숫자·_ 3~40자 · 로그인할 때 이 아이디를 써요</span></div>
       <div class="a-field"><label for="email" id="emailLabel">이메일</label><input id="email" type="email" autocomplete="email" autocapitalize="none" spellcheck="false" maxlength="254" required></div>
       <div class="a-field"><label for="password">비밀번호</label><div class="a-key"><input id="password" type="password" autocomplete="new-password" minlength="8" maxlength="256" required><button type="button" class="peek" data-for="password" aria-pressed="false">보기</button></div><span class="a-help" id="pwHelp">8자 이상 · 영문과 숫자를 섞어 주세요</span></div>
       <div class="a-field"><label for="password2">비밀번호 확인</label><input id="password2" type="password" autocomplete="new-password" maxlength="256" required></div>
-
-      <!-- 개인 회원: AI 고르기 + API 키 -->
-      <div id="personalBox">
-        <fieldset style="border:0;padding:0;margin:4px 0 0">
-          <legend class="a-field" style="padding:0;margin-bottom:6px;font-size:13px;font-weight:600">분석에 쓸 AI</legend>
-          <div class="a-choice">
-            <label class="a-opt"><input type="radio" name="provider" value="openai" checked><b>GPT</b><span>OpenAI API 키 (sk-…)</span></label>
-            <label class="a-opt"><input type="radio" name="provider" value="anthropic"><b>Claude</b><span>Anthropic API 키 (sk-ant-…)</span></label>
-          </div>
-        </fieldset>
-        <div class="a-field"><label for="apiKey" id="keyLabel">GPT API 키</label>
-          <div class="a-key"><input id="apiKey" type="password" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="300" data-lpignore="true" data-1p-ignore placeholder="sk-…"><button type="button" class="peek" data-for="apiKey" aria-pressed="false">보기</button></div>
-          <span class="a-help" id="keyHelp">나중에 넣어도 돼요. 키가 없으면 AI 분석 없이 기관 기록 확인만 해요.</span></div>
-        <div class="a-lock" role="note"><span aria-hidden="true">🔒</span><span><b>키는 OriginProof 서버로 보내지 않아요.</b> 위 비밀번호로 잠가(AES-256 암호화) 이 기기에만 저장하고, 화면에는 끝 4자리만 보여요. 공용 컴퓨터라면 저장하지 마세요.</span></div>
-        <label class="a-check"><input type="checkbox" id="saveKey" checked> 이 기기에 암호화해서 저장</label>
-        <label class="a-check"><input type="checkbox" id="keyRisk"> API 키는 제가 직접 관리하며, 키 분실·유출이나 기기·브라우저 보안 문제로 생기는 피해(요금 부과 포함)는 OriginProof가 책임지지 않음에 동의해요.</label>
-        <p class="a-help" id="savedInfo" style="margin:-6px 0 14px"></p>
-      </div>
 
       <!-- 기업 회원: 기관 정보 + 절차 안내 -->
       <div id="businessBox" class="hide">
@@ -83,14 +65,13 @@
             <h3>OriginProof 개인 회원 이용약관</h3>
             <p><b>제1조(목적)</b> 이 약관은 찐품명품 팀(이하 "운영팀")이 제공하는 OriginProof 서비스(이하 "서비스")를 개인 회원이 이용할 때의 권리·의무와 책임을 정합니다.</p>
             <p><b>제2조(서비스의 성격)</b> 서비스는 해커톤 시연을 위한 것으로, 실제 기관·금융회사와 관계가 없습니다. 시연 기간이 끝나면 미리 알린 뒤 중단될 수 있습니다.</p>
-            <p><b>제3조(서비스 내용)</b> 서비스는 회원이 받은 문자·문서가 해당 기관이 실제로 보낸 것인지 기관 기록과 대조해 확인하고, 회원이 고른 AI(GPT 또는 Claude)로 위험 신호를 분석해 보여 줍니다.</p>
+            <p><b>제3조(서비스 내용)</b> 서비스는 회원이 받은 문자·문서가 해당 기관이 실제로 보낸 것인지 기관 기록과 대조해 확인하고, 서비스의 AI로 위험 신호를 분석해 보여 줍니다. 회원이 AI API 키를 따로 넣을 필요는 없습니다.</p>
             <p><b>제4조(결과의 한계)</b> 확인·분석 결과는 판단을 돕는 참고 정보이며 진위나 안전을 보증하지 않습니다. 송금, 개인정보 입력 등 중요한 결정 전에는 해당 기관의 공식 연락처로 다시 확인해야 합니다.</p>
-            <p><b>제5조(AI API 키)</b> ① 회원은 본인 명의의 AI 사업자(OpenAI·Anthropic) API 키를 직접 입력해 사용합니다. ② 운영팀은 API 키를 서버로 받거나 보관하지 않으며, 키는 회원의 기기에 암호화되어 저장됩니다. ③ 키의 관리와 키 사용으로 생기는 요금은 회원과 해당 AI 사업자 사이의 일입니다.</p>
-            <p><b>제6조(회원의 의무)</b> 회원은 다른 사람의 정보를 도용하거나, 서비스를 공격·우회하거나, 불법적인 목적으로 이용해서는 안 되며, 계정 이름과 비밀번호를 다른 사람에게 넘겨서는 안 됩니다.</p>
-            <p><b>제7조(이용 제한과 탈퇴)</b> ① 운영팀은 회원이 제6조를 어기면 이용을 제한할 수 있습니다. ② 회원은 언제든 탈퇴할 수 있으며, 탈퇴하면 회원의 개인정보는 지체 없이 파기됩니다. 다만 법령에 따라 보관해야 하는 정보는 그 기간 동안 보관합니다.</p>
-            <p><b>제8조(책임의 제한)</b> 운영팀은 천재지변, 회원의 잘못, 외부 AI 사업자나 통신망의 장애로 생긴 손해에 대해 책임을 지지 않습니다. 다만 운영팀의 고의 또는 중대한 과실로 생긴 손해는 그러하지 않습니다.</p>
-            <p><b>제9조(약관의 변경)</b> 운영팀은 약관을 바꿀 때 적용일 7일 전(회원에게 불리한 변경은 30일 전)부터 서비스 화면에 알립니다.</p>
-            <p><b>제10조(준거법과 관할)</b> 이 약관은 대한민국 법을 따르며, 분쟁은 민사소송법에 따른 관할 법원에서 해결합니다.</p>
+            <p><b>제5조(회원의 의무)</b> 회원은 다른 사람의 정보를 도용하거나, 서비스를 공격·우회하거나, 불법적인 목적으로 이용해서는 안 되며, 계정 이름과 비밀번호를 다른 사람에게 넘겨서는 안 됩니다.</p>
+            <p><b>제6조(이용 제한과 탈퇴)</b> ① 운영팀은 회원이 제5조를 어기면 이용을 제한할 수 있습니다. ② 회원은 언제든 탈퇴할 수 있으며, 탈퇴하면 회원의 개인정보는 지체 없이 파기됩니다. 다만 법령에 따라 보관해야 하는 정보는 그 기간 동안 보관합니다.</p>
+            <p><b>제7조(책임의 제한)</b> 운영팀은 천재지변, 회원의 잘못, 외부 AI 사업자나 통신망의 장애로 생긴 손해에 대해 책임을 지지 않습니다. 다만 운영팀의 고의 또는 중대한 과실로 생긴 손해는 그러하지 않습니다.</p>
+            <p><b>제8조(약관의 변경)</b> 운영팀은 약관을 바꿀 때 적용일 7일 전(회원에게 불리한 변경은 30일 전)부터 서비스 화면에 알립니다.</p>
+            <p><b>제9조(준거법과 관할)</b> 이 약관은 대한민국 법을 따르며, 분쟁은 민사소송법에 따른 관할 법원에서 해결합니다.</p>
           </div>
           <div data-kind="business">
             <h3>OriginProof 기관 회원 이용약관</h3>
@@ -117,50 +98,45 @@
             <dt>보유 기간</dt><dd>탈퇴할 때까지(시연이 끝나면 지체 없이 파기). 법령에 따라 보관해야 하는 정보는 그 기간까지 보관해요.</dd>
             <dt>동의 거부</dt><dd data-kind="personal">동의하지 않을 수 있어요. 다만 회원가입은 할 수 없고, 비회원 기능만 쓸 수 있어요.</dd><dd data-kind="business">동의하지 않을 수 있어요. 다만 기관 회원 신청은 할 수 없어요.</dd>
           </dl>
-          <p data-kind="personal">AI API 키는 수집하지 않아요. 이 기기에만 암호화되어 저장돼요.</p>
         </div>
         <label class="a-check"><input type="checkbox" id="tPriv"> <span><b class="a-req">[필수]</b> 개인정보 수집·이용에 동의해요.</span></label>
         <label class="a-check" data-kind="personal"><input type="checkbox" id="tAge"> <span><b class="a-req">[필수]</b> 만 14세 이상이에요.</span></label>
         <label class="a-check" data-kind="business"><input type="checkbox" id="tAuth"> <span><b class="a-req">[필수]</b> 기관을 대표하거나 위임받은 권한이 있어요.</span></label>
 
         <label class="a-check a-confirm"><input type="checkbox" id="agree"> <span><b>확인함</b> — 위 약관과 개인정보 안내를 모두 읽었으며, 해커톤 시연용 서비스로 실제 기관과 관계없음을 확인했어요.</span></label>
-        <p class="a-help a-terms-ver">약관 버전 v0.1 · 2026-10-26 시행</p>
+        <p class="a-help a-terms-ver">약관 버전 v0.2 · 2026-11-04 시행</p>
       </section>
       <button class="a-btn" type="submit" id="submit">가입 신청</button>
     </form>
     <div class="a-row"><span>이미 계정이 있나요?</span><a href="login.html?next=business.html">로그인</a></div>
   </section>
 </main>
-<script src="js/op5_keyvault.js"></script>
 <script>
 (function(){
   "use strict";
-  const $=id=>document.getElementById(id),V=window.OP5KeyVault,form=$("form"),msg=$("msg");
-  const kind=()=>form.querySelector('input[name="kind"]:checked').value, provider=()=>form.querySelector('input[name="provider"]:checked').value;
+  const $=id=>document.getElementById(id),form=$("form"),msg=$("msg");
+  // 이전 버전이 이 기기에 남긴 암호화 AI 키를 지운다(키 입력 기능 제거)
+  try{localStorage.removeItem("op5.aikey")}catch(_){}
+  const kind=()=>form.querySelector('input[name="kind"]:checked').value;
   function show(k,t){msg.className="a-msg show "+k;msg.textContent=t;msg.scrollIntoView({block:"nearest"})}
   function sync(){
     const biz=kind()==="business";
-    $("personalBox").classList.toggle("hide",biz);$("businessBox").classList.toggle("hide",!biz);
+    $("businessBox").classList.toggle("hide",!biz);
     $("emailLabel").textContent=biz?"업무 이메일":"이메일";
     // 약관·개인정보 안내를 회원 종류에 맞게 바꿈. 종류를 바꾸면 동의를 다시 받음
     document.querySelectorAll(".a-terms-wrap [data-kind]").forEach(el=>el.classList.toggle("hide",el.dataset.kind!==(biz?"business":"personal")));
     $("termsKind").textContent=biz?"· 기관 회원":"· 개인 회원";
     if(sync.k!==undefined&&sync.k!==biz)["tTerms","tPriv","tAge","tAuth","agree"].forEach(id=>$(id).checked=false);
     sync.k=biz;
-    const p=provider();$("keyLabel").textContent=(p==="anthropic"?"Claude":"GPT")+" API 키";$("apiKey").placeholder=p==="anthropic"?"sk-ant-…":"sk-…";
-    const saved=V&&V.info();$("savedInfo").textContent=saved?"이 기기에 저장된 키: "+saved.name+" "+saved.hint+" (새로 넣으면 바뀌어요)":"";
   }
   form.addEventListener("change",sync);
   document.querySelectorAll(".peek").forEach(b=>b.addEventListener("click",()=>{const i=$(b.dataset.for),on=i.type==="password";i.type=on?"text":"password";b.textContent=on?"숨기기":"보기";b.setAttribute("aria-pressed",String(on))}));
-  // 키 칸을 벗어나면 다시 가림(어깨 너머 노출 줄이기)
-  $("apiKey").addEventListener("blur",()=>{const i=$("apiKey");if(i.type==="text"){i.type="password";const b=document.querySelector('.peek[data-for="apiKey"]');b.textContent="보기";b.setAttribute("aria-pressed","false")}});
-  $("apiKey").addEventListener("input",()=>{const k=$("apiKey").value.trim();$("keyHelp").textContent=k?(V.check(provider(),k)||"형식 확인됨 · 끝자리 "+k.slice(-4)):"나중에 넣어도 돼요. 키가 없으면 AI 분석 없이 기관 기록 확인만 해요."});
 
   form.addEventListener("submit",async e=>{
     e.preventDefault();
     const name=$("displayName").value.trim(),user=$("username").value.trim(),email=$("email").value.trim(),pw=$("password").value,pw2=$("password2").value;
     if(!name)return show("err","이름을 넣어 주세요."),$("displayName").focus();
-    if(!/^[A-Za-z0-9_]{3,40}$/.test(user))return show("err","계정 이름은 영문·숫자·_ 3~40자예요."),$("username").focus();
+    if(!/^[A-Za-z0-9_가-힣]{3,40}$/.test(user))return show("err","아이디는 영문·한글·숫자·_ 3~40자예요."),$("username").focus();
     if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return show("err","이메일 형식이 아니에요."),$("email").focus();
     if(pw.length<8||!/[A-Za-z]/.test(pw)||!/[0-9]/.test(pw))return show("err","비밀번호는 8자 이상, 영문과 숫자를 섞어 주세요."),$("password").focus();
     if(pw!==pw2)return show("err","비밀번호 확인이 달라요."),$("password2").focus();
@@ -170,31 +146,24 @@
     for(const [id,t] of need)if(!$(id).checked)return show("err","[필수] "+t),$(id).focus();
     if(!$("agree").checked)return show("err","맨 아래 '확인함'을 체크해야 가입이 완료돼요."),$("agree").focus();
     const btn=$("submit");btn.disabled=true;
-    let keyNote="",keyToSave="";
     try{
-      if(kind()==="personal"){
-        const key=$("apiKey").value.trim();
-        if(key){
-          const bad=V.check(provider(),key);if(bad){show("err",bad);$("apiKey").focus();return}
-          if(!$("keyRisk").checked){show("err","API 키를 넣으려면 키 관리 책임 안내에 동의해 주세요.");$("keyRisk").focus();return}
-          if($("saveKey").checked)keyToSave=key;     // 가입이 된 뒤에만 저장한다(실패한 비밀번호로 암호화한 키를 남기지 않음)
-          else keyNote=" AI 키는 저장하지 않았어요(이 기기에 남지 않음).";
-        }else keyNote=" AI 키는 나중에 넣을 수 있어요.";
-      }
       // POST /v1/auth/register 는 개인만 받는다. 메일 도메인만으로 직원 권한을 줄 수 없어 기관 계정은 운영자가 발급한다(서버는 403 BUSINESS_SIGNUP_DISABLED).
-      // 계정 이름은 서버가 이메일로 정한다(로그인도 이메일로).
-      const ERR={SIGNUP_DISABLED:"이 서버는 회원가입을 켜 두지 않았어요. 계정은 운영자가 발급해요.",SYNTHETIC_EMAIL_REQUIRED:"시연용 서비스라 실제 메일은 받지 않아요. 끝이 .invalid 인 메일(예: me@example.invalid)로 가입해 주세요.",BUSINESS_SIGNUP_DISABLED:"기관 회원은 가입으로 만들 수 없어요. 계정은 운영자가 발급해요.",WEAK_PASSWORD:"비밀번호는 영문과 숫자를 섞어 주세요.",ACCOUNT_EXISTS:"이미 가입된 이메일이에요. 로그인해 주세요.",MALFORMED_INPUT:"입력 형식을 확인해 주세요.",RATE_LIMITED:"시도가 많아 잠시 막혔어요. 잠시 뒤 다시 해 주세요."};
+      // 아이디(username)로 로그인한다. 이메일로도 로그인할 수 있다.
+      const ERR={SIGNUP_DISABLED:"이 서버는 회원가입을 켜 두지 않았어요. 계정은 운영자가 발급해요.",SYNTHETIC_EMAIL_REQUIRED:"시연용 서비스라 실제 메일은 받지 않아요. 끝이 .invalid 인 메일(예: me@example.invalid)로 가입해 주세요.",BUSINESS_SIGNUP_DISABLED:"기관 회원은 가입으로 만들 수 없어요. 계정은 운영자가 발급해요.",WEAK_PASSWORD:"비밀번호는 영문과 숫자를 섞어 주세요.",INVALID_USERNAME:"아이디는 영문·한글·숫자·_ 3~40자예요.",ACCOUNT_EXISTS:"이미 쓰고 있는 아이디나 이메일이에요.",MALFORMED_INPUT:"입력 형식을 확인해 주세요.",RATE_LIMITED:"시도가 많아 잠시 막혔어요. 잠시 뒤 다시 해 주세요."};
       if(biz){$("password").value="";$("password2").value="";show("info","기관 계정은 가입으로 만들 수 없고 운영자가 발급해요. 입력한 내용은 서버로 보내지 않았어요. 계정을 받은 뒤 위 순서대로 기관을 활성화해요.");return}
-      if(!/^https?:$/.test(location.protocol)){$("apiKey").value="";$("password").value="";$("password2").value="";show("info","입력 내용을 확인했어요. 서버에 연결되지 않아 계정은 만들지 않았어요."+(keyToSave?" AI 키는 저장하지 않았어요.":keyNote));return}
+      if(!/^https?:$/.test(location.protocol)){$("password").value="";$("password2").value="";show("info","입력 내용을 확인했어요. 서버에 연결되지 않아 계정은 만들지 않았어요.");return}
       let r,code="";
       try{
         const ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),15000);
-        r=await fetch("/api/v1/auth/register",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({kind:"personal",email,password:pw,terms_accepted:true}),signal:ctl.signal});
+        r=await fetch("/api/v1/auth/register",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json",Accept:"application/json"},body:JSON.stringify({kind:"personal",email,username:user,password:pw,terms_accepted:true}),signal:ctl.signal});
         clearTimeout(t);
-      }catch(_){$("apiKey").value="";$("password").value="";$("password2").value="";show("err","서버에 연결하지 못했어요. 잠시 뒤 다시 해 주세요. 입력한 비밀번호와 키는 지웠어요.");return}
-      // 키·비밀번호 칸은 바로 비운다(화면·메모리에 오래 두지 않음)
-      $("apiKey").value="";$("password").value="";$("password2").value="";
-      if(r.status===201){if(keyToSave){try{const k=await V.save(provider(),keyToSave,pw);keyNote=" AI 키("+k.name+" "+k.hint+")는 이 기기에 암호화해서 저장했어요."}catch(_){keyNote=" AI 키는 저장하지 못했어요. 로그인 뒤 다시 넣어 주세요."}}show("ok","개인 회원으로 가입했어요. 로그인할 때 계정 이름 자리에 이메일("+email+")을 넣어 주세요."+keyNote);sync();return}
+      }catch(_){$("password").value="";$("password2").value="";show("err","서버에 연결하지 못했어요. 잠시 뒤 다시 해 주세요. 입력한 비밀번호는 지웠어요.");return}
+      // 비밀번호 칸은 바로 비운다(화면·메모리에 오래 두지 않음)
+      $("password").value="";$("password2").value="";
+      if(r.status===201){
+        // 가입 성공 → 로그인 화면으로 이동. 아이디는 주소에 넣지 않고 이 탭의 sessionStorage 로만 넘김(로그인 화면이 읽고 바로 지움)
+        try{sessionStorage.setItem("op5.joinId",user)}catch(_){}
+        show("ok","개인 회원으로 가입했어요. 로그인 화면으로 이동해요.");setTimeout(()=>{location.href="login.html?next=business.html"},1200);return}
       try{const d=await r.json();code=typeof d.detail==="string"?d.detail:""}catch(_){}
       show("err",ERR[code]||(r.status===404||r.status===405?"이 서버에는 회원가입 기능이 없어요. 계정은 운영자가 발급해요.":r.status===429?ERR.RATE_LIMITED:"가입하지 못했어요(HTTP "+r.status+")."));
       sync();

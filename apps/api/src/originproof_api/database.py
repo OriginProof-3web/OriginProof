@@ -55,6 +55,7 @@ class AccountRow(Base):
 
     account_id: Mapped[str] = mapped_column(String(64), primary_key=True)
     username: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
+    email: Mapped[str | None] = mapped_column(String(120), unique=True)
     password_hash: Mapped[str] = mapped_column(String(256), nullable=False)
     role: Mapped[str] = mapped_column(String(16), nullable=False)
     issuer_id: Mapped[str | None] = mapped_column(String(128))

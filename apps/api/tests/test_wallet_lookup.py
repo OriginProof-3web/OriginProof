@@ -2,6 +2,7 @@
 
 import time
 
+from originproof_api.accounts import current_session
 from originproof_api.wallet_database import WalletVerificationRow
 from originproof_core.wallet_signatures import identifier_hash
 from sqlalchemy.orm import Session
@@ -35,7 +36,7 @@ async def test_lookup_unverified_then_matched_with_partial_verification(wallet):
         "match_count": 0,
         "document_ids": [],
         "verification": None,
-        "reason_codes": ["NO_MATCHING_RETAINED_RECORD"],
+        "reason_codes": ["NO_MATCHING_RETAINED_RECORD", "ISSUER_HAS_NO_RETAINED_RECORDS"],
     }
     doc, _ = await confirmed_publication(wallet, signing)
     matched = (await lookup(wallet, issuer)).json()
@@ -47,12 +48,16 @@ async def test_lookup_unverified_then_matched_with_partial_verification(wallet):
     assert verification["document"]["state"] == "ACTIVE"
     with Session(wallet.engine) as db:
         assert db.get(WalletVerificationRow, verification["session_id"]) is not None
-    for issuer_id, key in (
-        (issuer, KEY | {"amount_minor": 154001}),
-        (identifier_hash("iss_other_bank"), KEY),
+    for issuer_id, key, why in (
+        (issuer, KEY | {"amount_minor": 154001}, "AMOUNT_DIFFERS_FOR_ACCOUNT"),
+        (issuer, KEY | {"payee_account_number": "999-999-999999"}, "ACCOUNT_NOT_IN_RECORDS"),
+        (identifier_hash("iss_other_bank"), KEY, "ISSUER_HAS_NO_RETAINED_RECORDS"),
     ):
         missed = (await lookup(wallet, issuer_id, key)).json()
         assert missed["lookup_status"] == "UNVERIFIED" and missed["verification"] is None
+        assert missed["reason_codes"] == ["NO_MATCHING_RETAINED_RECORD", why]
+        # never reveals a retained value (amount, document ID)
+        assert "154000" not in str(missed) and missed["document_ids"] == []
 
 
 async def test_lookup_prefers_latest_matching_version(wallet):
@@ -96,3 +101,9 @@ async def test_lookup_rejects_malformed_key(wallet):
         wallet, identifier_hash("iss_origin_mock_bank"), KEY | {"payee_account_number": "abc"}
     )
     assert response.status_code == 422
+
+
+async def test_lookup_requires_login(wallet):
+    del wallet.app.dependency_overrides[current_session]
+    response = await lookup(wallet, identifier_hash("iss_origin_mock_bank"))
+    assert response.status_code == 401

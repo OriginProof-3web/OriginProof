@@ -144,3 +144,29 @@ async def test_signup_cannot_claim_a_limit_exempt_name(wallet):
         body = PERSONAL | {"email": "RC-AI-Tester@example.invalid"}
         response = await api.post("/v1/auth/register", json=body)
         assert (response.status_code, response.json()["detail"]) == (409, "ACCOUNT_EXISTS")
+
+
+async def test_personal_member_id_login_by_id_or_mail(client):
+    async with client() as api:
+        body = PERSONAL | {"email": "yellow@example.invalid", "username": "노랑이_01"}
+        made = await api.post("/v1/auth/register", json=body)
+        assert made.status_code == 201, made.text
+        assert made.json()["username"] == "노랑이_01"
+        for name in ("노랑이_01", "YELLOW@example.invalid"):
+            login = await api.post(
+                "/v1/auth/login", json={"username": name, "password": PERSONAL["password"]}
+            )
+            assert login.status_code == 200, (name, login.text)
+            assert login.json()["username"] == "노랑이_01"
+        same_id = await api.post(
+            "/v1/auth/register", json=body | {"email": "other@example.invalid"}
+        )
+        same_mail = await api.post("/v1/auth/register", json=body | {"username": "other_id"})
+        assert same_id.json()["detail"] == same_mail.json()["detail"] == "ACCOUNT_EXISTS"
+
+
+@pytest.mark.parametrize("bad", ["ab", "has space", "a@b.invalid", "x" * 41, "dash-no"])
+async def test_member_id_rules(client, bad):
+    async with client() as api:
+        response = await api.post("/v1/auth/register", json=PERSONAL | {"username": bad})
+        assert (response.status_code, response.json()["detail"]) == (422, "INVALID_USERNAME")

@@ -170,8 +170,8 @@ async def test_v5_wallet_seed_is_idempotent_and_prints_roster_mapping(monkeypatc
     assert await seed.seed_prepared(seed.V5_WALLET_ACCOUNTS, "other-password-12") == first
     env = dict(line.split("=", 1) for line in seed.v5_wallet_env(first))
     assert json.loads(env["API_WALLET_INTERNAL_APPROVERS"]) == {
-        "iss_origin_mock_bank": first["v5_bank_approver"],
-        "iss_origin_mock_office": first["v5_office_approver"],
+        f"iss_origin_mock_{name}": first[f"v5_{name}_approver"]
+        for name in ("bank", "office", "card", "telecom", "clinic")
     }
     assert set(json.loads(env["API_WALLET_OPERATOR_ADDRESSES"])) == {
         first[f"v5_operator{n}"] for n in (1, 2, 3)

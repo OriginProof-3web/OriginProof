@@ -20,7 +20,7 @@ from originproof_core.wallet_contract import (
 )
 from originproof_core.wallet_inputs import DocumentImageInputRequest
 from PIL import Image
-from pydantic import Field
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import BigInteger, and_, cast, delete, or_, select, update
 
 from .accounts import current_session
@@ -291,6 +291,51 @@ async def input_text(body: InputRequest, request: Request, identity: Identity):
         db.add(row)
         await service.commit(db)
     return InputReceipt(input_ref=row.input_id, expires_at=row.expires_at)
+
+
+class ImageText(BaseModel):
+    """Text read from the caller's own uploaded photo, so the client can look up the original."""
+
+    model_config = ConfigDict(extra="forbid")
+    text: str
+    complete: bool
+
+
+@router.post("/inputs/{input_ref}/text", response_model=ImageText)
+async def image_text(input_ref: str, request: Request, identity: Identity):
+    """Read a stored DOCUMENT_IMAGE input once; only its uploader gets the text."""
+    service = runtime(request)
+    account = service.authorize(request, identity, mutation=True)
+    async with service.database.session_factory() as db:
+        row = await db.get(WalletInputRow, input_ref)
+        if row is None or row.account_id != account.account_id:
+            raise HTTPException(404, "INPUT_NOT_FOUND")
+        if row.kind != "DOCUMENT_IMAGE" or row.original is None or now() >= row.expires_at:
+            raise HTTPException(409, "INPUT_NOT_IMAGE")
+        data = row.original
+    # One paid read per photo: repeated calls for the same input are refused.
+    done = request.app.state.__dict__.setdefault("image_text_done", set())
+    if input_ref in done:
+        raise HTTPException(409, "IMAGE_TEXT_ALREADY_READ")
+    converter = request.app.state.image_converter
+    if converter is None:
+        raise HTTPException(503, "ANALYZER_UNAVAILABLE")
+    done.add(input_ref)
+    artifact = SemanticInput(
+        image_base64=base64.b64encode(data).decode(), image_media_type=image_format(data)[0]
+    )
+    try:
+        converted = await asyncio.wait_for(converter(artifact, 60), timeout=60)
+    except TimeoutError:
+        done.discard(input_ref)  # nothing was read, so the same photo may be retried
+        raise HTTPException(504, "ANALYSIS_TIMEOUT") from None
+    except Exception as problem:
+        done.discard(input_ref)
+        code = getattr(problem, "code", None)
+        raise HTTPException(
+            503, str(getattr(code, "value", code) or "ANALYZER_UNAVAILABLE")
+        ) from None
+    return ImageText(text=prepare_conversion(converted).text, complete=converted.complete)
 
 
 @router.post("/analyses", response_model=AnalysisJob, status_code=202)

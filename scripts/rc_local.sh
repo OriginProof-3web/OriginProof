@@ -17,12 +17,19 @@ RPC="http://127.0.0.1:$RPC_PORT"
 API="http://127.0.0.1:$API_PORT"
 MANIFEST="$PWD/packages/contracts/deployments/31337.wallet.local.json"
 KEY_FILE="$RUN/secrets/openai.key"
-# Anvil 기본 공개 시험 계정(실제 자산 없음): 0 배포, 1~3 승인자, 4 합성 기관 지갑
+# 실서버 모드 시연 버튼(op5_presets.js)이 읽는 문서 JSON. ID·기한이 RC마다 달라 Git에 넣지 않는다.
+PRESET_FILE="$PWD/apps/web-v5/페이지/data/rc_presets.json"
+# Anvil 기본 공개 시험 계정(실제 자산 없음): 0 배포, 1~3 승인자, 4 합성 기관(은행) 지갑, 5 합성 오피스 지갑,
+# 6~8 합성 카드사·통신사·병원 지갑
 DEPLOYER=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
 APPROVER1=0x70997970C51812dc3A010C7d01b50e0d17dc79C8
 APPROVER2=0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC
 APPROVER3=0x90F79bf6EB2c4f870365E785982E1f101E93b906
 INSTITUTION=0x15d34AAf54267DB7D7c367839AAf71A00a2C6A65
+OFFICE=0x9965507D1a55bcC2695C58ba16FB37d819B0A4dc
+CARD=0x976ea74026e726554db657fa54763abd0c3a0aa9
+TELECOM=0x14dc79964da2c08b23698b3d3cc7ca32193d9955
+CLINIC=0x23618e81e3f5cdf7f54c3d65f7fbc0abf5b21e8f
 
 export UV_PROJECT_ENVIRONMENT=.uv-venv
 export PYTHONPATH=apps/api/src:packages/python:services/analyzer/src:services/indexer/src
@@ -50,6 +57,8 @@ api_env() {
   export API_WALLET_IMAGE_INPUT_ENABLED=true API_SIGNUP_ENABLED=true API_WALLET_RELAY_ENABLED=false
   # 실제 AI 확인용 합성 계정만 10분 5건 제한에서 뺀다(#116 이후 적용, 그 전 서버는 이 값을 무시).
   export API_ANALYSIS_LIMIT_EXEMPT_USERNAMES='["rc-ai-tester@example.invalid"]'
+  # 시연용 공격 재현('DB 직접 조작' 단추)은 이 노트북 시연 계정만. 공개 서버(AWS)에는 넣지 않는다.
+  export API_DEMO_ATTACK_USERNAMES='["rc-ai-tester@example.invalid"]'
   [ -f "$RUN/secrets/email-secret" ] || (umask 077; openssl rand -base64 32 > "$RUN/secrets/email-secret")
   API_WALLET_EMAIL_SECRET="$(cat "$RUN/secrets/email-secret")"; export API_WALLET_EMAIL_SECRET
   # shellcheck disable=SC1091
@@ -67,6 +76,21 @@ start_db() {
 start_chain() {
   # 재기동 뒤에도 배포 블록의 과거 상태가 있어야 Registry 배포 확인(CREATE·코드)이 통과한다.
   alive anvil && return 0
+  # Anvil은 끌 때 상태 파일을 쓴다. 쓰는 도중 끊기면 파일이 잘려 다음에 켜지지 않으므로, 켤 때마다 정상 파일을 백업하고 잘렸으면 백업으로 되살린다.
+  local state="$RUN/anvil-state.json"
+  if [ -s "$state" ]; then
+    # 저장소 파이썬으로 검사(터미널의 python3 는 pyenv 등으로 다를 수 있음). 검사를 못 하면 그냥 켜 보고 anvil.log 로 판단
+    local check; check=$("${UVR[@]}" python -c 'import json, sys
+try:
+    json.load(open(sys.argv[1])); print("ok")
+except ValueError:
+    print("bad")' "$state" 2>/dev/null)
+    if [ "$check" = ok ]; then cp "$state" "$state.bak"
+    elif [ "$check" = bad ]; then
+      [ -s "$state.bak" ] || die "Anvil 상태 파일이 잘려 있고 백업이 없어요(logs/anvil.log). 시연 데이터를 새로 만들어야 해요"
+      say "Anvil 상태 파일이 잘려 있어 마지막 정상 백업으로 되살려요"; cp "$state.bak" "$state"
+    fi
+  fi
   nohup anvil --host 127.0.0.1 --port "$RPC_PORT" --chain-id 31337 --state "$RUN/anvil-state.json" \
     --preserve-historical-states \
     > "$RUN/logs/anvil.log" 2>&1 & echo $! > "$RUN/anvil.pid"
@@ -101,9 +125,7 @@ first_setup() {
   say "DB migration·합성 계정"
   api_env
   "${UVR[@]}" alembic -c apps/api/alembic.ini upgrade head > "$RUN/logs/migrate.log" 2>&1 || die "migration 실패(logs/migrate.log)"
-  "${UVR[@]}" python scripts/fixtures/seed_accounts.py --v5-wallet > "$RUN/logs/seed.log" 2>&1 || die "계정 준비 실패(logs/seed.log)"
-  grep '^API_WALLET_INTERNAL_APPROVERS=' "$RUN/logs/seed.log" | sed "s/^/export /; s/=\(.*\)$/='\1'/" >> "$RUN/wallet.env"
-  grep '^API_WALLET_OPERATOR_ADDRESSES=' "$RUN/logs/seed.log" | sed "s/<approver1 wallet address>/$APPROVER1/; s/<approver2 wallet address>/$APPROVER2/; s/<approver3 wallet address>/$APPROVER3/; s/^/export /; s/=\(.*\)$/='\1'/" >> "$RUN/wallet.env"
+  seed_wallet_accounts
   api_env
   start_api
   say "시연 데이터: 기관 신청 → 2-of-3 승인 → 안내문 v1·v2 발행 → 검증"
@@ -111,7 +133,19 @@ first_setup() {
     --registry "$API_WALLET_REGISTRY_ADDRESS" --manifest "$MANIFEST" --credentials "$RUN/secrets/test-accounts.json" \
     --signer rpc --approver1 $APPROVER1 --approver2 $APPROVER2 --institution $INSTITUTION | tee "$RUN/logs/demo.log"
   ensure_accounts
+  write_bulk
   write_samples
+}
+
+# 합성 계정(기관별 신청·승인 계정, 운영자 3명)을 만들고 승인자 설정을 wallet.env 에 다시 쓴다.
+# 이미 있는 계정·비밀번호는 그대로 두고 명단에 새로 생긴 기관 계정만 더한다(기존 환경도 up 으로 새 기관을 받음).
+seed_wallet_accounts() {
+  "${UVR[@]}" python scripts/fixtures/seed_accounts.py --v5-wallet > "$RUN/logs/seed.log" 2>&1 || die "계정 준비 실패(logs/seed.log)"
+  { grep -v -E '^export API_WALLET_(INTERNAL_APPROVERS|OPERATOR_ADDRESSES)=' "$RUN/wallet.env" || true
+    grep '^API_WALLET_INTERNAL_APPROVERS=' "$RUN/logs/seed.log" | sed "s/^/export /; s/=\(.*\)$/='\1'/"
+    grep '^API_WALLET_OPERATOR_ADDRESSES=' "$RUN/logs/seed.log" | sed "s/<approver1 wallet address>/$APPROVER1/; s/<approver2 wallet address>/$APPROVER2/; s/<approver3 wallet address>/$APPROVER3/; s/^/export /; s/=\(.*\)$/='\1'/"
+  } > "$RUN/wallet.env.new"
+  mv "$RUN/wallet.env.new" "$RUN/wallet.env"
 }
 
 # /health/ready는 recipient 계정도 있어야 200이라 개인 계정을 만들고, 실제 AI 확인용 계정도 만든다.
@@ -134,19 +168,70 @@ write_samples() {
   docker exec "$PG_NAME" psql -U originproof -d originproof -At -c \
     "select json_build_object('document_id',document_id,'version',version,'protected_fields',content) from wallet_document_versions order by version" \
     > "$RUN/docs.jsonl"
-  "${UVR[@]}" python - "$RUN" <<'PY'
+  "${UVR[@]}" python - "$RUN" "$PRESET_FILE" <<'PY'
 import json, sys
 run = sys.argv[1]
 docs = [json.loads(line) for line in open(f"{run}/docs.jsonl") if line.strip()]
-v1, v2 = docs[0], docs[-1]
-tampered = dict(v2, protected_fields=dict(v2["protected_fields"], amount_minor=v2["protected_fields"]["amount_minor"] + 1))
+# 은행 시드 안내문(계좌 001234567890)의 정정본 v2와 그 v1. 다른 기관의 v1·v2가 섞여도 은행 것만 고른다.
+bank = [d for d in docs if d["protected_fields"].get("payee_account_number") == "001234567890"]
+v2 = max(bank, key=lambda d: d["version"])
+v1 = next(d for d in docs if d["document_id"] == v2["document_id"] and d["version"] == 1)
+def plus_one(doc):
+    return dict(doc, protected_fields=dict(doc["protected_fields"], amount_minor=doc["protected_fields"]["amount_minor"] + 1))
+tampered = plus_one(v2)
 unknown = dict(v2, document_id="0x" + "ab" * 32)
 lines = [("J1 정본 v2", v2), ("J2 금액 1원 변조", tampered), ("J3 정정 전 v1", v1),
          ("J4 문서 ID만", {"document_id": v2["document_id"], "version": v2["version"]}), ("J5 없는 문서", unknown)]
 with open(f"{run}/verify-samples.txt", "w", encoding="utf-8") as out:
     for label, body in lines:
         out.write(f"# {label}\n{json.dumps(body, ensure_ascii=False, separators=(',', ':'))}\n\n")
+with open(sys.argv[2], "w", encoding="utf-8") as out:
+    presets = {"genuine": v2, "tamper": tampered, "superseded": v1}
+    # DB 직접 조작 장면의 대상: 시연 문자 원본의 은행 #10(430,000원). 원래 값은 DB가 아니라 발행 때 남긴 기록에서(조작 중에 다시 만들어도 원래 값)
+    scenes = [{"name": "은행", "genuine": v2, "tamper": tampered, "superseded": v1}]
+    try:
+        bulk = [json.loads(line) for line in open(f"{run}/bulk-docs.jsonl") if line.strip()]
+        target = next(d for d in bulk if d["content"].get("payee_account_number") == "001234500010")
+        presets["db_target"] = {"document_id": target["document_id"], "version": target["version"], "protected_fields": target["content"]}
+        scenes[0]["db_target"] = presets["db_target"]
+    except (OSError, StopIteration):
+        bulk = []
+    # 시연 버튼이 누를 때마다 은행 → 카드사 → 통신사 → 병원 순서로 도는 장면(wallet_demo_bulk.py SCENES)
+    for who, name in (("card", "카드사"), ("telecom", "통신사"), ("clinic", "병원")):
+        by = {d["scene"]: {"document_id": d["document_id"], "version": d["version"], "protected_fields": d["content"]}
+              for d in bulk if d.get("issuer") == f"iss_origin_mock_{who}" and "scene" in d}
+        if {"v1", "v2", "db"} <= set(by):
+            scenes.append({"name": name, "genuine": by["v2"], "tamper": plus_one(by["v2"]), "superseded": by["v1"], "db_target": by["db"]})
+    presets["scenes"] = scenes
+    json.dump(presets, out, ensure_ascii=False)
 PY
+}
+
+# 시연 문자 모음(apps/web-v5/개발/시연_문자_모음.md)의 원본: 은행 납부 안내 10건·오피스 공문 10건.
+# 두 번 발행하면 같은 금액·계좌 기록이 2건이 되어 원본 찾기가 '여러 개'가 되므로 한 번만 발행한다.
+write_bulk() {
+  local only=bank,office,card,telecom,clinic
+  if [ -s "$RUN/bulk-docs.jsonl" ]; then
+    grep -q '"scene"' "$RUN/bulk-docs.jsonl" && return 0
+    only=card,telecom,clinic   # 기관 추가 전에 만든 환경: 은행·오피스는 그대로 두고 새 기관 장면만 더 발행
+  fi
+  [ -e "$RUN/bulk-docs.jsonl.part" ] && die "시연 문자 원본 발행이 전에 중간에 멈췄어요(logs/bulk.log). 중복을 막으려고 다시 발행하지 않아요: scripts/rc_local.sh purge 후 up"
+  say "시연 문자 원본 발행(${only}): 은행 납부 안내 10건·오피스 공문 10건, 카드사·통신사·병원 장면 3건씩(1~3분)"
+  "${UVR[@]}" python scripts/fixtures/wallet_demo_bulk.py --api "$API" --rpc-url "$RPC" \
+    --registry "$API_WALLET_REGISTRY_ADDRESS" --manifest "$MANIFEST" --credentials "$RUN/secrets/test-accounts.json" \
+    --out "$RUN/bulk-docs.jsonl.part" --approver1 $APPROVER1 --approver2 $APPROVER2 \
+    --institution $INSTITUTION --office $OFFICE --card $CARD --telecom $TELECOM --clinic $CLINIC --only "$only" \
+    > "$RUN/logs/bulk.log" 2>&1 || die "시연 문자 원본 발행 실패(logs/bulk.log)"
+  cat "$RUN/bulk-docs.jsonl.part" >> "$RUN/bulk-docs.jsonl" && rm "$RUN/bulk-docs.jsonl.part"
+}
+
+# DB 직접 조작 시연: 서버 DB에 저장된 대상 안내문의 금액만 몰래 바꾼다(체인·서명은 그대로). 시연 단추 'DB 직접 조작'으로 확인하면 변조로 잡힌다.
+# 대상은 기관마다 하나(계좌:원래 금액, demo_attacks.py TARGETS와 같음). 터미널 db-tamper·db-restore 는 은행 것만.
+DB_TARGETS="001234500010:430000 002345600002:150000 003456700002:55000 004567800002:220000"
+db_amount() {
+  docker exec "$PG_NAME" psql -U originproof -d originproof -At -c \
+    "update wallet_document_versions set content = jsonb_set(content::jsonb, '{amount_minor}', '$2')::json where content->>'payee_account_number' = '$1' returning content->>'amount_minor'" \
+    | head -1
 }
 
 status() {
@@ -160,7 +245,14 @@ status() {
 }
 
 down() {
-  for p in web api anvil; do alive $p && kill "$(cat "$RUN/$p.pid")" 2>/dev/null; rm -f "$RUN/$p.pid"; done
+  for p in web api anvil; do
+    if alive $p; then
+      local pid; pid=$(cat "$RUN/$p.pid"); kill "$pid" 2>/dev/null
+      # Anvil은 끝나면서 상태 파일을 쓰므로 다 쓸 때까지 기다린다(중간에 끊기면 파일이 잘림)
+      for _ in $(seq 1 50); do kill -0 "$pid" 2>/dev/null || break; sleep 0.2; done
+    fi
+    rm -f "$RUN/$p.pid"
+  done
   docker stop "$PG_NAME" >/dev/null 2>&1 || true
   say "껐어요. 데이터는 남아 있어요(다시 켜기: scripts/rc_local.sh up)"
 }
@@ -171,7 +263,14 @@ case "${1:-}" in
     mkdir -p "$RUN/logs" "$RUN/secrets"; chmod 700 "$RUN/secrets"
     llm_env
     start_db; start_chain
-    if [ -f "$RUN/wallet.env" ]; then api_env; start_api; ensure_accounts; else first_setup; fi
+    if [ -f "$RUN/wallet.env" ]; then
+      api_env   # 이미 만든 환경도 새 migration(예: #139 accounts.email)을 받아야 API가 뜸
+      "${UVR[@]}" alembic -c apps/api/alembic.ini upgrade head > "$RUN/logs/migrate.log" 2>&1 || die "migration 실패(logs/migrate.log)"
+      seed_wallet_accounts; api_env
+      start_api; ensure_accounts; write_bulk; write_samples
+      # DB 직접 조작 장면을 되돌리지 못하고 끝났어도(브라우저 닫힘 등) 켤 때마다 원래 금액으로
+      for t in $DB_TARGETS; do db_amount "${t%%:*}" "${t#*:}" > /dev/null || true; done
+    else first_setup; fi
     echo; status
     echo; say "로그인 계정 v5_bank · 비밀번호: $RUN/secrets/test-accounts.json 의 password 값"
     say "개인 회원 rc-viewer@example.invalid · 비밀번호 같음"
@@ -179,8 +278,14 @@ case "${1:-}" in
     say "검증용 붙여넣기 문장: $RUN/verify-samples.txt" ;;
   status) status ;;
   down) down ;;
+  db-tamper)
+    got=$(db_amount 001234500010 4300000); [ "$got" = 4300000 ] || die "대상 안내문을 못 찾았어요(시연 문자 원본이 발행됐는지: up)"
+    say "서버 DB의 은행 #10 안내문 금액을 430,000원 → 4,300,000원으로 바꿨어요(체인 기록은 그대로). 되돌리기: scripts/rc_local.sh db-restore" ;;
+  db-restore)
+    got=$(db_amount 001234500010 430000); [ "$got" = 430000 ] || die "대상 안내문을 못 찾았어요"
+    say "서버 DB의 은행 #10 안내문 금액을 원래 430,000원으로 되돌렸어요" ;;
   purge)
-    down; docker rm -f "$PG_NAME" >/dev/null 2>&1 || true; rm -rf "$RUN" "$MANIFEST"
+    down; docker rm -f "$PG_NAME" >/dev/null 2>&1 || true; rm -rf "$RUN" "$MANIFEST" "$PRESET_FILE"
     say "재현 환경을 모두 지웠어요" ;;
   set-key)
     mkdir -p "$RUN/secrets"; chmod 700 "$RUN/secrets"
@@ -190,5 +295,5 @@ case "${1:-}" in
     say "저장했어요(이 컴퓨터에만, 0600). 실제 AI로 켜기: RC_LLM=openai scripts/rc_local.sh up" ;;
   clear-key)
     rm -f "$KEY_FILE"; say "키 파일을 지웠어요. 다음 up부터 mock입니다" ;;
-  *) echo "사용: scripts/rc_local.sh up | status | down | purge | set-key | clear-key"; exit 2 ;;
+  *) echo "사용: scripts/rc_local.sh up | status | down | purge | set-key | clear-key | db-tamper | db-restore"; exit 2 ;;
 esac

@@ -177,7 +177,7 @@ test('T1 참조 2개 이상: 첫 참조만 쓰고 나머지는 자세히에만, 
   noRaw(assert, JSON.stringify(ans), '답');
 });
 
-test('T1 참조 없음: "공식 기록으로 확인할 수 없는 문자예요" + AI 분석만(요청은 /v3/inputs 하나부터)', async () => {
+test('T1 참조 없음: 등록 기관이 아니라 확인할 수 없음(가짜라 하지 않음) + AI 분석만(요청은 /v3/inputs 하나부터)', async () => {
   const job = fixture('v3_analysis_job_analyzer_unavailable.reconstructed.json');
   const { conn, f } = setup((url, init) => {
     if (url.endsWith('/v3/inputs')) return { status: 201, body: { input_ref: 'inp_a', expires_at: 1 } };
@@ -186,7 +186,11 @@ test('T1 참조 없음: "공식 기록으로 확인할 수 없는 문자예요" 
   });
   conn.setMode('api');
   const ans = await conn.check('엄마 나 폰 고장났어 ' + PII.mobile + ' 로 ' + PII.account + ' 에 보내줘 ' + PII.rrn);
-  assert.equal(ans.conclusion.text, '공식 기록으로 확인할 수 없는 문자예요.');
+  // A7(2026-11-04): 무엇을 못 읽었는지(여기서는 기관 이름) 덧붙임
+  assert.match(ans.conclusion.text, /^문자에서 기관 이름을 찾지 못했어요/);
+  assert.equal(ans.conclusion.badge.text, '확인할 수 없음');
+  assert.equal(ans.conclusion.verdict.head, '· 확인할 수 없어요 · OriginProof에 등록된 기관의 문자가 아니에요');
+  assert.doesNotMatch(ans.conclusion.text + JSON.stringify(ans.axes), /검증 링크가 없어/);
   assert.deepEqual(j(ans.axes.slice(0, 3).map(x => x.status)), ['확인할 수 없음', '확인할 수 없음', '확인할 수 없음']);
   assert.deepEqual(f.calls.map(c => c.url.replace('http://127.0.0.1:8000', '')), ['/v3/inputs', '/v3/analyses']);
   assert.ok(ans.details.some(d => d.label === '찾은 검증 링크·Proof ID' && d.value === '없음'));

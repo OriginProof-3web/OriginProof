@@ -50,6 +50,8 @@ class Settings(BaseSettings):
     signup_enabled: bool = False
     # Synthetic test accounts only (C real-AI check); others keep the 5-per-10-minute limit.
     analysis_limit_exempt_usernames: list[str] = []
+    # Local hackathon demo only: accounts that may replay the DB tamper attack (demo_attacks.py).
+    demo_attack_usernames: list[str] = []
     wallet_relay_enabled: bool = False
 
     model_config = SettingsConfigDict(

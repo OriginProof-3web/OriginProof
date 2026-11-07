@@ -41,6 +41,7 @@ function build(search, fetchFn, pre) {
   e('ol', { class: 'staff-list', id: 'staffList' }, aside);
   e('span', { class: 'pcard-count', id: 'staffCount' }, aside, '0/7');
   e('p', { class: 'pcard-note', id: 'staffNote' }, aside, 'n');
+  e('p', { class: 'pcard-note staff-time', id: 'staffTime' }, aside);
   e('span', { class: 'pcard-count', id: 'fileCount' }, aside, '0개');
   e('div', { class: 'drop', id: 'dropZone' }, aside);
   e('input', { id: 'fileInput', type: 'file' }, aside);
@@ -63,7 +64,12 @@ const menu = (d, k) => vm.runInContext('selectAction(' + JSON.stringify(k) + ')'
 const buttons = d => d.doc.querySelectorAll('#chatThread button');
 const find = (d, label) => buttons(d).filter(b => (label instanceof RegExp ? label.test(b.textContent) : b.textContent === label)).pop();
 async function press(d, label, ms = 25) { const b = typeof label === 'object' && !(label instanceof RegExp) ? label : find(d, label); assert.ok(b, '단추 없음: ' + label); d.doc._dispatch(b, new Ev('click')); await sleep(ms); }
-const toSample = async d => { if (!find(d, '예시 모드로 바꾸기') || find(d, '예시 모드로 바꾸기').disabled) { menu(d, 'status'); await sleep(40); } await press(d, '예시 모드로 바꾸기'); };
+// 운영자 화면에만 '예시 모드로 바꾸기' 단추가 있음(개인·기관은 단추 없음) → 단추가 없으면 같은 동작의 손잡이로 바꿈
+const toSample = async d => {
+  if (!find(d, '예시 모드로 바꾸기') || find(d, '예시 모드로 바꾸기').disabled) { menu(d, 'status'); await sleep(40); }
+  if (find(d, '예시 모드로 바꾸기')) return press(d, '예시 모드로 바꾸기');
+  assert.equal(d.win.Hk.op5switchMode('sample'), true); await sleep(25);
+};
 
 const APP = 'app_1', PID = '0x' + 'ab'.repeat(32), ISS = '0x' + 'cd'.repeat(32), TX = '0x' + 'ef'.repeat(32), TX2 = '0x' + '12'.repeat(32);
 /* identifier_hash 와 같은 규칙: keccak256(utf8(값)) (packages/python/originproof_core/wallet_signatures.py:69-74).
@@ -119,8 +125,10 @@ function serverDouble(o) {
     if (u === '/v1/auth/me') return { status: 200, body: persona };
     if (u.startsWith('/health/')) return { status: 200, body: { status: u.endsWith('live') ? 'live' : 'ready' } };
     if (u === '/v1/chain/network') return { status: 200, body: { chain_target: 'anvil', chain_id: 31337, rpc_fallback_configured: false, approver_nodes: [] } };
+    if (u === '/v1/chain/issuers') return { status: 200, body: { issuers: [{ name: 'Origin Mock Bank', issuer_id: '0x' + '9d'.repeat(32) }, { name: 'Origin Mock Office', issuer_id: '0x' + 'a0'.repeat(32) }] } };
     if (u === '/v1/issuer/status') return isIssuer ? { status: 200, body: { issuer_id: persona.issuer_id, status: 'ACTIVE', chain_id: 31337 } } : deny(403, 'FORBIDDEN');
-    if (u === '/v1/issuer-applications/mine') return persona.role === 'issuer' ? { status: 200, body: { application_id: APP, issuer_id: persona.issuer_id, issuer_name: 'Origin Mock Bank', applicant_account_id: applicant, status: 'APPROVED', decision_reason: null, decided_by_account_id: null, created_at: 'x' } } : deny(403, 'FORBIDDEN');
+    // 기본 신청 기관은 아직 체인에 없는(등록 중인) 합성 기관: 온보딩 단추 흐름 시험용. 등록 마친 기관은 persona.issuer_name 으로
+    if (u === '/v1/issuer-applications/mine') return persona.role === 'issuer' ? { status: 200, body: { application_id: APP, issuer_id: persona.issuer_id, issuer_name: persona.issuer_name || 'Origin Mock Clinic', applicant_account_id: applicant, status: 'APPROVED', decision_reason: null, decided_by_account_id: null, created_at: 'x' } } : deny(403, 'FORBIDDEN');
     /* suspensions:시작 wallet_governance.py:424-438, wallet_runtime.py:85-110. 형식(422)은 FastAPI 가 함수 실행 전에 거른다(main.py:190-203) */
     const suspend = m === 'POST' && u.match(/^\/v3\/issuers\/([^/]+)\/suspensions$/);
     if (suspend) {
@@ -163,7 +171,15 @@ function serverDouble(o) {
     if (u.startsWith('/v3/analyses?')) return { status: 200, body: { items: [{ analysis_id: 'ana_k', status: 'COMPLETED', retain_report: true, retain_original: true }] } };
     if (u.startsWith('/v3/analyses/')) return { status: 200, body: {} };
     if (u.startsWith('/v1/issuer/keys')) return isIssuer ? { status: 200, body: [] } : deny(403, 'FORBIDDEN');
+    if (u === '/v3/issuer/state') return isIssuer ? { status: 200, body: { issuer_id: '0x' + '9d'.repeat(32), state: 'ACTIVE', key_id: '0x' + 'cc'.repeat(32), signer: '0x' + '15'.repeat(20), key_status: 'ACTIVE', key_registered_block: '7', block_number: '29' } } : deny(403, 'FORBIDDEN');
+    if (u === '/v3/issuer/documents') return isIssuer ? { status: 200, body: { documents: [
+      { document_id: '0x' + 'ab'.repeat(32), version: 2, latest_version: 2, notice_type: 'PAYMENT_REQUEST', summary: '합성 지방세 납부 안내', amount_minor: 120000, document_number: null },
+      { document_id: '0x' + 'ab'.repeat(32), version: 1, latest_version: 2, notice_type: 'PAYMENT_REQUEST', summary: '합성 지방세 납부 안내', amount_minor: 154000, document_number: null }] } } : deny(403, 'FORBIDDEN');
     if (u.startsWith('/v2/issuer/proofs')) return isIssuer ? { status: 200, body: [] } : deny(403, 'FORBIDDEN');
+    if (u === '/v3/issuer/registrations') return isIssuer || persona.role === 'operator' ? { status: 200, body: { trails: [
+      { issuer_name: 'Origin Mock Bank', applicant: 'v5_bank', email_verified: true, internal_approver: 'v5_bank_approver', internally_approved: true, chain_state: 'ACTIVE',
+        proposals: [{ proposal_id: '0x' + 'ea'.repeat(32), proposer: 'v5_operator1', status: 'EXECUTED', approvers: ['v5_operator1', 'v5_operator2'] }] }]
+      .concat(isIssuer ? [] : [{ issuer_name: 'Origin Mock Office', applicant: 'v5_office', email_verified: true, internal_approver: null, internally_approved: false, chain_state: null, proposals: [] }]) } } : deny(403, 'FORBIDDEN');
     if (u.startsWith('/v1/operations')) return { status: 200, body: [] };
     if (u.startsWith('/v3/documents/')) return { status: 200, body: { document_id: PID, state: 'ACTIVE', version: 1, latest_version: 1, warnings: [] } };
     return { status: 404, body: { detail: 'Not Found' } };

@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Readable } from 'node:stream';
-import { createHandler, parsePort, parseUpstream, rewriteSetCookie, API_METHODS } from '../개발/op5-proxy.mjs';
+import { createHandler, parsePort, parseUpstream, parsePublicOrigin, rewriteSetCookie, API_METHODS } from '../개발/op5-proxy.mjs';
 
 const PORT = 8790;
 const SELF = `http://127.0.0.1:${PORT}`;
@@ -172,4 +172,25 @@ test('설정 검증: 포트·업스트림', () => {
   assert.equal(parseUpstream(undefined).value, 'http://127.0.0.1:8000');
   assert.equal(parseUpstream('http://localhost:8000/').value, 'http://localhost:8000');
   for (const u of ['https://127.0.0.1:8000', 'http://example.com:8000', 'http://127.0.0.1', 'http://127.0.0.1:8000/v3', 'http://127.0.0.1.evil.test:80']) assert.equal(parseUpstream(u).ok, false, u);
+});
+
+test('서버 배포: OP5_PUBLIC_ORIGIN 의 Host·Origin 만 더 받고, 다른 공개 주소는 여전히 421·403', async () => {
+  const PUB = 'https://1-2-3-4.sslip.io';
+  const up = fakeUpstream(ok({}));
+  const h = createHandler({ port: PORT, forward: up, publicOrigin: PUB });
+  const pub = { host: '1-2-3-4.sslip.io' };
+  assert.equal((await run(h, 'GET', '/business.html', pub)).status, 200);
+  assert.equal((await run(h, 'POST', '/api/v3/inputs', { ...pub, origin: PUB }, '{}')).status, 200);
+  assert.equal((await run(h, 'POST', '/api/v3/inputs', { ...pub, origin: 'https://evil.test' }, '{}')).status, 403);
+  assert.equal((await run(h, 'GET', '/business.html', { host: 'evil.test' })).status, 421);
+  assert.equal((await run(createHandler({ port: PORT, forward: up }), 'GET', '/business.html', pub)).status, 421, '설정 없으면 예전처럼 로컬만');
+  assert.equal(parsePublicOrigin(undefined).value, null);
+  assert.equal(parsePublicOrigin('https://1-2-3-4.sslip.io/').value, PUB);
+  for (const v of ['1-2-3-4.sslip.io', 'https://a.test/path', 'https://u:p@a.test', 'ftp://a.test', 'https://a.test?x=1']) assert.equal(parsePublicOrigin(v).ok, false, v);
+});
+
+test('예전 메인 index.html 은 시작 페이지 entry.html 로 302', async () => {
+  const res = await run(createHandler({ port: PORT, forward: fakeUpstream(ok({})) }), 'GET', '/index.html');
+  assert.equal(res.status, 302);
+  assert.equal(res.headers.location, 'entry.html');
 });

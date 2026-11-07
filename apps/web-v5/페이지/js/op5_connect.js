@@ -20,6 +20,8 @@
   var S = Hk.op5scenes;
   var scene = S && S.valid(Q.get('demo')) ? Q.get('demo') : '';
   var fileMode = location.protocol === 'file:' && !scene;
+  // 시연용 AI 지연 대체(기본 꺼짐): ?demo_ai_fallback=5 처럼 명시했을 때만. 3~10초로 제한(api_adapter.js demoFallbackSec). 장면 재현에서는 안 씀
+  var demoAiSec = !scene && Hk.api && Hk.api.demoFallbackSec ? Hk.api.demoFallbackSec(Q.get('demo_ai_fallback')) : 0;
 
   /* ---------------- 저장소(장면이면 메모리만) ---------------- */
   function memStore() { var m = {}; return { getItem: function (k) { return k in m ? m[k] : null; }, setItem: function (k, v) { m[k] = String(v); }, removeItem: function (k) { delete m[k]; } }; }
@@ -36,7 +38,9 @@
 
   // 예시 모드의 마지막 안전장치: 진행 중이던 흐름이 전환 뒤 이어져도 서버로 나가지 않음(op5_auth.js 의 로그인 확인은 별도)
   var fetchFn = scene ? S.fetchFor(scene) : function (u, i) {
-    if (!isApi()) { var e = new Error('sample mode'); e.name = 'SampleMode'; return Promise.reject(e); }
+    // 비로그인 개인 화면의 공개 목록(블록체인 연결 정보·활성 기관)만 예외: 로그인 없이 읽는 GET 두 개
+    var pub = guest() && !(i && i.method && i.method !== 'GET') && /\/v1\/chain\/(network|issuers)$/.test(String(u));
+    if (!isApi() && !pub) { var e = new Error('sample mode'); e.name = 'SampleMode'; return Promise.reject(e); }
     return window.fetch(u, i).then(function (r) {
       if (r && r.status === 401 && !/\/auth\/login$/.test(String(u)) && Hk.auth && Hk.auth.expired) Hk.auth.expired();
       return r;
@@ -53,7 +57,7 @@
         var a = Hk.createApiAdapter({
           fetch: fetchFn, base: getBase(), csrf: client.csrf, retain: function () { return retain; }, isDeleted: client.isDeleted,
           loginWhy: '분석은 로그인이 필요해요. 왼쪽 메뉴 기관 상태에서 로그인 화면을 열어 주세요.',
-          timeoutMs: 25000, pollMs: scene ? 30 : 2000
+          timeoutMs: 25000, pollMs: scene ? 30 : 2000, demoAiFallbackSec: demoAiSec
         });
         a.serverUrl = o.serverUrl;
         return a;
@@ -63,7 +67,7 @@
   }
   rebuild();
   function isApi() { return conn.mode() === 'api'; }
-  function paintHint() { if (hint) hint.textContent = 'Enter 보내기 · Shift+Enter 줄바꿈 · ' + (isApi() ? '실서버 모드(' + getBase() + ')' : '예시 모드(예시 응답)'); }
+  function paintHint() { if (hint) hint.textContent = 'Enter 보내기 · Shift+Enter 줄바꿈 · ' + (isApi() ? '실서버 모드(' + getBase() + ')' + (demoAiSec ? ' · 시연 AI 대체 ' + demoAiSec + '초 켜짐(준비된 시연 응답)' : '') : '예시 모드(예시 응답)'); }
   if (isApi()) paintHint();
   if (Hk.auth && Hk.auth.checked) Hk.auth.checked.then(function () { if (isApi()) paintHint(); });
   Hk.op5live = function () { return !scene && isApi(); };   // 시연 버튼이 실서버 모드인지 볼 때 씀
@@ -72,6 +76,75 @@
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
   function toBottom() { scroll.scrollTop = scroll.scrollHeight; }
   function clearEmpty() { var e = $('chatEmpty'); if (e) e.remove(); }
+  /* 화면(페이지) 나누기: 메뉴(기관 상태·작업 이력 등)를 누르면 대화창을 비우고 그 메뉴 내용만 보여 줌.
+     메뉴 화면에서 문자를 보내면 새 확인 화면으로 시작. '새 대화'는 처음 빈 화면으로 돌아감. */
+  var emptyNode = $('chatEmpty'), page = 'chat';   // 처음 빈 화면 요소(지워져도 다시 붙여 씀)
+  /* 대화 보관: 확인한 대화는 화면을 바꿔도 지우지 않고 왼쪽 '발행 기록' 목록에 남겨, 눌러서 그 자리로 돌아감.
+     이 탭 메모리에만 있음(새로고침하면 사라짐, 서버·저장소에 보내지 않음). 제목은 개인정보를 가린 첫 문장. */
+  var sessions = [], cur = null, seq = 0;
+  function stash() {
+    if (page !== 'chat' || !cur) return;
+    cur.nodes = Array.prototype.slice.call(thread.childNodes).filter(function (n) { return n !== emptyNode; });
+  }
+  function ensureSession(text) {
+    if (cur) return cur;
+    cur = { id: ++seq, title: String(text || '확인').replace(/\s+/g, ' ').trim().slice(0, 24) || '확인', nodes: [] };
+    sessions.unshift(cur); if (sessions.length > 20) sessions.length = 20;
+    paintRecents();
+    return cur;
+  }
+  // 응답이 늦게 와서 그 사이 다른 화면으로 옮겼으면, 말풍선을 그 대화의 보관분에 붙임(지금 화면에 섞이지 않게)
+  function inSession(sess, fn) {
+    if (!sess || (sess === cur && page === 'chat')) return fn();
+    var saved = thread, tmp = el('div');
+    thread = tmp;
+    try { return fn(); } finally { thread = saved; sess.nodes = sess.nodes.concat(Array.prototype.slice.call(tmp.childNodes)); }
+  }
+  function newPage(kind) { stash(); thread.replaceChildren(); page = kind; if (kind === 'chat') cur = null; paintRecents(); toBottom(); }
+  function newChat() {
+    stash(); cur = null;
+    thread.replaceChildren(); page = 'chat';
+    if (emptyNode) thread.append(emptyNode);
+    paintRecents(); toBottom(); if (input) input.focus();
+  }
+  function openSession(sess) {
+    stash(); dropAsk('기록 열기');
+    thread.replaceChildren(); page = 'chat'; cur = sess;
+    sess.nodes.forEach(function (n) { thread.append(n); });
+    paintRecents(); toBottom();
+  }
+  // 왼쪽 '발행 기록' 목록(번들이 비워 둔 자리)에 같은 모양의 줄 단추로 그림. 번들이 다시 그려도 다시 채움
+  // 번들(business.bundle.css)에 이미 있는 메뉴 줄 클래스 그대로(새 스타일 없음)
+  var ROW = 'sidebar-row relative z-10 mx-2 flex h-8 items-center rounded-[8px] px-2 text-left transition-[width,background-color,color,transform] duration-150 active:scale-[0.98]';
+  var ROW_TEXT = 'sidebar-copy min-w-0 flex-1 truncate text-[14px] font-medium text-ink-2';
+  function recentsBox() {
+    var side = $('sidebar-root'); if (!side || !side.querySelectorAll) return null;
+    var hdr = Array.prototype.filter.call(side.querySelectorAll('span'), function (e) { return e.childElementCount === 0 && e.textContent.trim() === '발행 기록'; })[0];
+    var sec = hdr && hdr.closest ? hdr.closest('.mt-3') : null;
+    if (!sec) return null;
+    var lists = sec.querySelectorAll('.gap-px');
+    return lists.length ? lists[lists.length - 1] : null;
+  }
+  var painting = false;
+  function paintRecents() {
+    var box = recentsBox(); if (!box) return;
+    painting = true;
+    Array.prototype.slice.call(box.querySelectorAll('[data-op5-recent]')).forEach(function (n) { n.remove(); });
+    sessions.forEach(function (sess) {
+      var b = el('button', ROW + (sess === cur && page === 'chat' ? ' bg-hover-2' : ''));
+      b.type = 'button'; b.setAttribute('data-op5-recent', String(sess.id)); b.title = sess.title;
+      b.append(el('span', ROW_TEXT, sess.title));
+      b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); openSession(sess); });
+      box.append(b);
+    });
+    painting = false;
+  }
+  // 시험·장면 재현용: 보관한 대화 목록과 열기(화면 단추와 같은 동작)
+  Hk.op5sessions = function () { return sessions.map(function (x) { return { title: x.title, open: function () { openSession(x); } }; }); };
+  (function watchSidebar() {
+    var side = $('sidebar-root');
+    if (side && window.MutationObserver) new MutationObserver(function () { if (!painting && sessions.length && recentsBox() && !recentsBox().querySelector('[data-op5-recent]')) paintRecents(); }).observe(side, { childList: true, subtree: true });
+  })();
   function userMsg(text) {
     clearEmpty();
     var m = el('div', 'msg msg-user');
@@ -84,10 +157,13 @@
     clearEmpty();
     var m = el('div', 'msg msg-ai');
     var w = el('div', 'who');
-    w.append(el('i', null, '✓'), el('span', null, 'OriginProof AI'), el('span', 'tag-offline', tag || modeTag()));
+    var tm = el('span', 'op-time'); tm.hidden = true;   // 걸린 시간(답이 오면 채움)
+    w.append(el('i', null, '✓'), el('span', null, 'OriginProof AI'), tm, el('span', 'tag-offline', tag || modeTag()));
     var b = el('div', 'bubble');
     m.append(w, b); thread.append(m); toBottom();
     var api = {
+      msg: m,
+      time: tm,
       box: b,
       para: function (title, lines) {
         var p = el('p');
@@ -119,6 +195,13 @@
     return api;
   }
   function say(text, title) { var r = aiMsg(); r.para(title || null, [text]); return r; }
+  // 답을 기다리는 동안 'OriginProof AI' 아래에서 도는 표시. 돌려준 함수를 부르면 지움(다른 대화로 옮겨 보관된 경우 포함)
+  function pendingMsg(tag) {
+    var r = aiMsg(tag), sess = cur;
+    r.box.setAttribute('role', 'status');
+    r.box.append(el('span', 'op-spin'), el('span', 'op-spin-text', '확인하고 있어요…'));
+    return function () { r.msg.remove(); if (sess) sess.nodes = sess.nodes.filter(function (n) { return n !== r.msg; }); };
+  }
   function codeLine(e) { return e && e.code ? '코드: ' + e.code + (e.status ? ' · HTTP ' + e.status : '') + (e.retryAfter != null ? ' · Retry-After ' + e.retryAfter + '초' : '') : ''; }
   function errLines(res) { var e = client.say(res); return [e.text, codeLine(e)].filter(Boolean); }
 
@@ -143,6 +226,7 @@
     finished = {};
     IDS.forEach(function (id, i) { chip(id, 'run', firstWhere[i] || ''); });
     var n = $('staffNote'); if (n && note) n.textContent = note;
+    var t = $('staffTime'); if (t) { t.textContent = ''; t.hidden = true; }
   }
   // 응답 모양 → 기존 칩 5가지. '보류'·'해당 없음' 칩은 화면에 없어(자리 없음) 대기 칩 + 아래 줄 사유 글로 보여 줌
   function stateOf(tone) { return tone === 'ok' || tone === 'info' ? 'ok' : tone === 'fail' || tone === 'caution' ? 'bad' : tone === 'offline' ? 'off' : 'wait'; }
@@ -188,28 +272,49 @@
     (m || []).forEach(function (q) { qs.push({ quote: q.slice(1, -1) }); });
     return calc(text, qs);
   }
-  var SRC = { RULE: ['규칙 검사', 'info'], LLM: ['AI 모델', 'none'] };     // 기존 칩 모양(.op-chip.t-info / .t-none) 재사용
-  function srcOf(s) { return SRC[s] || ['출처 미상', 'none']; }
   function markedText(text, spans) {
     var box = el('div', 'op-quote'), at = 0;
     spans.forEach(function (sp) {
       if (sp.start > at) box.append(document.createTextNode(text.slice(at, sp.start)));
       var mk = el('mark', null, text.slice(sp.start, sp.end));
-      if (sp.source === 'RULE' || sp.source === 'LLM') mk.setAttribute('title', '근거 ' + (sp.index + 1) + ' · ' + srcOf(sp.source)[0]);
+      if (sp.diff) { mk.className = 'op-diff'; mk.setAttribute('title', '기관 기록과 다른 값'); }
+      if (sp.source === 'RULE' || sp.source === 'LLM') mk.setAttribute('title', '근거 ' + (sp.index + 1));
       box.append(mk); at = sp.end;
     });
     box.append(document.createTextNode(text.slice(at)));
     return box;
   }
-  // 근거 한 줄씩(계약 모양만, 예시 자료는 그리지 않음): 근거 n · [규칙 검사|AI 모델] · "문장". 규칙 번호·위치 값은 '자세히'에만 둠
+  // 근거 한 줄씩(계약 모양만, 예시 자료는 그리지 않음): 근거 n · "문장". 규칙·AI 중 누가 찾았는지·규칙 번호·위치 값은 '자세히'에만 둠
   function evidenceRows(zone, a) {
     var rep = a.ai_report, ev = rep && !a.sample && Array.isArray(rep.evidence) ? rep.evidence : [];
     ev.forEach(function (e, i) {
       if (!e || typeof e.quote !== 'string') return;
-      var s = srcOf(e.source);
-      zone.append(opRow({ name: '근거 ' + (i + 1), status: s[0], tone: s[1], body: '“' + T.maskPersonal(e.quote).slice(0, 120) + '”' }));
+      var row = el('div', 'op-row');
+      row.append(el('b', null, '근거 ' + (i + 1)), el('span', 'op-body', '“' + T.maskPersonal(e.quote).slice(0, 120) + '”'));
+      zone.append(row);
     });
     if (rep && rep.dropped) zone.append(el('p', 'op-tech', '모양이 틀린 근거 ' + rep.dropped + '건은 그리지 않았어요.'));
+  }
+  // 기관 기록과 다른 값(금액·가린 계좌·공문번호)이 받은 글 어디인지. 원래 값은 보여 주지 않음(서버도 알려 주지 않음)
+  function diffSpan(text, d) {
+    if (!d || !d.key) return null;
+    if (d.miss === 'AMOUNT_DIFFERS_FOR_ACCOUNT') {
+      var re = /[0-9][0-9,]*\s*원/g, m;
+      while ((m = re.exec(text))) if (Number(m[0].replace(/[^0-9]/g, '')) === d.key.amount_minor) return { start: m.index, end: m.index + m[0].length, diff: true };
+      return null;
+    }
+    var tok = d.miss === 'ACCOUNT_NOT_IN_RECORDS' ? '(계좌번호 가림)' : d.key.document_number;
+    var i = tok ? text.indexOf(tok) : -1;
+    return i < 0 ? null : { start: i, end: i + tok.length, diff: true };
+  }
+  // 블록체인 증거 한 줄: 확인한 블록·Registry 계약·기관 키(응답 값 그대로). Sepolia 면 Etherscan 링크
+  function chainLine(p) {
+    var short = function (h) { h = String(h || ''); return h.length > 12 ? h.slice(0, 6) + '…' + h.slice(-4) : h; };
+    var sepolia = String(p.chain_id) === '11155111';
+    var line = el('p', 'op-chainline');
+    line.append(document.createTextNode((sepolia ? 'Sepolia' : String(p.chain_id) === '31337' ? '로컬 체인(Anvil)' : '체인 ' + p.chain_id) + ' · 블록 #' + p.block + ' 기준 · 계약 ' + short(p.contract) + (p.key_id ? ' · 기관 키 ' + short(p.key_id) : '')));
+    if (sepolia) { var k = el('a', null, ' Etherscan에서 보기'); k.href = 'https://sepolia.etherscan.io/address/' + p.contract; k.target = '_blank'; k.rel = 'noopener noreferrer'; line.append(k); }
+    return line;
   }
   function chainButton(zone, a) {
     var out = el('p', 'op-foot');
@@ -228,20 +333,79 @@
     });
     zone.append(b, out);
   }
+  /* 최종 판단(한눈에): 블록체인 세 칸(공식 발행·원본 일치·현재 상태)만으로 정함. AI 는 진위를 정하지 않음.
+     - 한 칸이라도 문제(fail) → 가짜이거나 바뀐 안내문
+     - 세 칸 모두 확인(ok) → 진짜(원본 찾기면 '읽은 항목이 진짜 기록과 같음')
+     - 연결 문제(서버·체인에 묻지 못함, offline) → 지금은 확인 못 함
+     - 우리 서비스 기록으로 확인할 수 없음(미등록 기관·기록 없음·못 읽음) → '확인할 수 없어요' + 이유. 가짜라고 하지 않음
+       (기관 기록과 금액·계좌·공문번호가 다를 때만 '기록과 다름', 원본 찾기 결과의 conclusion.verdict 를 그대로 씀)
+     AI 가 주의·위험이면 요약에도 반영: 진짜면 '진짜 · 위험 요구/주의'로 바꾸고 AI가 짚은 문장을 보여 줌,
+     확인 불가면 표시에 AI 결과를 붙임, 그 밖에는 한 줄을 덧붙임. 블록체인 칸의 서버 판정 값은 바꾸지 않음. */
+  function verdictOf(a, fact, ai) {
+    var tones = fact.map(function (x) { return x.tone; });
+    var lookup = fact.some(function (x) { return x.status === '읽은 항목 일치'; });
+    var v;
+    if (a.conclusion && a.conclusion.verdict) v = Object.assign({}, a.conclusion.verdict);
+    else if (a.verification_status === 'NOT_REGISTERED') v = { tone: 'none', chip: '확인 불가', head: '· 확인할 수 없어요 · 등록된 발행 기록이 없어요', sub: 'OriginProof에 등록된 기관이 이 안내문을 발행한 기록이 없어요. 가짜라고 단정할 수는 없지만, 링크를 누르거나 돈을 보내기 전에 기관 공식 번호로 직접 확인하세요.' };
+    else if (tones.indexOf('fail') >= 0) v = { tone: 'fail', head: '✕ 가짜이거나 바뀐 안내문이에요', sub: '이 문자대로 돈을 보내거나 링크를 누르지 마세요.' };
+    else if (fact.length && tones.every(function (t) { return t === 'ok'; })) v = { tone: 'ok', head: '✓ 진짜 안내문이에요', sub: lookup ? '문자에서 읽은 금액·계좌(또는 공문번호)가 기관이 블록체인에 남긴 발행 기록과 같아요. 나머지 문구는 비교하지 않았어요.' : '기관이 블록체인에 남긴 발행 기록·서명·원본과 모두 같고, 지금도 유효해요.' };
+    // 구버전: 발행·원본은 맞으니 '공식 기록으로 확인 안 됨'이 아님
+    else if (fact.some(function (x) { return x.status === '새 버전 있음'; })) v = { tone: 'caution', chip: '새 버전 있음', head: '! 예전 버전 안내문이에요 · 새 버전을 확인하세요', sub: '기관이 실제로 발행했지만 내용을 고친 새 버전이 있어요. 이 안내대로 보내지 말고 새 버전의 금액·기한을 확인하세요.' };
+    else if (a.conclusion && a.conclusion.badge && a.conclusion.badge.tone === 'none') v = { tone: 'none', head: '· 사진으로는 원본과 맞춰 보지 못했어요', sub: a.conclusion.text };   // 대조를 안 한 것(가짜 의심 아님)
+    else if (tones.indexOf('offline') >= 0) v = { tone: 'none', head: '· 지금은 확인하지 못했어요', sub: '서버나 블록체인에 연결하지 못해 판단을 미뤘어요. 잠시 뒤 다시 확인하고, 그 전에는 돈을 보내지 마세요.' };
+    else v = { tone: 'none', chip: '확인 불가', head: '· 확인할 수 없어요', sub: (a.conclusion && a.conclusion.text) || 'OriginProof에 등록된 기관의 발행 기록과 맞춰 볼 수 없었어요. 돈을 보내기 전에 기관 공식 번호로 직접 확인하세요.' };
+    if (ai && (ai.tone === 'caution' || ai.tone === 'fail')) {
+      var risky = ai.tone === 'fail', q = aiQuote(a, ai);
+      if (v.tone === 'ok') {
+        v = { tone: 'caution', chip: risky ? '진짜 · 위험 요구' : '진짜 · 주의',
+          head: risky ? '! 진짜 안내문이지만 위험한 요구가 붙어 있어요' : '! 진짜 안내문이에요 · 덧붙은 요구는 확인하세요',
+          sub: (lookup ? '금액·계좌(또는 공문번호)는 기관이 블록체인에 남긴 발행 기록과 같아요. ' : '기관이 블록체인에 남긴 발행 기록·서명·원본과 같아요. ') +
+            'AI는 ' + (q ? '“' + q + '”' : '덧붙은 요구') + (risky ? '를 위험한 요구로 봤어요. ' : '를 주의할 요구로 봤어요. ') +
+            '이 요구는 따르지 말고 기관 공식 번호로 먼저 확인하세요.' };
+        return v;
+      }
+      if (v.tone === 'none') v.chip = (v.chip || '확인 불가') + ' · ' + (risky ? '위험 요구' : '주의');
+      // AI가 실제로 짚은 문장과 수준(위험/주의)을 그대로 말함. 금액·계좌가 기록과 다른지는 AI가 아니라 블록체인 칸이 판정
+      v.ai = 'AI ' + (risky ? '위험' : '주의') + ': ' + (q ? '“' + q + '”를 ' + (risky ? '위험한 요구로 봤어요.' : '주의할 요구로 봤어요.') : (risky ? '위험한 요구가 있어요.' : '주의할 요구가 있어요.')) +
+        ' 이 요구대로 보내지 말고 기관 공식 번호로 먼저 확인하세요.';
+    }
+    return v;
+  }
+  // AI가 위험하다고 짚은 첫 문장(개인정보 가림, 너무 길면 줄임). 예시 자료의 '요청' 문장은 근거로 쓰지 않음
+  function aiQuote(a, ai) {
+    var ev = a.ai_report && Array.isArray(a.ai_report.evidence) ? a.ai_report.evidence : [];
+    var e = ev.filter(function (x) { return x && typeof x.quote === 'string' && x.role !== 'request'; })[0];
+    var q = e ? e.quote : ((ai && ai.body ? String(ai.body).match(/["“]([^"”]{2,200})["”]/) : null) || [])[1];
+    if (!q) return '';
+    q = T.maskPersonal(q).trim();
+    return q.length > 60 ? q.slice(0, 59) + '…' : q;
+  }
   function renderReport(r, a) {
     var c = a.conclusion || { badge: { text: '', tone: 'none' }, text: '' };
     var axes = Array.isArray(a.axes) ? a.axes : [];
     var ai = axes.filter(function (x) { return x.axis === 'ai'; })[0];
     var wrap = el('div', 'op-report');
+    // 맨 위 최종 판단 카드(이용 가능한 기관과 같은 카드 모양)
+    var v = verdictOf(a, axes.filter(function (x) { return x.axis !== 'ai'; }), ai);
+    var vbox = el('div', 'op-gov op-verdict');
+    var vrow = el('div', 'op-gov-row');
+    vrow.append(el('span', 'op-gov-n', '요약'), el('span', 'op-gov-who', v.head), el('span', 'op-chip t-' + v.tone, v.chip || (v.tone === 'ok' ? '진짜' : v.tone === 'fail' ? '가짜·변조' : v.tone === 'caution' ? '주의' : '확인 못 함')), el('span', 'op-body', v.sub));
+    vbox.append(vrow);
+    if (v.ai) vbox.append(el('p', 'op-foot', v.ai));
+    r.box.append(vbox);
 
     var fact = el('section', 'op-zone op-fact');
     fact.setAttribute('aria-label', '블록체인 결정');
     fact.append(el('span', 'op-zone-tag', 'Blockchain & Crypto Core'), el('h4', null, '블록체인 결정 · 사실'));
     // 종합 결론(사실+맥락)은 두 구역 위에 한 줄로
     var concl = el('p', 'op-concl');
-    concl.append(el('b', null, '종합 '), el('span', 'op-chip t-' + (c.badge.tone || 'none'), c.badge.text || '-'), document.createTextNode(' ' + (c.text || '')));
+    concl.append(el('b', null, '종합 '), el('span', 'op-chip t-' + (c.badge.tone || 'none'), c.badge.text || '-'));
     r.box.append(concl);
-    axes.filter(function (x) { return x.axis !== 'ai'; }).forEach(function (x) { fact.append(opRow(x)); });
+    axes.filter(function (x) { return x.axis !== 'ai'; }).forEach(function (x) { fact.append(opRow(x)); if (x.axis === 'official' && a.chain_proof) fact.append(chainLine(a.chain_proof)); });
+    // 기관 기록과 다른 값(금액·계좌·공문번호)은 블록체인 대조가 찾은 것이라 이 칸에 둠(AI 칸에 두면 AI 근거처럼 보임). 원래 값은 보여 주지 않음
+    var text = a.input && typeof a.input.text === 'string' && !O.docInput(a) ? a.input.text : '';
+    var dsp = text ? diffSpan(text, a.lookup_diff) : null;
+    if (dsp) { var dl = el('p', 'op-tech', '받은 글에서 기관 기록과 다른 값: '); dl.append(el('span', 'op-diff', text.slice(dsp.start, dsp.end))); fact.append(dl); }
     fact.append(el('p', 'op-foot', '이 영역은 AI 없이 기관 서명과 블록체인 기록만으로 판정해요. ①공식 발행 ②원본 일치 ③현재 상태'));
     chainButton(fact, a);
 
@@ -249,21 +413,33 @@
     aiz.setAttribute('aria-label', 'AI 위험 설명');
     aiz.append(el('span', 'op-zone-tag', O.analysisCaption(a)), el('h4', null, 'AI 위험 설명 · 맥락'));
     if (ai) aiz.append(opRow(ai));
-    var text = a.input && typeof a.input.text === 'string' ? a.input.text : '';
     var sp = riskSpans(a, ai, text);
     evidenceRows(aiz, a);
-    if (text) aiz.append(el('p', 'op-tech', sp.spans.length ? '받은 글에서 위험 요구 문장을 칠했어요' : '받은 글'), markedText(text, sp.spans));
+    if (text) aiz.append(el('p', 'op-tech', sp.spans.length ? '받은 글에서 AI가 짚은 위험 요구 문장을 칠했어요' : '받은 글'), markedText(text, sp.spans));
     var ids = a.ai_report && Array.isArray(a.ai_report.matched_technique_ids) ? a.ai_report.matched_technique_ids : null;
-    if (sp.spans.length || sp.skipped.some(function (s) { return s.reason !== 'NO_QUOTE'; })) aiz.append(el('p', 'op-tech', ids && ids.length ? '일치한 공개 피싱 수법: ' + ids.join(', ') : '공개 피싱 수법 ID: 수법 지식베이스(RAG) 연결 전'));
+    // 4차 멘토링: 'RAG 연결 전' 문구는 빼고, 일치한 수법이 있을 때만 보여 줌
+    if (ids && ids.length) aiz.append(el('p', 'op-tech', '일치한 공개 피싱 수법: ' + ids.join(', ')));
     aiz.append(el('p', 'op-foot', (ai && ai.note ? ai.note + ' ' : '') + '이 영역은 규칙과 AI가 메시지가 요구하는 행동의 위험을 설명만 해요. 진위 판정과 분리돼요. 확률 숫자는 쓰지 않아요.'));
 
     wrap.append(fact, aiz);
     r.box.append(wrap); toBottom();
+    return aiz;
   }
 
-  function renderAnswer(a) {
-    var r = aiMsg();
-    renderReport(r, a);
+  // 걸린 시간: 답 이름 옆에는 블록체인 검증 + AI 분석의 합, 직원 확인 현황 아래에는 각각. 요청을 보내지 않은 쪽은 '안 함'
+  function secs(ms) { return (ms / 1000).toFixed(1) + ' s'; }
+  function showTime(r, t) {
+    if (!t || (t.chain_ms == null && t.ai_ms == null)) return;
+    r.time.textContent = secs((t.chain_ms || 0) + (t.ai_ms || 0)); r.time.hidden = false;
+    var s = $('staffTime');
+    if (s) { s.textContent = '블록체인 검증 ' + (t.chain_ms == null ? '안 함' : secs(t.chain_ms)) + ' · AI 분석 ' + (t.ai_ms == null ? '안 함' : secs(t.ai_ms) + (t.ai_prepared ? '(준비된 응답까지)' : '')); s.hidden = false; }
+  }
+  function renderAnswer(a, tag) {
+    var r = aiMsg(tag);
+    showTime(r, a.timing);
+    if (a.ai_replaced) r.para('AI 칸 교체', ['서버 분석 결과가 도착해 위의 준비된 시연 응답을 이 결과로 바꿨어요. 발행 검증 칸은 처음 결과 그대로예요.']);
+    var aiZone = renderReport(r, a);
+    if (a.ai_prepared) r.para('준비된 시연 응답', ['AI 칸은 실제 AI 결과가 아니에요. 실서버 AI 분석이 늦어 미리 준비한 시연 설명을 먼저 보여 줬어요. 실제 결과가 오면 아래에 교체해 보여 드려요.']);
     if (a.next_action && a.next_action.text) r.para('다음 행동', [a.next_action.text]);
     if (a.sample) r.para(null, ['예시 응답이에요. ' + (a.assumption || '')]);
     var files = attachedIds();
@@ -272,15 +448,22 @@
     if (files.length > sent) r.para(null, ['첨부 ' + (files.length - sent) + '개는 서버로 보내지 않았어요. 문서 사진은 \'이 사진 확인하기\' 단추를 눌렀을 때만 보내요.']);
     if (a.analysis_id && !a.analysis_deleted) {
       r.para('보관', ['분석 번호 ' + a.analysis_id + ' · 상태 ' + (a.analysis_status || '-'), '보고서 ' + (retain.report ? '7일 보관' : '끝난 뒤 10분만 보관') + ' · 원본 ' + (retain.original ? '7일 보관' : '처리 직후 삭제')]);
-      if (a.analysis_status === 'COMPLETED') r.btn('보고서 받기', function () { return downloadReport(a.analysis_id); });
       if (retain.original && a.analysis_status === 'COMPLETED') r.btn('원본 받기', function () { return downloadOriginal(a.analysis_id); });
-      r.btn('이 분석 지우기', function (x) { return removeAnalysis(a.analysis_id, x); });
     }
-    r.btn('자세히 보기', function (x) {
-      x.dataset.done = '1';
-      var d = aiMsg();
-      d.para('자세히', (a.details || []).map(function (row) { return row.label + ': ' + row.value; }));
+    // 자세히: 이 답 안에서 단추 바로 아래 상자를 열고 닫음(맨 아래로 스크롤하지 않음)
+    var more = null;
+    var mb = r.btn('자세히 보기', function (x) {
+      if (!more) {
+        more = el('div', 'op-more');
+        (a.details || []).forEach(function (row) { more.append(el('p', null, row.label + ': ' + row.value)); });
+        if (!a.details || !a.details.length) more.append(el('p', null, '더 보여 드릴 정보가 없어요.'));
+        r.box.append(more);
+      } else more.hidden = !more.hidden;
+      x.textContent = more.hidden ? '자세히 보기' : '자세히 닫기';
+      x.setAttribute('aria-expanded', more.hidden ? 'false' : 'true');
     }, true);
+    mb.setAttribute('aria-expanded', 'false');
+    return aiZone;
   }
 
   /* ---------------- 입력 → 결과 ---------------- */
@@ -293,23 +476,58 @@
     paintHint();
     resetStaff(isApi() ? '직원 7명이 실제 응답이 온 순서대로 표시해요.' : '예시 모드: 예시 응답을 직원 순서대로 보여 줘요.');
     var api = isApi();
+    var sess = cur;
+    var unpend = pendingMsg();
     var onStaff = api ? function (o) { if (att && o && o.bubble_key === 'intake.received') att.received = true; chipObs(o); } : null;
-    var p = conn.check(text, { onStaff: onStaff, image: image || null }).then(function (a) {
+    var zone = null;   // 처음 그린 답의 AI 구역(교체 표시용)
+    // 시연 대체(기본 꺼짐) 뒤 실제 결과: 준비 응답 답이 다 그려진 뒤(p) 교체 답을 아래에 그리고 위 AI 칸에 교체 표시
+    var onAiLater = api ? function (ev) {
+      if (!ev || ev.reason === 'deleted') return;      // 지운 분석은 기존 삭제 흐름이 알림
+      p.then(function () {
+        if (ev.replaced && ev.answer) {
+          chipObs(ev.obs);
+          if (zone) zone.append(el('p', 'op-foot', '→ 이 준비된 시연 응답은 아래 서버 분석 결과로 교체됐어요.'));
+          inSession(sess, function () { renderAnswer(ev.answer); });
+          return;
+        }
+        say('서버 분석 결과를 시간 안에 받지 못해 위 AI 칸은 준비된 시연 응답 그대로예요(실제 AI 결과 아님).', '준비된 시연 응답');
+      }, function () {});
+    } : null;
+    var p = conn.check(text, { onStaff: onStaff, image: image || null, onAiLater: onAiLater }).then(function (a) {
       return new Promise(function (resolve) {
         animateStaff(Array.isArray(a.staff) ? a.staff : [], function () {
           var n = $('staffNote');
           if (n) n.textContent = api ? '실제 응답이 온 순서대로 갱신했어요. 판정은 서버 값 그대로예요.' : '예시 응답이에요. 서버에 보내지 않았어요.';
-          renderAnswer(a); resolve(a);
+          unpend(); inSession(sess, function () { zone = renderAnswer(a); }); resolve(a);
         });
       });
     }, function (e) {
       IDS.forEach(function (id) { chip(id, 'wait'); });
-      say(e && e.userMessage ? e.userMessage : '입력을 확인하지 못했어요.');
+      unpend(); inSession(sess, function () { say(e && e.userMessage ? e.userMessage : '입력을 확인하지 못했어요.'); });
     }).then(function (x) { delete running[key]; return x; }, function (x) { delete running[key]; throw x; });
     running[key] = p;
     return p;
   }
-  function submit() {
+  /* 시연 버튼(op5_presets.js): 실서버 모드에서도 예시 결과를 보여 줌. 예시 어댑터로만 그리고 서버에는 보내지 않음.
+     예시 자료의 문서 ID는 실서버 장부에 없어서 실서버로 보내면 '기록 없음'으로 잘못 나오기 때문. */
+  function sampleCheck(text) {
+    if (page !== 'chat') newPage('chat');
+    clearEmpty();
+    var sess = ensureSession('예시 · ' + T.maskPersonal(text));
+    userMsg(T.maskPersonal(text));
+    resetStaff('예시 자료: 서버에 보내지 않은 예시 응답을 직원 순서대로 보여 줘요.');
+    var unpend = pendingMsg('예시 자료 · 서버에 보내지 않음');
+    return Hk.sampleAdapter.check(text).then(function (a) {
+      return new Promise(function (resolve) {
+        animateStaff(Array.isArray(a.staff) ? a.staff : [], function () {
+          var n = $('staffNote'); if (n) n.textContent = '예시 응답이에요. 서버에 보내지 않았어요.';
+          unpend(); inSession(sess, function () { renderAnswer(a, '예시 자료 · 서버에 보내지 않음'); }); resolve(a);
+        });
+      });
+    }, function (e) { unpend(); say(e && e.userMessage ? e.userMessage : '예시를 보여 드리지 못했어요.'); });
+  }
+  Hk.op5sampleCheck = sampleCheck;
+  function submit(shown) {
     var v = Hk.validateInput(input.value);
     if (!v.ok) { if (input.value.trim()) say(v.message); return null; }
     var w = awaiting;
@@ -319,7 +537,10 @@
     input.value = '';
     input.dispatchEvent(new Event('input'));     // 안쪽 스크립트의 높이·보내기 단추 상태 갱신
     if (w) return answerAsk(w, v.text);
-    userMsg(T.maskPersonal(v.text));
+    if (page !== 'chat') newPage('chat');
+    // 시연 문서 버튼은 날 JSON 대신 안내문(shown)을 말풍선·대화 제목에 씀
+    ensureSession(shown || T.maskPersonal(v.text));
+    userMsg(shown || T.maskPersonal(v.text));
     return check(v.text);
   }
   function answerAsk(w, text) {
@@ -413,14 +634,6 @@
       return true;
     } catch (e) { return false; }
   }
-  function downloadReport(id) {
-    return client.report(id).then(function (res) {
-      if (res.ignored) return say('지운 분석이라 늦게 온 응답은 버렸어요.');
-      if (res.status !== 200) return aiMsg().para('보고서 받기', errLines(res));
-      save(id + '-report.json', JSON.stringify(res.data, null, 2), 'application/json');
-      say('보고서를 내려받았어요(' + id + '-report.json).');
-    });
-  }
   function downloadOriginal(id) {
     return client.original(id).then(function (res) {
       if (res.ignored) return say('지운 분석이라 늦게 온 응답은 버렸어요.');
@@ -455,7 +668,6 @@
         return x.analysis_id + ' · ' + x.status + ' · 보고서 ' + (x.retain_report ? '보관' : '-') + ' · 원본 ' + (x.retain_original ? '보관' : '-') + (x.result_expires_at ? ' · 보고서 기한 ' + when(x.result_expires_at) : '');
       }).concat(items.length > 5 ? ['… 외 ' + (items.length - 5) + '건'] : []));
       items.slice(0, 5).forEach(function (x) {
-        if (x.retain_report) r.btn('보고서 받기 ' + x.analysis_id, function () { return downloadReport(x.analysis_id); });
         if (x.retain_original) r.btn('원본 받기 ' + x.analysis_id, function () { return downloadOriginal(x.analysis_id); });
         r.btn('지우기 ' + x.analysis_id, function (b) { return removeAnalysis(x.analysis_id, b); });
       });
@@ -464,15 +676,34 @@
   function when(sec) { try { return new Date(sec * 1000).toLocaleString('ko-KR'); } catch (e) { return String(sec); } }
 
   /* ---------------- 왼쪽 메뉴 → 말풍선 대화 ---------------- */
+  /* 역할별 화면(대표 지시 2026-11-04): 연결 설정·서버 상태·모드/주소/보관 단추·2-of-3 공동승인 패널은 운영자 화면에만.
+     개인(recipient)·기관(issuer) 화면에는 아이디, 공개 블록체인 연결 정보, 이용 가능한 기관만. 예시 모드는 ?demo=·?mode=sample 로 계속 들어감.
+     권한은 서버가 따로 막음(이 구분은 화면 정리일 뿐). */
+  var lastRole = null;
+  function myRole() {
+    if (lastRole) return lastRole;
+    var m = Hk.auth && Hk.auth.state && Hk.auth.state.me;
+    return m && typeof m.role === 'string' ? m.role : null;
+  }
+  // 비로그인(로그인 확인을 마친 비회원)은 개인 화면과 같게 본다. ?demo= 시연 화면만 예전 그대로
+  function guest() { var A = Hk.auth; return !!(A && A.state && A.state.checked && !A.state.me && !A.demo); }
+  // 운영자, 또는 ?demo= 시연 화면이면 예전 화면 그대로
+  function staffView() { var role = myRole(); return role === 'operator' || (!isApi() && role !== 'recipient' && role !== 'issuer' && !guest()); }
+  function switchMode(to) {
+    var before = conn.mode();
+    if (conn.setMode(to) !== to) return false;   // 비회원 거절 등은 op5_auth.js 가 안내함
+    if (before !== to) dropAsk('모드 변경');
+    paintHint();
+    say(to === 'api' ? '실서버 모드로 바꿨어요. 연결 주소 ' + getBase() + ' 로 보내요.' : '예시 모드로 바꿨어요. 서버에 보내지 않고 예시 응답만 보여요.');
+    return true;
+  }
+  // 단추가 없는 역할의 시험·콘솔용(?mode=sample 과 같은 효과, 서버 권한과 무관)
+  Hk.op5switchMode = function (to) { return to === 'api' || to === 'sample' ? switchMode(to) : false; };
   function modeButtons(r) {
     var to = isApi() ? 'sample' : 'api';   // 단추 글자대로만 바꿈(오래된 단추가 반대로 뒤집지 않게)
+    if (to === 'sample' && myRole() !== 'operator') return;   // 개인·기관 화면에는 '예시 모드로 바꾸기' 없음
     r.btn(to === 'sample' ? '예시 모드로 바꾸기' : '실서버 모드로 바꾸기', function (x) {
-      var before = conn.mode();
-      if (conn.setMode(to) !== to) return;   // 비회원 거절 등은 op5_auth.js 가 안내함
-      x.dataset.done = '1';
-      if (before !== to) dropAsk('모드 변경');
-      paintHint();
-      say(to === 'api' ? '실서버 모드로 바꿨어요. 연결 주소 ' + getBase() + ' 로 보내요.' : '예시 모드로 바꿨어요. 서버에 보내지 않고 예시 응답만 보여요.');
+      if (switchMode(to)) x.dataset.done = '1';
     }, true);
   }
   function exampleOnly(what) {
@@ -639,58 +870,141 @@
     });
   }
 
+  /* 공개 블록체인 연결 정보: 체인 이름·ID·등록부 주소는 서버(/v1/chain/network).
+     PUBLIC_REGISTRY 는 서버가 주소를 주지 않을 때(예전 서버)만 쓰는 Sepolia 배포 기록 값
+     (packages/contracts/deployments/11155111.wallet.json, 시험이 원본 파일과 같은지 대조함). */
+  var PUBLIC_REGISTRY = { '11155111': '0xe540bf29622afff40174b76992b016112f372a2e' };
+  function publicChain(r) {
+    var title = '공개 블록체인 연결 정보';
+    var p = r.para(title, ['확인 중…']);
+    return client.get('/v1/chain/network').then(function (res) {
+      var d = res.data;
+      if (res.status !== 200 || !d || !/^[1-9][0-9]{0,15}$/.test(String(d.chain_id))) return r.set(p, title, errLines(res));
+      var id = String(d.chain_id), target = String(d.chain_target);
+      var given = typeof d.registry_address === 'string' && /^0x[0-9a-fA-F]{40}$/.test(d.registry_address) ? d.registry_address : '';
+      var registry = given || (target === 'sepolia' ? PUBLIC_REGISTRY[id] || '' : '');
+      var lines = [];
+      if (target === 'sepolia') lines.push('연결된 블록체인: 이더리움 Sepolia 공개 테스트넷');
+      else if (target === 'anvil') lines.push('연결된 블록체인: 시연용 블록체인');
+      else lines.push('연결된 블록체인: ' + target);
+      // 주소 전체는 Etherscan 링크에 있으니 화면에는 앞뒤만(전문가용)
+      lines.push('등록부 주소(전문가용): ' + (registry ? registry.slice(0, 8) + '…' + registry.slice(-4) : '서버가 아직 알려 주지 않았어요.'));
+      if (target === 'anvil') lines.push('시연용 블록체인이라 공개 탐색기(Etherscan)에서는 볼 수 없어요.');
+      r.set(p, title, lines);
+      if (target === 'sepolia' && registry && Hk.chain && Hk.chain.explorerLinks) {
+        Hk.chain.explorerLinks(id, registry).forEach(function (l) { var k = el('a', null, l.label); k.href = l.href; k.target = '_blank'; k.rel = 'noopener noreferrer'; p.append(el('br'), k); });
+      }
+    });
+  }
+  /* 이용 가능한 기관: 체인에서 지금 활성(ACTIVE)인 기관의 이름만(/v1/chain/issuers, 로그인 없이 공개). 지어낸 목록 없음. */
+  // 서버 상태 값 → 쉬운 말(표에 없는 값은 그대로 보여 줌, 지어내지 않음)
+  var APP_STATUS_KO = { PENDING_REVIEW: '검토 중', APPROVED_PENDING_CHAIN: '승인됨 · 블록체인 등록 대기', REJECTED: '거절됨' };
+  // 공동승인 패널과 같은 카드 모양(op-gov)을 그대로 씀: 기관마다 한 줄, 이름 + '활성' 표시
+  function availableIssuers(r) {
+    var title = '이용 가능한 기관';
+    var box = el('div'), p = el('p');   // 자리를 먼저 잡아 순서를 지키고, 결과가 오면 같은 자리를 카드로 채움
+    box.append(p); r.box.append(box); r.set(p, title, ['확인 중…']);
+    return client.get('/v1/chain/issuers').then(function (res) {
+      var list = res.status === 200 && res.data && Array.isArray(res.data.issuers) ? res.data.issuers : null;
+      if (!list) return r.set(p, title, errLines(res));
+      var names = list.map(function (x) { return x && typeof x.name === 'string' ? x.name : ''; }).filter(Boolean);
+      if (!names.length) return r.set(p, title, ['지금 활성인 기관이 없어요.']);
+      box.replaceChildren(); box.className = 'op-gov';
+      box.append(el('b', null, title + ' · ' + names.length + '곳'));
+      names.forEach(function (name, i) {
+        var row = el('div', 'op-gov-row');
+        row.append(el('span', 'op-gov-n', String(i + 1)), el('span', 'op-gov-who', name), el('span', 'op-chip t-ok', '활성 · 블록체인 확인'), el('span', 'op-body', '이 기관이 발행한 안내문은 원본을 확인할 수 있어요.'));
+        box.append(row);
+      });
+      box.append(el('p', 'op-foot', '블록체인에서 지금 활성으로 확인된 기관만 보여요. 목록에 없는 기관 이름으로 온 문자는 그 기관의 대표번호나 공식 앱으로 직접 확인하세요.'));
+      toBottom();
+    });
+  }
+  // 로그아웃하면 시작 페이지(entry.html)로
+  function logoutFn(x) { x.dataset.done = '1'; return client.logout().then(function (o) { if (o.status === 200) { lastRole = null; say('로그아웃했어요. 시작 페이지로 이동해요.'); setTimeout(function () { location.href = 'entry.html'; }, 600); return; } say(errLines(o).join(' ')); }); }
+  // 아이디는 /v1/auth/me 의 username(계정 이름). 역할 글자는 보여 주지 않음.
+  function loginLine(me) { return ['아이디 ' + String(me.username)]; }
   function showStatus() {
     var r = aiMsg();
-    r.para('연결 설정', ['지금 모드: ' + (isApi() ? '실서버 모드' : '예시 모드'), '연결 주소: ' + getBase() + (getBase() === '/api' ? ' (같은 출처 프록시)' : ''), retainText()]);
-    var h = r.para('서버 상태(/health/live · /health/ready)', ['확인 중…']);
+    if (!isApi()) {
+      var staff = staffView();
+      if (staff) r.para('연결 설정', ['지금 모드: 예시 모드', '연결 주소: ' + getBase() + (getBase() === '/api' ? ' (같은 출처 프록시)' : ''), retainText()]);
+      if (staff) r.para('서버 상태(/health/live · /health/ready)', ['예시 모드라 서버에 묻지 않았어요.']);
+      if (guest()) r.para('로그인', ['로그인하지 않았어요. 받은 문자를 기관 발행 기록과 정확히 대조하고 AI 분석까지 보려면 로그인해 주세요.']);
+      else r.para('로그인', ['예시 모드라 서버에 묻지 않았어요. 실서버 모드에서 기관 상태까지 확인해요. 로그인은 로그인 화면(login.html)에서 해요.']);
+      if (!guest()) modeButtons(r);
+      if (staff) {
+        r.btn('연결 다시 확인', function () { return showStatus(); }, true);
+        r.btn('연결 주소 바꾸기', function () { changeBase(); }, true);
+        r.btn('보관 선택 바꾸기', function () { retainButtons(aiMsg()); }, true);
+      }
+      r.btn('로그인 화면 열기', function (x) { x.dataset.done = '1'; location.href = 'login.html?next=business.html'; }, true);
+      if (staff) { govPanel(r); roiPanel(r); }
+      // 비로그인: 개인 화면처럼 공개 블록체인 정보·이용 가능한 기관(로그인 없이 읽는 공개 목록)
+      if (guest()) return Promise.all([publicChain(r), availableIssuers(r)]);
+      return Promise.resolve();
+    }
     var who = r.para('로그인', ['확인 중…']);
+    return client.me().then(function (res) {
+      if (!isApi()) return;   // 기다리는 사이 예시 모드로 바뀌면 멈춤
+      if (res.status !== 200 || !res.data) {
+        lastRole = null;
+        r.set(who, '로그인', errLines(res).concat(['로그인은 로그인 화면(login.html)에서 해요. 비밀번호는 이 대화에 쓰지 마세요.']));
+        r.btn('로그인 화면 열기', function (x) { x.dataset.done = '1'; location.href = 'login.html?next=business.html'; }, true);
+        return Promise.all([publicChain(r), availableIssuers(r)]);
+      }
+      var me = res.data;
+      lastRole = typeof me.role === 'string' ? me.role : null;
+      if (me.role === 'operator') return operatorStatus(r, who, me);
+      r.set(who, '로그인', loginLine(me));
+      r.btn('로그아웃', logoutFn);
+      if (me.role === 'issuer') governanceButtons(r, me.role);
+      var pending = [publicChain(r), availableIssuers(r)];
+      if (me.role !== 'issuer') return Promise.all(pending);
+      var iss = r.para('내 기관 상태 · 신청', ['확인 중…']);
+      // 블록체인 등록 상태는 v3 체인 활성 기관 목록(/v1/chain/issuers, 이름은 합성 기관 명단)으로 판단: 옛 v1 상태 경로는 v5 시연 환경에 없고,
+      // v1 신청서 상태(PENDING_REVIEW)는 v3 등록을 마쳐도 바뀌지 않아 '검토 중'으로 잘못 보였음
+      pending.push(Promise.all([client.get('/v1/chain/issuers'), client.get('/v1/issuer-applications/mine')]).then(function (z) {
+        var lines = [];
+        var app = z[1].status === 200 ? z[1].data : null;
+        var list = z[0].status === 200 && z[0].data && Array.isArray(z[0].data.issuers) ? z[0].data.issuers : null;
+        var active = !!(app && list && list.some(function (x) { return x && x.name === app.issuer_name; }));
+        if (list) lines.push('블록체인 등록 상태: ' + (active ? '활성 · 등록 완료' : '활성 아님(등록 전이거나 정지됨)'));
+        else lines.push('블록체인에 등록된 기관 상태를 지금은 불러오지 못했어요. 문서 발행과 검증은 그대로 쓸 수 있어요.');
+        // 등록을 마친 기관은 신청·메일 인증·내부 승인 단추를 보이지 않음(이미 끝난 단계)
+        if (app) { lines.push('신청 기관 ' + app.issuer_name + ' · ' + (active ? '등록 완료' : (APP_STATUS_KO[app.status] || String(app.status)))); if (!active) onboardingButtons(r, app, me); }
+        else if (z[1].status === 200) lines.push('기관 신청 기록이 없어요.');
+        else lines = lines.concat(errLines(z[1]));
+        r.set(iss, '내 기관 상태 · 신청', lines);
+      }));
+      pending.push(registrationTrails(r));
+      return Promise.all(pending);
+    });
+  }
+  function changeBase() {
+    ask('base', '새 연결 주소를 입력칸에 넣고 보내 주세요. 같은 출처 경로(예: /api) 또는 이 컴퓨터 주소(예: http://127.0.0.1:8000)만 받아요.', function (t) {
+      var b = O.parseBase(t);
+      if (!b.ok) return sayAgain(b.message);
+      T.storageSet(LS, BASE_KEY, b.value); rebuild();
+      say('연결 주소를 ' + b.value + ' 로 바꿨어요.' + (/^https?:/.test(b.value) ? ' 다른 주소는 서버가 이 화면 주소를 허용(CORS·Origin)해야 해요.' : ''));
+    });
+  }
+  // 운영자 화면: 예전 기관 상태 내용 그대로(연결 설정·서버 상태·모드/주소/보관 단추·2-of-3 패널·참여 효과·체인 네트워크·공동승인 단추)
+  function operatorStatus(r, first, me) {
+    r.set(first, '연결 설정', ['지금 모드: 실서버 모드', '연결 주소: ' + getBase() + (getBase() === '/api' ? ' (같은 출처 프록시)' : ''), retainText()]);
+    var h = r.para('서버 상태(/health/live · /health/ready)', ['확인 중…']);
+    r.para('로그인', loginLine(me));
+    r.btn('로그아웃', logoutFn);
     modeButtons(r);
     r.btn('연결 다시 확인', function () { return showStatus(); }, true);
-    r.btn('연결 주소 바꾸기', function () {
-      ask('base', '새 연결 주소를 입력칸에 넣고 보내 주세요. 같은 출처 경로(예: /api) 또는 이 컴퓨터 주소(예: http://127.0.0.1:8000)만 받아요.', function (t) {
-        var b = O.parseBase(t);
-        if (!b.ok) return sayAgain(b.message);
-        T.storageSet(LS, BASE_KEY, b.value); rebuild();
-        say('연결 주소를 ' + b.value + ' 로 바꿨어요.' + (/^https?:/.test(b.value) ? ' 다른 주소는 서버가 이 화면 주소를 허용(CORS·Origin)해야 해요.' : ''));
-      });
-    }, true);
+    r.btn('연결 주소 바꾸기', function () { changeBase(); }, true);
     r.btn('보관 선택 바꾸기', function () { retainButtons(aiMsg()); }, true);
     govPanel(r);
     roiPanel(r);
-    if (!isApi()) {
-      r.set(h, '서버 상태(/health/live · /health/ready)', ['예시 모드라 서버에 묻지 않았어요.']);
-      r.set(who, '로그인', ['예시 모드라 서버에 묻지 않았어요. 실서버 모드에서 기관 상태까지 확인해요. 로그인은 로그인 화면(login.html)에서 해요.']);
-      r.btn('로그인 화면 열기', function (x) { x.dataset.done = '1'; location.href = 'login.html?next=business.html'; }, true);
-      return Promise.resolve();
-    }
-    var pending = [client.health().then(function (x) {
+    governanceButtons(r, me.role);
+    return Promise.all([client.health().then(function (x) {
       r.set(h, '서버 상태(/health/live · /health/ready)', ['live: ' + x.live.text + ' (' + x.live.code + ')', 'ready: ' + x.ready.text + ' (' + x.ready.code + ')']);
-    })];
-    if (isApi()) pending.push(networkPara(r));
-    pending.push(client.me().then(function (res) {
-      if (res.status !== 200 || !res.data) {
-        r.set(who, '로그인', errLines(res).concat(['로그인은 로그인 화면(login.html)에서 해요. 비밀번호는 이 대화에 쓰지 마세요.']));
-        r.btn('로그인 화면 열기', function (x) { x.dataset.done = '1'; location.href = 'login.html?next=business.html'; }, true);
-        return;
-      }
-      var me = res.data;
-      r.set(who, '로그인', [String(me.username) + ' · 역할 ' + String(me.role) + (me.issuer_id ? ' · 기관 ' + String(me.issuer_id) : '')]);
-      r.btn('로그아웃', function (x) { x.dataset.done = '1'; return client.logout().then(function (o) { say(o.status === 200 ? '로그아웃했어요.' : errLines(o).join(' ')); }); });
-      if (me.role === 'issuer' || me.role === 'operator') governanceButtons(r, me.role);
-      if (me.role !== 'issuer') return;
-      var iss = r.para('기관 상태(/v1/issuer/status · 신청)', ['확인 중…']);
-      return Promise.all([client.get('/v1/issuer/status'), client.get('/v1/issuer-applications/mine')]).then(function (z) {
-        var lines = [];
-        if (z[0].status === 200 && z[0].data) lines.push('기관 ' + z[0].data.issuer_id + ' · 상태 ' + z[0].data.status + ' · 체인 ' + z[0].data.chain_id);
-        else if (client.say(z[0]).code === 'CHAIN_UNAVAILABLE') lines.push('기관 체인 상태(v1 장부)는 읽지 못했어요. wallet 장부만 쓰는 환경에서는 정상이고, 문서 발행·검증에는 영향이 없어요.');
-        else lines = lines.concat(errLines(z[0]));
-        if (z[1].status === 200 && z[1].data) { lines.push('신청 ' + z[1].data.application_id + ' · ' + z[1].data.issuer_name + ' · ' + z[1].data.status); onboardingButtons(r, z[1].data, me); }
-        else if (z[1].status === 200) lines.push('기관 신청 기록이 없어요.');
-        else lines = lines.concat(errLines(z[1]));
-        r.set(iss, '기관 상태(/v1/issuer/status · 신청)', lines);
-      });
-    }));
-    return Promise.all(pending);
+    }), networkPara(r), registrationTrails(r)]);
   }
   function stepLine(r, p) { return function (s) { r.line(p, (s.ok ? '✓ ' : '✕ ') + s.text + (s.ok ? '' : (s.code ? ' (코드: ' + s.code + (s.data && s.data.status ? ' · HTTP ' + s.data.status : '') + ')' : ''))); }; }
   function needWallet(r) { var w = ethFn(); if (!w || typeof w.request !== 'function') { r.para('지갑 필요', ['이 브라우저에는 지갑(window.ethereum)이 없어요. 서명은 기관 지갑에서만 하고, 서버에는 개인키를 보내지 않아요.']); return true; } return false; }
@@ -758,9 +1072,34 @@
       }, function (t) { return T.maskPersonal(t); });
     });
   }
+  function shortHex(h) { h = String(h || ''); return h.length > 12 ? h.slice(0, 6) + '…' + h.slice(-4) : h; }
+  var KEY_STATUS_KO = { ACTIVE: '사용 중', RETIRED: '교체되어 쓰지 않음', COMPROMISED: '유출 신고됨' };
+  var PROPOSAL_STATUS_KO = { PREPARED: '체인 제출 전', PENDING: '승인 진행 중', EXECUTED: '승인 완료 · 실행됨', EXPIRED: '기한 지남', STALE: '다른 제안으로 무효' };
+  // 내부 승인 계정·운영자 계정은 따로 화면이 없어, 그 계정들이 서버·체인에 남긴 일을 기관별로 모아 보여 줌
+  function registrationTrails(r) {
+    var p = r.para('등록 과정', ['확인 중…']);
+    return client.get('/v3/issuer/registrations').then(function (res) {
+      if (res.status !== 200 || !res.data || !Array.isArray(res.data.trails)) return r.set(p, '등록 과정', errLines(res));
+      if (!res.data.trails.length) return r.set(p, '등록 과정', ['기관 신청 기록이 없어요.']);
+      res.data.trails.forEach(function (t, i) {
+        var lines = [
+          '1. 기관 신청 · ' + t.applicant,
+          '2. 업무 메일 인증 · ' + (t.email_verified ? '완료' : '대기'),
+          '3. 기관 내부 승인 · ' + (t.internal_approver ? t.internal_approver + (t.internally_approved ? ' 승인' : ' 반려') : '대기')
+        ];
+        if (!t.proposals.length) lines.push('4. 운영자 등록 제안 · 아직 없음');
+        t.proposals.forEach(function (s) {
+          lines.push('4. 운영자 등록 제안 · ' + s.proposer + ' · 제안 ' + shortHex(s.proposal_id));
+          lines.push('5. 운영자 공동승인 ' + s.approvers.length + '/2 · ' + (s.approvers.length ? s.approvers.join(', ') : '아직 없음') + ' · ' + (PROPOSAL_STATUS_KO[s.status] || s.status));
+        });
+        lines.push('6. 블록체인 등록 · ' + (t.chain_state === 'ACTIVE' ? '활성' : t.chain_state === 'SUSPENDED' ? '정지됨' : '등록 전'));
+        if (i) r.para('등록 과정 · ' + t.issuer_name, lines); else r.set(p, '등록 과정 · ' + t.issuer_name, lines);
+      });
+    });
+  }
   function showKeys() {
     var r = aiMsg();
-    var p = r.para('공개키 관리(GET /v1/issuer/keys)', [isApi() ? '불러오는 중…' : '예시 모드라 서버에 보내지 않아요.']);
+    var p = r.para('공개키 관리', [isApi() ? '불러오는 중…' : '예시 모드라 서버에 보내지 않아요.']);
     if (!isApi()) { modeButtons(r); return; }
     var start = function () {
       if (needWallet(r)) return;
@@ -770,9 +1109,12 @@
         return wallet.keyProof(stepLine(rr, q));
       });
     };
-    return client.get('/v1/issuer/keys').then(function (res) {
-      if (res.status !== 200 || !Array.isArray(res.data)) r.set(p, '공개키 관리', errLines(res));
-      else r.set(p, '공개키 관리', res.data.length ? res.data.slice(0, 8).map(function (k) { return String(k.key_id).slice(0, 14) + '… · ' + k.status + (k.selected ? ' · 사용 중' : '') + ' · ' + String(k.signer).slice(0, 10) + '…'; }) : ['등록된 키가 없어요.']);
+    // v5 지갑 Registry 의 내 기관 기록: 상태·사용 중인 키·서명 지갑(옛 v1 키 목록은 v5 시연 환경에 없음)
+    return client.get('/v3/issuer/state').then(function (res) {
+      var d = res.status === 200 ? res.data : null;
+      if (!d) r.set(p, '공개키 관리', errLines(res));
+      else r.set(p, '공개키 관리', ['블록체인 기관 상태: ' + (d.state === 'ACTIVE' ? '활성' : '정지됨'), '사용 중인 키: ' + shortHex(d.key_id) + ' · ' + (KEY_STATUS_KO[d.key_status] || d.key_status),
+        '서명 지갑: ' + shortHex(d.signer), '키 등록 블록 #' + d.key_registered_block + ' · 블록 #' + d.block_number + ' 기준']);
       start();
     });
   }
@@ -786,11 +1128,15 @@
         r.set(q, '발행 기록 ' + proofId, res.status === 200 && res.data ? [JSON.stringify(res.data).slice(0, 400)] : errLines(res));
       });
     }
-    var p = r.para('발행 목록(GET /v2/issuer/proofs)', ['불러오는 중…']);
-    return client.get('/v2/issuer/proofs').then(function (res) {
-      if (res.status !== 200 || !Array.isArray(res.data)) r.set(p, '발행 목록', errLines(res));
-      else r.set(p, '발행 목록', res.data.length ? res.data.slice(0, 8).map(function (x) { return x.proof_id + ' · ' + x.proof_type + ' · 등록 ' + x.registration_status + ' · 만료 ' + x.expires_at; }) : ['발행한 Proof 가 없어요.']);
-      r.para(null, ['v3 지갑 발행 문서는 목록 경로가 없어 문서 ID로 찾아요(왼쪽 발행 기록 검색칸에 0x… 입력).']);
+    // v5 지갑 Registry 에 발행한 내 기관 안내문(서버가 보관한 판). 새 버전이 있는 판은 표시
+    var p = r.para('발행 목록', ['불러오는 중…']);
+    return client.get('/v3/issuer/documents').then(function (res) {
+      var list = res.status === 200 && res.data && Array.isArray(res.data.documents) ? res.data.documents : null;
+      if (!list) r.set(p, '발행 목록', errLines(res));
+      else r.set(p, '발행 목록 · ' + list.length + '건', list.length ? list.slice(0, 20).map(function (x, i) {
+        var what = x.amount_minor != null ? Number(x.amount_minor).toLocaleString('ko-KR') + '원' : (x.document_number || '');
+        return (i + 1) + '. ' + (x.summary || x.notice_type) + (what ? ' · ' + what : '') + ' · v' + x.version + (x.version < x.latest_version ? ' · 새 버전 있음' : ' · 최신') + ' · 문서 ' + shortHex(x.document_id);
+      }).concat(list.length > 20 ? ['… 외 ' + (list.length - 20) + '건'] : []) : ['아직 발행한 안내문이 없어요.']);
       if (needWallet(r)) return;
       r.btn('철회 시작(revoke-drafts → revocations)', function () {
         ask('revoke', '철회할 문서 ID(0x + 64자리)와 버전을 "0x… 2" 처럼 입력칸에 넣고 보내 주세요.', function (t) {
@@ -802,25 +1148,59 @@
       });
     });
   }
+  /* 작업 이력 카드: '이용 가능한 기관'과 같은 카드 모양(op-gov). 작업 종류·상태·다음 행동은 쉬운 말로, 작업 번호는 앞부분만.
+     표에 없는 값은 서버 값 그대로 보여 줌(지어내지 않음). */
+  var OP_KIND_KO = { wallet_propose: '기관 등록 제안', wallet_approve: '공동승인', wallet_publish: '안내문 발행', wallet_revoke: '안내문 철회', wallet_suspend: '긴급 정지', wallet_key_proof: '키 보유 증명', publish: '안내문 발행', revoke: '안내문 철회', propose: '기관 등록 제안', approve: '공동승인', suspend: '긴급 정지' };
+  var OP_STATUS = { CONFIRMED: ['완료', 't-ok'], FAILED: ['실패', 't-fail'], REJECTED: ['거절됨', 't-fail'], UNKNOWN: ['확인 필요', 't-caution'], SUBMITTED: ['진행 중', 't-pending'], PENDING: ['진행 중', 't-pending'], QUEUED: ['대기 중', 't-pending'] };
+  var OP_NEXT = { NONE: '할 일 없음', WAIT: '기다리기', RECONCILE: '복구 조회 필요', RETRY: '다시 시도' };
+  function opCard(r, title, list, kindOf) {
+    var box = el('div', 'op-gov');
+    box.append(el('b', null, title + ' · ' + list.length + '건'));
+    list.forEach(function (o, i) {
+      var k = String(kindOf(o) || ''), st = OP_STATUS[o.status] || [String(o.status || '-'), 't-none'];
+      var row = el('div', 'op-gov-row');
+      row.append(el('span', 'op-gov-n', String(i + 1)), el('span', 'op-gov-who', OP_KIND_KO[k] || k || '작업'), el('span', 'op-chip ' + st[1], st[0]),
+        el('span', 'op-body', '작업 번호 ' + String(o.operation_id || '').slice(0, 14) + '… · 다음: ' + (OP_NEXT[o.next_action] || String(o.next_action || '-'))));
+      box.append(row);
+    });
+    r.box.append(box); toBottom();
+    return box;
+  }
+  // 워크스페이스 설정(사이드바 아래 단추, op5_auth.js): 계정·화면 밝기·로그인 상태. 운영자 연결 설정은 기관 상태에 그대로
+  function showSettings() {
+    var r = aiMsg(), A = Hk.auth && Hk.auth.state, me = A && A.me;
+    r.para('워크스페이스', ['OriginProof']);
+    r.para('계정', me && me.username ? loginLine(me) : ['로그인하지 않았어요. 로그인하면 기관 기록 대조와 AI 분석을 쓸 수 있어요.']);
+    if (me && me.username) r.btn('로그아웃', logoutFn);
+    else r.btn('로그인 화면 열기', function (x) { x.dataset.done = '1'; location.href = 'login.html?next=business.html'; }, true);
+    var light = document.documentElement.dataset.theme === 'light';
+    r.para('화면', ['지금 ' + (light ? '밝은 화면' : '어두운 화면') + '이에요.']);
+    r.btn(light ? '어두운 화면으로' : '밝은 화면으로', function (x) { if (window.op5ToggleTheme) window.op5ToggleTheme(); x.dataset.done = '1'; }, true);
+    if (myRole() === 'operator') r.para('운영자', ['연결 주소·서버 상태·보관 선택은 기관 상태 화면에 있어요.']);
+    return Promise.resolve();
+  }
   function showOps() {
     var r = aiMsg();
     var ops = client.readOps();
-    r.para('이 탭에서 만든 지갑 작업(v3)', ops.length ? ops.slice(0, 5).map(function (o) { return o.operation_id + ' · ' + o.kind + ' · ' + o.status + ' · 다음 ' + o.next_action; }) : ['아직 없어요.']);
+    if (ops.length) opCard(r, '이 탭에서 만든 지갑 작업', ops.slice(0, 5), function (o) { return o.kind; });
+    else r.para('이 탭에서 만든 지갑 작업', ['아직 없어요.']);
     ops.slice(0, 3).forEach(function (o) { opButtons(r, o); });
     r.btn('내 확인 기록(보관한 분석) 보기', function () { return showAnalyses(); }, true);
-    r.btn('보관 선택 바꾸기', function () { retainButtons(aiMsg()); }, true);
+    if (staffView()) r.btn('보관 선택 바꾸기', function () { retainButtons(aiMsg()); }, true);
     if (!isApi()) { r.para(null, ['예시 모드라 서버 작업 목록은 부르지 않아요.']); modeButtons(r); return; }
-    var p = r.para('서버 작업 이력(GET /v1/operations)', ['불러오는 중…']);
+    var p = r.para('서버 작업 이력', ['불러오는 중…']);
     return client.get('/v1/operations?limit=5').then(function (res) {
       if (res.status !== 200 || !Array.isArray(res.data)) return r.set(p, '서버 작업 이력', errLines(res));
-      r.set(p, '서버 작업 이력(v1)', res.data.length ? res.data.map(function (o) { return o.operation_id + ' · ' + o.action + ' · ' + o.status + ' · 다음 ' + o.next_action; }) : ['작업이 없어요.']);
+      if (!res.data.length) return r.set(p, '서버 작업 이력', ['작업이 없어요.']);
+      p.remove();
+      opCard(r, '서버 작업 이력', res.data, function (o) { return o.action; });
     });
   }
   function showHelp() {
     var r = aiMsg();
     r.para('도움말', [
       '· 입력칸: 받은 문자·검증 링크·Proof ID 를 붙여 넣고 Enter. 문서 ID 는 {"document_id":"0x…","version":1} 처럼 넣어요.',
-      '· 기관 상태: 연결 모드·주소, 서버 상태, 로그인, 기관 상태',
+      staffView() ? '· 기관 상태: 연결 모드·주소, 서버 상태, 로그인, 기관 상태' : '· 기관 상태: 로그인 아이디, 공개 블록체인 연결 정보, 이용 가능한 기관' + (myRole() === 'issuer' ? ', 내 기관 상태' : ''),
       '· 새 Proof 발행 / 발행 목록(철회) / 공개키 관리(키 증명): 기관 지갑 단계를 대화로 진행',
       '· 작업 이력: 지갑 작업 상태·복구 조회, 내 확인 기록(보관·내려받기·지우기)',
       '· 발행 기록 검색칸: 0x…(문서 ID)·prf_…·ana_…·op_… 를 넣고 Enter',
@@ -863,12 +1243,16 @@
     });
   }
 
-  var MENU = { issue: startIssue, status: showStatus, keys: showKeys, proofs: showProofs, operations: showOps };
+  var MENU = { issue: startIssue, status: showStatus, keys: showKeys, proofs: showProofs, operations: showOps, settings: showSettings };
   window.addEventListener('originproof-action', function (e) {
     var d = e && e.detail ? e.detail : {};
     var fn = MENU[d.key];
     if (!fn) return;
     dropAsk('메뉴 이동');
+    // 기관이 아닌 계정에서는 맨 위 단추가 '새 대화'(op5_auth.js): 빈 확인 화면으로
+    var role = Hk.auth && Hk.auth.state && Hk.auth.state.me ? Hk.auth.state.me.role : null;
+    if (d.key === 'issue' && ((role && role !== 'issuer') || guest())) return newChat();
+    newPage(d.key);
     if (d.key === 'proofs' && d.proofId) return showProofs(d.proofId);
     fn();
   });
@@ -878,6 +1262,7 @@
     if (!b || b.textContent.trim() !== '도움말') return;
     e.preventDefault(); e.stopPropagation();
     dropAsk('도움말');
+    newPage('help');
     showHelp();
   }, true);
   // 시연 프리셋은 입력칸으로 바로 보내므로(op5_presets.js) 먼저 대기를 해제함
@@ -889,10 +1274,15 @@
     var t = e.target;
     if (e.key !== 'Enter' || e.isComposing || !t || !t.matches || !t.matches('#sidebar-root input[aria-label="최근 확인 검색"]')) return;
     e.preventDefault();
+    newPage('search');
     search(t.value);
   });
 
   // 장면 재현(캡처용)에서만 쓰는 손잡이
   var ui = { submitText: function (t) { input.value = t; return submit(); }, menu: function (k) { return MENU[k](); }, showAnalyses: showAnalyses, removeAnalysis: removeAnalysis, client: function () { return client; } };
+  // 시연 버튼이 문서 JSON을 보낼 때 말풍선에는 이름만 보임(날 JSON·가림 처리된 기한 대신)
+  Hk.op5send = function (t, shown) { input.value = t; return submit(shown); };
+  // 시연용 공격 재현(op5_presets.js 'DB 직접 조작'): 서버가 시연 계정에만 여는 경로. 다른 계정·꺼진 서버는 404
+  Hk.op5demoAttack = function (action, account) { return client.write('POST', '/v3/demo/' + action + (account ? '?account=' + encodeURIComponent(account) : ''), {}, { requestId: false }); };
   if (scene) setTimeout(function () { S.run(scene, ui); }, 0);
 })();

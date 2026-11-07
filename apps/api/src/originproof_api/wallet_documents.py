@@ -623,14 +623,38 @@ async def run_verification(service, body, identity):
         await service.commit(db)
     return result
 
+
+def near_miss(expected, contents):
+    """Why nothing matched, without revealing any retained value (no amounts, no document IDs).
+
+    The payee account printed on an official notice is the issuer's public collection account,
+    so saying whether it appears in this issuer's records only tells whether it is official.
+    """
+    if not contents:
+        return ["ISSUER_HAS_NO_RETAINED_RECORDS"]
+    if expected["notice_type"] == "PAYMENT_REQUEST":
+        same_account = [
+            c
+            for c in contents
+            if c.get("payee_account_number") == expected["payee_account_number"]
+            and c.get("currency") == expected["currency"]
+        ]
+        return ["AMOUNT_DIFFERS_FOR_ACCOUNT"] if same_account else ["ACCOUNT_NOT_IN_RECORDS"]
+    return ["DOCUMENT_NUMBER_NOT_IN_RECORDS"]
+
+
 @router.post("/document-lookups", response_model=DocumentLookupResult)
 async def lookup_document(
     body: DocumentLookupRequest,
     request: Request,
-    identity: Annotated[tuple | None, Depends(optional_session)],
+    identity: Identity,
 ):
-    """Track B (#88): match only records this service still retains; the request is not stored."""
+    """Track B (#88): match only records this service still retains; the request is not stored.
+
+    Members only: the miss reasons say whether an account or amount is in an issuer's records.
+    """
     service = runtime(request)
+    service.authorize(request, identity, mutation=False)
     expected = body.key.model_dump()
     async with service.database.session_factory() as db:
         # shortcut: filters one issuer's retained rows in Python; add indexed key columns
@@ -644,7 +668,10 @@ async def lookup_document(
             )
         )
         versions = {}
+        same_type = []
         for row in rows:
+            if row.content.get("notice_type") == expected["notice_type"]:
+                same_type.append(row.content)
             if all(row.content.get(name) == value for name, value in expected.items()):
                 versions.setdefault(row.document_id, []).append(row.version)
     ids = sorted(versions)
@@ -653,7 +680,7 @@ async def lookup_document(
             lookup_status="UNVERIFIED",
             match_count=0,
             document_ids=[],
-            reason_codes=["NO_MATCHING_RETAINED_RECORD"],
+            reason_codes=["NO_MATCHING_RETAINED_RECORD", *near_miss(expected, same_type)],
         )
     if len(ids) > 1:
         return DocumentLookupResult(
