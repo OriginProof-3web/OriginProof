@@ -1,0 +1,21 @@
+@import "./app/beautifui/foundation.css";
+@import "./app/beautifui/sidebar-nav.css";
+#sidebar-root{height:100vh;position:sticky;top:0;background:var(--page);font-size:14px;line-height:1.5;font-family:var(--font-inter,ui-sans-serif),system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+
+#sidebar-root,.sidebar-menu-theme{
+  font-feature-settings:"cv11","ss01";
+  font-size:14px;
+  letter-spacing:-0.01em;
+  line-height:1.5;
+  text-rendering:optimizeLegibility;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+@media(prefers-reduced-motion:reduce){
+  #sidebar-root *,#sidebar-root *::before,#sidebar-root *::after,
+  .sidebar-menu-theme *,.sidebar-menu-theme *::before,.sidebar-menu-theme *::after{
+    animation-duration:0.01ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:0.01ms!important;
+  }
+}

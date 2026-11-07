@@ -1,0 +1,22 @@
+<!doctype html><meta charset="utf-8"><title>입력 검사 캡처용</title>
+<!-- 캡처 전용: 5안 화면(페이지/business.html)을 그대로 열고 D 미디어 검사 자료를 끌어 놓은 상태를 만든다. 화면 코드는 바꾸지 않는다. -->
+<style>html,body{margin:0;height:100%}iframe{border:0;width:100%;height:100%}</style>
+<iframe id="f" src="../페이지/business.html"></iframe>
+<script>
+const SETS={
+  images:[['clear.png','image/png'],['blurred.png','image/png'],['tiny.png','image/png'],['truncated.png','image/png'],['animated.png','image/png']],
+  audio:[['tone.wav','audio/wav'],['silence.wav','audio/wav'],['clipped.wav','audio/wav'],['float.wav','audio/wav'],['partial-frame.wav','audio/wav']],
+  other:[['notice.jpg','image/jpeg'],['orientation.jpg','image/jpeg'],['wrong-mime.png','image/jpeg']]
+};
+const q=new URLSearchParams(location.search),set=q.get('set')==='text'?[]:(SETS[q.get('set')]||SETS.images),extra=q.get('extra');
+document.getElementById('f').addEventListener('load',async()=>{
+  const w=document.getElementById('f').contentWindow;
+  if(q.get('theme'))w.document.documentElement.dataset.theme=q.get('theme');
+  if(q.get('set')==='text'){ // 텍스트 입력: 예시 '금액 변조' 문자를 채팅칸에 넣고 보냄
+    const s=(w.SAMPLE_DATA||[]).find(x=>x.id==='tamper');const i=w.document.getElementById('chatInput');i.value=s?s.input.text:'';i.dispatchEvent(new w.Event('input'));w.document.getElementById('composer').requestSubmit();return}
+  const dt=new w.DataTransfer();
+  for(const [n,t] of set){const b=await (await fetch('media_safety_v1/'+n)).blob();dt.items.add(new w.File([b],n,{type:t}))}
+  if(extra==='pdf-mp3'){dt.items.add(new w.File(['%PDF-1.4'],'고지서.pdf',{type:'application/pdf'}));dt.items.add(new w.File([new Uint8Array([0x49,0x44,0x33,3,0])],'녹음.mp3',{type:'audio/mpeg'}))}
+  w.dispatchEvent(new w.DragEvent('dragenter',{dataTransfer:dt}));w.dispatchEvent(new w.DragEvent('drop',{dataTransfer:dt,cancelable:true}));
+});
+</script>

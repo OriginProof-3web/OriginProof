@@ -1,0 +1,1288 @@
+/* 5안 화면 연결 (business.html 에 이미 있는 칸·단추에 기능만 붙임).
+   - 디자인 변경 없음: 새 CSS 클래스·카드·패널·단추 자리 없음. 결과는 기존 말풍선(.msg-user/.msg-ai .bubble) 모양,
+     AI 말풍선 안 단추는 기존 '＋ 파일 추가' 단추 모양(.add-btn), 모드 칩은 기존 '연결 전' 칩 모양(.tag-offline),
+     직원 칩은 기존 .st 상태(대기·확인 중·확인됨·연결 전 + 같은 모양 '문제 찾음').
+   - 첫 화면은 그대로: 이 파일은 불러올 때 DOM·문구를 바꾸지 않고 이벤트만 붙임(서버도 부르지 않음).
+     ?demo=장면 이 있을 때만 캡처용 장면을 재현함(js/op5_scenes.js, 가짜 응답·저장소에 안 남김).
+   - 왼쪽 사이드바(business.bundle.js)는 고치지 않음: 메뉴는 그 번들이 보내는 'originproof-action' 이벤트,
+     도움말·검색칸은 바깥에서 이벤트로 받음.
+   - 입력칸·보내기: business.html 안쪽 스크립트의 '연결 전' 답 대신 이 파일이 답하도록, 같은 이벤트를 먼저(capture) 받아 처리. */
+(function () {
+  'use strict';
+  var Hk = window.Hk;
+  if (!Hk || !Hk.op5 || !Hk.text || !Hk.createConnection) return;
+  var T = Hk.text, O = Hk.op5;
+  var $ = function (id) { return document.getElementById(id); };
+  var thread = $('chatThread'), scroll = $('chatScroll'), input = $('chatInput'), form = $('composer'), hint = $('composerHint');
+  if (!thread || !input || !form) return;
+
+  var Q = new URLSearchParams(location.search);
+  var S = Hk.op5scenes;
+  var scene = S && S.valid(Q.get('demo')) ? Q.get('demo') : '';
+  var fileMode = location.protocol === 'file:' && !scene;
+  // 시연용 AI 지연 대체(기본 꺼짐): ?demo_ai_fallback=5 처럼 명시했을 때만. 3~10초로 제한(api_adapter.js demoFallbackSec). 장면 재현에서는 안 씀
+  var demoAiSec = !scene && Hk.api && Hk.api.demoFallbackSec ? Hk.api.demoFallbackSec(Q.get('demo_ai_fallback')) : 0;
+
+  /* ---------------- 저장소(장면이면 메모리만) ---------------- */
+  function memStore() { var m = {}; return { getItem: function (k) { return k in m ? m[k] : null; }, setItem: function (k, v) { m[k] = String(v); }, removeItem: function (k) { delete m[k]; } }; }
+  function safe(name) { try { var s = window[name]; s.getItem('op5'); return s; } catch (e) { return memStore(); } }
+  var LS = scene ? memStore() : safe('localStorage');
+  var SS = scene ? memStore() : safe('sessionStorage');
+  var store = Hk.createSettingsStore(LS);
+  var BASE_KEY = 'op5.apiBase', RETAIN_KEY = 'op5.retain';
+  function getBase() { var v = T.storageGet(LS, BASE_KEY); var p = v ? O.parseBase(v) : null; return p && p.ok ? p.value : '/api'; }
+  var retain = (function () { try { var r = JSON.parse(T.storageGet(LS, RETAIN_KEY) || '{}'); return { report: r.report === true, original: r.original === true }; } catch (e) { return { report: false, original: false }; } })();
+  function saveRetain() { T.storageSet(LS, RETAIN_KEY, JSON.stringify(retain)); }
+  if (scene) { store.get().mode = S.mode(scene); store.save(); }
+  else if (Q.get('mode') === 'api' || Q.get('mode') === 'sample') { store.get().mode = Q.get('mode'); store.save(); }
+
+  // 예시 모드의 마지막 안전장치: 진행 중이던 흐름이 전환 뒤 이어져도 서버로 나가지 않음(op5_auth.js 의 로그인 확인은 별도)
+  var fetchFn = scene ? S.fetchFor(scene) : function (u, i) {
+    // 비로그인 개인 화면의 공개 목록(블록체인 연결 정보·활성 기관)만 예외: 로그인 없이 읽는 GET 두 개
+    var pub = guest() && !(i && i.method && i.method !== 'GET') && /\/v1\/chain\/(network|issuers)$/.test(String(u));
+    if (!isApi() && !pub) { var e = new Error('sample mode'); e.name = 'SampleMode'; return Promise.reject(e); }
+    return window.fetch(u, i).then(function (r) {
+      if (r && r.status === 401 && !/\/auth\/login$/.test(String(u)) && Hk.auth && Hk.auth.expired) Hk.auth.expired();
+      return r;
+    });
+  };
+  var ethFn = scene ? function () { return S.ethereum(scene); } : function () { return window.ethereum; };
+  var client, wallet, conn;
+  function rebuild() {
+    client = O.createClient({ fetch: fetchFn, base: getBase(), opStore: SS, fileMode: fileMode, timeoutMs: 25000 });
+    wallet = O.createWallet({ client: client, ethereum: ethFn });
+    conn = Hk.createConnection({
+      store: store, fetch: fetchFn,
+      createApi: function (o) {
+        var a = Hk.createApiAdapter({
+          fetch: fetchFn, base: getBase(), csrf: client.csrf, retain: function () { return retain; }, isDeleted: client.isDeleted,
+          loginWhy: '분석은 로그인이 필요해요. 왼쪽 메뉴 기관 상태에서 로그인 화면을 열어 주세요.',
+          timeoutMs: 25000, pollMs: scene ? 30 : 2000, demoAiFallbackSec: demoAiSec
+        });
+        a.serverUrl = o.serverUrl;
+        return a;
+      },
+      checkConnection: function () { return client.health(); }
+    });
+  }
+  rebuild();
+  function isApi() { return conn.mode() === 'api'; }
+  function paintHint() { if (hint) hint.textContent = 'Enter 보내기 · Shift+Enter 줄바꿈 · ' + (isApi() ? '실서버 모드(' + getBase() + ')' + (demoAiSec ? ' · 시연 AI 대체 ' + demoAiSec + '초 켜짐(준비된 시연 응답)' : '') : '예시 모드(예시 응답)'); }
+  if (isApi()) paintHint();
+  if (Hk.auth && Hk.auth.checked) Hk.auth.checked.then(function () { if (isApi()) paintHint(); });
+  Hk.op5live = function () { return !scene && isApi(); };   // 시연 버튼이 실서버 모드인지 볼 때 씀
+
+  /* ---------------- 말풍선 (기존 모양 그대로) ---------------- */
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function toBottom() { scroll.scrollTop = scroll.scrollHeight; }
+  function clearEmpty() { var e = $('chatEmpty'); if (e) e.remove(); }
+  /* 화면(페이지) 나누기: 메뉴(기관 상태·작업 이력 등)를 누르면 대화창을 비우고 그 메뉴 내용만 보여 줌.
+     메뉴 화면에서 문자를 보내면 새 확인 화면으로 시작. '새 대화'는 처음 빈 화면으로 돌아감. */
+  var emptyNode = $('chatEmpty'), page = 'chat';   // 처음 빈 화면 요소(지워져도 다시 붙여 씀)
+  /* 대화 보관: 확인한 대화는 화면을 바꿔도 지우지 않고 왼쪽 '발행 기록' 목록에 남겨, 눌러서 그 자리로 돌아감.
+     이 탭 메모리에만 있음(새로고침하면 사라짐, 서버·저장소에 보내지 않음). 제목은 개인정보를 가린 첫 문장. */
+  var sessions = [], cur = null, seq = 0;
+  function stash() {
+    if (page !== 'chat' || !cur) return;
+    cur.nodes = Array.prototype.slice.call(thread.childNodes).filter(function (n) { return n !== emptyNode; });
+  }
+  function ensureSession(text) {
+    if (cur) return cur;
+    cur = { id: ++seq, title: String(text || '확인').replace(/\s+/g, ' ').trim().slice(0, 24) || '확인', nodes: [] };
+    sessions.unshift(cur); if (sessions.length > 20) sessions.length = 20;
+    paintRecents();
+    return cur;
+  }
+  // 응답이 늦게 와서 그 사이 다른 화면으로 옮겼으면, 말풍선을 그 대화의 보관분에 붙임(지금 화면에 섞이지 않게)
+  function inSession(sess, fn) {
+    if (!sess || (sess === cur && page === 'chat')) return fn();
+    var saved = thread, tmp = el('div');
+    thread = tmp;
+    try { return fn(); } finally { thread = saved; sess.nodes = sess.nodes.concat(Array.prototype.slice.call(tmp.childNodes)); }
+  }
+  function newPage(kind) { stash(); thread.replaceChildren(); page = kind; if (kind === 'chat') cur = null; paintRecents(); toBottom(); }
+  function newChat() {
+    stash(); cur = null;
+    thread.replaceChildren(); page = 'chat';
+    if (emptyNode) thread.append(emptyNode);
+    paintRecents(); toBottom(); if (input) input.focus();
+  }
+  function openSession(sess) {
+    stash(); dropAsk('기록 열기');
+    thread.replaceChildren(); page = 'chat'; cur = sess;
+    sess.nodes.forEach(function (n) { thread.append(n); });
+    paintRecents(); toBottom();
+  }
+  // 왼쪽 '발행 기록' 목록(번들이 비워 둔 자리)에 같은 모양의 줄 단추로 그림. 번들이 다시 그려도 다시 채움
+  // 번들(business.bundle.css)에 이미 있는 메뉴 줄 클래스 그대로(새 스타일 없음)
+  var ROW = 'sidebar-row relative z-10 mx-2 flex h-8 items-center rounded-[8px] px-2 text-left transition-[width,background-color,color,transform] duration-150 active:scale-[0.98]';
+  var ROW_TEXT = 'sidebar-copy min-w-0 flex-1 truncate text-[14px] font-medium text-ink-2';
+  function recentsBox() {
+    var side = $('sidebar-root'); if (!side || !side.querySelectorAll) return null;
+    var hdr = Array.prototype.filter.call(side.querySelectorAll('span'), function (e) { return e.childElementCount === 0 && e.textContent.trim() === '발행 기록'; })[0];
+    var sec = hdr && hdr.closest ? hdr.closest('.mt-3') : null;
+    if (!sec) return null;
+    var lists = sec.querySelectorAll('.gap-px');
+    return lists.length ? lists[lists.length - 1] : null;
+  }
+  var painting = false;
+  function paintRecents() {
+    var box = recentsBox(); if (!box) return;
+    painting = true;
+    Array.prototype.slice.call(box.querySelectorAll('[data-op5-recent]')).forEach(function (n) { n.remove(); });
+    sessions.forEach(function (sess) {
+      var b = el('button', ROW + (sess === cur && page === 'chat' ? ' bg-hover-2' : ''));
+      b.type = 'button'; b.setAttribute('data-op5-recent', String(sess.id)); b.title = sess.title;
+      b.append(el('span', ROW_TEXT, sess.title));
+      b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); openSession(sess); });
+      box.append(b);
+    });
+    painting = false;
+  }
+  // 시험·장면 재현용: 보관한 대화 목록과 열기(화면 단추와 같은 동작)
+  Hk.op5sessions = function () { return sessions.map(function (x) { return { title: x.title, open: function () { openSession(x); } }; }); };
+  (function watchSidebar() {
+    var side = $('sidebar-root');
+    if (side && window.MutationObserver) new MutationObserver(function () { if (!painting && sessions.length && recentsBox() && !recentsBox().querySelector('[data-op5-recent]')) paintRecents(); }).observe(side, { childList: true, subtree: true });
+  })();
+  function userMsg(text) {
+    clearEmpty();
+    var m = el('div', 'msg msg-user');
+    m.append(el('div', 'bubble', text));
+    thread.append(m); toBottom();
+  }
+  function modeTag() { return scene ? '장면 재현 · 가짜 응답' : isApi() ? '실서버 모드' : '예시 모드'; }
+  /* AI 말풍선: para(제목, 줄들) 로 글 묶음, btn(글, 할 일) 로 기존 모양 단추 */
+  function aiMsg(tag) {
+    clearEmpty();
+    var m = el('div', 'msg msg-ai');
+    var w = el('div', 'who');
+    var tm = el('span', 'op-time'); tm.hidden = true;   // 걸린 시간(답이 오면 채움)
+    w.append(el('i', null, '✓'), el('span', null, 'OriginProof AI'), tm, el('span', 'tag-offline', tag || modeTag()));
+    var b = el('div', 'bubble');
+    m.append(w, b); thread.append(m); toBottom();
+    var api = {
+      msg: m,
+      time: tm,
+      box: b,
+      para: function (title, lines) {
+        var p = el('p');
+        api.set(p, title, lines);
+        b.append(p); toBottom();
+        return p;
+      },
+      set: function (p, title, lines) {
+        p.replaceChildren();
+        if (title) { p.append(el('b', null, title)); if (lines && lines.length) p.append(el('br')); }
+        (lines || []).forEach(function (l, i) { if (i) p.append(el('br')); p.append(document.createTextNode(String(l))); });
+        toBottom();
+      },
+      line: function (p, text) { if (p.childNodes.length) p.append(el('br')); p.append(document.createTextNode(String(text))); toBottom(); },
+      // local=true: 서버를 부르지 않는 단추. 그 밖의 단추는 누르는 순간 모드를 다시 확인함(이전 말풍선·저장된 작업 포함)
+      btn: function (label, fn, local) {
+        var x = el('button', 'add-btn', label);
+        x.type = 'button';
+        x.addEventListener('click', function () {
+          if (x.disabled) return;
+          if (!local && !isApi()) { exampleOnly(label); return; }
+          x.disabled = true;
+          Promise.resolve().then(function () { return fn(x); }).catch(function () { say('처리 중 오류가 났어요. 다시 해 주세요.'); }).then(function () { if (!x.dataset.done) x.disabled = false; });
+        });
+        b.append(x); toBottom();
+        return x;
+      }
+    };
+    return api;
+  }
+  function say(text, title) { var r = aiMsg(); r.para(title || null, [text]); return r; }
+  // 답을 기다리는 동안 'OriginProof AI' 아래에서 도는 표시. 돌려준 함수를 부르면 지움(다른 대화로 옮겨 보관된 경우 포함)
+  function pendingMsg(tag) {
+    var r = aiMsg(tag), sess = cur;
+    r.box.setAttribute('role', 'status');
+    r.box.append(el('span', 'op-spin'), el('span', 'op-spin-text', '확인하고 있어요…'));
+    return function () { r.msg.remove(); if (sess) sess.nodes = sess.nodes.filter(function (n) { return n !== r.msg; }); };
+  }
+  function codeLine(e) { return e && e.code ? '코드: ' + e.code + (e.status ? ' · HTTP ' + e.status : '') + (e.retryAfter != null ? ' · Retry-After ' + e.retryAfter + '초' : '') : ''; }
+  function errLines(res) { var e = client.say(res); return [e.text, codeLine(e)].filter(Boolean); }
+
+  /* ---------------- 오른쪽 직원 7칩 (기존 .st 모양) ---------------- */
+  var IDS = ['intake', 'ledger', 'signature', 'original', 'status', 'ai', 'report'];
+  var LABEL = { wait: '대기', run: '확인 중', ok: '확인됨', off: '연결 전', bad: '문제 찾음' };
+  var CLS = { wait: 'st st-wait', run: 'st st-run', ok: 'st st-ok', off: 'st st-off', bad: 'st st-run' };
+  var firstWhere = null, finished = {};
+  function rows() { return Array.prototype.slice.call(document.querySelectorAll('#staffList li.staff')); }
+  function chip(id, state, where, final) {
+    var li = rows()[IDS.indexOf(id)];
+    if (!li) return;
+    var st = li.querySelector('.st'), w = li.querySelector('.staff-where');
+    if (!st) return;
+    st.className = CLS[state]; st.textContent = LABEL[state];
+    if (where != null && w) w.textContent = where;
+    if (final || state === 'ok' || state === 'off' || state === 'bad') finished[id] = 1; else delete finished[id];
+    var c = $('staffCount'); if (c) c.textContent = Object.keys(finished).length + '/7';
+  }
+  function resetStaff(note) {
+    if (!firstWhere) firstWhere = rows().map(function (li) { var w = li.querySelector('.staff-where'); return w ? w.textContent : ''; });
+    finished = {};
+    IDS.forEach(function (id, i) { chip(id, 'run', firstWhere[i] || ''); });
+    var n = $('staffNote'); if (n && note) n.textContent = note;
+    var t = $('staffTime'); if (t) { t.textContent = ''; t.hidden = true; }
+  }
+  // 응답 모양 → 기존 칩 5가지. '보류'·'해당 없음' 칩은 화면에 없어(자리 없음) 대기 칩 + 아래 줄 사유 글로 보여 줌
+  function stateOf(tone) { return tone === 'ok' || tone === 'info' ? 'ok' : tone === 'fail' || tone === 'caution' ? 'bad' : tone === 'offline' ? 'off' : 'wait'; }
+  function chipObs(o) { if (o && IDS.indexOf(o.staff) >= 0) chip(o.staff, stateOf(o.tone), o.line1 || '', true); }
+  function animateStaff(list, done) {
+    var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches || !!scene;
+    var i = 0;
+    (function next() {
+      if (i >= list.length) { if (done) done(); return; }
+      chipObs(list[i++]);
+      if (reduce) next(); else setTimeout(next, 220);
+    })();
+  }
+
+  /* ---------------- 첨부: 업로드 경로가 없어 '연결 전' 유지 ---------------- */
+  var atts = {};   // 첨부 고유 번호 → { file, btn, removed, received(서버가 입력을 받음), done }
+  function attachedIds() { return Array.prototype.slice.call(document.querySelectorAll('#fileList .file')).map(function (x) { return x.dataset.attachId; }).filter(Boolean); }
+
+  /* ---------------- 결과 그리기: 블록체인 결정 / AI 설명 두 구역 ---------------- */
+  /* 4축 보고서(3회차 멘토링 C-4 4): 왼쪽 '블록체인 결정(사실)' / 오른쪽 'AI 위험 설명(맥락)'.
+     값은 응답(axes·ai_report) 그대로이고, 없는 값(수법 ID 등)은 지어내지 않고 '연결 전'으로 둔다. */
+  function opRow(x) {
+    var row = el('div', 'op-row');
+    row.append(el('b', null, x.name), el('span', 'op-chip t-' + (x.tone || 'none'), x.status), el('span', 'op-body', x.body));
+    return row;
+  }
+  /* 근거 위치(형광펜): 예시(ai_report.evidence, role)·실서버(계약 AnalysisReport.evidence, source RULE/LLM) 모두
+     Hk.api.evidenceSpans 로 계산 — 코드포인트 위치를 UTF-16 으로 바꾸고, 범위 밖·역순·quote 불일치·겹침은 칠하지 않음.
+     보고서가 없는 예전 모양이면 AI 칸 문구의 따옴표 안 문장을 글에서 (한 번만 나올 때) 찾음. */
+  var NO_SPANS = { spans: [], skipped: [] };
+  function isRisky(a, ai) {
+    var rep = a.ai_report;
+    return rep ? (rep.risk_level === 'HIGH' || rep.risk_level === 'CAUTION') : !!ai && (ai.tone === 'fail' || ai.tone === 'caution');
+  }
+  function riskSpans(a, ai, text) {
+    var calc = Hk.api && Hk.api.evidenceSpans;
+    if (!calc || !text || !isRisky(a, ai)) return NO_SPANS;
+    var rep = a.ai_report;
+    if (rep && Array.isArray(rep.evidence) && rep.evidence.length) {
+      return calc(text, rep.evidence.map(function (e) { return e && e.role === 'request' ? null : e; }));   // 예시 자료의 '요청' 문장은 안 칠함
+    }
+    var qs = [], m = ai && ai.body ? String(ai.body).match(/["“]([^"”]{2,200})["”]/g) : null;
+    (m || []).forEach(function (q) { qs.push({ quote: q.slice(1, -1) }); });
+    return calc(text, qs);
+  }
+  function markedText(text, spans) {
+    var box = el('div', 'op-quote'), at = 0;
+    spans.forEach(function (sp) {
+      if (sp.start > at) box.append(document.createTextNode(text.slice(at, sp.start)));
+      var mk = el('mark', null, text.slice(sp.start, sp.end));
+      if (sp.diff) { mk.className = 'op-diff'; mk.setAttribute('title', '기관 기록과 다른 값'); }
+      if (sp.source === 'RULE' || sp.source === 'LLM') mk.setAttribute('title', '근거 ' + (sp.index + 1));
+      box.append(mk); at = sp.end;
+    });
+    box.append(document.createTextNode(text.slice(at)));
+    return box;
+  }
+  // 근거 한 줄씩(계약 모양만, 예시 자료는 그리지 않음): 근거 n · "문장". 규칙·AI 중 누가 찾았는지·규칙 번호·위치 값은 '자세히'에만 둠
+  function evidenceRows(zone, a) {
+    var rep = a.ai_report, ev = rep && !a.sample && Array.isArray(rep.evidence) ? rep.evidence : [];
+    ev.forEach(function (e, i) {
+      if (!e || typeof e.quote !== 'string') return;
+      var row = el('div', 'op-row');
+      row.append(el('b', null, '근거 ' + (i + 1)), el('span', 'op-body', '“' + T.maskPersonal(e.quote).slice(0, 120) + '”'));
+      zone.append(row);
+    });
+    if (rep && rep.dropped) zone.append(el('p', 'op-tech', '모양이 틀린 근거 ' + rep.dropped + '건은 그리지 않았어요.'));
+  }
+  // 기관 기록과 다른 값(금액·가린 계좌·공문번호)이 받은 글 어디인지. 원래 값은 보여 주지 않음(서버도 알려 주지 않음)
+  function diffSpan(text, d) {
+    if (!d || !d.key) return null;
+    if (d.miss === 'AMOUNT_DIFFERS_FOR_ACCOUNT') {
+      var re = /[0-9][0-9,]*\s*원/g, m;
+      while ((m = re.exec(text))) if (Number(m[0].replace(/[^0-9]/g, '')) === d.key.amount_minor) return { start: m.index, end: m.index + m[0].length, diff: true };
+      return null;
+    }
+    var tok = d.miss === 'ACCOUNT_NOT_IN_RECORDS' ? '(계좌번호 가림)' : d.key.document_number;
+    var i = tok ? text.indexOf(tok) : -1;
+    return i < 0 ? null : { start: i, end: i + tok.length, diff: true };
+  }
+  // 블록체인 증거 한 줄: 확인한 블록·Registry 계약·기관 키(응답 값 그대로). Sepolia 면 Etherscan 링크
+  function chainLine(p) {
+    var short = function (h) { h = String(h || ''); return h.length > 12 ? h.slice(0, 6) + '…' + h.slice(-4) : h; };
+    var sepolia = String(p.chain_id) === '11155111';
+    var line = el('p', 'op-chainline');
+    line.append(document.createTextNode((sepolia ? 'Sepolia' : String(p.chain_id) === '31337' ? '로컬 체인(Anvil)' : '체인 ' + p.chain_id) + ' · 블록 #' + p.block + ' 기준 · 계약 ' + short(p.contract) + (p.key_id ? ' · 기관 키 ' + short(p.key_id) : '')));
+    if (sepolia) { var k = el('a', null, ' Etherscan에서 보기'); k.href = 'https://sepolia.etherscan.io/address/' + p.contract; k.target = '_blank'; k.rel = 'noopener noreferrer'; line.append(k); }
+    return line;
+  }
+  function chainButton(zone, a) {
+    var out = el('p', 'op-foot');
+    var b = el('button', 'add-btn', '내 브라우저에서 체인 직접 대조하기');
+    b.type = 'button';
+    b.title = 'OriginProof 서버를 거치지 않고 블록체인 RPC 에 직접 물어 서버 응답과 같은지 비교해요';
+    b.addEventListener('click', function () {
+      if (!Hk.chain) { out.textContent = '체인 확인 도구를 불러오지 못했어요.'; return; }
+      if (a.sample === false && !isApi()) { out.textContent = '지금은 예시 모드라 바깥으로 묻지 않아요. 실서버 모드에서 다시 눌러 주세요.'; return; }
+      b.disabled = true; out.textContent = '체인에 직접 묻는 중…';
+      Hk.chain.verify({ answer: a, settings: Hk.chain.createStore(LS).get(), fetch: function (u, i) { return window.fetch(u, i); } }).then(function (res) {
+        out.replaceChildren(el('b', null, '[' + res.shape + '] ' + res.headline), el('br'), document.createTextNode(res.body));
+        (res.rows || []).forEach(function (x) { out.append(el('br'), document.createTextNode('· ' + x.label + (x.server != null ? ': 서버 ' + x.server + ' / 체인 ' + x.chain : ''))); });
+        (res.links || []).forEach(function (l) { var k = el('a', null, l.label); k.href = l.href; k.target = '_blank'; k.rel = 'noopener noreferrer'; out.append(el('br'), k); });
+      }).then(function () { b.disabled = false; toBottom(); });
+    });
+    zone.append(b, out);
+  }
+  /* 최종 판단(한눈에): 블록체인 세 칸(공식 발행·원본 일치·현재 상태)만으로 정함. AI 는 진위를 정하지 않음.
+     - 한 칸이라도 문제(fail) → 가짜이거나 바뀐 안내문
+     - 세 칸 모두 확인(ok) → 진짜(원본 찾기면 '읽은 항목이 진짜 기록과 같음')
+     - 연결 문제(서버·체인에 묻지 못함, offline) → 지금은 확인 못 함
+     - 우리 서비스 기록으로 확인할 수 없음(미등록 기관·기록 없음·못 읽음) → '확인할 수 없어요' + 이유. 가짜라고 하지 않음
+       (기관 기록과 금액·계좌·공문번호가 다를 때만 '기록과 다름', 원본 찾기 결과의 conclusion.verdict 를 그대로 씀)
+     AI 가 주의·위험이면 요약에도 반영: 진짜면 '진짜 · 위험 요구/주의'로 바꾸고 AI가 짚은 문장을 보여 줌,
+     확인 불가면 표시에 AI 결과를 붙임, 그 밖에는 한 줄을 덧붙임. 블록체인 칸의 서버 판정 값은 바꾸지 않음. */
+  function verdictOf(a, fact, ai) {
+    var tones = fact.map(function (x) { return x.tone; });
+    var lookup = fact.some(function (x) { return x.status === '읽은 항목 일치'; });
+    var v;
+    if (a.conclusion && a.conclusion.verdict) v = Object.assign({}, a.conclusion.verdict);
+    else if (a.verification_status === 'NOT_REGISTERED') v = { tone: 'none', chip: '확인 불가', head: '· 확인할 수 없어요 · 등록된 발행 기록이 없어요', sub: 'OriginProof에 등록된 기관이 이 안내문을 발행한 기록이 없어요. 가짜라고 단정할 수는 없지만, 링크를 누르거나 돈을 보내기 전에 기관 공식 번호로 직접 확인하세요.' };
+    else if (tones.indexOf('fail') >= 0) v = { tone: 'fail', head: '✕ 가짜이거나 바뀐 안내문이에요', sub: '이 문자대로 돈을 보내거나 링크를 누르지 마세요.' };
+    else if (fact.length && tones.every(function (t) { return t === 'ok'; })) v = { tone: 'ok', head: '✓ 진짜 안내문이에요', sub: lookup ? '문자에서 읽은 금액·계좌(또는 공문번호)가 기관이 블록체인에 남긴 발행 기록과 같아요. 나머지 문구는 비교하지 않았어요.' : '기관이 블록체인에 남긴 발행 기록·서명·원본과 모두 같고, 지금도 유효해요.' };
+    // 구버전: 발행·원본은 맞으니 '공식 기록으로 확인 안 됨'이 아님
+    else if (fact.some(function (x) { return x.status === '새 버전 있음'; })) v = { tone: 'caution', chip: '새 버전 있음', head: '! 예전 버전 안내문이에요 · 새 버전을 확인하세요', sub: '기관이 실제로 발행했지만 내용을 고친 새 버전이 있어요. 이 안내대로 보내지 말고 새 버전의 금액·기한을 확인하세요.' };
+    else if (a.conclusion && a.conclusion.badge && a.conclusion.badge.tone === 'none') v = { tone: 'none', head: '· 사진으로는 원본과 맞춰 보지 못했어요', sub: a.conclusion.text };   // 대조를 안 한 것(가짜 의심 아님)
+    else if (tones.indexOf('offline') >= 0) v = { tone: 'none', head: '· 지금은 확인하지 못했어요', sub: '서버나 블록체인에 연결하지 못해 판단을 미뤘어요. 잠시 뒤 다시 확인하고, 그 전에는 돈을 보내지 마세요.' };
+    else v = { tone: 'none', chip: '확인 불가', head: '· 확인할 수 없어요', sub: (a.conclusion && a.conclusion.text) || 'OriginProof에 등록된 기관의 발행 기록과 맞춰 볼 수 없었어요. 돈을 보내기 전에 기관 공식 번호로 직접 확인하세요.' };
+    if (ai && (ai.tone === 'caution' || ai.tone === 'fail')) {
+      var risky = ai.tone === 'fail', q = aiQuote(a, ai);
+      if (v.tone === 'ok') {
+        v = { tone: 'caution', chip: risky ? '진짜 · 위험 요구' : '진짜 · 주의',
+          head: risky ? '! 진짜 안내문이지만 위험한 요구가 붙어 있어요' : '! 진짜 안내문이에요 · 덧붙은 요구는 확인하세요',
+          sub: (lookup ? '금액·계좌(또는 공문번호)는 기관이 블록체인에 남긴 발행 기록과 같아요. ' : '기관이 블록체인에 남긴 발행 기록·서명·원본과 같아요. ') +
+            'AI는 ' + (q ? '“' + q + '”' : '덧붙은 요구') + (risky ? '를 위험한 요구로 봤어요. ' : '를 주의할 요구로 봤어요. ') +
+            '이 요구는 따르지 말고 기관 공식 번호로 먼저 확인하세요.' };
+        return v;
+      }
+      if (v.tone === 'none') v.chip = (v.chip || '확인 불가') + ' · ' + (risky ? '위험 요구' : '주의');
+      // AI가 실제로 짚은 문장과 수준(위험/주의)을 그대로 말함. 금액·계좌가 기록과 다른지는 AI가 아니라 블록체인 칸이 판정
+      v.ai = 'AI ' + (risky ? '위험' : '주의') + ': ' + (q ? '“' + q + '”를 ' + (risky ? '위험한 요구로 봤어요.' : '주의할 요구로 봤어요.') : (risky ? '위험한 요구가 있어요.' : '주의할 요구가 있어요.')) +
+        ' 이 요구대로 보내지 말고 기관 공식 번호로 먼저 확인하세요.';
+    }
+    return v;
+  }
+  // AI가 위험하다고 짚은 첫 문장(개인정보 가림, 너무 길면 줄임). 예시 자료의 '요청' 문장은 근거로 쓰지 않음
+  function aiQuote(a, ai) {
+    var ev = a.ai_report && Array.isArray(a.ai_report.evidence) ? a.ai_report.evidence : [];
+    var e = ev.filter(function (x) { return x && typeof x.quote === 'string' && x.role !== 'request'; })[0];
+    var q = e ? e.quote : ((ai && ai.body ? String(ai.body).match(/["“]([^"”]{2,200})["”]/) : null) || [])[1];
+    if (!q) return '';
+    q = T.maskPersonal(q).trim();
+    return q.length > 60 ? q.slice(0, 59) + '…' : q;
+  }
+  function renderReport(r, a) {
+    var c = a.conclusion || { badge: { text: '', tone: 'none' }, text: '' };
+    var axes = Array.isArray(a.axes) ? a.axes : [];
+    var ai = axes.filter(function (x) { return x.axis === 'ai'; })[0];
+    var wrap = el('div', 'op-report');
+    // 맨 위 최종 판단 카드(이용 가능한 기관과 같은 카드 모양)
+    var v = verdictOf(a, axes.filter(function (x) { return x.axis !== 'ai'; }), ai);
+    var vbox = el('div', 'op-gov op-verdict');
+    var vrow = el('div', 'op-gov-row');
+    vrow.append(el('span', 'op-gov-n', '요약'), el('span', 'op-gov-who', v.head), el('span', 'op-chip t-' + v.tone, v.chip || (v.tone === 'ok' ? '진짜' : v.tone === 'fail' ? '가짜·변조' : v.tone === 'caution' ? '주의' : '확인 못 함')), el('span', 'op-body', v.sub));
+    vbox.append(vrow);
+    if (v.ai) vbox.append(el('p', 'op-foot', v.ai));
+    r.box.append(vbox);
+
+    var fact = el('section', 'op-zone op-fact');
+    fact.setAttribute('aria-label', '블록체인 결정');
+    fact.append(el('span', 'op-zone-tag', 'Blockchain & Crypto Core'), el('h4', null, '블록체인 결정 · 사실'));
+    // 종합 결론(사실+맥락)은 두 구역 위에 한 줄로
+    var concl = el('p', 'op-concl');
+    concl.append(el('b', null, '종합 '), el('span', 'op-chip t-' + (c.badge.tone || 'none'), c.badge.text || '-'));
+    r.box.append(concl);
+    axes.filter(function (x) { return x.axis !== 'ai'; }).forEach(function (x) { fact.append(opRow(x)); if (x.axis === 'official' && a.chain_proof) fact.append(chainLine(a.chain_proof)); });
+    // 기관 기록과 다른 값(금액·계좌·공문번호)은 블록체인 대조가 찾은 것이라 이 칸에 둠(AI 칸에 두면 AI 근거처럼 보임). 원래 값은 보여 주지 않음
+    var text = a.input && typeof a.input.text === 'string' && !O.docInput(a) ? a.input.text : '';
+    var dsp = text ? diffSpan(text, a.lookup_diff) : null;
+    if (dsp) { var dl = el('p', 'op-tech', '받은 글에서 기관 기록과 다른 값: '); dl.append(el('span', 'op-diff', text.slice(dsp.start, dsp.end))); fact.append(dl); }
+    fact.append(el('p', 'op-foot', '이 영역은 AI 없이 기관 서명과 블록체인 기록만으로 판정해요. ①공식 발행 ②원본 일치 ③현재 상태'));
+    chainButton(fact, a);
+
+    var aiz = el('section', 'op-zone op-ai');
+    aiz.setAttribute('aria-label', 'AI 위험 설명');
+    aiz.append(el('span', 'op-zone-tag', O.analysisCaption(a)), el('h4', null, 'AI 위험 설명 · 맥락'));
+    if (ai) aiz.append(opRow(ai));
+    var sp = riskSpans(a, ai, text);
+    evidenceRows(aiz, a);
+    if (text) aiz.append(el('p', 'op-tech', sp.spans.length ? '받은 글에서 AI가 짚은 위험 요구 문장을 칠했어요' : '받은 글'), markedText(text, sp.spans));
+    var ids = a.ai_report && Array.isArray(a.ai_report.matched_technique_ids) ? a.ai_report.matched_technique_ids : null;
+    // 4차 멘토링: 'RAG 연결 전' 문구는 빼고, 일치한 수법이 있을 때만 보여 줌
+    if (ids && ids.length) aiz.append(el('p', 'op-tech', '일치한 공개 피싱 수법: ' + ids.join(', ')));
+    aiz.append(el('p', 'op-foot', (ai && ai.note ? ai.note + ' ' : '') + '이 영역은 규칙과 AI가 메시지가 요구하는 행동의 위험을 설명만 해요. 진위 판정과 분리돼요. 확률 숫자는 쓰지 않아요.'));
+
+    wrap.append(fact, aiz);
+    r.box.append(wrap); toBottom();
+    return aiz;
+  }
+
+  // 걸린 시간: 답 이름 옆에는 블록체인 검증 + AI 분석의 합, 직원 확인 현황 아래에는 각각. 요청을 보내지 않은 쪽은 '안 함'
+  function secs(ms) { return (ms / 1000).toFixed(1) + ' s'; }
+  function showTime(r, t) {
+    if (!t || (t.chain_ms == null && t.ai_ms == null)) return;
+    r.time.textContent = secs((t.chain_ms || 0) + (t.ai_ms || 0)); r.time.hidden = false;
+    var s = $('staffTime');
+    if (s) { s.textContent = '블록체인 검증 ' + (t.chain_ms == null ? '안 함' : secs(t.chain_ms)) + ' · AI 분석 ' + (t.ai_ms == null ? '안 함' : secs(t.ai_ms) + (t.ai_prepared ? '(준비된 응답까지)' : '')); s.hidden = false; }
+  }
+  function renderAnswer(a, tag) {
+    var r = aiMsg(tag);
+    showTime(r, a.timing);
+    if (a.ai_replaced) r.para('AI 칸 교체', ['서버 분석 결과가 도착해 위의 준비된 시연 응답을 이 결과로 바꿨어요. 발행 검증 칸은 처음 결과 그대로예요.']);
+    var aiZone = renderReport(r, a);
+    if (a.ai_prepared) r.para('준비된 시연 응답', ['AI 칸은 실제 AI 결과가 아니에요. 실서버 AI 분석이 늦어 미리 준비한 시연 설명을 먼저 보여 줬어요. 실제 결과가 오면 아래에 교체해 보여 드려요.']);
+    if (a.next_action && a.next_action.text) r.para('다음 행동', [a.next_action.text]);
+    if (a.sample) r.para(null, ['예시 응답이에요. ' + (a.assumption || '')]);
+    var files = attachedIds();
+    var sent = files.filter(function (id) { return atts[id] && atts[id].received; }).length;
+    if (sent) r.para(null, ['첨부 ' + sent + '개(문서 사진)는 서버로 보냈어요.']);
+    if (files.length > sent) r.para(null, ['첨부 ' + (files.length - sent) + '개는 서버로 보내지 않았어요. 문서 사진은 \'이 사진 확인하기\' 단추를 눌렀을 때만 보내요.']);
+    if (a.analysis_id && !a.analysis_deleted) {
+      r.para('보관', ['분석 번호 ' + a.analysis_id + ' · 상태 ' + (a.analysis_status || '-'), '보고서 ' + (retain.report ? '7일 보관' : '끝난 뒤 10분만 보관') + ' · 원본 ' + (retain.original ? '7일 보관' : '처리 직후 삭제')]);
+      if (retain.original && a.analysis_status === 'COMPLETED') r.btn('원본 받기', function () { return downloadOriginal(a.analysis_id); });
+    }
+    // 자세히: 이 답 안에서 단추 바로 아래 상자를 열고 닫음(맨 아래로 스크롤하지 않음)
+    var more = null;
+    var mb = r.btn('자세히 보기', function (x) {
+      if (!more) {
+        more = el('div', 'op-more');
+        (a.details || []).forEach(function (row) { more.append(el('p', null, row.label + ': ' + row.value)); });
+        if (!a.details || !a.details.length) more.append(el('p', null, '더 보여 드릴 정보가 없어요.'));
+        r.box.append(more);
+      } else more.hidden = !more.hidden;
+      x.textContent = more.hidden ? '자세히 보기' : '자세히 닫기';
+      x.setAttribute('aria-expanded', more.hidden ? 'false' : 'true');
+    }, true);
+    mb.setAttribute('aria-expanded', 'false');
+    return aiZone;
+  }
+
+  /* ---------------- 입력 → 결과 ---------------- */
+  var running = {};       // 같은 모드·같은 글이 진행 중이면 다시 보내지 않음
+  var awaiting = null;    // 말풍선이 입력을 기다리는 중(초안·거래 해시·철회·주소)
+  var KEEP = {};          // 입력 처리 함수가 돌려주면 같은 입력을 계속 기다림(재입력이 분석으로 새지 않게)
+  function check(text, image, att) {
+    var key = conn.mode() + '|' + (att ? att.id : text);   // 같은 이름의 다른 사진을 하나로 합치지 않음
+    if (running[key]) { say('같은 내용을 이미 확인하고 있어요. 결과가 나오면 여기에 보여 드려요.'); return running[key]; }
+    paintHint();
+    resetStaff(isApi() ? '직원 7명이 실제 응답이 온 순서대로 표시해요.' : '예시 모드: 예시 응답을 직원 순서대로 보여 줘요.');
+    var api = isApi();
+    var sess = cur;
+    var unpend = pendingMsg();
+    var onStaff = api ? function (o) { if (att && o && o.bubble_key === 'intake.received') att.received = true; chipObs(o); } : null;
+    var zone = null;   // 처음 그린 답의 AI 구역(교체 표시용)
+    // 시연 대체(기본 꺼짐) 뒤 실제 결과: 준비 응답 답이 다 그려진 뒤(p) 교체 답을 아래에 그리고 위 AI 칸에 교체 표시
+    var onAiLater = api ? function (ev) {
+      if (!ev || ev.reason === 'deleted') return;      // 지운 분석은 기존 삭제 흐름이 알림
+      p.then(function () {
+        if (ev.replaced && ev.answer) {
+          chipObs(ev.obs);
+          if (zone) zone.append(el('p', 'op-foot', '→ 이 준비된 시연 응답은 아래 서버 분석 결과로 교체됐어요.'));
+          inSession(sess, function () { renderAnswer(ev.answer); });
+          return;
+        }
+        say('서버 분석 결과를 시간 안에 받지 못해 위 AI 칸은 준비된 시연 응답 그대로예요(실제 AI 결과 아님).', '준비된 시연 응답');
+      }, function () {});
+    } : null;
+    var p = conn.check(text, { onStaff: onStaff, image: image || null, onAiLater: onAiLater }).then(function (a) {
+      return new Promise(function (resolve) {
+        animateStaff(Array.isArray(a.staff) ? a.staff : [], function () {
+          var n = $('staffNote');
+          if (n) n.textContent = api ? '실제 응답이 온 순서대로 갱신했어요. 판정은 서버 값 그대로예요.' : '예시 응답이에요. 서버에 보내지 않았어요.';
+          unpend(); inSession(sess, function () { zone = renderAnswer(a); }); resolve(a);
+        });
+      });
+    }, function (e) {
+      IDS.forEach(function (id) { chip(id, 'wait'); });
+      unpend(); inSession(sess, function () { say(e && e.userMessage ? e.userMessage : '입력을 확인하지 못했어요.'); });
+    }).then(function (x) { delete running[key]; return x; }, function (x) { delete running[key]; throw x; });
+    running[key] = p;
+    return p;
+  }
+  /* 시연 버튼(op5_presets.js): 실서버 모드에서도 예시 결과를 보여 줌. 예시 어댑터로만 그리고 서버에는 보내지 않음.
+     예시 자료의 문서 ID는 실서버 장부에 없어서 실서버로 보내면 '기록 없음'으로 잘못 나오기 때문. */
+  function sampleCheck(text) {
+    if (page !== 'chat') newPage('chat');
+    clearEmpty();
+    var sess = ensureSession('예시 · ' + T.maskPersonal(text));
+    userMsg(T.maskPersonal(text));
+    resetStaff('예시 자료: 서버에 보내지 않은 예시 응답을 직원 순서대로 보여 줘요.');
+    var unpend = pendingMsg('예시 자료 · 서버에 보내지 않음');
+    return Hk.sampleAdapter.check(text).then(function (a) {
+      return new Promise(function (resolve) {
+        animateStaff(Array.isArray(a.staff) ? a.staff : [], function () {
+          var n = $('staffNote'); if (n) n.textContent = '예시 응답이에요. 서버에 보내지 않았어요.';
+          unpend(); inSession(sess, function () { renderAnswer(a, '예시 자료 · 서버에 보내지 않음'); }); resolve(a);
+        });
+      });
+    }, function (e) { unpend(); say(e && e.userMessage ? e.userMessage : '예시를 보여 드리지 못했어요.'); });
+  }
+  Hk.op5sampleCheck = sampleCheck;
+  function submit(shown) {
+    var v = Hk.validateInput(input.value);
+    if (!v.ok) { if (input.value.trim()) say(v.message); return null; }
+    var w = awaiting;
+    // 입력칸 글은 지우지 않고 어디로도 보내지 않음(코드·해시가 다른 곳으로 가지 않게). 모드는 op5_auth.js 가 직접 바꾸기도 함
+    if (w && w.mode !== conn.mode()) { awaiting = null; say('모드가 바뀌어 기다리던 입력을 취소했어요. 입력칸의 글은 보내지 않았어요.'); return null; }
+    if (w && w.busy) { say('앞선 입력을 처리하고 있어요. 끝난 뒤 다시 보내 주세요.'); return null; }
+    input.value = '';
+    input.dispatchEvent(new Event('input'));     // 안쪽 스크립트의 높이·보내기 단추 상태 갱신
+    if (w) return answerAsk(w, v.text);
+    if (page !== 'chat') newPage('chat');
+    // 시연 문서 버튼은 날 JSON 대신 안내문(shown)을 말풍선·대화 제목에 씀
+    ensureSession(shown || T.maskPersonal(v.text));
+    userMsg(shown || T.maskPersonal(v.text));
+    return check(v.text);
+  }
+  function answerAsk(w, text) {
+    userMsg(w.mask ? w.mask(text) : T.maskPersonal(text));
+    w.busy = true;
+    return new Promise(function (ok) { ok(w.handle(text)); }).then(function (x) {
+      w.busy = false;
+      if (x !== KEEP && awaiting === w) awaiting = null;
+    }, function () {
+      w.busy = false;
+      if (awaiting === w) awaiting = null;
+      say('처리 중 오류가 났어요. 처음부터 다시 해 주세요.');
+    });
+  }
+  function dropAsk(why) {
+    if (!awaiting) return;
+    awaiting = null;
+    say('기다리던 입력을 취소했어요(' + why + '). 이제 입력칸 글은 일반 확인으로 처리해요.');
+  }
+  function againLine() { return '입력칸에 다시 보내면 같은 곳으로 보내요. 그만두려면 입력 취소를 눌러 주세요.'; }
+  function sayAgain(text) { say(text + ' ' + againLine()); return KEEP; }
+  // 고쳐서 다시 보낼 수 있는 실패만 계속 기다림(연결·서버 오류·형식·횟수 제한). 권한·상태 거부는 끝냄
+  function canRetry(res) { var s = res.status; return !!res.error || !s || s === 400 || s === 422 || s === 429 || s >= 500; }
+  function failInto(rr, p, title, res) {
+    var again = canRetry(res);
+    rr.set(p, title, errLines(res).concat(again ? [againLine()] : []));
+    return again ? KEEP : undefined;
+  }
+  // 오른쪽 패널에 올린 문서 사진(검사 통과) → AI 말풍선의 기존 모양 단추로 DOCUMENT_IMAGE 분석
+  window.addEventListener('op5:image', function (e) {
+    var file = e.detail && e.detail.file, id = e.detail && e.detail.id;
+    if (!file || !id) return;
+    var r = aiMsg();
+    r.para(null, ['「' + file.name + '」 사진의 글자를 읽어 확인할 수 있어요.', isApi() ? '사진은 서버로 보내져 글자를 읽은 뒤 분석해요(서버가 사진 입력을 켜 두어야 해요).' : '예시 모드에서는 사진을 보내지 않아요. 실서버 모드에서 확인할 수 있어요.']);
+    if (!isApi()) return;
+    var att = atts[id] = { id: id, file: file, btn: null, removed: false, received: false, done: false };
+    var name = file.name;
+    att.btn = r.btn('이 사진 확인하기', function (x) {
+      if (att.removed || att.done) return;
+      return O.uploadAttachment(att.file).then(function (u) {
+        if (att.removed) { say('「' + name + '」 사진은 첨부에서 빼서 보내지 않았어요.'); return; }
+        if (!u.ok) { x.textContent = '이 사진 다시 확인하기'; say(u.text); return; }
+        userMsg('[문서 사진] ' + name);
+        return check('[문서 사진] ' + name, u.image, att).then(function (a) {
+          // 분석까지 끝나지 않았으면(입력 거부·서버 오류 등) 같은 단추로 다시 보낼 수 있음
+          if (a && a.analysis_status === 'COMPLETED') { att.done = true; x.dataset.done = '1'; x.textContent = '이 사진은 확인했어요'; }
+          else x.textContent = '이 사진 다시 확인하기';
+        });
+      });
+    });
+  });
+  window.addEventListener('op5:image-removed', function (e) {
+    var att = atts[e.detail && e.detail.id];
+    if (!att) return;
+    att.removed = true; att.file = null;
+    if (att.btn) { att.btn.dataset.done = '1'; att.btn.disabled = true; att.btn.textContent = '첨부에서 뺀 사진이에요'; }
+  });
+  function ask(kind, prompt, handle, mask) {
+    var w = awaiting = { kind: kind, handle: handle, mask: mask, mode: conn.mode(), busy: false };
+    var r = aiMsg();
+    r.para(null, [prompt, '취소하려면 아래 단추를 누르세요.']);
+    r.btn('입력 취소', function (x) { x.dataset.done = '1'; if (awaiting === w) { awaiting = null; say('입력을 취소했어요.'); } else say('이미 끝난 입력이라 취소할 것이 없어요.'); }, true);
+    input.focus();
+    return r;
+  }
+
+  // 안쪽 스크립트보다 먼저 받기(capture): Enter·보내기 단추·한글 조합 끝
+  var composeSend = false;
+  window.addEventListener('keydown', function (e) {
+    if (e.target !== input || e.key !== 'Enter' || e.shiftKey) return;
+    e.stopImmediatePropagation();
+    if (e.isComposing || e.keyCode === 229) { composeSend = true; return; }
+    e.preventDefault(); submit();
+  }, true);
+  window.addEventListener('compositionend', function (e) {
+    if (e.target !== input || !composeSend) return;
+    e.stopImmediatePropagation(); composeSend = false; setTimeout(submit, 0);
+  }, true);
+  window.addEventListener('submit', function (e) {
+    if (e.target !== form) return;
+    e.preventDefault(); e.stopImmediatePropagation(); submit();
+  }, true);
+
+  /* ---------------- 보관/삭제 ---------------- */
+  function save(name, text, type) {
+    try {
+      var url = URL.createObjectURL(new Blob([text], { type: type }));
+      var a = document.createElement('a'); a.href = url; a.download = name; a.hidden = true;
+      document.body.append(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+      return true;
+    } catch (e) { return false; }
+  }
+  function downloadOriginal(id) {
+    return client.original(id).then(function (res) {
+      if (res.ignored) return say('지운 분석이라 늦게 온 응답은 버렸어요.');
+      if (res.status !== 200) return aiMsg().para('원본 받기', errLines(res));
+      save(id + '.txt', res.text || '', 'text/plain;charset=utf-8');
+      say('원본을 내려받았어요(' + id + '.txt).');
+    });
+  }
+  function removeAnalysis(id, btn) {
+    if (btn && btn.dataset.confirm !== '1') { btn.dataset.confirm = '1'; btn.textContent = '정말 지울까요? 한 번 더 누르기'; return; }
+    if (btn) btn.dataset.done = '1';
+    return client.removeAnalysis(id).then(function (res) {
+      if (res.status === 204) return say('분석 ' + id + ' 를 지웠어요. 이 분석에 늦게 오는 응답은 쓰지 않고 버려요.');
+      aiMsg().para('지우기', errLines(res).concat(['이 화면에서는 지운 것으로 보고 늦은 응답을 버려요.']));
+    });
+  }
+  function retainButtons(r) {
+    var p = r.para('보관 선택(다음 분석부터)', [retainText()]);
+    r.btn('보고서 보관 켜기/끄기', function () { retain.report = !retain.report; saveRetain(); r.set(p, '보관 선택(다음 분석부터)', [retainText()]); }, true);
+    r.btn('원본 보관 켜기/끄기', function () { retain.original = !retain.original; saveRetain(); r.set(p, '보관 선택(다음 분석부터)', [retainText()]); }, true);
+  }
+  function retainText() { return 'retain_report ' + (retain.report ? '켬(7일)' : '끔(끝난 뒤 10분)') + ' · retain_original ' + (retain.original ? '켬(7일)' : '끔(처리 직후 삭제)'); }
+  function showAnalyses() {
+    if (!isApi()) return exampleOnly('내 확인 기록(보관한 분석)');
+    var r = aiMsg();
+    var p = r.para('내 확인 기록(GET /v3/analyses)', ['불러오는 중…']);
+    return client.listAnalyses().then(function (res) {
+      if (res.status !== 200 || !res.data || !Array.isArray(res.data.items)) return r.set(p, '내 확인 기록', errLines(res));
+      var items = res.data.items.filter(function (x) { return x && O.RE.ana.test(String(x.analysis_id)) && !client.isDeleted(x.analysis_id); });
+      if (!items.length) return r.set(p, '내 확인 기록', ['보관 중인 분석이 없어요. 보관을 켜고 분석하면 여기에 남아요(보고서 7일).']);
+      r.set(p, '내 확인 기록', items.slice(0, 5).map(function (x) {
+        return x.analysis_id + ' · ' + x.status + ' · 보고서 ' + (x.retain_report ? '보관' : '-') + ' · 원본 ' + (x.retain_original ? '보관' : '-') + (x.result_expires_at ? ' · 보고서 기한 ' + when(x.result_expires_at) : '');
+      }).concat(items.length > 5 ? ['… 외 ' + (items.length - 5) + '건'] : []));
+      items.slice(0, 5).forEach(function (x) {
+        if (x.retain_original) r.btn('원본 받기 ' + x.analysis_id, function () { return downloadOriginal(x.analysis_id); });
+        r.btn('지우기 ' + x.analysis_id, function (b) { return removeAnalysis(x.analysis_id, b); });
+      });
+    });
+  }
+  function when(sec) { try { return new Date(sec * 1000).toLocaleString('ko-KR'); } catch (e) { return String(sec); } }
+
+  /* ---------------- 왼쪽 메뉴 → 말풍선 대화 ---------------- */
+  /* 역할별 화면(대표 지시 2026-11-04): 연결 설정·서버 상태·모드/주소/보관 단추·2-of-3 공동승인 패널은 운영자 화면에만.
+     개인(recipient)·기관(issuer) 화면에는 아이디, 공개 블록체인 연결 정보, 이용 가능한 기관만. 예시 모드는 ?demo=·?mode=sample 로 계속 들어감.
+     권한은 서버가 따로 막음(이 구분은 화면 정리일 뿐). */
+  var lastRole = null;
+  function myRole() {
+    if (lastRole) return lastRole;
+    var m = Hk.auth && Hk.auth.state && Hk.auth.state.me;
+    return m && typeof m.role === 'string' ? m.role : null;
+  }
+  // 비로그인(로그인 확인을 마친 비회원)은 개인 화면과 같게 본다. ?demo= 시연 화면만 예전 그대로
+  function guest() { var A = Hk.auth; return !!(A && A.state && A.state.checked && !A.state.me && !A.demo); }
+  // 운영자, 또는 ?demo= 시연 화면이면 예전 화면 그대로
+  function staffView() { var role = myRole(); return role === 'operator' || (!isApi() && role !== 'recipient' && role !== 'issuer' && !guest()); }
+  function switchMode(to) {
+    var before = conn.mode();
+    if (conn.setMode(to) !== to) return false;   // 비회원 거절 등은 op5_auth.js 가 안내함
+    if (before !== to) dropAsk('모드 변경');
+    paintHint();
+    say(to === 'api' ? '실서버 모드로 바꿨어요. 연결 주소 ' + getBase() + ' 로 보내요.' : '예시 모드로 바꿨어요. 서버에 보내지 않고 예시 응답만 보여요.');
+    return true;
+  }
+  // 단추가 없는 역할의 시험·콘솔용(?mode=sample 과 같은 효과, 서버 권한과 무관)
+  Hk.op5switchMode = function (to) { return to === 'api' || to === 'sample' ? switchMode(to) : false; };
+  function modeButtons(r) {
+    var to = isApi() ? 'sample' : 'api';   // 단추 글자대로만 바꿈(오래된 단추가 반대로 뒤집지 않게)
+    if (to === 'sample' && myRole() !== 'operator') return;   // 개인·기관 화면에는 '예시 모드로 바꾸기' 없음
+    r.btn(to === 'sample' ? '예시 모드로 바꾸기' : '실서버 모드로 바꾸기', function (x) {
+      if (switchMode(to)) x.dataset.done = '1';
+    }, true);
+  }
+  function exampleOnly(what) {
+    var r = aiMsg();
+    r.para(what, ['지금은 예시 모드라 서버에 보내지 않아요. 실서버 모드에서 실제 서버로 보내요.']);
+    modeButtons(r);
+    return r;
+  }
+  /* 기관 화면 보강(3회차 멘토링 C-1 4)·C-2 3)②): 승인 주체 역할 이름, 가스비 배지(지금은 기관 지갑 부담, 서버 중계는 향후 확장), 참여 효과 숫자 카드.
+     실제 승인 현황·통계 API 가 아직 없어서 예시 모드에서만 진행 상태·숫자를 '예시'로 표시하고, 실서버 모드에서는 지어내지 않음. */
+  var APPROVERS = [
+    { n: '승인 노드 #1', who: '공공·도메인 검증원 (KISA 모델)', what: '도메인(.go.kr)과 발송 자격 확인' },
+    { n: '승인 노드 #2', who: '금융·산업 자율규제원 (금융보안원 모델)', what: '법인 실체와 담당자 공문 확인' },
+    { n: '승인 노드 #3', who: '통신·인프라 보안 컨소시엄', what: '기관 공개키 보유 증명과 발신번호 확인' }
+  ];
+  function govPanel(r) {
+    var ex = !isApi();
+    var box = el('div', 'op-gov');
+    box.append(el('b', null, '기관 활성화 · 2-of-3 공동승인' + (ex ? ' (예시 진행)' : '')));
+    APPROVERS.forEach(function (a, i) {
+      var row = el('div', 'op-gov-row');
+      var st = ex ? (i === 0 ? ['서명 완료 1/3', 't-ok'] : i === 1 ? ['서명 완료 2/3 → 기관 활성화', 't-ok'] : ['대기 (정족수 달성으로 불필요)', 't-none']) : ['제안 번호로 조회', 't-none'];
+      row.append(el('span', 'op-gov-n', a.n), el('span', 'op-gov-who', a.who), el('span', 'op-chip ' + st[1], st[0]), el('span', 'op-body', a.what));
+      box.append(row);
+    });
+    box.append(el('p', 'op-foot', '서로 다른 3곳 중 2곳이 각자 지갑으로 서명해야 기관이 활성화돼요. 긴급 정지는 1곳 단독, 재활성화·키 교체는 2-of-3이에요.' + (ex ? ' 기관 이름은 역할 모델이며 실제 기관이 참여한 것은 아니에요.' : ' 실제 승인 현황은 승인 지갑이 등록된 운영자 계정에서 제안 번호로 조회해요.')));
+    r.box.append(box); toBottom();
+  }
+  function roiPanel(r) {
+    var box = el('div', 'op-roi');
+    [['이번 달 공식 발행 증명', '1,240건'], ['사칭·변조 방어', '87건'], ['추정 콜센터 문의 절감', '약 4,350,000원']].forEach(function (c) {
+      var card = el('div', 'op-roi-card'); card.append(el('span', null, c[0]), el('b', null, c[1])); box.append(card);
+    });
+    var wrap = el('div'); wrap.append(el('b', null, '참여 효과'), box, el('p', 'op-foot', '예시 수치예요(실제 통계 아님). 절감액은 문의 1건당 3,500원 기준으로 계산해요. 통계 API 가 생기면 실제 값으로 바뀌어요.'));
+    r.box.append(wrap); toBottom();
+  }
+  function gasBadges(r) {
+    var row = el('div', 'op-badges');
+    row.append(el('span', 'op-badge', 'EIP-712 기관 서명'), el('span', 'op-badge', '가스비: 지금은 기관 지갑이 부담 · 중계자 대납(Relayer)은 향후 확장'), el('span', 'op-badge', '기대 효과(설명): 비대면 금융사고 자율배상·면책 판단 때 증빙 자료로 활용'));
+    r.box.append(row);
+    r.para(null, ['기관 지갑이 서명한 뒤 그 지갑에서 거래를 직접 보내고 가스비도 내요. 서버 중계자(Relayer)가 대신 보내고 가스비를 내는 방식은 지금 꺼져 있어요(향후 확장).']);
+  }
+
+  /* ---------------- 기관 온보딩·공동승인·긴급 정지(말풍선 단추) ----------------
+     계약: docs/api/v5_c_runtime.md 'A: 화면에서 사용할 순서'. 서명·거래는 각자 지갑에서 하고 서버에는 거래 해시만 알린다. */
+  var HEX32 = /^0x[0-9a-f]{64}$/;
+  function networkPara(r) {
+    var p = r.para('체인 네트워크(/v1/chain/network)', ['확인 중…']);
+    return client.get('/v1/chain/network').then(function (res) {
+      if (res.status !== 200 || !res.data) return r.set(p, '체인 네트워크(/v1/chain/network)', errLines(res));
+      var nodes = Array.isArray(res.data.approver_nodes) ? res.data.approver_nodes : [];
+      r.set(p, '체인 네트워크(/v1/chain/network)', [String(res.data.chain_target) + ' · 체인 ' + String(res.data.chain_id) + ' · 예비 RPC ' + (res.data.rpc_fallback_configured ? '있음' : '없음')].concat(nodes.map(function (n) { return String(n.label); })));
+    });
+  }
+  function onboardingLines(v) {
+    return ['명부 일치 ' + (v.roster_matched ? '예' : '아니오') + ' · 메일 확인 ' + (v.email_verified ? '완료' : '전') + ' · 내부 승인 ' + (v.internally_approved ? '완료' : '전')];
+  }
+  function onboardingCall(title, method, path, body) {
+    var rr = aiMsg(); var p = rr.para(title, ['보내는 중…']);
+    return client.write(method, path, body, { requestId: false }).then(function (res) {
+      if (res.status < 200 || res.status >= 300 || !res.data) return failInto(rr, p, title, res);
+      rr.set(p, title, onboardingLines(res.data));
+    });
+  }
+  /* 서버 규칙(wallet_onboarding.py): 상태·메일·받은편지함·코드 확인은 신청자 본인만(:56-67 owner=True, 그 외 404).
+     내부 승인은 같은 기관의 다른 계정 중 지정 승인자만(:225-228). 지정 승인자는 서버 설정이고 응답에 없어
+     화면은 '신청자가 아님'까지만 가림: 계약 보완 필요(C 담당 apps/api). */
+  function onboardingButtons(r, app, me) {
+    var id = String(app.application_id);
+    var known = typeof me.account_id === 'string' && typeof app.applicant_account_id === 'string';
+    var base = '/v3/issuer-applications/' + encodeURIComponent(id);
+    if (known && app.applicant_account_id !== me.account_id) {
+      r.para(null, ['이 기관의 신청은 다른 계정이 진행해요. 내부 승인은 서버에 지정된 승인자만 할 수 있고, 지정 여부는 보냈을 때 서버가 판단해요.']);
+      r.btn('내부 승인하기(지정된 다른 계정)', function () {
+        ask('approve', '승인 사유(500자 이하)를 입력칸에 넣고 보내 주세요.', function (t) {
+          if (t.trim().length > 500) return sayAgain('승인 사유는 500자 이하예요.');
+          return onboardingCall('기관 내부 승인(internal-approvals)', 'POST', base + '/internal-approvals', { decision: 'APPROVE', reason: t.trim() });
+        });
+      });
+      return;
+    }
+    if (!known) return;
+    r.para(null, ['내부 승인은 이 기관의 지정된 다른 계정이 해요. 신청자 본인은 승인할 수 없어요.']);
+    r.btn('온보딩 상태 보기', function () {
+      var rr = aiMsg(); var p = rr.para('온보딩 상태', ['확인 중…']);
+      return client.get(base).then(function (res) { rr.set(p, '온보딩 상태', res.status === 200 && res.data ? onboardingLines(res.data) : errLines(res)); });
+    });
+    r.btn('업무 메일 코드 받기', function () {
+      ask('email', '기관 업무 메일 주소(합성 기관 도메인)를 입력칸에 넣고 보내 주세요.', function (t) {
+        var m = t.trim();
+        if (m.length > 254 || !/^[^\s@]+@[^\s@]+$/.test(m)) return sayAgain('메일 주소 형식이 맞지 않아요.');
+        return onboardingCall('메일 코드 발급(email-codes)', 'POST', base + '/email-codes', { email: m });
+      });
+    });
+    r.btn('데모 받은편지함 보기', function () {
+      var rr = aiMsg(); var p = rr.para('데모 받은편지함(시연 전용)', ['확인 중…']);
+      return client.get(base + '/demo-inbox').then(function (res) {
+        if (res.status !== 200 || !res.data) return rr.set(p, '데모 받은편지함(시연 전용)', errLines(res));
+        rr.set(p, '데모 받은편지함(시연 전용)', [res.data.code ? '확인 코드 ' + String(res.data.code) : '유효한 코드가 없어요.']);
+      });
+    });
+    r.btn('메일 코드 확인', function () {
+      ask('code', '받은 확인 코드 6자리를 입력칸에 넣고 보내 주세요.', function (t) {
+        if (!/^[0-9]{6}$/.test(t.trim())) return sayAgain('확인 코드는 숫자 6자리예요.');
+        return onboardingCall('메일 코드 확인(email-verifications)', 'POST', base + '/email-verifications', { code: t.trim() });
+      }, function () { return '확인 코드(화면에 표시하지 않음)'; });
+    });
+  }
+  // 거래 해시 알리기: 지갑에서 직접 보낸 거래를 서버에 알리고, 작업 번호로 이어 간다
+  function govTx(title, path) {
+    ask('govtx', '지갑에서 보낸 거래 해시(0x + 64자리)를 입력칸에 넣고 보내 주세요.', function (t) {
+      var h = O.parseTxHash(t);
+      if (!h.ok) return sayAgain(h.message);
+      var rr = aiMsg(); var p = rr.para(title, ['보내는 중…']);
+      return client.write('POST', path, { tx_hash: h.value }).then(function (res) {
+        if (res.status !== 202 && res.status !== 200) return failInto(rr, p, title, res);
+        return client.follow(res, 'governance').then(function (r2) {
+          if (r2.error === 'bad_shape' && !r2.before) return rr.set(p, title, errLines(r2).concat(['거래를 다시 보내기 전에 작업 이력에서 먼저 확인해 주세요.']));
+          // 복구 조회가 실패하면 기존 작업 번호·UNKNOWN 을 그대로 두고 오류와 재조회 단추를 보여 줌
+          var op = r2.reconcileFailed ? r2.before : r2.data;
+          rr.set(p, title, ['작업 ' + String(op.operation_id) + ' · 상태 ' + String(op.status)].concat(r2.reconcileFailed ? ['복구 조회를 하지 못했어요. 거래를 다시 보내지 말고 아래 단추로 같은 작업을 다시 조회해 주세요.'].concat(errLines(r2)) : []));
+          opButtons(rr, op);
+        });
+      });
+    });
+  }
+  function showProposal(id) {
+    var r = aiMsg(); var title = '공동승인 제안 ' + id.slice(0, 10) + '…';
+    var p = r.para(title, ['확인 중…']);
+    return client.get('/v3/proposals/' + id).then(function (res) {
+      if (res.status !== 200 || !res.data) return r.set(p, title, errLines(res));
+      var d = res.data, n = Array.isArray(d.approvals) ? d.approvals.length : 0;
+      r.set(p, title, ['상태 ' + String(d.status) + ' · 승인 ' + n + (d.threshold != null ? '/' + String(d.threshold) : '')]);
+      r.btn('승인 거래 알리기', function () { govTx('승인 거래 알림(approvals)', '/v3/proposals/' + id + '/approvals'); });
+      r.btn('실행 거래 알리기', function () { govTx('실행 거래 알림(transactions)', '/v3/proposals/' + id + '/transactions'); });
+    });
+  }
+  /* 서버 규칙(wallet_governance.py): 제안 조회·준비·승인·실행은 승인 지갑이 등록된 operator 만(:126·:250·:361, wallet_runtime.py:105-110).
+     긴급 정지는 operator 또는 자기 기관의 issuer(:430-438). */
+  function governanceButtons(r, role) {
+    if (role === 'operator') r.btn('공동승인 제안 조회', function () {
+      ask('proposal', '제안 번호(0x + 64자리)를 입력칸에 넣고 보내 주세요.', function (t) {
+        var id = t.trim().toLowerCase();
+        return HEX32.test(id) ? showProposal(id) : sayAgain('제안 번호 형식이 맞지 않아요(0x + 64자리).');
+      });
+    });
+    if (role === 'operator') r.btn('공동승인 제안 준비', function () {
+      ask('propose', '제안 JSON({proposal, key_proof_request_id})을 입력칸에 넣고 보내 주세요. request_id 는 화면이 붙여요.', function (t) {
+        var body; try { body = JSON.parse(t); } catch (e) { return sayAgain('JSON 형식이 맞지 않아요.'); }
+        if (!body || typeof body.proposal !== 'object') return sayAgain('proposal 항목이 필요해요.');
+        var rr = aiMsg(); var p = rr.para('공동승인 제안 준비(/v3/proposals)', ['보내는 중…']);
+        return client.write('POST', '/v3/proposals', { proposal: body.proposal, key_proof_request_id: body.key_proof_request_id || null }).then(function (res) {
+          if (res.status !== 201 || !res.data) return failInto(rr, p, '공동승인 제안 준비(/v3/proposals)', res);
+          rr.set(p, '공동승인 제안 준비(/v3/proposals)', ['제안 번호 ' + String(res.data.proposal_id) + ' · 상태 ' + String(res.data.status)]);
+        });
+      });
+    });
+    r.btn('긴급 정지 거래 알리기', function () {
+      ask('issuerid', '정지할 기관 ID(0x + 64자리)를 입력칸에 넣고 보내 주세요. 이어서 지갑에서 보낸 거래 해시를 받아요.', function (t) {
+        var id = t.trim().toLowerCase();
+        if (!HEX32.test(id)) return sayAgain('기관 ID 형식이 맞지 않아요(0x + 64자리).');
+        govTx('긴급 정지 알림(suspensions)', '/v3/issuers/' + id + '/suspensions');
+      });
+    });
+  }
+
+  /* 공개 블록체인 연결 정보: 체인 이름·ID·등록부 주소는 서버(/v1/chain/network).
+     PUBLIC_REGISTRY 는 서버가 주소를 주지 않을 때(예전 서버)만 쓰는 Sepolia 배포 기록 값
+     (packages/contracts/deployments/11155111.wallet.json, 시험이 원본 파일과 같은지 대조함). */
+  var PUBLIC_REGISTRY = { '11155111': '0xe540bf29622afff40174b76992b016112f372a2e' };
+  function publicChain(r) {
+    var title = '공개 블록체인 연결 정보';
+    var p = r.para(title, ['확인 중…']);
+    return client.get('/v1/chain/network').then(function (res) {
+      var d = res.data;
+      if (res.status !== 200 || !d || !/^[1-9][0-9]{0,15}$/.test(String(d.chain_id))) return r.set(p, title, errLines(res));
+      var id = String(d.chain_id), target = String(d.chain_target);
+      var given = typeof d.registry_address === 'string' && /^0x[0-9a-fA-F]{40}$/.test(d.registry_address) ? d.registry_address : '';
+      var registry = given || (target === 'sepolia' ? PUBLIC_REGISTRY[id] || '' : '');
+      var lines = [];
+      if (target === 'sepolia') lines.push('연결된 블록체인: 이더리움 Sepolia 공개 테스트넷');
+      else if (target === 'anvil') lines.push('연결된 블록체인: 시연용 블록체인');
+      else lines.push('연결된 블록체인: ' + target);
+      // 주소 전체는 Etherscan 링크에 있으니 화면에는 앞뒤만(전문가용)
+      lines.push('등록부 주소(전문가용): ' + (registry ? registry.slice(0, 8) + '…' + registry.slice(-4) : '서버가 아직 알려 주지 않았어요.'));
+      if (target === 'anvil') lines.push('시연용 블록체인이라 공개 탐색기(Etherscan)에서는 볼 수 없어요.');
+      r.set(p, title, lines);
+      if (target === 'sepolia' && registry && Hk.chain && Hk.chain.explorerLinks) {
+        Hk.chain.explorerLinks(id, registry).forEach(function (l) { var k = el('a', null, l.label); k.href = l.href; k.target = '_blank'; k.rel = 'noopener noreferrer'; p.append(el('br'), k); });
+      }
+    });
+  }
+  /* 이용 가능한 기관: 체인에서 지금 활성(ACTIVE)인 기관의 이름만(/v1/chain/issuers, 로그인 없이 공개). 지어낸 목록 없음. */
+  // 서버 상태 값 → 쉬운 말(표에 없는 값은 그대로 보여 줌, 지어내지 않음)
+  var APP_STATUS_KO = { PENDING_REVIEW: '검토 중', APPROVED_PENDING_CHAIN: '승인됨 · 블록체인 등록 대기', REJECTED: '거절됨' };
+  // 공동승인 패널과 같은 카드 모양(op-gov)을 그대로 씀: 기관마다 한 줄, 이름 + '활성' 표시
+  function availableIssuers(r) {
+    var title = '이용 가능한 기관';
+    var box = el('div'), p = el('p');   // 자리를 먼저 잡아 순서를 지키고, 결과가 오면 같은 자리를 카드로 채움
+    box.append(p); r.box.append(box); r.set(p, title, ['확인 중…']);
+    return client.get('/v1/chain/issuers').then(function (res) {
+      var list = res.status === 200 && res.data && Array.isArray(res.data.issuers) ? res.data.issuers : null;
+      if (!list) return r.set(p, title, errLines(res));
+      var names = list.map(function (x) { return x && typeof x.name === 'string' ? x.name : ''; }).filter(Boolean);
+      if (!names.length) return r.set(p, title, ['지금 활성인 기관이 없어요.']);
+      box.replaceChildren(); box.className = 'op-gov';
+      box.append(el('b', null, title + ' · ' + names.length + '곳'));
+      names.forEach(function (name, i) {
+        var row = el('div', 'op-gov-row');
+        row.append(el('span', 'op-gov-n', String(i + 1)), el('span', 'op-gov-who', name), el('span', 'op-chip t-ok', '활성 · 블록체인 확인'), el('span', 'op-body', '이 기관이 발행한 안내문은 원본을 확인할 수 있어요.'));
+        box.append(row);
+      });
+      box.append(el('p', 'op-foot', '블록체인에서 지금 활성으로 확인된 기관만 보여요. 목록에 없는 기관 이름으로 온 문자는 그 기관의 대표번호나 공식 앱으로 직접 확인하세요.'));
+      toBottom();
+    });
+  }
+  // 로그아웃하면 시작 페이지(entry.html)로
+  function logoutFn(x) { x.dataset.done = '1'; return client.logout().then(function (o) { if (o.status === 200) { lastRole = null; say('로그아웃했어요. 시작 페이지로 이동해요.'); setTimeout(function () { location.href = 'entry.html'; }, 600); return; } say(errLines(o).join(' ')); }); }
+  // 아이디는 /v1/auth/me 의 username(계정 이름). 역할 글자는 보여 주지 않음.
+  function loginLine(me) { return ['아이디 ' + String(me.username)]; }
+  function showStatus() {
+    var r = aiMsg();
+    if (!isApi()) {
+      var staff = staffView();
+      if (staff) r.para('연결 설정', ['지금 모드: 예시 모드', '연결 주소: ' + getBase() + (getBase() === '/api' ? ' (같은 출처 프록시)' : ''), retainText()]);
+      if (staff) r.para('서버 상태(/health/live · /health/ready)', ['예시 모드라 서버에 묻지 않았어요.']);
+      if (guest()) r.para('로그인', ['로그인하지 않았어요. 받은 문자를 기관 발행 기록과 정확히 대조하고 AI 분석까지 보려면 로그인해 주세요.']);
+      else r.para('로그인', ['예시 모드라 서버에 묻지 않았어요. 실서버 모드에서 기관 상태까지 확인해요. 로그인은 로그인 화면(login.html)에서 해요.']);
+      if (!guest()) modeButtons(r);
+      if (staff) {
+        r.btn('연결 다시 확인', function () { return showStatus(); }, true);
+        r.btn('연결 주소 바꾸기', function () { changeBase(); }, true);
+        r.btn('보관 선택 바꾸기', function () { retainButtons(aiMsg()); }, true);
+      }
+      r.btn('로그인 화면 열기', function (x) { x.dataset.done = '1'; location.href = 'login.html?next=business.html'; }, true);
+      if (staff) { govPanel(r); roiPanel(r); }
+      // 비로그인: 개인 화면처럼 공개 블록체인 정보·이용 가능한 기관(로그인 없이 읽는 공개 목록)
+      if (guest()) return Promise.all([publicChain(r), availableIssuers(r)]);
+      return Promise.resolve();
+    }
+    var who = r.para('로그인', ['확인 중…']);
+    return client.me().then(function (res) {
+      if (!isApi()) return;   // 기다리는 사이 예시 모드로 바뀌면 멈춤
+      if (res.status !== 200 || !res.data) {
+        lastRole = null;
+        r.set(who, '로그인', errLines(res).concat(['로그인은 로그인 화면(login.html)에서 해요. 비밀번호는 이 대화에 쓰지 마세요.']));
+        r.btn('로그인 화면 열기', function (x) { x.dataset.done = '1'; location.href = 'login.html?next=business.html'; }, true);
+        return Promise.all([publicChain(r), availableIssuers(r)]);
+      }
+      var me = res.data;
+      lastRole = typeof me.role === 'string' ? me.role : null;
+      if (me.role === 'operator') return operatorStatus(r, who, me);
+      r.set(who, '로그인', loginLine(me));
+      r.btn('로그아웃', logoutFn);
+      if (me.role === 'issuer') governanceButtons(r, me.role);
+      var pending = [publicChain(r), availableIssuers(r)];
+      if (me.role !== 'issuer') return Promise.all(pending);
+      var iss = r.para('내 기관 상태 · 신청', ['확인 중…']);
+      // 블록체인 등록 상태는 v3 체인 활성 기관 목록(/v1/chain/issuers, 이름은 합성 기관 명단)으로 판단: 옛 v1 상태 경로는 v5 시연 환경에 없고,
+      // v1 신청서 상태(PENDING_REVIEW)는 v3 등록을 마쳐도 바뀌지 않아 '검토 중'으로 잘못 보였음
+      pending.push(Promise.all([client.get('/v1/chain/issuers'), client.get('/v1/issuer-applications/mine')]).then(function (z) {
+        var lines = [];
+        var app = z[1].status === 200 ? z[1].data : null;
+        var list = z[0].status === 200 && z[0].data && Array.isArray(z[0].data.issuers) ? z[0].data.issuers : null;
+        var active = !!(app && list && list.some(function (x) { return x && x.name === app.issuer_name; }));
+        if (list) lines.push('블록체인 등록 상태: ' + (active ? '활성 · 등록 완료' : '활성 아님(등록 전이거나 정지됨)'));
+        else lines.push('블록체인에 등록된 기관 상태를 지금은 불러오지 못했어요. 문서 발행과 검증은 그대로 쓸 수 있어요.');
+        // 등록을 마친 기관은 신청·메일 인증·내부 승인 단추를 보이지 않음(이미 끝난 단계)
+        if (app) { lines.push('신청 기관 ' + app.issuer_name + ' · ' + (active ? '등록 완료' : (APP_STATUS_KO[app.status] || String(app.status)))); if (!active) onboardingButtons(r, app, me); }
+        else if (z[1].status === 200) lines.push('기관 신청 기록이 없어요.');
+        else lines = lines.concat(errLines(z[1]));
+        r.set(iss, '내 기관 상태 · 신청', lines);
+      }));
+      pending.push(registrationTrails(r));
+      return Promise.all(pending);
+    });
+  }
+  function changeBase() {
+    ask('base', '새 연결 주소를 입력칸에 넣고 보내 주세요. 같은 출처 경로(예: /api) 또는 이 컴퓨터 주소(예: http://127.0.0.1:8000)만 받아요.', function (t) {
+      var b = O.parseBase(t);
+      if (!b.ok) return sayAgain(b.message);
+      T.storageSet(LS, BASE_KEY, b.value); rebuild();
+      say('연결 주소를 ' + b.value + ' 로 바꿨어요.' + (/^https?:/.test(b.value) ? ' 다른 주소는 서버가 이 화면 주소를 허용(CORS·Origin)해야 해요.' : ''));
+    });
+  }
+  // 운영자 화면: 예전 기관 상태 내용 그대로(연결 설정·서버 상태·모드/주소/보관 단추·2-of-3 패널·참여 효과·체인 네트워크·공동승인 단추)
+  function operatorStatus(r, first, me) {
+    r.set(first, '연결 설정', ['지금 모드: 실서버 모드', '연결 주소: ' + getBase() + (getBase() === '/api' ? ' (같은 출처 프록시)' : ''), retainText()]);
+    var h = r.para('서버 상태(/health/live · /health/ready)', ['확인 중…']);
+    r.para('로그인', loginLine(me));
+    r.btn('로그아웃', logoutFn);
+    modeButtons(r);
+    r.btn('연결 다시 확인', function () { return showStatus(); }, true);
+    r.btn('연결 주소 바꾸기', function () { changeBase(); }, true);
+    r.btn('보관 선택 바꾸기', function () { retainButtons(aiMsg()); }, true);
+    govPanel(r);
+    roiPanel(r);
+    governanceButtons(r, me.role);
+    return Promise.all([client.health().then(function (x) {
+      r.set(h, '서버 상태(/health/live · /health/ready)', ['live: ' + x.live.text + ' (' + x.live.code + ')', 'ready: ' + x.ready.text + ' (' + x.ready.code + ')']);
+    }), networkPara(r), registrationTrails(r)]);
+  }
+  function stepLine(r, p) { return function (s) { r.line(p, (s.ok ? '✓ ' : '✕ ') + s.text + (s.ok ? '' : (s.code ? ' (코드: ' + s.code + (s.data && s.data.status ? ' · HTTP ' + s.data.status : '') + ')' : ''))); }; }
+  function needWallet(r) { var w = ethFn(); if (!w || typeof w.request !== 'function') { r.para('지갑 필요', ['이 브라우저에는 지갑(window.ethereum)이 없어요. 서명은 기관 지갑에서만 하고, 서버에는 개인키를 보내지 않아요.']); return true; } return false; }
+  function txButton(r, sr, kind) {
+    r.btn('지갑에서 보낸 거래 해시 알리기', function () {
+      ask('tx', '지갑에서 보낸 거래 해시(0x + 64자리)를 입력칸에 넣고 보내 주세요. 같은 서명 요청 ' + sr.signing_request_id + ' 에 붙여요.', function (t) {
+        var h = O.parseTxHash(t);
+        if (!h.ok) return sayAgain(h.message);
+        var rr = aiMsg(); var p = rr.para('거래 해시 알림(signing-requests/{id}/transactions)', []);
+        return wallet.submitTx(sr.signing_request_id, t, kind).then(function (res) { stepLine(rr, p)(res); opButtons(rr, stepOp(res)); return res.ok || !res.data || stepOp(res) || !canRetry(res.data) ? undefined : KEEP; });
+      });
+    });
+  }
+  function stepOp(res) { return res && res.data && res.data.op; }   // 복구 조회가 실패해도 기존 작업이 있으면 단추를 남김
+  function opButtons(r, op) {
+    if (!op || !O.RE.op.test(String(op.operation_id))) return;
+    r.btn('작업 상태 조회 ' + op.operation_id, function () { return showOperation(op.operation_id); });
+    if (op.status === 'UNKNOWN' || op.status === 'SUBMITTED' || op.next_action === 'RECONCILE') r.btn('복구 조회(reconcile) ' + op.operation_id, function () { return reconcileOp(op.operation_id); });
+  }
+  function showOperation(id) {
+    return client.operation(id).then(function (res) {
+      var r = aiMsg();
+      if (res.error || res.status !== 200 || !res.data) { r.para('작업 ' + id, errLines(res)); r.btn('작업 상태 조회 ' + id, function () { return showOperation(id); }); return; }
+      var op = res.data; client.track(op, 'lookup');
+      r.para('작업 ' + id, ['상태 ' + op.status + ' · 다음 ' + op.next_action + (op.error_code ? ' · 코드 ' + op.error_code : '') + (op.tx_hash ? ' · 거래 ' + op.tx_hash.slice(0, 12) + '…' : ''),
+        op.status === 'UNKNOWN' ? '결과가 불명확해요. 다시 보내지 말고 복구 조회(reconcile)로 기존 거래부터 확인해요.' : op.next_action === 'RESIGN' ? '서명 기한이 지나 새로 서명해야 해요.' : '']);
+      opButtons(r, op);
+    });
+  }
+  function reconcileOp(id) {
+    return client.reconcile(id).then(function (res) {
+      var r = aiMsg();
+      if (res.error || res.status < 200 || res.status >= 300 || !res.data) {
+        // 저장된 상태는 그대로 두고 같은 작업을 다시 조회할 단추를 남김(새로 보내지 않음)
+        r.para('복구 조회 ' + id, errLines(res).concat(['복구 조회를 하지 못했어요. 거래를 다시 보내지 말고 같은 작업을 다시 조회해 주세요.']));
+        opButtons(r, { operation_id: id, status: 'UNKNOWN', next_action: 'RECONCILE' });
+        return;
+      }
+      client.track(res.data, 'reconcile');
+      r.para('복구 조회 ' + id, ['상태 ' + res.data.status + ' · 다음 ' + res.data.next_action + (res.data.error_code ? ' · 코드 ' + res.data.error_code : '')]);
+      opButtons(r, res.data);
+    });
+  }
+  var SAMPLE_DRAFT = function () {
+    var now = Math.floor(Date.now() / 1000);
+    return JSON.stringify({ doc_key: '0x' + '0'.repeat(63) + '1', expected_version: 1, expires_at: now + 30 * 86400,
+      content: { notice_type: 'OFFICIAL_DOCUMENT', institution_code: '기관 코드', document_type: '안내문', document_number: 'DOC-0001', title: '합성 시험 안내', summary: '합성 시험용 안내문입니다.' } }, null, 2);
+  };
+  function startIssue() {
+    var r = aiMsg();
+    r.para('새 Proof 발행(기관 지갑)', ['1. 발행 초안 보내기(document-drafts)', '2. 지갑에서 Publish 서명(EIP-712)', '3. 서명 제출(publications) → 작업 번호', '4. 지갑에서 보낸 거래 해시 알리기(signing-requests/{id}/transactions)', '5. 작업 확인 — UNKNOWN 이면 다시 보내지 않고 복구 조회(reconcile)']);
+    gasBadges(r);
+    if (!isApi()) { r.para(null, ['예시 모드라 서버에 보내지 않아요.']); modeButtons(r); return; }
+    if (needWallet(r)) return;
+    r.btn('예시 초안을 입력칸에 넣기', function () { input.value = SAMPLE_DRAFT(); input.dispatchEvent(new Event('input')); input.focus(); }, true);
+    r.btn('초안 보내기 시작', function (x) {
+      ask('draft', '발행 초안 JSON({doc_key, expected_version, expires_at, content})을 입력칸에 넣고 보내 주세요. request_id 는 화면이 붙여요.', function (t) {
+        var d = O.parseDraft(t, Math.floor(Date.now() / 1000));
+        if (!d.ok) return sayAgain(d.message);
+        var rr = aiMsg(); var p = rr.para('발행 진행', []);
+        return wallet.publish(d.body, stepLine(rr, p)).then(function (res) {
+          opButtons(rr, stepOp(res));
+          if (res.ok && res.sr) txButton(rr, res.sr, 'publish');
+        });
+      }, function (t) { return T.maskPersonal(t); });
+    });
+  }
+  function shortHex(h) { h = String(h || ''); return h.length > 12 ? h.slice(0, 6) + '…' + h.slice(-4) : h; }
+  var KEY_STATUS_KO = { ACTIVE: '사용 중', RETIRED: '교체되어 쓰지 않음', COMPROMISED: '유출 신고됨' };
+  var PROPOSAL_STATUS_KO = { PREPARED: '체인 제출 전', PENDING: '승인 진행 중', EXECUTED: '승인 완료 · 실행됨', EXPIRED: '기한 지남', STALE: '다른 제안으로 무효' };
+  // 내부 승인 계정·운영자 계정은 따로 화면이 없어, 그 계정들이 서버·체인에 남긴 일을 기관별로 모아 보여 줌
+  function registrationTrails(r) {
+    var p = r.para('등록 과정', ['확인 중…']);
+    return client.get('/v3/issuer/registrations').then(function (res) {
+      if (res.status !== 200 || !res.data || !Array.isArray(res.data.trails)) return r.set(p, '등록 과정', errLines(res));
+      if (!res.data.trails.length) return r.set(p, '등록 과정', ['기관 신청 기록이 없어요.']);
+      res.data.trails.forEach(function (t, i) {
+        var lines = [
+          '1. 기관 신청 · ' + t.applicant,
+          '2. 업무 메일 인증 · ' + (t.email_verified ? '완료' : '대기'),
+          '3. 기관 내부 승인 · ' + (t.internal_approver ? t.internal_approver + (t.internally_approved ? ' 승인' : ' 반려') : '대기')
+        ];
+        if (!t.proposals.length) lines.push('4. 운영자 등록 제안 · 아직 없음');
+        t.proposals.forEach(function (s) {
+          lines.push('4. 운영자 등록 제안 · ' + s.proposer + ' · 제안 ' + shortHex(s.proposal_id));
+          lines.push('5. 운영자 공동승인 ' + s.approvers.length + '/2 · ' + (s.approvers.length ? s.approvers.join(', ') : '아직 없음') + ' · ' + (PROPOSAL_STATUS_KO[s.status] || s.status));
+        });
+        lines.push('6. 블록체인 등록 · ' + (t.chain_state === 'ACTIVE' ? '활성' : t.chain_state === 'SUSPENDED' ? '정지됨' : '등록 전'));
+        if (i) r.para('등록 과정 · ' + t.issuer_name, lines); else r.set(p, '등록 과정 · ' + t.issuer_name, lines);
+      });
+    });
+  }
+  function showKeys() {
+    var r = aiMsg();
+    var p = r.para('공개키 관리', [isApi() ? '불러오는 중…' : '예시 모드라 서버에 보내지 않아요.']);
+    if (!isApi()) { modeButtons(r); return; }
+    var start = function () {
+      if (needWallet(r)) return;
+      r.btn('지갑 키 증명 시작(key-challenges → key-proofs)', function (x) {
+        x.dataset.done = '1';
+        var rr = aiMsg(); var q = rr.para('지갑 키 증명', []);
+        return wallet.keyProof(stepLine(rr, q));
+      });
+    };
+    // v5 지갑 Registry 의 내 기관 기록: 상태·사용 중인 키·서명 지갑(옛 v1 키 목록은 v5 시연 환경에 없음)
+    return client.get('/v3/issuer/state').then(function (res) {
+      var d = res.status === 200 ? res.data : null;
+      if (!d) r.set(p, '공개키 관리', errLines(res));
+      else r.set(p, '공개키 관리', ['블록체인 기관 상태: ' + (d.state === 'ACTIVE' ? '활성' : '정지됨'), '사용 중인 키: ' + shortHex(d.key_id) + ' · ' + (KEY_STATUS_KO[d.key_status] || d.key_status),
+        '서명 지갑: ' + shortHex(d.signer), '키 등록 블록 #' + d.key_registered_block + ' · 블록 #' + d.block_number + ' 기준']);
+      start();
+    });
+  }
+  function showProofs(proofId) {
+    var r = aiMsg();
+    if (!isApi()) { r.para('발행 목록', ['예시 모드라 서버에 보내지 않아요.']); modeButtons(r); return; }
+    if (proofId) {
+      if (!O.RE.prf.test(String(proofId))) return r.para('발행 기록', ['Proof ID 형식이 맞지 않아요.']);
+      var q = r.para('발행 기록 ' + proofId, ['불러오는 중…']);
+      return client.get('/v2/proofs/' + proofId).then(function (res) {
+        r.set(q, '발행 기록 ' + proofId, res.status === 200 && res.data ? [JSON.stringify(res.data).slice(0, 400)] : errLines(res));
+      });
+    }
+    // v5 지갑 Registry 에 발행한 내 기관 안내문(서버가 보관한 판). 새 버전이 있는 판은 표시
+    var p = r.para('발행 목록', ['불러오는 중…']);
+    return client.get('/v3/issuer/documents').then(function (res) {
+      var list = res.status === 200 && res.data && Array.isArray(res.data.documents) ? res.data.documents : null;
+      if (!list) r.set(p, '발행 목록', errLines(res));
+      else r.set(p, '발행 목록 · ' + list.length + '건', list.length ? list.slice(0, 20).map(function (x, i) {
+        var what = x.amount_minor != null ? Number(x.amount_minor).toLocaleString('ko-KR') + '원' : (x.document_number || '');
+        return (i + 1) + '. ' + (x.summary || x.notice_type) + (what ? ' · ' + what : '') + ' · v' + x.version + (x.version < x.latest_version ? ' · 새 버전 있음' : ' · 최신') + ' · 문서 ' + shortHex(x.document_id);
+      }).concat(list.length > 20 ? ['… 외 ' + (list.length - 20) + '건'] : []) : ['아직 발행한 안내문이 없어요.']);
+      if (needWallet(r)) return;
+      r.btn('철회 시작(revoke-drafts → revocations)', function () {
+        ask('revoke', '철회할 문서 ID(0x + 64자리)와 버전을 "0x… 2" 처럼 입력칸에 넣고 보내 주세요.', function (t) {
+          var d = O.parseRevoke(t);
+          if (!d.ok) return sayAgain(d.message);
+          var rr = aiMsg(); var pp = rr.para('철회 진행', []);
+          return wallet.revoke(d.body, stepLine(rr, pp)).then(function (res) { opButtons(rr, stepOp(res)); if (res.ok && res.sr) txButton(rr, res.sr, 'revoke'); });
+        });
+      });
+    });
+  }
+  /* 작업 이력 카드: '이용 가능한 기관'과 같은 카드 모양(op-gov). 작업 종류·상태·다음 행동은 쉬운 말로, 작업 번호는 앞부분만.
+     표에 없는 값은 서버 값 그대로 보여 줌(지어내지 않음). */
+  var OP_KIND_KO = { wallet_propose: '기관 등록 제안', wallet_approve: '공동승인', wallet_publish: '안내문 발행', wallet_revoke: '안내문 철회', wallet_suspend: '긴급 정지', wallet_key_proof: '키 보유 증명', publish: '안내문 발행', revoke: '안내문 철회', propose: '기관 등록 제안', approve: '공동승인', suspend: '긴급 정지' };
+  var OP_STATUS = { CONFIRMED: ['완료', 't-ok'], FAILED: ['실패', 't-fail'], REJECTED: ['거절됨', 't-fail'], UNKNOWN: ['확인 필요', 't-caution'], SUBMITTED: ['진행 중', 't-pending'], PENDING: ['진행 중', 't-pending'], QUEUED: ['대기 중', 't-pending'] };
+  var OP_NEXT = { NONE: '할 일 없음', WAIT: '기다리기', RECONCILE: '복구 조회 필요', RETRY: '다시 시도' };
+  function opCard(r, title, list, kindOf) {
+    var box = el('div', 'op-gov');
+    box.append(el('b', null, title + ' · ' + list.length + '건'));
+    list.forEach(function (o, i) {
+      var k = String(kindOf(o) || ''), st = OP_STATUS[o.status] || [String(o.status || '-'), 't-none'];
+      var row = el('div', 'op-gov-row');
+      row.append(el('span', 'op-gov-n', String(i + 1)), el('span', 'op-gov-who', OP_KIND_KO[k] || k || '작업'), el('span', 'op-chip ' + st[1], st[0]),
+        el('span', 'op-body', '작업 번호 ' + String(o.operation_id || '').slice(0, 14) + '… · 다음: ' + (OP_NEXT[o.next_action] || String(o.next_action || '-'))));
+      box.append(row);
+    });
+    r.box.append(box); toBottom();
+    return box;
+  }
+  // 워크스페이스 설정(사이드바 아래 단추, op5_auth.js): 계정·화면 밝기·로그인 상태. 운영자 연결 설정은 기관 상태에 그대로
+  function showSettings() {
+    var r = aiMsg(), A = Hk.auth && Hk.auth.state, me = A && A.me;
+    r.para('워크스페이스', ['OriginProof']);
+    r.para('계정', me && me.username ? loginLine(me) : ['로그인하지 않았어요. 로그인하면 기관 기록 대조와 AI 분석을 쓸 수 있어요.']);
+    if (me && me.username) r.btn('로그아웃', logoutFn);
+    else r.btn('로그인 화면 열기', function (x) { x.dataset.done = '1'; location.href = 'login.html?next=business.html'; }, true);
+    var light = document.documentElement.dataset.theme === 'light';
+    r.para('화면', ['지금 ' + (light ? '밝은 화면' : '어두운 화면') + '이에요.']);
+    r.btn(light ? '어두운 화면으로' : '밝은 화면으로', function (x) { if (window.op5ToggleTheme) window.op5ToggleTheme(); x.dataset.done = '1'; }, true);
+    if (myRole() === 'operator') r.para('운영자', ['연결 주소·서버 상태·보관 선택은 기관 상태 화면에 있어요.']);
+    return Promise.resolve();
+  }
+  function showOps() {
+    var r = aiMsg();
+    var ops = client.readOps();
+    if (ops.length) opCard(r, '이 탭에서 만든 지갑 작업', ops.slice(0, 5), function (o) { return o.kind; });
+    else r.para('이 탭에서 만든 지갑 작업', ['아직 없어요.']);
+    ops.slice(0, 3).forEach(function (o) { opButtons(r, o); });
+    r.btn('내 확인 기록(보관한 분석) 보기', function () { return showAnalyses(); }, true);
+    if (staffView()) r.btn('보관 선택 바꾸기', function () { retainButtons(aiMsg()); }, true);
+    if (!isApi()) { r.para(null, ['예시 모드라 서버 작업 목록은 부르지 않아요.']); modeButtons(r); return; }
+    var p = r.para('서버 작업 이력', ['불러오는 중…']);
+    return client.get('/v1/operations?limit=5').then(function (res) {
+      if (res.status !== 200 || !Array.isArray(res.data)) return r.set(p, '서버 작업 이력', errLines(res));
+      if (!res.data.length) return r.set(p, '서버 작업 이력', ['작업이 없어요.']);
+      p.remove();
+      opCard(r, '서버 작업 이력', res.data, function (o) { return o.action; });
+    });
+  }
+  function showHelp() {
+    var r = aiMsg();
+    r.para('도움말', [
+      '· 입력칸: 받은 문자·검증 링크·Proof ID 를 붙여 넣고 Enter. 문서 ID 는 {"document_id":"0x…","version":1} 처럼 넣어요.',
+      staffView() ? '· 기관 상태: 연결 모드·주소, 서버 상태, 로그인, 기관 상태' : '· 기관 상태: 로그인 아이디, 공개 블록체인 연결 정보, 이용 가능한 기관' + (myRole() === 'issuer' ? ', 내 기관 상태' : ''),
+      '· 새 Proof 발행 / 발행 목록(철회) / 공개키 관리(키 증명): 기관 지갑 단계를 대화로 진행',
+      '· 작업 이력: 지갑 작업 상태·복구 조회, 내 확인 기록(보관·내려받기·지우기)',
+      '· 발행 기록 검색칸: 0x…(문서 ID)·prf_…·ana_…·op_… 를 넣고 Enter',
+      '· 첨부: 이 브라우저 안에 있어요. 문서 사진은 실서버 모드에서 \'이 사진 확인하기\'를 눌렀을 때만 서버로 보내요.',
+      '자기 기관 상태, 공개키 관리, Proof 발행·목록과 작업 이력을 확인할 수 있습니다.'
+    ]);
+    r.btn('예시 문자를 입력칸에 넣기', function () {
+      var list = Hk.sampleAdapter.list();
+      if (list[0]) { input.value = list[0].input.text; input.dispatchEvent(new Event('input')); input.focus(); }
+    }, true);
+    modeButtons(r);
+  }
+  function search(q) {
+    var s = String(q || '').trim().slice(0, 140);
+    if (!s) return;
+    dropAsk('발행 기록 검색');
+    userMsg('발행 기록 검색: ' + T.maskPersonal(s));
+    if (!isApi()) return exampleOnly('발행 기록 검색');
+    var r = aiMsg(), path = null, title = '발행 기록 검색';
+    if (/^0x[0-9a-fA-F]{64}$/.test(s)) { path = '/v3/documents/' + s.toLowerCase(); title = '문서 ' + s.slice(0, 10) + '…'; }
+    else if (O.RE.prf.test(s)) path = '/v2/proofs/' + s;
+    else if (O.RE.ana.test(s)) path = '/v3/analyses/' + s;
+    else if (O.RE.op.test(s)) return showOperation(s);
+    if (!path) return r.para(title, ['찾을 수 있는 것: 문서 ID(0x + 64자리)·Proof ID(prf_…)·분석 번호(ana_…)·작업 번호(op_…)']);
+    if (O.RE.ana.test(s) && client.isDeleted(s)) return r.para(title, ['지운 분석이에요.']);
+    var p = r.para(title, ['찾는 중…']);
+    return client.get(path).then(function (res) {
+      if (res.status !== 200 || !res.data) return r.set(p, title, errLines(res));
+      var d = res.data;
+      if (d.document_id && d.state) r.btn('검증 자료 보기(verification-material)', function () {
+        var mr = aiMsg(); var mp = mr.para('검증 자료 ' + title, ['확인 중…']);
+        return client.get(path + '/verification-material').then(function (m) {
+          if (m.status !== 200 || !m.data) return mr.set(mp, '검증 자료 ' + title, errLines(m));
+          mr.set(mp, '검증 자료 ' + title, Object.keys(m.data).map(function (k) { var v = m.data[k]; return k + ': ' + (v && typeof v === 'object' ? JSON.stringify(v).slice(0, 200) : String(v).slice(0, 200)); }));
+        });
+      });
+      if (d.document_id && d.state) r.set(p, title, ['상태 ' + d.state + ' · 버전 ' + d.version + '/' + d.latest_version + (d.warnings && d.warnings.length ? ' · 경고 ' + d.warnings.join(', ') : '') + ' · 원본 ' + (d.original_available ? '있음' : '없음')]);
+      else if (d.analysis_id) r.set(p, title, [d.analysis_id + ' · ' + d.status + (d.error_code ? ' · 코드 ' + d.error_code : '')]);
+      else r.set(p, title, [JSON.stringify(d).slice(0, 400)]);
+    });
+  }
+
+  var MENU = { issue: startIssue, status: showStatus, keys: showKeys, proofs: showProofs, operations: showOps, settings: showSettings };
+  window.addEventListener('originproof-action', function (e) {
+    var d = e && e.detail ? e.detail : {};
+    var fn = MENU[d.key];
+    if (!fn) return;
+    dropAsk('메뉴 이동');
+    // 기관이 아닌 계정에서는 맨 위 단추가 '새 대화'(op5_auth.js): 빈 확인 화면으로
+    var role = Hk.auth && Hk.auth.state && Hk.auth.state.me ? Hk.auth.state.me.role : null;
+    if (d.key === 'issue' && ((role && role !== 'issuer') || guest())) return newChat();
+    newPage(d.key);
+    if (d.key === 'proofs' && d.proofId) return showProofs(d.proofId);
+    fn();
+  });
+  // 도움말: 번들의 알림창 대신 말풍선(바깥에서 먼저 받음, 번들 파일은 그대로)
+  document.addEventListener('click', function (e) {
+    var b = e.target && e.target.closest ? e.target.closest('#sidebar-root button') : null;
+    if (!b || b.textContent.trim() !== '도움말') return;
+    e.preventDefault(); e.stopPropagation();
+    dropAsk('도움말');
+    newPage('help');
+    showHelp();
+  }, true);
+  // 시연 프리셋은 입력칸으로 바로 보내므로(op5_presets.js) 먼저 대기를 해제함
+  document.addEventListener('click', function (e) {
+    if (e.target && e.target.closest && e.target.closest('#presetBar button')) dropAsk('시연 프리셋');
+  }, true);
+  // 발행 기록 검색칸: Enter 로 찾기(번들은 Escape 만 다룸)
+  document.addEventListener('keydown', function (e) {
+    var t = e.target;
+    if (e.key !== 'Enter' || e.isComposing || !t || !t.matches || !t.matches('#sidebar-root input[aria-label="최근 확인 검색"]')) return;
+    e.preventDefault();
+    newPage('search');
+    search(t.value);
+  });
+
+  // 장면 재현(캡처용)에서만 쓰는 손잡이
+  var ui = { submitText: function (t) { input.value = t; return submit(); }, menu: function (k) { return MENU[k](); }, showAnalyses: showAnalyses, removeAnalysis: removeAnalysis, client: function () { return client; } };
+  // 시연 버튼이 문서 JSON을 보낼 때 말풍선에는 이름만 보임(날 JSON·가림 처리된 기한 대신)
+  Hk.op5send = function (t, shown) { input.value = t; return submit(shown); };
+  // 시연용 공격 재현(op5_presets.js 'DB 직접 조작'): 서버가 시연 계정에만 여는 경로. 다른 계정·꺼진 서버는 404
+  Hk.op5demoAttack = function (action, account) { return client.write('POST', '/v3/demo/' + action + (account ? '?account=' + encodeURIComponent(account) : ''), {}, { requestId: false }); };
+  if (scene) setTimeout(function () { S.run(scene, ui); }, 0);
+})();

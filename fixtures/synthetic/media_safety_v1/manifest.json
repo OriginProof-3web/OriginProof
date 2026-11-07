@@ -1,0 +1,528 @@
+{
+  "schema_version": "d-media-safety-0.1",
+  "source": "synthetic",
+  "purpose": "Byte validation/failure replay; not OCR/STT/model performance or labelled60 corpus",
+  "generator": {
+    "python": "3.13.7",
+    "pillow": "13.0.0"
+  },
+  "audio_has_speech": false,
+  "conversion_evaluation": "NOT_RUN",
+  "cases": [
+    {
+      "id": "DMI-01",
+      "kind": "IMAGE",
+      "file": "clear.png",
+      "source_group": "D-MEDIA-DOCUMENT-01",
+      "split": "development",
+      "source": "synthetic",
+      "media_type": "image/png",
+      "sha256": "dbda65bb7d9cea4d0b934a543751ed5f5964762b70117e6c497df96dc01a47b2",
+      "bytes": 8964,
+      "condition": "clear",
+      "expected_error": null,
+      "conversion_evaluated": false,
+      "model_evaluated": false
+    },
+    {
+      "id": "DMI-02",
+      "kind": "IMAGE",
+      "file": "notice.jpg",
+      "source_group": "D-MEDIA-DOCUMENT-01",
+      "split": "development",
+      "source": "synthetic",
+      "media_type": "image/jpeg",
+      "sha256": "ad163ca15496ef9934e4cb233cebe641ad8d0f0acc30044f8e297cb08d54b4db",
+      "bytes": 9593,
+      "condition": "clear",
+      "expected_error": null,
+      "conversion_evaluated": false,
+      "model_evaluated": false
+    },
+    {
+      "id": "DMI-03",
+      "kind": "IMAGE",
+      "file": "notice.webp",
+      "source_group": "D-MEDIA-DOCUMENT-01",
+      "split": "development",
+      "source": "synthetic",
+      "media_type": "image/webp",
+      "sha256": "b910cc8ffd588f0ae2bc78b96fcac74d458945c0f2aa2cba622eefda738872ae",
+      "bytes": 4996,
+      "condition": "clear",
+      "expected_error": null,
+      "conversion_evaluated": false,
+      "model_evaluated": false
+    },
+    {
+      "id": "DMI-04",
+      "kind": "IMAGE",
+      "file": "blurred.png",
+      "source_group": "D-MEDIA-DOCUMENT-01",
+      "split": "development",
+      "source": "synthetic",
+      "media_type": "image/png",
+      "sha256": "8572abf0a513cd8feca8285d14b89c22a501594dcb8efd693b9e8e6b5b8d70bc",
+      "bytes": 11622,
+      "condition": "blurred",
+      "expected_error": null,
+      "conversion_evaluated": false,
+      "model_evaluated": false
+    },
+    {
+      "id": "DMI-05",
+      "kind": "IMAGE",
+      "file": "low-contrast.png",
+      "source_group": "D-MEDIA-DOCUMENT-01",
+      "split": "development",
+      "source": "synthetic",
+      "media_type": "image/png",
+      "sha256": "2eb12983b98dab7888eb0465bfc303f7d532da8d38db4eacf86a3ff002dcc9c2",
+      "bytes": 5066,
+      "condition": "low_contrast",
+      "expected_error": null,
+      "conversion_evaluated": false,
+      "model_evaluated": false
+    },
+    {
+      "id": "DMI-06",
+      "kind": "IMAGE",
+      "file": "rotated.png",
+      "source_group": "D-MEDIA-DOCUMENT-01",
+      "split": "development",
+      "source": "synthetic",
+      "media_type": "image/png",
+      "sha256": "2b5e202f1da98668ad9949ea395bdca752730431afc33b3ff33d19c49f3888e8",
+      "bytes": 12839,
+      "condition": "rotated",
+      "expected_error": null,
+      "conversion_evaluated": false,
+      "model_evaluated": false
+    },
+    {
+      "id": "DMI-07",
+      "kind": "IMAGE",
+      "file": "tiny.png",
+      "source_group": "D-MEDIA-DOCUMENT-01",
+      "split": "development",
+      "source": "synthetic",
+      "media_type": "image/png",
+      "sha256": "9cb03c9ca7292f9054c0b16f1f09020088dc8ae19b1aec49e8b6716d5f3ad259",
+      "bytes": 163,
+      "condition": "tiny",
+      "expected_error": null,
+      "conversion_evaluated": false,
+      "model_evaluated": false
+    },
+    {
+      "id": "DMI-08",
+      "kind": "IMAGE",
+      "file": "truncated.png",
+      "source_group": "D-MEDIA-DOCUMENT-01",
+      "split": "development",
+      "source": "synthetic",
+      "media_type": "image/png",
+      "sha256": "c4d77a3ec42e3b6b1553e8ee691072363e9f3190c7369051916838e59c506abf",
+      "bytes": 40,
+      "condition": "truncated",
+      "expected_error": "MALFORMED_INPUT",
+      "conversion_evaluated": false,
+      "model_evaluated": false
+    },
+    {
+      "id": "DMI-09",
+      "kind": "IMAGE",
+      "file": "wrong-mime.png",
+      "source_group": "D-MEDIA-DOCUMENT-01",
+      "split": "development",
+      "source": "synthetic",
+      "media_type": "image/jpeg",
+      "sha256": "dbda65bb7d9cea4d0b934a543751ed5f5964762b70117e6c497df96dc01a47b2",
+      "bytes": 8964,
+      "condition": "mime_mismatch",
+      "expected_error": "MALFORMED_INPUT",
+      "conversion_evaluated": false,
+      "model_evaluated": false
+    },
+    {
+      "id": "DMI-10",
+      "kind": "IMAGE",
+      "file": "animated.png",
+      "source_group": "D-MEDIA-DOCUMENT-01",
+      "split": "development",
+      "source": "synthetic",
+      "media_type": "image/png",
+      "sha256": "dfc56df1a314236be7683176e52997c5eb8e6b8cfa76a719f54d917ffbbb68f4",
+      "bytes": 14085,
+      "condition": "multiple_frames",
+      "expected_error": "MALFORMED_INPUT",
+      "conversion_evaluated": false,
+      "model_evaluated": false
+    },
+    {
+      "id": "DMI-11",
+      "kind": "IMAGE",
+      "file": "spoofed.png",
+      "source_group": "D-MEDIA-DOCUMENT-01",
+      "split": "development",
+      "source": "synthetic",
+      "media_type": "image/png",
+      "sha256": "4a5370b12c3e800473199bcf7d811c8fe23f3dcdbef997ba109a168b02391196",
+      "bytes": 25,
+      "condition": "spoofed",
+      "expected_error": "MALFORMED_INPUT",
+      "conversion_evaluated": false,
+      "model_evaluated": false
+    },
+    {
+      "id": "DMI-12",
+      "kind": "IMAGE",
+      "file": "orientation.jpg",
+      "source_group": "D-MEDIA-DOCUMENT-01",
+      "split": "development",
+      "source": "synthetic",
+      "media_type": "image/jpeg",
+      "sha256": "25e97019684fda633aa687d9002f2296f0a0e91056ffc7132e692546c10f8991",
+      "bytes": 9629,
+      "condition": "exif_orientation",
+      "expected_error": null,
+      "conversion_evaluated": false,
+      "model_evaluated": false
+    },
+    {
+      "id": "DMA-01",
+      "kind": "AUDIO",
+      "file": "tone.wav",
+      "source_group": "D-MEDIA-SIGNAL-01",
+      "split": "development",
+      "source": "synthetic",
+      "media_type": "audio/wav",
+      "sha256": "3664306463717812ce9d18e815f701b30ad434bb90f8f8d8c39e77adfc980a60",
+      "bytes": 1644,
+      "condition": "non_speech_tone",
+      "expected_error": null,
+      "conversion_evaluated": false,
+      "model_evaluated": false
+    },
+    {
+      "id": "DMA-02",
+      "kind": "AUDIO",
+      "file": "noise.wav",
+      "source_group": "D-MEDIA-SIGNAL-01",
+      "split": "development",
+      "source": "synthetic",
+      "media_type": "audio/wav",
+      "sha256": "f79e16d86fdb3852afdba50a43973924fb3c2d3fb12eebb4137055b13713ddc0",
+      "bytes": 1644,
+      "condition": "non_speech_noise",
+      "expected_error": null,
+      "conversion_evaluated": false,
+      "model_evaluated": false
+    },
+    {
+      "id": "DMA-03",
+      "kind": "AUDIO",
+      "file": "silence.wav",
+      "source_group": "D-MEDIA-SIGNAL-01",
+      "split": "development",
+      "source": "synthetic",
+      "media_type": "audio/wav",
+      "sha256": "c726d333dd159a31423f3480dbb1c5c4a9dfcd30efe1f7e12ade390dc92e8908",
+      "bytes": 1644,
+      "condition": "silence",
+      "expected_error": null,
+      "conversion_evaluated": false,
+      "model_evaluated": false
+    },
+    {
+      "id": "DMA-04",
+      "kind": "AUDIO",
+      "file": "clipped.wav",
+      "source_group": "D-MEDIA-SIGNAL-01",
+      "split": "development",
+      "source": "synthetic",
+      "media_type": "audio/wav",
+      "sha256": "7c08d0d64804f4b4f32d18071ababc4cb3927504743dc6d07c2adf7050e52863",
+      "bytes": 1644,
+      "condition": "clipped_signal",
+      "expected_error": null,
+      "conversion_evaluated": false,
+      "model_evaluated": false
+    },
+    {
+      "id": "DMA-05",
+      "kind": "AUDIO",
+      "file": "stereo.wav",
+      "source_group": "D-MEDIA-SIGNAL-01",
+      "split": "development",
+      "source": "synthetic",
+      "media_type": "audio/wav",
+      "sha256": "2cf0cc83024fa05c3c1a7ea9001fc4dbf14158957875a5d5a83a8d579bd52ce4",
+      "bytes": 3244,
+      "condition": "stereo_tone",
+      "expected_error": null,
+      "conversion_evaluated": false,
+      "model_evaluated": false
+    },
+    {
+      "id": "DMA-06",
+      "kind": "AUDIO",
+      "file": "truncated.wav",
+      "source_group": "D-MEDIA-SIGNAL-01",
+      "split": "development",
+      "source": "synthetic",
+      "media_type": "audio/wav",
+      "sha256": "eb447891ba010973470f2846c356704fd8bd6c04522eaa5dc721f3ba60668b27",
+      "bytes": 1643,
+      "condition": "truncated",
+      "expected_error": "MALFORMED_INPUT",
+      "conversion_evaluated": false,
+      "model_evaluated": false
+    },
+    {
+      "id": "DMA-07",
+      "kind": "AUDIO",
+      "file": "wrong-size.wav",
+      "source_group": "D-MEDIA-SIGNAL-01",
+      "split": "development",
+      "source": "synthetic",
+      "media_type": "audio/wav",
+      "sha256": "2f49dfafdbcf9df15e14b4cebc2d0b28c47dac8f0bfbe6a6a7bc84e7bc706f39",
+      "bytes": 1644,
+      "condition": "declared_size",
+      "expected_error": "MALFORMED_INPUT",
+      "conversion_evaluated": false,
+      "model_evaluated": false
+    },
+    {
+      "id": "DMA-08",
+      "kind": "AUDIO",
+      "file": "partial-frame.wav",
+      "source_group": "D-MEDIA-SIGNAL-01",
+      "split": "development",
+      "source": "synthetic",
+      "media_type": "audio/wav",
+      "sha256": "fde6a83bcf3dc1942333e2c00eebd3e95e1313d82507275316227d8a212504f7",
+      "bytes": 1643,
+      "condition": "partial_frame",
+      "expected_error": "MALFORMED_INPUT",
+      "conversion_evaluated": false,
+      "model_evaluated": false
+    },
+    {
+      "id": "DMA-09",
+      "kind": "AUDIO",
+      "file": "float.wav",
+      "source_group": "D-MEDIA-SIGNAL-01",
+      "split": "development",
+      "source": "synthetic",
+      "media_type": "audio/wav",
+      "sha256": "a3c38c4fbd76396dbf4cd872da695a35495254b48d98401995a49e19b57a94e0",
+      "bytes": 1644,
+      "condition": "unsupported_codec",
+      "expected_error": "UNSUPPORTED_INPUT",
+      "conversion_evaluated": false,
+      "model_evaluated": false
+    },
+    {
+      "id": "DMA-10",
+      "kind": "AUDIO",
+      "file": "empty.wav",
+      "source_group": "D-MEDIA-SIGNAL-01",
+      "split": "development",
+      "source": "synthetic",
+      "media_type": "audio/wav",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "condition": "empty",
+      "expected_error": "MALFORMED_INPUT",
+      "conversion_evaluated": false,
+      "model_evaluated": false
+    },
+    {
+      "id": "DMA-11",
+      "kind": "AUDIO",
+      "file": "bad-mask.wav",
+      "source_group": "D-MEDIA-SIGNAL-01",
+      "split": "development",
+      "source": "synthetic",
+      "media_type": "audio/wav",
+      "sha256": "597c83b6b5988165995c23fd25546ac2687c4f1aada329c6d31f92de8164b88d",
+      "bytes": 1668,
+      "condition": "channel_mask",
+      "expected_error": "MALFORMED_INPUT",
+      "conversion_evaluated": false,
+      "model_evaluated": false
+    },
+    {
+      "id": "DMA-12",
+      "kind": "AUDIO",
+      "file": "extensible.wav",
+      "source_group": "D-MEDIA-SIGNAL-01",
+      "split": "development",
+      "source": "synthetic",
+      "media_type": "audio/wav",
+      "sha256": "74fdb4cb4d4667a34d0e7d9e0c6e0a018b1ae7ccba8ffa95fbbca8b5248a0887",
+      "bytes": 1668,
+      "condition": "extensible_tone",
+      "expected_error": null,
+      "conversion_evaluated": false,
+      "model_evaluated": false
+    }
+  ],
+  "failure_replays": [
+    {
+      "id": "DF-01",
+      "kind": "TEXT",
+      "value": "blank",
+      "expected_error": "MALFORMED_INPUT",
+      "scope": "CONTROLLED_FAILURE_REPLAY"
+    },
+    {
+      "id": "DF-02",
+      "kind": "TEXT",
+      "value": "too_long",
+      "expected_error": "MALFORMED_INPUT",
+      "scope": "CONTROLLED_FAILURE_REPLAY"
+    },
+    {
+      "id": "DF-03",
+      "kind": "TEXT",
+      "value": "surrogate",
+      "expected_error": "MALFORMED_INPUT",
+      "scope": "CONTROLLED_FAILURE_REPLAY"
+    },
+    {
+      "id": "DF-04",
+      "kind": "TEXT",
+      "value": "wrong_type",
+      "expected_error": "MALFORMED_INPUT",
+      "scope": "CONTROLLED_FAILURE_REPLAY"
+    },
+    {
+      "id": "DF-05",
+      "kind": "IMAGE",
+      "value": {
+        "kind": "DOCUMENT_IMAGE",
+        "complete": false,
+        "segments": [
+          {
+            "text": "SYNTHETIC NOTICE",
+            "page": 1
+          }
+        ]
+      },
+      "expected_error": "INCOMPLETE_OUTPUT",
+      "scope": "CONTROLLED_FAILURE_REPLAY"
+    },
+    {
+      "id": "DF-06",
+      "kind": "IMAGE",
+      "value": {
+        "kind": "DOCUMENT_IMAGE",
+        "complete": true,
+        "segments": []
+      },
+      "expected_error": "INCOMPLETE_OUTPUT",
+      "scope": "CONTROLLED_FAILURE_REPLAY"
+    },
+    {
+      "id": "DF-07",
+      "kind": "IMAGE",
+      "value": {
+        "kind": "DOCUMENT_IMAGE",
+        "complete": true,
+        "segments": [
+          {
+            "text": "SYNTHETIC NOTICE",
+            "page": 2
+          }
+        ]
+      },
+      "expected_error": "SCHEMA_MISMATCH",
+      "scope": "CONTROLLED_FAILURE_REPLAY"
+    },
+    {
+      "id": "DF-08",
+      "kind": "IMAGE",
+      "value": {
+        "kind": "DOCUMENT_IMAGE",
+        "complete": true,
+        "segments": [
+          {
+            "text": "SYNTHETIC NOTICE",
+            "page": 1
+          }
+        ],
+        "raw_payload": "REJECT_ME"
+      },
+      "expected_error": "SCHEMA_MISMATCH",
+      "scope": "CONTROLLED_FAILURE_REPLAY"
+    },
+    {
+      "id": "DF-09",
+      "kind": "AUDIO",
+      "value": {
+        "kind": "AUDIO",
+        "complete": false,
+        "duration_ms": 100,
+        "segments": [
+          {
+            "text": "CONTROLLED REPLAY NOT TRANSCRIPTION",
+            "start_ms": 0,
+            "end_ms": 100
+          }
+        ]
+      },
+      "expected_error": "INCOMPLETE_OUTPUT",
+      "scope": "CONTROLLED_FAILURE_REPLAY"
+    },
+    {
+      "id": "DF-10",
+      "kind": "AUDIO",
+      "value": {
+        "kind": "AUDIO",
+        "complete": true,
+        "duration_ms": 100,
+        "segments": []
+      },
+      "expected_error": "INCOMPLETE_OUTPUT",
+      "scope": "CONTROLLED_FAILURE_REPLAY"
+    },
+    {
+      "id": "DF-11",
+      "kind": "AUDIO",
+      "value": {
+        "kind": "AUDIO",
+        "complete": true,
+        "duration_ms": 100,
+        "segments": [
+          {
+            "text": "CONTROLLED REPLAY NOT TRANSCRIPTION",
+            "start_ms": 0
+          }
+        ]
+      },
+      "expected_error": "SCHEMA_MISMATCH",
+      "scope": "CONTROLLED_FAILURE_REPLAY"
+    },
+    {
+      "id": "DF-12",
+      "kind": "AUDIO",
+      "value": {
+        "kind": "AUDIO",
+        "complete": true,
+        "duration_ms": 100,
+        "segments": [
+          {
+            "text": "CONTROLLED REPLAY NOT TRANSCRIPTION",
+            "start_ms": 0,
+            "end_ms": 101
+          }
+        ]
+      },
+      "expected_error": "SCHEMA_MISMATCH",
+      "scope": "CONTROLLED_FAILURE_REPLAY"
+    }
+  ]
+}

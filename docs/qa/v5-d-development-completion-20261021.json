@@ -1,0 +1,941 @@
+{
+  "as_of": "2026-10-21 Asia/Seoul",
+  "plan": "5.1",
+  "shared_contract": "v5-shared-0.2",
+  "integration_sha": "ec8e15c6bc684ae1e8d68f53ea40b4a8e47aad67",
+  "latest_phase_sha": "2c81b8e10fbac1d14fa3526dbc4128996e428f7e",
+  "latest_qa_execution_sha": "a24426f80eae372a488b2c6c104dbd71aaee9290",
+  "implementation_sha": "d35e8d1a6bc88b5ab4290af3fba1029e26a47d38",
+  "live_qa_fix_sha": "5b50ac4b450ed94440c832b93f0011feed1188d5",
+  "model_evaluation_runner": {
+    "safety_tests": 18,
+    "sdk_transport": "mock only",
+    "actual_paid_calls": 0,
+    "holdout_predictions": 0,
+    "model": "gpt-6-luna",
+    "default_policy": "BLOCKED; unapproved scope, labels/split, input and budget",
+    "limits": "HTTP attempts and reserved output tokens; input characters bounded, monetary hard cap NOT implemented",
+    "checkpoint": "atomic0600; policy/corpus/code/prompt/SDK identity; exclusive process lock; uncertain requests never replayed"
+  },
+  "acceptance_runner": {
+    "qa_sha": "a24426f80eae372a488b2c6c104dbd71aaee9290",
+    "lock_sha256": "bd617d34973fcae555ddc543388aacf017a3ef71616e407c125f73de089e812f",
+    "python": "3.13.7",
+    "packages": {
+      "pytest": "9.1.1",
+      "httpx": "0.28.1",
+      "openai": "2.54.0",
+      "fastapi": "0.142.2",
+      "sqlalchemy": "2.0.52"
+    },
+    "scope": "ASGI_SQLITE_SYNTHETIC_REGISTRY_AND_RPC_NOT_ACTUAL_ACCEPTANCE",
+    "suites": {
+      "stage": {
+        "modules": [
+          "fixtures/finals/v5_d_w2_governance_qa.py",
+          "fixtures/finals/v5_d_w3_content_qa.py",
+          "fixtures/finals/v5_d_w4_lifecycle_qa.py",
+          "fixtures/finals/v5_d_analysis_integration_qa.py"
+        ],
+        "expected_tests": 43
+      },
+      "consumer": {
+        "modules": [
+          "fixtures/finals/v5_analysis_consumer_qa.py"
+        ],
+        "expected_tests": 31
+      },
+      "benchmark": {
+        "modules": [
+          "fixtures/finals/test_v5_d_verification_benchmark.py"
+        ],
+        "expected_tests": 16
+      },
+      "independent": {
+        "modules": [
+          "fixtures/finals/test_v5_d_independent_verifier.py"
+        ],
+        "expected_tests": 22
+      }
+    },
+    "status": "SUPPORTING_SUITES_PASS_ACCEPTANCE_BLOCKED",
+    "executed": true,
+    "results": {
+      "stage": {
+        "status": "PASS",
+        "tests": 43,
+        "failure": 0,
+        "error": 0,
+        "skipped": 0,
+        "expected_tests": 43,
+        "sha256": "faa812aee51636ea88e90cf80f2a0803de2ff68d8bc6d2966adb8450f508d3ff"
+      },
+      "consumer": {
+        "status": "PASS",
+        "tests": 31,
+        "failure": 0,
+        "error": 0,
+        "skipped": 0,
+        "expected_tests": 31,
+        "sha256": "63b535267502ead344b4ca0db71b36406e7048bdb6e438a10241876898d889a3"
+      },
+      "benchmark": {
+        "status": "PASS",
+        "tests": 16,
+        "failure": 0,
+        "error": 0,
+        "skipped": 0,
+        "expected_tests": 16,
+        "sha256": "fb5371ca2a4c1607eafa50c04176a8483975fa0c457095497836122f1f87d32c"
+      },
+      "independent": {
+        "status": "PASS",
+        "tests": 22,
+        "failure": 0,
+        "error": 0,
+        "skipped": 0,
+        "expected_tests": 22,
+        "sha256": "fc97d0e86b2d4629d77e171c3c252e34c93735a3baa6e37766e86b6da69647bd"
+      }
+    },
+    "source_consistent": true,
+    "acceptance": [
+      {
+        "id": "V5-F01",
+        "supporting_suites": [
+          "stage"
+        ],
+        "supporting_status": "PASS",
+        "actual_acceptance": "BLOCKED",
+        "stage_accepted": false,
+        "remaining": "ASGI/synthetic; actual onboarding browser pending"
+      },
+      {
+        "id": "V5-F02",
+        "supporting_suites": [
+          "stage"
+        ],
+        "supporting_status": "PASS",
+        "actual_acceptance": "BLOCKED",
+        "stage_accepted": false,
+        "remaining": "Synthetic consumer fence; real 2-of-3 execution pending"
+      },
+      {
+        "id": "V5-F03",
+        "supporting_suites": [
+          "stage"
+        ],
+        "supporting_status": "PASS",
+        "actual_acceptance": "BLOCKED",
+        "stage_accepted": false,
+        "remaining": "Actual emergency-stop/reactivation E2E pending"
+      },
+      {
+        "id": "V5-F04",
+        "supporting_suites": [
+          "stage",
+          "independent"
+        ],
+        "supporting_status": "PASS",
+        "actual_acceptance": "BLOCKED",
+        "stage_accepted": false,
+        "remaining": "Actual wallet/browser/contract path pending"
+      },
+      {
+        "id": "V5-F05",
+        "supporting_suites": [
+          "stage",
+          "independent"
+        ],
+        "supporting_status": "PASS",
+        "actual_acceptance": "BLOCKED",
+        "stage_accepted": false,
+        "remaining": "Real chain replay/action/domain attacks pending"
+      },
+      {
+        "id": "V5-F06",
+        "supporting_suites": [
+          "stage"
+        ],
+        "supporting_status": "PASS",
+        "actual_acceptance": "BLOCKED",
+        "stage_accepted": false,
+        "remaining": "Actual two institutions and ownership E2E pending"
+      },
+      {
+        "id": "V5-F07",
+        "supporting_suites": [
+          "stage",
+          "independent"
+        ],
+        "supporting_status": "PASS",
+        "actual_acceptance": "BLOCKED",
+        "stage_accepted": false,
+        "remaining": "Actual original byte input comparison/browser pending"
+      },
+      {
+        "id": "V5-F08",
+        "supporting_suites": [
+          "stage",
+          "independent"
+        ],
+        "supporting_status": "PASS",
+        "actual_acceptance": "BLOCKED",
+        "stage_accepted": false,
+        "remaining": "Real concurrent version atomicity pending"
+      },
+      {
+        "id": "V5-F09",
+        "supporting_suites": [
+          "stage",
+          "independent"
+        ],
+        "supporting_status": "PASS",
+        "actual_acceptance": "BLOCKED",
+        "stage_accepted": false,
+        "remaining": "Actual multisig recovery pending"
+      },
+      {
+        "id": "V5-F10",
+        "supporting_suites": [
+          "stage"
+        ],
+        "supporting_status": "PASS",
+        "actual_acceptance": "BLOCKED",
+        "stage_accepted": false,
+        "remaining": "Real DB manipulation and integrated chain pending"
+      },
+      {
+        "id": "V5-F11",
+        "supporting_suites": [
+          "stage"
+        ],
+        "supporting_status": "PASS",
+        "actual_acceptance": "BLOCKED",
+        "stage_accepted": false,
+        "remaining": "QR/browser forwarded message pending"
+      },
+      {
+        "id": "V5-F12",
+        "supporting_suites": [],
+        "supporting_status": "NOT_RUN",
+        "actual_acceptance": "BLOCKED",
+        "stage_accepted": false,
+        "remaining": "Actual v3 interruption/restart/recovery pending"
+      },
+      {
+        "id": "V5-F13",
+        "supporting_suites": [
+          "independent"
+        ],
+        "supporting_status": "PASS",
+        "actual_acceptance": "BLOCKED",
+        "stage_accepted": false,
+        "remaining": "C final evidence review remains; B reviewed prior d757a26 fresh1/mixed3; new wallet integration and final-candidate regression pending"
+      },
+      {
+        "id": "V5-F14",
+        "supporting_suites": [],
+        "supporting_status": "NOT_RUN",
+        "actual_acceptance": "BLOCKED",
+        "stage_accepted": false,
+        "remaining": "Input selection/actual conversion/not-supported UX pending"
+      },
+      {
+        "id": "V5-F15",
+        "supporting_suites": [
+          "stage",
+          "consumer"
+        ],
+        "supporting_status": "PASS",
+        "actual_acceptance": "BLOCKED",
+        "stage_accepted": false,
+        "remaining": "Actual model evaluation pending"
+      },
+      {
+        "id": "V5-F16",
+        "supporting_suites": [
+          "stage",
+          "consumer"
+        ],
+        "supporting_status": "PASS",
+        "actual_acceptance": "BLOCKED",
+        "stage_accepted": false,
+        "remaining": "Actual integrated UX and RPC/model failures pending"
+      },
+      {
+        "id": "V5-F17",
+        "supporting_suites": [
+          "stage",
+          "consumer"
+        ],
+        "supporting_status": "PASS",
+        "actual_acceptance": "BLOCKED",
+        "stage_accepted": false,
+        "remaining": "Real v3 restart and retention boundaries pending"
+      },
+      {
+        "id": "V5-F18",
+        "supporting_suites": [],
+        "supporting_status": "NOT_RUN",
+        "actual_acceptance": "BLOCKED",
+        "stage_accepted": false,
+        "remaining": "Independent integrated browser security/accessibility pending"
+      },
+      {
+        "id": "V5-F19",
+        "supporting_suites": [],
+        "supporting_status": "NOT_RUN",
+        "actual_acceptance": "BLOCKED",
+        "stage_accepted": false,
+        "remaining": "Live signature/lifecycle/recipient/consume pending"
+      },
+      {
+        "id": "V5-F20",
+        "supporting_suites": [
+          "independent"
+        ],
+        "supporting_status": "PASS",
+        "actual_acceptance": "BLOCKED",
+        "stage_accepted": false,
+        "remaining": "Service-independent actual state verification pending"
+      },
+      {
+        "id": "V5-F21",
+        "supporting_suites": [],
+        "supporting_status": "NOT_RUN",
+        "actual_acceptance": "BLOCKED",
+        "stage_accepted": false,
+        "remaining": "Same RC/reproduction/three rehearsals and submissions pending"
+      }
+    ],
+    "paid_calls": 0,
+    "g07": "USE_SEPARATE_FIXED_PRODUCT_REPORT_AND_B_C_REVIEW",
+    "missing_actual_evidence": [
+      "selected input/model evaluation",
+      "wallet/browser/Registry integration",
+      "actual RPC performance/independent verifier",
+      "other physical laptop",
+      "same RC rehearsals x3",
+      "human review"
+    ]
+  },
+  "g07": {
+    "status": "PASS_REQUIRES_B_C_REVIEW",
+    "product_sha": "33396ba409662ef33ddee339eba670263bbcb761",
+    "qa_sha": "2b8afe2bd1e500c27eaef185283806b2cbf70d48",
+    "lock_sha256": "bd617d34973fcae555ddc543388aacf017a3ef71616e407c125f73de089e812f",
+    "fresh_runs": 1,
+    "mixed_runs": 5,
+    "runs": [
+      {
+        "mode": "FRESH",
+        "status": "PASS",
+        "groups": [
+          {
+            "id": "two_types_comparison",
+            "status": "PASS"
+          },
+          {
+            "id": "mutation_permission_matrix",
+            "status": "PASS"
+          },
+          {
+            "id": "unregistered",
+            "status": "PASS"
+          },
+          {
+            "id": "ownership",
+            "status": "PASS"
+          },
+          {
+            "id": "operation_audit_reconciliation",
+            "status": "PASS"
+          },
+          {
+            "id": "suspended_new_issuance",
+            "status": "PASS"
+          },
+          {
+            "id": "rpc_outage_recovery",
+            "status": "PASS"
+          },
+          {
+            "id": "same_operation_recovery",
+            "status": "PASS"
+          },
+          {
+            "id": "private_fields",
+            "status": "PASS"
+          },
+          {
+            "id": "approval_chain_boundary",
+            "status": "PASS"
+          },
+          {
+            "id": "default_request_limit",
+            "status": "PASS"
+          },
+          {
+            "id": "default_login_limit",
+            "status": "PASS"
+          },
+          {
+            "id": "origin_body_boundaries",
+            "status": "PASS"
+          },
+          {
+            "id": "different_rpc_chain",
+            "status": "PASS"
+          },
+          {
+            "id": "same_chain_fresh_rpc_guard",
+            "status": "PASS"
+          },
+          {
+            "id": "projection_replay_process_restart_reorg",
+            "status": "PASS"
+          },
+          {
+            "id": "current_candidate_lifecycle_regression",
+            "status": "PASS"
+          },
+          {
+            "id": "legacy_v1_expiry",
+            "status": "PASS"
+          }
+        ],
+        "resources_closed": true,
+        "resource_absence": {
+          "owned_containers_absent": true,
+          "owned_network_absent": true
+        },
+        "report_sha256": "23d45fb388f13984aeba6bb0c823f4e6ecbef56ef384bda502ab076e12dd8a63"
+      },
+      {
+        "mode": "MIXED_DIAGNOSTIC",
+        "status": "PASS",
+        "groups": [
+          {
+            "id": "two_types_comparison",
+            "status": "PASS"
+          },
+          {
+            "id": "mutation_permission_matrix",
+            "status": "PASS"
+          },
+          {
+            "id": "unregistered",
+            "status": "PASS"
+          },
+          {
+            "id": "ownership",
+            "status": "PASS"
+          },
+          {
+            "id": "operation_audit_reconciliation",
+            "status": "PASS"
+          },
+          {
+            "id": "suspended_new_issuance",
+            "status": "PASS"
+          },
+          {
+            "id": "rpc_outage_recovery",
+            "status": "PASS"
+          },
+          {
+            "id": "same_operation_recovery",
+            "status": "PASS"
+          },
+          {
+            "id": "private_fields",
+            "status": "PASS"
+          },
+          {
+            "id": "approval_chain_boundary",
+            "status": "PASS"
+          },
+          {
+            "id": "default_request_limit",
+            "status": "PASS"
+          },
+          {
+            "id": "default_login_limit",
+            "status": "PASS"
+          },
+          {
+            "id": "origin_body_boundaries",
+            "status": "PASS"
+          },
+          {
+            "id": "different_rpc_chain",
+            "status": "PASS"
+          },
+          {
+            "id": "same_chain_fresh_rpc_guard",
+            "status": "PASS"
+          },
+          {
+            "id": "projection_replay_process_restart_reorg",
+            "status": "PASS"
+          },
+          {
+            "id": "current_candidate_lifecycle_regression",
+            "status": "PASS"
+          },
+          {
+            "id": "legacy_v1_expiry",
+            "status": "PASS"
+          }
+        ],
+        "resources_closed": true,
+        "resource_absence": {
+          "owned_containers_absent": true,
+          "owned_network_absent": true
+        },
+        "report_sha256": "5dbb7bf01ebb41205675b9e7ac51534a7c0c2b0aa8908718c7f70bd34b17b938"
+      },
+      {
+        "mode": "MIXED_DIAGNOSTIC",
+        "status": "PASS",
+        "groups": [
+          {
+            "id": "two_types_comparison",
+            "status": "PASS"
+          },
+          {
+            "id": "mutation_permission_matrix",
+            "status": "PASS"
+          },
+          {
+            "id": "unregistered",
+            "status": "PASS"
+          },
+          {
+            "id": "ownership",
+            "status": "PASS"
+          },
+          {
+            "id": "operation_audit_reconciliation",
+            "status": "PASS"
+          },
+          {
+            "id": "suspended_new_issuance",
+            "status": "PASS"
+          },
+          {
+            "id": "rpc_outage_recovery",
+            "status": "PASS"
+          },
+          {
+            "id": "same_operation_recovery",
+            "status": "PASS"
+          },
+          {
+            "id": "private_fields",
+            "status": "PASS"
+          },
+          {
+            "id": "approval_chain_boundary",
+            "status": "PASS"
+          },
+          {
+            "id": "default_request_limit",
+            "status": "PASS"
+          },
+          {
+            "id": "default_login_limit",
+            "status": "PASS"
+          },
+          {
+            "id": "origin_body_boundaries",
+            "status": "PASS"
+          },
+          {
+            "id": "different_rpc_chain",
+            "status": "PASS"
+          },
+          {
+            "id": "same_chain_fresh_rpc_guard",
+            "status": "PASS"
+          },
+          {
+            "id": "projection_replay_process_restart_reorg",
+            "status": "PASS"
+          },
+          {
+            "id": "current_candidate_lifecycle_regression",
+            "status": "PASS"
+          },
+          {
+            "id": "legacy_v1_expiry",
+            "status": "PASS"
+          }
+        ],
+        "resources_closed": true,
+        "resource_absence": {
+          "owned_containers_absent": true,
+          "owned_network_absent": true
+        },
+        "report_sha256": "1d79eab6dce394204467e65ac870d317974ad30e80299da26af66812840fd604"
+      },
+      {
+        "mode": "MIXED_DIAGNOSTIC",
+        "status": "PASS",
+        "groups": [
+          {
+            "id": "two_types_comparison",
+            "status": "PASS"
+          },
+          {
+            "id": "mutation_permission_matrix",
+            "status": "PASS"
+          },
+          {
+            "id": "unregistered",
+            "status": "PASS"
+          },
+          {
+            "id": "ownership",
+            "status": "PASS"
+          },
+          {
+            "id": "operation_audit_reconciliation",
+            "status": "PASS"
+          },
+          {
+            "id": "suspended_new_issuance",
+            "status": "PASS"
+          },
+          {
+            "id": "rpc_outage_recovery",
+            "status": "PASS"
+          },
+          {
+            "id": "same_operation_recovery",
+            "status": "PASS"
+          },
+          {
+            "id": "private_fields",
+            "status": "PASS"
+          },
+          {
+            "id": "approval_chain_boundary",
+            "status": "PASS"
+          },
+          {
+            "id": "default_request_limit",
+            "status": "PASS"
+          },
+          {
+            "id": "default_login_limit",
+            "status": "PASS"
+          },
+          {
+            "id": "origin_body_boundaries",
+            "status": "PASS"
+          },
+          {
+            "id": "different_rpc_chain",
+            "status": "PASS"
+          },
+          {
+            "id": "same_chain_fresh_rpc_guard",
+            "status": "PASS"
+          },
+          {
+            "id": "projection_replay_process_restart_reorg",
+            "status": "PASS"
+          },
+          {
+            "id": "current_candidate_lifecycle_regression",
+            "status": "PASS"
+          },
+          {
+            "id": "legacy_v1_expiry",
+            "status": "PASS"
+          }
+        ],
+        "resources_closed": true,
+        "resource_absence": {
+          "owned_containers_absent": true,
+          "owned_network_absent": true
+        },
+        "report_sha256": "e01c5d48b4ca818d93ecb6d2543207a374daf6eff3d1e94778a60e49b4e935e6"
+      },
+      {
+        "mode": "MIXED_DIAGNOSTIC",
+        "status": "PASS",
+        "groups": [
+          {
+            "id": "two_types_comparison",
+            "status": "PASS"
+          },
+          {
+            "id": "mutation_permission_matrix",
+            "status": "PASS"
+          },
+          {
+            "id": "unregistered",
+            "status": "PASS"
+          },
+          {
+            "id": "ownership",
+            "status": "PASS"
+          },
+          {
+            "id": "operation_audit_reconciliation",
+            "status": "PASS"
+          },
+          {
+            "id": "suspended_new_issuance",
+            "status": "PASS"
+          },
+          {
+            "id": "rpc_outage_recovery",
+            "status": "PASS"
+          },
+          {
+            "id": "same_operation_recovery",
+            "status": "PASS"
+          },
+          {
+            "id": "private_fields",
+            "status": "PASS"
+          },
+          {
+            "id": "approval_chain_boundary",
+            "status": "PASS"
+          },
+          {
+            "id": "default_request_limit",
+            "status": "PASS"
+          },
+          {
+            "id": "default_login_limit",
+            "status": "PASS"
+          },
+          {
+            "id": "origin_body_boundaries",
+            "status": "PASS"
+          },
+          {
+            "id": "different_rpc_chain",
+            "status": "PASS"
+          },
+          {
+            "id": "same_chain_fresh_rpc_guard",
+            "status": "PASS"
+          },
+          {
+            "id": "projection_replay_process_restart_reorg",
+            "status": "PASS"
+          },
+          {
+            "id": "current_candidate_lifecycle_regression",
+            "status": "PASS"
+          },
+          {
+            "id": "legacy_v1_expiry",
+            "status": "PASS"
+          }
+        ],
+        "resources_closed": true,
+        "resource_absence": {
+          "owned_containers_absent": true,
+          "owned_network_absent": true
+        },
+        "report_sha256": "d56a2cf3d9085233fc201ff927dbd18963e8990e838f5bed81f9c981e0c7cdba"
+      },
+      {
+        "mode": "MIXED_DIAGNOSTIC",
+        "status": "PASS",
+        "groups": [
+          {
+            "id": "two_types_comparison",
+            "status": "PASS"
+          },
+          {
+            "id": "mutation_permission_matrix",
+            "status": "PASS"
+          },
+          {
+            "id": "unregistered",
+            "status": "PASS"
+          },
+          {
+            "id": "ownership",
+            "status": "PASS"
+          },
+          {
+            "id": "operation_audit_reconciliation",
+            "status": "PASS"
+          },
+          {
+            "id": "suspended_new_issuance",
+            "status": "PASS"
+          },
+          {
+            "id": "rpc_outage_recovery",
+            "status": "PASS"
+          },
+          {
+            "id": "same_operation_recovery",
+            "status": "PASS"
+          },
+          {
+            "id": "private_fields",
+            "status": "PASS"
+          },
+          {
+            "id": "approval_chain_boundary",
+            "status": "PASS"
+          },
+          {
+            "id": "default_request_limit",
+            "status": "PASS"
+          },
+          {
+            "id": "default_login_limit",
+            "status": "PASS"
+          },
+          {
+            "id": "origin_body_boundaries",
+            "status": "PASS"
+          },
+          {
+            "id": "different_rpc_chain",
+            "status": "PASS"
+          },
+          {
+            "id": "same_chain_fresh_rpc_guard",
+            "status": "PASS"
+          },
+          {
+            "id": "projection_replay_process_restart_reorg",
+            "status": "PASS"
+          },
+          {
+            "id": "current_candidate_lifecycle_regression",
+            "status": "PASS"
+          },
+          {
+            "id": "legacy_v1_expiry",
+            "status": "PASS"
+          }
+        ],
+        "resources_closed": true,
+        "resource_absence": {
+          "owned_containers_absent": true,
+          "owned_network_absent": true
+        },
+        "report_sha256": "18dac19d241de449ffe9331aa10c7783e31387822e21cf4ec8b73cdc87a3df75"
+      }
+    ],
+    "owner_review": "B reviewed previous d757a26 fresh1/mixed3; C final review pending, latest run requires owner verification",
+    "closed": false
+  },
+  "actual_independent_verifier": {
+    "status": "PASS",
+    "scope": "ACTUAL_DISPOSABLE_LOCAL_EVM_NO_SERVICE_API_DB_BROWSER",
+    "product_sha": "33396ba409662ef33ddee339eba670263bbcb761",
+    "qa_sha": "5b50ac4b450ed94440c832b93f0011feed1188d5",
+    "c63_sha": "68ea0c20718937cd0c93d683e3cfa9b3995a9666",
+    "compiled_abi_sha256": "726866e96cc5447be1ddb717f43a61a60baa493f70dcb512b98a5bb6d016a71a",
+    "model_calls": 0,
+    "service_api_calls": 0,
+    "scenarios": [
+      {
+        "template": "PAYMENT_REQUEST",
+        "original": "VERIFIED",
+        "protected_fields": "VERIFIED",
+        "actual_cli": "VERIFIED",
+        "latest_revoked": "REVOKED",
+        "original_tamper": "TAMPERED",
+        "field_tamper": "TAMPERED",
+        "superseded_after_latest_revoked": "PRESERVED"
+      },
+      {
+        "template": "OFFICIAL_DOCUMENT",
+        "original": "VERIFIED",
+        "protected_fields": "VERIFIED",
+        "actual_cli": "VERIFIED",
+        "latest_revoked": "REVOKED",
+        "original_tamper": "TAMPERED",
+        "field_tamper": "TAMPERED",
+        "superseded_after_latest_revoked": "PRESERVED"
+      }
+    ],
+    "resources_closed": true,
+    "chain_id": "31337",
+    "registry": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+    "deployment_tx": "0xbbb9b6276d7daf10ebc04fb991c97e00fea979837bfd050feac21b8b19555f22",
+    "deployment_block": "0x1",
+    "deployment_hash": "0xdff6405814015714010af826faa3b9c4405e118aa40129ac460a7eaac9c905b5",
+    "rpc_endpoint_rebound_on_restart": true,
+    "rpc_stop_restart": "INCONCLUSIVE_THEN_VERIFIED_WITH_STATE_PRESERVED"
+  },
+  "first_actual_independent_attempt": {
+    "status": "FAIL",
+    "scope": "ACTUAL_DISPOSABLE_LOCAL_EVM_NO_SERVICE_API_DB_BROWSER",
+    "product_sha": "33396ba409662ef33ddee339eba670263bbcb761",
+    "qa_sha": "d35e8d1a6bc88b5ab4290af3fba1029e26a47d38",
+    "c63_sha": "68ea0c20718937cd0c93d683e3cfa9b3995a9666",
+    "compiled_abi_sha256": "726866e96cc5447be1ddb717f43a61a60baa493f70dcb512b98a5bb6d016a71a",
+    "model_calls": 0,
+    "service_api_calls": 0,
+    "scenarios": [
+      {
+        "template": "PAYMENT_REQUEST",
+        "original": "VERIFIED",
+        "protected_fields": "VERIFIED",
+        "original_tamper": "TAMPERED",
+        "field_tamper": "TAMPERED",
+        "superseded_after_latest_revoked": "PRESERVED"
+      },
+      {
+        "template": "OFFICIAL_DOCUMENT",
+        "original": "VERIFIED",
+        "protected_fields": "VERIFIED",
+        "original_tamper": "TAMPERED",
+        "field_tamper": "TAMPERED",
+        "superseded_after_latest_revoked": "PRESERVED"
+      }
+    ],
+    "resources_closed": true,
+    "chain_id": "31337",
+    "registry": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+    "deployment_tx": "0xbbb9b6276d7daf10ebc04fb991c97e00fea979837bfd050feac21b8b19555f22",
+    "deployment_block": "0x1",
+    "deployment_hash": "0xf390f97513e567299cc4ddc3d6edccd6bfece7582d6b2574cf40c766ee90cdc5"
+  },
+  "first_failure_cause": "D QA retained old ephemeral host port after Docker restart; refreshed mapping, retest confirmed rpc_endpoint_rebound_on_restart=true",
+  "checks": {
+    "full_python_at_5b50ac4": {
+      "passed": 730,
+      "existing_live_skipped": 10,
+      "warnings": 1
+    },
+    "new_runner_tests": {
+      "live_sdk_mock": 18,
+      "acceptance_unit": 10
+    },
+    "evaluation_and_runner_targeted": 54,
+    "generation": "PASS/no diff",
+    "ruff": "PASS",
+    "workflow_yaml_bash": "PASS"
+  },
+  "paid_calls": 0,
+  "human_approval_created": false,
+  "phase_complete": false,
+  "not_run": [
+    "actual paid model or holdout evaluation",
+    "selected input conversion",
+    "new wallet/API/PostgreSQL/browser integration",
+    "actual API/RPC performance",
+    "public-network independent verification",
+    "different physical laptop",
+    "same RC rehearsal x3"
+  ]
+}

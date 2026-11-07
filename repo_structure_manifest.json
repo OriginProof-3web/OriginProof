@@ -1,5 +1,5 @@
 {
-  "version": "mvp-v1",
+  "version": "finals-v3",
   "required_top_level": [
     "apps",
     "services",
@@ -35,19 +35,11 @@
     "docs/AGENTS.md",
     "docs/CLAUDE.md",
     ".github/AGENTS.md",
-    "prompts/00_bootstrap_integrator.md",
-    "prompts/01_mvp_backend.md",
-    "prompts/02_mvp_ai.md",
-    "prompts/03_mvp_chain_core.md",
-    "prompts/04_mvp_chain_integration.md",
     "prompts/90_cross_review.md",
-    "scripts/ci/environment_fingerprint.py"
-  ],
-  "mvp_branches": [
-    "mvp/backend",
-    "mvp/ai",
-    "mvp/chain-core",
-    "mvp/chain-integration",
-    "mvp/integration"
+    "scripts/ci/environment_fingerprint.py",
+    "prompts/README.md",
+    "prompts/10_finals_task.md",
+    "docs/development_plan.md",
+    "docs/adr/0001-finals-contracts.md"
   ]
 }

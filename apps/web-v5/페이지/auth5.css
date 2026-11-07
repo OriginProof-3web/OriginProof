@@ -1,0 +1,79 @@
+/* 5안 로그인·회원가입 화면 — 입장 화면과 같은 바탕(어두운: 빛 지평선 / 밝은: 흰색), 가운데 카드 */
+:root{--a-bg:#08080a;--a-card:#111115e6;--a-line:#2a2a31;--a-line2:#3a3a44;--a-ink:#f1f2f4;--a-ink2:#d1d3dc;--a-muted:#a0a3ad;--a-faint:#7d808a;--a-field:#1a1b1f;--a-acc:#b79bfa;--a-btn:#f1f2f4;--a-btn-ink:#08080a;--a-ok:#86cda8;--a-ok-bg:#193026;--a-err:#f08a80;--a-err-bg:#3a1714;--a-warn:#f2c14e}
+html[data-theme="light"]{--a-bg:#ffffff;--a-card:#ffffff;--a-line:#e2e4e9;--a-line2:#cfd2d8;--a-ink:#16181d;--a-ink2:#2a2d34;--a-muted:#565b67;--a-faint:#676c79;--a-field:#ffffff;--a-acc:#6a4fcf;--a-btn:#16181d;--a-btn-ink:#ffffff;--a-ok:#1d7f50;--a-ok-bg:#e3f4ea;--a-err:#b42318;--a-err-bg:#fdecea;--a-warn:#8a5e00;color-scheme:light}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--a-bg);color:var(--a-ink);font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI","Apple SD Gothic Neo","Noto Sans KR",sans-serif}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0}
+#beyond-horizon-canvas{position:fixed;inset:0;width:100%;height:100%;z-index:0;opacity:.55;pointer-events:none}
+html[data-theme="light"] #beyond-horizon-canvas{display:none}
+.a-top{position:absolute;z-index:3;top:20px;left:24px;right:24px;display:flex;align-items:center;justify-content:space-between}
+.a-brand{display:flex;align-items:center;gap:10px;color:var(--a-ink);font-size:15px;font-weight:650;text-decoration:none}
+.a-tools{display:flex;gap:8px;align-items:center}
+.a-pill{height:34px;display:inline-flex;align-items:center;gap:6px;padding:0 14px;border:1px solid var(--a-line2);border-radius:999px;background:var(--a-card);color:var(--a-ink);text-decoration:none;font:inherit;font-size:13px;cursor:pointer}
+.a-pill:hover{filter:brightness(1.15)}
+.a-icon{width:34px;padding:0;justify-content:center}
+.logo-light{display:none}html[data-theme="light"] .logo-dark{display:none}html[data-theme="light"] .logo-light{display:inline}
+html[data-theme="light"] .ico-sun{display:none}html:not([data-theme="light"]) .ico-moon{display:none}
+main.a-main{position:relative;z-index:2;min-height:100vh;display:grid;place-items:center;padding:96px 16px 48px}
+.a-card{width:min(440px,100%);background:var(--a-card);border:1px solid var(--a-line);border-radius:20px;padding:28px 28px 24px;box-shadow:0 20px 60px #00000055;backdrop-filter:blur(14px)}
+.a-card.wide{width:min(560px,100%)}
+html[data-theme="light"] .a-card{box-shadow:0 12px 40px #1018281a}
+.a-logo{display:block;margin:0 auto 10px;height:72px;width:auto}
+.a-card h1{margin:0;text-align:center;font-size:22px;letter-spacing:-.4px}
+.a-sub{margin:6px 0 20px;text-align:center;color:var(--a-muted);font-size:13px}
+.a-field{display:grid;gap:6px;margin-bottom:14px}
+.a-field label{font-size:13px;font-weight:600;color:var(--a-ink2)}
+.a-field input,.a-field select{height:44px;border-radius:12px;border:1px solid var(--a-line2);background:var(--a-field);color:var(--a-ink);padding:0 14px;font:inherit;font-size:15px}
+.a-field input:focus,.a-field select:focus{outline:2px solid var(--a-acc);outline-offset:1px;border-color:transparent}
+.a-help{font-size:12px;color:var(--a-faint)}
+.a-btn{width:100%;height:46px;border:0;border-radius:12px;background:var(--a-btn);color:var(--a-btn-ink);font:inherit;font-size:15px;font-weight:700;cursor:pointer;margin-top:4px}
+.a-btn:disabled{opacity:.5;cursor:not-allowed}
+.a-btn.ghost{background:transparent;color:var(--a-ink);border:1px solid var(--a-line2)}
+.a-row{display:flex;gap:8px;align-items:center;justify-content:space-between;margin-top:14px;font-size:13px;color:var(--a-muted);flex-wrap:wrap}
+.a-row a{color:var(--a-ink);font-weight:600;text-decoration:none}
+.a-row a:hover{text-decoration:underline}
+.a-msg{display:none;margin:0 0 14px;padding:10px 12px;border-radius:10px;font-size:13px}
+.a-msg.show{display:block}
+.a-msg.err{background:var(--a-err-bg);color:var(--a-err)}
+.a-msg.ok{background:var(--a-ok-bg);color:var(--a-ok)}
+.a-msg.info{background:color-mix(in srgb,var(--a-acc) 14%,transparent);color:var(--a-ink2)}
+.a-divider{display:flex;align-items:center;gap:10px;margin:18px 0 12px;color:var(--a-faint);font-size:12px}
+.a-divider:before,.a-divider:after{content:"";flex:1;height:1px;background:var(--a-line)}
+/* 회원가입: 종류 고르기 카드·AI 고르기 */
+.a-choice{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.a-opt{position:relative;display:grid;gap:4px;padding:14px;border:1.5px solid var(--a-line2);border-radius:14px;cursor:pointer;background:var(--a-field)}
+.a-opt input{position:absolute;opacity:0;pointer-events:none}
+.a-opt b{font-size:15px}
+.a-opt span{font-size:12px;color:var(--a-muted)}
+.a-opt:has(input:checked){border-color:var(--a-acc);box-shadow:0 0 0 3px color-mix(in srgb,var(--a-acc) 25%,transparent)}
+.a-opt:has(input:focus-visible){outline:2px solid var(--a-acc);outline-offset:2px}
+.a-steps{margin:0 0 14px;padding-left:18px;color:var(--a-muted);font-size:13px;display:grid;gap:4px}
+.a-key{display:flex;gap:6px}
+.a-key input{flex:1;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.5px}
+.a-key button{height:44px;padding:0 12px;border-radius:12px;border:1px solid var(--a-line2);background:transparent;color:var(--a-ink);font:inherit;font-size:12px;cursor:pointer}
+.a-check{display:flex;gap:8px;align-items:flex-start;font-size:13px;color:var(--a-ink2);margin:-4px 0 14px}
+.a-check input{margin-top:3px}
+.a-lock{display:flex;gap:8px;align-items:flex-start;padding:10px 12px;border:1px dashed var(--a-line2);border-radius:12px;font-size:12px;color:var(--a-muted);margin-bottom:14px}
+.a-lock b{color:var(--a-ink2)}
+.hide{display:none!important}
+:focus-visible{outline:2px solid var(--a-acc);outline-offset:2px}
+@media(max-width:520px){.a-top{left:16px;right:16px}.a-card{padding:22px 18px}.a-choice{grid-template-columns:1fr}}
+/* 큰 로고: 모드별로 하나만 */
+.a-logo.logo-light{display:none}
+html[data-theme="light"] .a-logo.logo-dark{display:none}
+html[data-theme="light"] .a-logo.logo-light{display:block}
+/* 약관 동의 */
+.a-terms-wrap{margin:6px 0 4px;padding-top:16px;border-top:1px solid var(--a-line)}
+.a-terms-h{margin:0 0 10px;font-size:15px}
+.a-terms-h span{color:var(--a-muted);font-weight:500;font-size:13px}
+.a-terms{max-height:190px;overflow:auto;padding:12px 14px;margin-bottom:10px;border:1px solid var(--a-line2);border-radius:12px;background:var(--a-field);font-size:12.5px;line-height:1.6;color:var(--a-ink2)}
+.a-terms-sm{max-height:150px}
+.a-terms h3{margin:0 0 8px;font-size:13px;color:var(--a-ink)}
+.a-terms p{margin:0 0 8px}
+.a-terms dl{display:grid;grid-template-columns:72px 1fr;gap:4px 10px;margin:0 0 8px}
+.a-terms dt{font-weight:600;color:var(--a-ink)}
+.a-terms dd{margin:0}
+.a-req{color:var(--a-acc)}
+.a-check.a-confirm{margin-top:10px;padding:12px;border:1.5px solid var(--a-line2);border-radius:12px}
+.a-check.a-confirm:has(input:checked){border-color:var(--a-acc)}
+.a-terms-ver{margin:-6px 0 12px}

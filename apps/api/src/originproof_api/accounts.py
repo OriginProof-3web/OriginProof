@@ -1,0 +1,232 @@
+from __future__ import annotations
+
+import hashlib
+import hmac
+import re
+import secrets
+import unicodedata
+from datetime import UTC, datetime, timedelta
+from typing import Literal
+from uuid import uuid4
+
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from starlette.concurrency import run_in_threadpool
+
+from .database import AccountRow, SessionRow
+
+COOKIE = "originproof_session"
+SESSION_HOURS = 8
+router = APIRouter(prefix="/v1/auth", tags=["auth"])
+
+
+def account_name(value: str) -> str:
+    """One spelling per account: NFC and NFD forms of the same mail map to one username."""
+    return unicodedata.normalize("NFC", value.strip()).casefold()
+
+
+class LoginInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    # PostgreSQL text rejects NUL; refuse control characters before the query.
+    username: str = Field(min_length=1, max_length=120, pattern=r"^[^\x00-\x1f\x7f]+$")
+    password: str = Field(min_length=1, max_length=256)
+
+
+class AccountView(BaseModel):
+    account_id: str
+    username: str
+    role: str
+    issuer_id: str | None
+    csrf_token: str
+
+
+class LogoutView(BaseModel):
+    status: str = "logged_out"
+
+
+class RegisterInput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    kind: Literal["personal", "business"]
+    email: str = Field(min_length=3, max_length=120)
+    # Member ID used to log in. Omitted → the mail is the ID (earlier clients).
+    username: str | None = Field(default=None, min_length=1, max_length=120)
+    password: str = Field(min_length=8, max_length=256)
+    terms_accepted: Literal[True]
+    issuer_id: str | None = Field(default=None, max_length=128)
+
+
+class RegisteredView(BaseModel):
+    account_id: str
+    username: str
+    role: str
+    issuer_id: str | None
+
+
+def password_hash(password: str, salt: bytes | None = None) -> str:
+    salt = salt or secrets.token_bytes(16)
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, 600_000)
+    return f"pbkdf2_sha256$600000${salt.hex()}${digest.hex()}"
+
+
+def password_matches(password: str, stored: str) -> bool:
+    try:
+        scheme, rounds, salt, expected = stored.split("$")
+        if scheme != "pbkdf2_sha256" or not 100_000 <= int(rounds) <= 1_000_000:
+            return False
+        actual = hashlib.pbkdf2_hmac("sha256", password.encode(), bytes.fromhex(salt), int(rounds))
+        return hmac.compare_digest(actual, bytes.fromhex(expected))
+    except (ValueError, TypeError):
+        return False
+
+
+def _token_hash(token: str) -> str:
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+_DUMMY_PASSWORD_HASH = password_hash(secrets.token_urlsafe(32))
+
+
+async def current_session(request: Request) -> tuple[AccountRow, SessionRow]:
+    token = request.cookies.get(COOKIE)
+    if not token or not re.fullmatch(r"[A-Za-z0-9_-]{43}", token):
+        raise HTTPException(401, "AUTH_REQUIRED")
+    async with request.app.state.database.session_factory() as db:
+        session = await db.get(SessionRow, _token_hash(token))
+        if session is None:
+            raise HTTPException(401, "AUTH_REQUIRED")
+        expiry = session.expires_at
+        if (expiry if expiry.tzinfo else expiry.replace(tzinfo=UTC)) <= datetime.now(UTC):
+            raise HTTPException(401, "AUTH_REQUIRED")
+        account = await db.get(AccountRow, session.account_id)
+        if account is None:
+            raise HTTPException(401, "AUTH_REQUIRED")
+        return account, session
+
+
+def require_csrf(request: Request, session: SessionRow) -> None:
+    supplied = request.headers.get("X-CSRF-Token", "")
+    if not supplied or not hmac.compare_digest(supplied.encode(), session.csrf_token.encode()):
+        raise HTTPException(403, "CSRF_REQUIRED")
+
+
+@router.post("/login", response_model=AccountView)
+async def login(body: LoginInput, request: Request, response: Response) -> AccountView:
+    async with request.app.state.database.session_factory() as db:
+        name = account_name(body.username)
+        # Username first: older accounts keep their mail as username with email unset, so a
+        # later sign-up reusing that mail must not shadow them.
+        account = await db.scalar(select(AccountRow).where(AccountRow.username == name))
+        if account is None:
+            account = await db.scalar(select(AccountRow).where(AccountRow.email == name))
+        matches = await run_in_threadpool(
+            password_matches,
+            body.password,
+            account.password_hash if account else _DUMMY_PASSWORD_HASH,
+        )
+        if account is None or not matches:
+            raise HTTPException(401, "INVALID_CREDENTIALS")
+        token = secrets.token_urlsafe(32)
+        csrf_token = secrets.token_urlsafe(32)
+        db.add(
+            SessionRow(
+                token_hash=_token_hash(token),
+                account_id=account.account_id,
+                csrf_token=csrf_token,
+                expires_at=datetime.now(UTC) + timedelta(hours=SESSION_HOURS),
+            )
+        )
+        await db.commit()
+    response.set_cookie(
+        COOKIE,
+        token,
+        max_age=SESSION_HOURS * 3600,
+        httponly=True,
+        samesite="lax",
+        secure=request.app.state.settings.session_cookie_secure or request.url.scheme == "https",
+    )
+    return AccountView(
+        account_id=account.account_id,
+        username=account.username,
+        role=account.role,
+        issuer_id=account.issuer_id,
+        csrf_token=csrf_token,
+    )
+
+
+@router.post("/register", response_model=RegisteredView, status_code=201)
+async def register(body: RegisterInput, request: Request) -> RegisteredView:
+    """Opt-in synthetic sign-up: personal only, with reserved .invalid mail.
+
+    Issuer accounts carry publishing and key authority, so operators issue them.
+    """
+    if not request.app.state.settings.signup_enabled:
+        raise HTTPException(409, "SIGNUP_DISABLED")
+    if body.kind == "business":
+        raise HTTPException(403, "BUSINESS_SIGNUP_DISABLED")
+    if body.issuer_id is not None:
+        raise HTTPException(422, "MALFORMED_INPUT")
+    email = account_name(body.email)
+    # Limit-exempt test accounts are created by operators; sign-up must not claim the name.
+    if email in request.app.state.settings.analysis_limit_exempt_usernames:
+        raise HTTPException(409, "ACCOUNT_EXISTS")
+    # casefold can lengthen text (ß -> ss), so check the stored column limit after it.
+    if len(email) > 120 or not re.fullmatch(
+        r"[^@\s\x00-\x1f\x7f]+@[a-z0-9-]+(?:\.[a-z0-9-]+)*\.invalid", email
+    ):
+        raise HTTPException(422, "SYNTHETIC_EMAIL_REQUIRED")
+    member_id = email
+    if body.username is not None:
+        member_id = account_name(body.username)
+        # Letters (Latin or Hangul), digits and _ only: never '@', so an ID cannot shadow a mail.
+        if not re.fullmatch(r"[a-z0-9_가-힣]{3,40}", member_id):
+            raise HTTPException(422, "INVALID_USERNAME")
+        if member_id in request.app.state.settings.analysis_limit_exempt_usernames:
+            raise HTTPException(409, "ACCOUNT_EXISTS")
+    if not (re.search(r"[A-Za-z]", body.password) and re.search(r"[0-9]", body.password)):
+        raise HTTPException(422, "WEAK_PASSWORD")
+    view = RegisteredView(
+        account_id=f"acct_{uuid4().hex}",
+        username=member_id,
+        role="recipient",
+        issuer_id=None,
+    )
+    hashed = await run_in_threadpool(password_hash, body.password)
+    async with request.app.state.database.session_factory() as db:
+        db.add(AccountRow(**view.model_dump(), email=email, password_hash=hashed))
+        try:
+            await db.commit()
+        except IntegrityError:
+            await db.rollback()
+            raise HTTPException(409, "ACCOUNT_EXISTS") from None
+    return view
+
+
+@router.get("/me", response_model=AccountView)
+async def me(identity: tuple[AccountRow, SessionRow] = Depends(current_session)) -> AccountView:
+    account, session = identity
+    return AccountView(
+        account_id=account.account_id,
+        username=account.username,
+        role=account.role,
+        issuer_id=account.issuer_id,
+        csrf_token=session.csrf_token,
+    )
+
+
+@router.post("/logout", response_model=LogoutView)
+async def logout(
+    request: Request,
+    response: Response,
+    identity: tuple[AccountRow, SessionRow] = Depends(current_session),
+) -> LogoutView:
+    _, session = identity
+    require_csrf(request, session)
+    async with request.app.state.database.session_factory() as db:
+        stored = await db.get(SessionRow, session.token_hash)
+        if stored is not None:
+            await db.delete(stored)
+            await db.commit()
+    response.delete_cookie(COOKIE)
+    return LogoutView()

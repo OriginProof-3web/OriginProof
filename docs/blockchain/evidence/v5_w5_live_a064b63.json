@@ -1,0 +1,128 @@
+{
+  "scope": "disposable-local-EVM; no API/DB/browser/G07 completion",
+  "source_sha": "a064b63f9b44e5f9ccf5a6c9a4f237612d03e0e3",
+  "scenarios": [
+    "real EIP712 KeyProof, 2-of-3 and canonical approvals",
+    "shared canonical original/protected SHA256, no raw bytes archived",
+    "real accepted-send response loss recovered without hash/resend",
+    "atomic supersession, revoke, failed replay and original success",
+    "suspension, old-version revoke and joint reactivation",
+    "SQLite restart, actual EVM reorg, explicit rewind and orphan rejection",
+    "real pending known hash stays unresolved; failed receipt distinct",
+    "wrong chain and actual RPC outage fail closed"
+  ],
+  "transactions": {
+    "register_proposal": {
+      "hash": "0x2d335061bb7ef42b42490ff82d3df442a1f78fd911198630f823a13b52d98114",
+      "status": "0x1",
+      "block_number": "0x2",
+      "block_hash": "0x828566ebbf1cc7ee956cda684b8a52c2ac46983eaab8aa1f98233b6959974375"
+    },
+    "approve_first": {
+      "hash": "0x293f1edc6152e31b17f91df50f388ab6d19179125b8fb03b5e315287cc4de984",
+      "status": "0x1",
+      "block_number": "0x3",
+      "block_hash": "0x7da991888d43fb416f7308a9a04fe2bb86309faadd1669eb424f843e8f804c85"
+    },
+    "approve_second": {
+      "hash": "0x7f6e22b4f7c86a00c0d0bf00315f397ab075c93b37eae70cdb8ffad73bb80ae8",
+      "status": "0x1",
+      "block_number": "0x4",
+      "block_hash": "0xc56e31d08d6389f793c88134801382c6a25c7c489f7e8a6b4393883d644c6736"
+    },
+    "publish_v1": {
+      "hash": "0x28bbf1911fb531113a6d3864c7838fc1ef4670eb8c122c3039686b87b9d210b8",
+      "status": "0x1",
+      "block_number": "0x5",
+      "block_hash": "0x1251173f18137c7d305f118b5a9daa276aafa4d15ba651b29cd537262ed19f56"
+    },
+    "lost_reply_recovered_v2": {
+      "hash": "0xbc221e21d89292281dfd992b677e576e6d3c869c1b4af92bec2eb2694b219048",
+      "status": "0x1",
+      "block_hash": "0x5029aaaee1ebf917fab9d6bdc3216a531a25b277e6845ba2b468cb8cde9d8487"
+    },
+    "revoke_v2": {
+      "hash": "0x307ac2ba78bda98a8f060301fc533d1d3501c2602c461169e9dc61d171587679",
+      "status": "0x1",
+      "block_number": "0x7",
+      "block_hash": "0x3d737de47356be973a061d299c7d95eae5009969f2229a16778f2669b6ff19ff"
+    },
+    "failed_replay_v2": {
+      "hash": "0x6d570d1c51742666932ce7b4125e8cd5235f93fd266d65b21d12b6242d723c06",
+      "status": "0x0",
+      "block_number": "0x8",
+      "block_hash": "0xc39f0af7f2df0b0d218352fdd6937d2b8d785d01da3df31d8695c9b680c8bc6e"
+    },
+    "suspend": {
+      "hash": "0x1c1599c4bbf7659de37919a9ed71bf6ba1b9148033f3298d43ab117ffbe25045",
+      "status": "0x1",
+      "block_number": "0x9",
+      "block_hash": "0x6debca4b56b5592cbe5002f551be8189e9745b11875d0df4ffb7dc76f56953c7"
+    },
+    "revoke_old_while_suspended": {
+      "hash": "0x20b5bf6f3a4aa43c1a5b14563fde9cee0783004b3725da8030e9e2094b524700",
+      "status": "0x1",
+      "block_number": "0xa",
+      "block_hash": "0x92f848f5004abbb438586b75c3179d0e0c0608237a5e4a451966acabadca2bcb"
+    },
+    "reactivate_proposal": {
+      "hash": "0x85a19934a9753fe2cd324fb404076371e915795639b394c26419502badfd6b52",
+      "status": "0x1",
+      "block_number": "0xb",
+      "block_hash": "0x43ad6aee337b507f4ed5b608730fa921c6e877d541000362b0c6b436392b9867"
+    },
+    "reactivate_approve1": {
+      "hash": "0x6bfbd21d4ff7fbd14b7df7cb181c265cd306fb8ca1d11d247abbb396d387d9f3",
+      "status": "0x1",
+      "block_number": "0xc",
+      "block_hash": "0xf89783a3d76ebca2ce618b17b9f8c01a0cc66d4715fdc6654bbd78f4ec26c456"
+    },
+    "reactivate_approve2": {
+      "hash": "0xf6738bd2fb77aa441dc53337e6f8837a70b4f6884be8f1b9443273b7ee116d7b",
+      "status": "0x1",
+      "block_number": "0xd",
+      "block_hash": "0xd4b5febbca97a9a0eb08c5bc0fb06c20c978242fc03f9adafc215e58ddf386d7"
+    },
+    "orphaned_key_compromise": {
+      "hash": "0x0b34142a55a6e7dfaa07c7c5f5e2abacbdfdf2d4021754f36037cba9448e98a4",
+      "status": "0x1",
+      "block_number": "0xe",
+      "block_hash": "0x7cee15ff51ceb8e79d5385d842dc3f0a1f3385266509ee4255fc59e92f325b7d",
+      "canonical_at_end": false
+    },
+    "replacement_suspend": {
+      "hash": "0x6d881c5e5722d091af272d060ad3341162f4e3e8868dba78c0478f53b0255eb0",
+      "status": "0x1",
+      "block_number": "0xe",
+      "block_hash": "0x05adffb9c1eb901aaa2429e29ad7adf729bfd8689e4a0e39fcdc5c161e85c296"
+    }
+  },
+  "manifest": {
+    "chain_id": 31337,
+    "address": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+    "deployment_block": 1,
+    "deployment_hash": "0x0b1c8b57431ebc5babc2789d8f683f04be22beab901c3dd5248af54bda1ee649",
+    "runtime_code_hash": "0xb28f89b54c6190021863e97acacb31392fba64b402311930a190488391239680",
+    "deployment_tx": "0xcd73a81da8a2ba1c02d06aea706e17ef9b7cd8daf9362b83bd4c7e89de725520",
+    "constructor_arguments": [
+      [
+        "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+        "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+        "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"
+      ]
+    ],
+    "contract": "OriginProofWalletRegistry",
+    "non_upgradeable": true,
+    "chain_kind": "disposable-local",
+    "abi_sha256": "726866e96cc5447be1ddb717f43a61a60baa493f70dcb512b98a5bb6d016a71a"
+  },
+  "toolchain": {
+    "anvil": "anvil Version: 1.8.1",
+    "forge": "forge Version: 1.8.1",
+    "solc": "0.8.26+commit.8a97fa7a",
+    "dependency_lock_sha256": "d602f87fe5dbb7bc482a851adf729d02249bc2774bd58cbe613c0a61d7d4d154"
+  },
+  "initial_unknown_scan_matches": 0,
+  "recorded_on": "2026-10-17",
+  "artifact_role": "execution evidence only; disposable node was stopped, not a runtime deployment manifest"
+}

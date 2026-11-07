@@ -1,0 +1,1562 @@
+/* 실제 서버 연결 어댑터 (A3).
+   [5안 확장 2026-10-26 피터] web-2안 원본을 복사해 아래만 더함(원본은 그대로):
+   - opts.base: 같은 출처 프록시 경로(기본 '/api') 또는 이 컴퓨터 주소. 이때는 web-2안 중계(X-Jjin-*) 대신
+     로그인 쿠키(credentials)와 쓰기 요청의 X-CSRF-Token(opts.csrf 가 줌)을 씀.
+   - opts.retain(): 분석 요청의 retain_report / retain_original 선택값.
+   - opts.isDeleted(analysis_id): 사용자가 지운 분석이면 늦게 온 응답을 버림.
+   - opts.onAnalysis(analysis_id): 분석 번호가 정해지는 순간 알림(삭제 단추용).
+   - 401 로그인 필요 문구를 5안(로그인 화면 있음)에 맞게 opts.loginWhy 로 바꿀 수 있음.
+   - SampleAdapter 와 같은 모양: check(text) -> Promise<Answer>. 입력 형식이 틀리면 Promise.reject({ userMessage }).
+   - 응답 -> 화면은 웹_설계.md 4.1 직원별 대응표·1.8 칸별 상태대로만 옮김. 판정(verification_status 등)은 다시 계산하지 않음.
+   - 근거: docs/_A1_엔드포인트_조사.md (v1 card-notices/verify 만 지금 쓸 수 있음, v3 는 기본 구성에서 연결 전).
+   - fetch·시간·주소는 밖에서 받음(시험: tools/api_adapter.test.js 가 가짜 fetch 를 넣음).
+   - 화면에 바로 보이는 글에는 영문 코드를 넣지 않고, 코드는 직원 말풍선 2줄(line2)과 '자세히'(details)에만 넣음. */
+(function () {
+  'use strict';
+  var Hk = (window.Hk = window.Hk || {});
+
+  var VERIFY_TIMEOUT_MS = 25000;     // 4.1 common.held_timeout "응답 없음(25초)"
+  var HEALTH_TIMEOUT_MS = 8000;
+  var POLL_MS = 2000;
+  var POLL_LIMIT_MS = 200000;        // 2.4 P9 ANALYSIS_POLL_TIMEOUT
+  var LOOPBACK = ['127.0.0.1', 'localhost', '[::1]'];
+
+  /* ---------------- 4.1 말풍선 문구 (bubble_key -> [1줄, 모양]) ---------------- */
+  var B = {
+    'intake.fixture': ['시연 자료 받음', '확인됨'],
+    'intake.received': ['접수했어요(1시간 보관)', '확인됨'],
+    'common.not_connected': ['연결 전', '연결 전'],
+    'common.held_timeout': ['응답 없음(25초), 판단 보류', '보류'],
+    'common.held_error': ['응답 오류, 판단 보류', '보류'],
+    'common.held_dependency': ['장애로 확인 못 함, 판단 보류', '보류'],
+    'common.held_expired': ['입력 보관 시간이 지나 보류', '보류'],
+    'ledger.recorded': ['발행 기록 있음', '확인됨'],
+    'ledger.recorded_noblock': ['발행 기록 있음', '확인됨'],
+    'ledger.not_found': ['장부에 이 기관/문서 기록이 없어요', '경고'],
+    'ledger.unreachable': ['장부에 연결 못 함, 판단 보류', '보류'],
+    'ledger.not_run': ['앞 단계에서 멈춰 확인 안 함', '해당 없음'],
+    'signature.match': ['기관 서명과 일치', '확인됨'],
+    'signature.mismatch': ['기관 서명과 달라요', '경고'],
+    'signature.not_run': ['앞 단계에서 멈춰 확인 안 함', '해당 없음'],
+    'signature.held': ['서명을 확인할 자료가 없어 보류', '보류'],
+    'signature.no_source': ['확인할 원본 없음', '해당 없음'],
+    'original.same': ['원본 그대로', '확인됨'],
+    'original.changed': ['바뀐 곳: {필드}', '경고'],
+    'original.changed_unknown': ['보호 항목 중 바뀐 곳이 있어요', '경고'],
+    'original.no_source': ['확인할 원본 없음', '해당 없음'],
+    'original.not_run': ['앞 단계에서 멈춰 확인 안 함', '해당 없음'],
+    'original.held': ['원본 자료가 없어 비교 보류', '보류'],
+    'original.lookup_match': ['문자에서 읽은 항목 일치', '확인됨'],     // 새 키(A1): 원본 찾기 MATCHED + 부분 비교(읽은 키만 맞춤)
+    'status.active': ['현재 유효', '확인됨'],
+    'status.key_compromised': ['서명 키가 유출 처리된 기관이에요', '경고'],
+    'status.revoked': ['철회된 안내예요', '경고'],
+    'status.issuer_suspended': ['이 기관은 정지된 상태예요', '경고'],
+    'status.key_invalid': ['기관 서명 키가 유효하지 않아요', '경고'],
+    'status.expired': ['기한이 지난 안내예요', '주의'],
+    'status.superseded': ['새 버전 v{latest_version}이 있어요', '주의'],
+    'status.held': ['현재 상태 판단 보류', '보류'],
+    'status.no_source': ['확인할 원본 없음', '해당 없음'],
+    'status.not_run': ['앞 단계에서 멈춰 확인 안 함', '해당 없음'],
+    'ai.no_clear': ['뚜렷한 위험 신호는 못 찾았어요', '정보'],
+    'ai.caution': ['주의: {quote}', '주의'],
+    'ai.high': ['위험 신호: {quote}', '경고'],
+    'ai.undetermined': ['판단하기 어려워요', '보류'],
+    'ai.timeout': ['분석 시간이 초과돼 보류', '보류'],
+    'ai.result_expired': ['결과 보관 시간이 지났어요', '보류'],
+    'ai.cancelled': ['분석이 취소됐어요, 판단 보류', '보류'],
+    'ai.failed': ['AI 분석 실패, 판단 보류', '보류'],     // 새 키(T2): 계약 실패 코드 중 제공처·형식 문제(아래 AI_FAIL)
+    'report.ready': ['네 축 보고서를 정리했어요', '확인됨'],
+    'ai.none': ['분석하지 않음', '해당 없음']      // 4.1 표에 없는 새 키(항목 입력은 문자 원문이 없음, 피터 A3)
+  };
+  var SHAPE_TONE = { '확인됨': 'ok', '경고': 'fail', '주의': 'caution', '정보': 'info', '해당 없음': 'none', '보류': 'pending', '연결 전': 'offline' };
+
+  // 보류 사유 순위(4.1 "판단 보류 사유 우선순위", 작을수록 앞)
+  var HOLD_RANK = {
+    'common.held_timeout': 2, 'common.held_error': 2,
+    'ledger.unreachable': 3, 'common.held_dependency': 3,
+    'ai.timeout': 4, 'ai.failed': 4, 'common.held_expired': 5, 'ai.result_expired': 5, 'ai.cancelled': 6,
+    'signature.held': 7, 'original.held': 7, 'status.held': 7
+  };
+  var HOLD_BODY = {
+    'common.held_timeout': '서버가 25초 안에 답하지 않아 판단을 보류했어요.',
+    'common.held_error': '서버 응답에 문제가 있어 판단을 보류했어요.',
+    'ledger.unreachable': '장부에 연결하지 못해 판단을 보류했어요.',
+    'common.held_dependency': '서버 쪽 장애로 확인하지 못해 판단을 보류했어요.',
+    'ai.timeout': '분석 시간이 초과돼 판단을 보류했어요.',
+    'ai.failed': 'AI 분석이 결과를 내지 못해 판단을 보류했어요.',
+    'common.held_expired': '입력 보관 시간이 지나 판단을 보류했어요.',
+    'ai.result_expired': '분석 결과 보관 시간이 지나 판단을 보류했어요.',
+    'ai.cancelled': '분석이 취소돼 판단을 보류했어요.',
+    'signature.held': '서명을 확인할 자료가 없어 판단을 보류했어요.',
+    'original.held': '원본 자료가 없거나 일부만 비교해서 판단을 보류했어요.',
+    'status.held': '현재 상태를 확인하지 못해 판단을 보류했어요.'
+  };
+
+  function T() { return Hk.text; }
+  function has(list, v) { return Array.isArray(list) && list.indexOf(v) >= 0; }
+  function str(v) { return v == null ? '' : String(v); }
+
+  /* 직원 한 명의 말풍선. params 는 {필드}·{quote}·{latest_version} 자리에 넣을 값 */
+  function obs(staff, key, line2, params, line3) {
+    var row = B[key] || ['응답 오류, 판단 보류', '보류'];
+    var line1 = row[0].replace(/\{([^}]+)\}/g, function (m, k) { return params && params[k] != null ? String(params[k]) : m; });
+    var o = { staff: staff, bubble_key: key, line1: line1, line2: str(line2), shape: row[1], tone: SHAPE_TONE[row[1]] };
+    if (staff === 'ai' && o.tone === 'ok') o.tone = 'info';
+    if (line3) o.line3 = line3;
+    return o;
+  }
+  function nameOf(o) {
+    if (o && !o.name) (Hk.STAFF || []).forEach(function (s) { if (s.id === o.staff) o.name = s.name; });
+    if (o && !o.name) o.name = o.staff;
+    return o;
+  }
+  function kind(key) {
+    if (key === 'common.not_connected') return 'offline';
+    if (HOLD_RANK[key]) return 'held';
+    if (/\.not_run$/.test(key)) return 'not_run';
+    if (/\.no_source$/.test(key)) return 'no_source';
+    return 'result';
+  }
+  function bestHold(keys) {
+    return keys.filter(function (k) { return HOLD_RANK[k]; }).sort(function (a, b) { return HOLD_RANK[a] - HOLD_RANK[b]; })[0];
+  }
+
+  /* ---------------- 1.8 칸별 상태 ---------------- */
+  var AX_OFFLINE = { status: '연결 전', tone: 'offline', icon: 'plug', body: '이 확인 기능은 아직 연결 전이에요.' };
+  var AX_NOT_RUN = { status: '확인 안 함', tone: 'none', icon: 'dash', body: '앞 단계에서 멈춰 이 항목은 확인하지 않았어요.' };
+  var AX_NO_SOURCE = { status: '확인할 원본 없음', tone: 'none', icon: 'dash', body: '비교할 원본이 없어서 확인하지 않았어요.' };
+  function axHeld(key, extra) { return { status: '보류', tone: 'pending', icon: 'question', body: HOLD_BODY[key] + (extra ? ' ' + extra : '') }; }
+  function axis(id, name, staff, s, more) {
+    var a = { axis: id, name: name, status: s.status, tone: s.tone, icon: s.icon, body: s.body, staff: staff };
+    for (var k in more || {}) a[k] = more[k];
+    return a;
+  }
+
+  function officialAxis(L, S, holdExtra) {
+    var keys = [L.bubble_key, S.bubble_key];
+    var s;
+    if (keys.indexOf('common.not_connected') >= 0) s = AX_OFFLINE;
+    else if (L.bubble_key === 'ledger.not_found') s = { status: '기록 없음', tone: 'fail', icon: 'warn', body: '장부에서 이 기관 또는 이 문서의 발행 기록을 찾지 못했어요.' };
+    else if (S.bubble_key === 'signature.mismatch') s = { status: '서명 불일치', tone: 'fail', icon: 'warn', body: '서명이 등록된 기관의 서명과 달라요.' };
+    else if (bestHold(keys)) s = axHeld(bestHold(keys), holdExtra);
+    else if (kind(L.bubble_key) === 'not_run' || kind(S.bubble_key) === 'not_run') s = AX_NOT_RUN;
+    else if (kind(L.bubble_key) === 'no_source' || kind(S.bubble_key) === 'no_source') s = { status: '해당 없음', tone: 'none', icon: 'dash', body: '확인할 원본이 없어요.' };
+    else s = { status: '확인됨', tone: 'ok', icon: 'check', body: '등록된 기관이 이 안내문을 발행한 기록이 있고, 서명도 그 기관 것이에요.' };
+    return axis('official', '공식 발행', ['ledger', 'signature'], s);
+  }
+
+  function originalAxis(O, compare, sentCount, holdExtra) {
+    var k = O.bubble_key;
+    var s;
+    var more = {};
+    if (k === 'common.not_connected') s = AX_OFFLINE;
+    else if (HOLD_RANK[k]) s = axHeld(k, holdExtra);
+    else if (k === 'original.same') s = { status: '일치', tone: 'ok', icon: 'check', body: '받은 내용이 원본과 한 글자도 다르지 않아요.' + (sentCount ? ' (보낸 항목 ' + sentCount + '개 기준)' : '') };
+    else if (k === 'original.changed') {
+      s = { status: '불일치', tone: 'fail', icon: 'warn', body: O.line1 + '.' };
+      if (compare) more.compare = compare;
+    } else if (k === 'original.changed_unknown') s = { status: '불일치', tone: 'fail', icon: 'warn', body: '보호 항목 중 바뀐 곳이 있어요.' };
+    else if (k === 'original.no_source') s = AX_NO_SOURCE;
+    else if (k === 'original.lookup_match') s = { status: '읽은 항목 일치', tone: 'ok', icon: 'check', body: '문자에서 읽은 항목(' + (O.fields || '키') + ')이 이 발행 기록과 같아요. 나머지 문구는 비교하지 않았어요.' };
+    else s = AX_NOT_RUN;
+    return axis('original', '원본 일치', ['original'], s, more);
+  }
+
+  function statusAxis(St, holdExtra) {
+    var k = St.bubble_key;
+    var map = {
+      'status.active': { status: '유효', tone: 'ok', icon: 'check', body: '지금도 유효한 안내예요.' },
+      'status.revoked': { status: '철회됨', tone: 'fail', icon: 'warn', body: '기관이 이 안내를 철회했어요.' },
+      'status.superseded': { status: '새 버전 있음', tone: 'caution', icon: 'caution', body: St.line1.replace(/있어요$/, '있어요.') + ' 새 버전을 확인하세요.' },
+      'status.issuer_suspended': { status: '기관 정지', tone: 'fail', icon: 'warn', body: '이 기관은 지금 정지 상태예요.' },
+      'status.key_compromised': { status: '서명 키 유출', tone: 'fail', icon: 'warn', body: '이 기관의 서명 키가 유출 처리됐어요. 서명을 믿을 수 없어요.' },
+      'status.key_invalid': { status: '서명 키 무효', tone: 'fail', icon: 'warn', body: '이 기관의 서명 키가 지금 유효하지 않아요.' },
+      'status.expired': { status: '만료', tone: 'caution', icon: 'caution', body: '유효기간이 지났어요.' },
+      'status.no_source': AX_NO_SOURCE,
+      'common.not_connected': AX_OFFLINE
+    };
+    var s = map[k] || (HOLD_RANK[k] ? axHeld(k, holdExtra) : AX_NOT_RUN);
+    return axis('status', '현재 상태', ['status'], s);
+  }
+
+  function aiAxis(A, quote, llmUnran, why) {
+    var k = A.bubble_key;
+    var unran = llmUnran ? ' AI 상세 분석 미실행(규칙 검사 결과만)' : '';
+    var map = {
+      'ai.no_clear': { status: '뚜렷한 신호 없음', tone: 'info', icon: 'info', body: '뚜렷한 위험 신호는 못 찾았어요. 문제가 없다는 뜻은 아니에요.' + unran + (why ? ' ' + why : '') },
+      'ai.caution': { status: '주의', tone: 'caution', icon: 'caution', body: '주의: ' + quote + unran },
+      'ai.high': { status: '위험 신호', tone: 'fail', icon: 'warn', body: '위험 신호: ' + quote + unran },
+      'ai.undetermined': { status: '판단하기 어려움', tone: 'pending', icon: 'question', body: 'AI가 판단하기 어려운 내용이에요.' + unran },
+      'common.not_connected': { status: 'AI 분석 연결 전', tone: 'offline', icon: 'plug', body: 'AI 분석은 아직 연결 전이에요.' + (why ? ' ' + why : '') }
+    };
+    var s = map[k] || (HOLD_RANK[k] ? axHeld(k, why) : { status: '확인 안 함', tone: 'none', icon: 'dash', body: why || '이 입력은 AI 분석을 하지 않았어요.' });
+    return axis('ai', 'AI 위험', ['ai'], s, { note: 'AI는 설명만 하고 발행 여부를 판정하지 않아요.' });
+  }
+
+  /* ---------------- 1.8 검증 엔진 결과 문장 ---------------- */
+  var VS = {
+    VERIFIED: { text: "검증 엔진 기준으로 발행 기록·서명·원본이 맞아요. 지금도 유효한지는 '현재 상태' 칸을 보세요.", badge: { tone: 'info', icon: 'info', text: '발행 기록 확인' } },
+    NOT_REGISTERED: { text: '장부에서 등록된 발행 기록을 찾지 못했어요.', badge: { tone: 'fail', icon: 'warn', text: '기록 없음' } },
+    TAMPERED: { text: '원본과 다른 곳이 있어요.', badge: { tone: 'fail', icon: 'warn', text: '원본과 다름' } },
+    INCONCLUSIVE: { text: '일부를 확인하지 못해 판단을 보류했어요.', badge: { tone: 'pending', icon: 'question', text: '판단 보류' } },
+    ERROR: { text: '검증 중 오류가 나서 결과를 만들지 못했어요.', badge: { tone: 'pending', icon: 'question', text: '결과 없음' } }
+  };
+  /* 시연 표기 대응표(감사 T1 재작업, 3회차 멘토 명령 1 프리셋 ③). 이 상수가 대응의 유일한 출처.
+     - 검증 엔진 값(verification_status)은 바꾸지 않음. 엔진에 UNVERIFIED 값은 없음(웹_설계.md 1.8: 5개만 정의).
+     - 멘토 시연 대본의 'UNVERIFIED' = 엔진 NOT_REGISTERED(예: reason_codes ISSUER_NOT_FOUND).
+     - 영문 코드라 화면에 바로 보이는 글에는 넣지 않고 '자세히'(details)에만 넣음(sample_tool.py (f), 재디자인_설계.md '자세히(영문 코드·내부값)').
+       바로 보이는 표기는 위 VS 의 한국어('기록 없음')를 그대로 씀. */
+  var DEMO_TERM = { NOT_REGISTERED: 'UNVERIFIED' };
+  function demoTermRows(vs) {
+    if (typeof vs !== 'string' || !Object.prototype.hasOwnProperty.call(DEMO_TERM, vs)) return [];
+    return [{ label: '시연 표기', value: DEMO_TERM[vs] + ' (검증 엔진 값 ' + vs + '와 같은 뜻)' }];
+  }
+  var NEXT_DEFAULT = '링크를 누르거나 돈을 보내기 전에, 기관의 공식 전화번호로 직접 확인하세요.';
+  var NEXT_BAD = '이 안내의 내용으로 돈을 보내지 마세요. 기관의 공식 전화번호로 직접 확인하세요.';
+
+  /* ---------------- 입력 해석 ---------------- */
+  var V1_FIELDS = ['issuer_name', 'masked_card', 'amount_minor', 'currency', 'merchant', 'approved_at', 'transaction_id'];
+  var IGNORED_KEYS = /^(_source|source|expected_[a-z_]+)$/;     // 시험 자료의 설명·기대값: 서버에 보내지도, 판정에 쓰지도 않음
+  var PROOF_ID_RE = /^prf_[A-Za-z0-9_-]{1,124}$/;
+  var DOC_ID_RE = /^0x[0-9a-f]{64}$/;
+
+  function fail(msg) { var e = new Error(msg); e.userMessage = msg; return e; }
+
+  // 구조 입력(JSON): { proof_id, 후보 항목들 | candidate:{…}, document_id, version, protected_fields }
+  function parseStructured(text) {
+    var data;
+    try { data = JSON.parse(text); } catch (e) { throw fail('JSON 형식이 맞지 않아요. 중괄호로 시작하는 입력은 항목 입력(JSON)으로 읽어요.'); }
+    if (!data || typeof data !== 'object' || Array.isArray(data)) throw fail('항목 입력(JSON)은 { } 묶음 하나여야 해요.');
+    var src = {};
+    var ignored = [];
+    Object.keys(data).forEach(function (k) {
+      if (IGNORED_KEYS.test(k)) { ignored.push(k); return; }
+      if (k === 'candidate' && data[k] && typeof data[k] === 'object' && !Array.isArray(data[k])) {
+        Object.keys(data[k]).forEach(function (c) { src[c] = data[k][c]; });
+        return;
+      }
+      src[k] = data[k];
+    });
+    var allowed = V1_FIELDS.concat(['proof_id', 'document_id', 'version', 'protected_fields']);
+    var unknown = Object.keys(src).filter(function (k) { return allowed.indexOf(k) < 0; });
+    if (unknown.length) throw fail('모르는 항목이 있어요: ' + unknown.slice(0, 5).join(', '));
+
+    var out = { structured: true, ignored: ignored, candidate: {}, proofId: '', documentId: '', version: null, protectedFields: null };
+    if (src.proof_id != null) {
+      if (typeof src.proof_id !== 'string' || !PROOF_ID_RE.test(src.proof_id)) throw fail('proof_id 형식이 맞지 않아요. (prf_ 로 시작, 영문·숫자·_·- 만)');
+      out.proofId = src.proof_id;
+    }
+    if (src.document_id != null) {
+      if (typeof src.document_id !== 'string' || !DOC_ID_RE.test(src.document_id)) throw fail('document_id 형식이 맞지 않아요. (0x + 소문자 16진수 64자리)');
+      out.documentId = src.document_id;
+    }
+    if (src.version != null) {
+      if (typeof src.version !== 'number' || !Number.isInteger(src.version) || src.version < 1) throw fail('version 은 1 이상의 정수여야 해요.');
+      out.version = src.version;
+    }
+    if (src.protected_fields != null) {
+      var pf = src.protected_fields;
+      if (typeof pf !== 'object' || Array.isArray(pf) || !Object.keys(pf).length) throw fail('protected_fields 는 비어 있지 않은 { } 묶음이어야 해요.');
+      Object.keys(pf).forEach(function (k) {
+        var v = pf[k];
+        if (!/^[a-z_]{1,64}$/.test(k) || !(v === null || typeof v === 'string' || Number.isInteger(v))) throw fail('protected_fields 값은 글자·정수·null 만 쓸 수 있어요.');
+      });
+      out.protectedFields = pf;
+    }
+    V1_FIELDS.forEach(function (k) {
+      var v = src[k];
+      if (v == null) return;
+      var ok = k === 'amount_minor' ? (Number.isInteger(v) && v > 0)
+        : k === 'masked_card' ? (typeof v === 'string' && /^\d{4}$/.test(v))
+        : k === 'currency' ? (typeof v === 'string' && /^[A-Z]{3}$/.test(v))
+        : (typeof v === 'string' && v.trim().length > 0 && v.length <= 200);
+      if (!ok) throw fail(k + ' 값의 형식이 맞지 않아요.');
+      out.candidate[k] = v;
+    });
+    if (!out.proofId && !out.documentId) throw fail('항목 입력에는 proof_id 나 document_id 가 있어야 해요.');
+    if (out.proofId && !out.documentId && !Object.keys(out.candidate).length) {
+      // 빈 후보를 보내면 엔진은 비교할 항목이 없어 늘 통과시킴(verification.py _candidate_mismatch) → 보내지 않음
+      throw fail('비교할 항목(금액·가맹점 등)을 하나 이상 넣어 주세요.');
+    }
+    return out;
+  }
+
+  function parse(text) {
+    if (/^\s*\{/.test(text)) return parseStructured(text);
+    var refs = T().findRefs(text);
+    return { structured: false, refs: refs, first: refs[0] || null, text: text };
+  }
+
+  /* ---------------- 응답 -> 직원 말풍선 (v1) ---------------- */
+  function mapV1(r) {
+    var c = r.checks && typeof r.checks === 'object' ? r.checks : {};
+    var rc = Array.isArray(r.reason_codes) ? r.reason_codes : [];
+    var life = r.lifecycle_status || null;
+    var repoDown = c.proof_repository === 'UNAVAILABLE';
+    var notFound = has(rc, 'PROOF_NOT_FOUND');
+    var chainDown = c.blockchain_reader === 'UNAVAILABLE' && has(rc, 'DEPENDENCY_UNAVAILABLE') && !life;
+    var codes = rc.join(' · ');
+    var dep = function (s) { return obs(s, 'common.held_dependency', repoDown ? 'proof_repository' : 'blockchain_reader'); };
+
+    var L, S, O, St;
+    if (repoDown) L = dep('ledger');
+    else if (notFound || has(rc, 'ISSUER_NOT_FOUND') || c.issuer === 'NOT_FOUND') L = obs('ledger', 'ledger.not_found', codes);
+    else if (chainDown) L = obs('ledger', 'ledger.unreachable', 'DEPENDENCY_UNAVAILABLE');
+    else if (c.issuer === 'ACTIVE' || life === 'ISSUER_SUSPENDED') L = obs('ledger', 'ledger.recorded_noblock', '');
+    else L = obs('ledger', 'ledger.not_run', '');
+
+    if (repoDown) S = dep('signature');
+    else if (notFound) S = obs('signature', 'signature.no_source', 'PROOF_NOT_FOUND');
+    else if (c.signature === 'PASS') S = obs('signature', 'signature.match', 'key_id 응답에 없음 · 서명자 주소 연결 전');
+    else if (c.signature === 'FAIL') S = obs('signature', 'signature.mismatch', codes);
+    else if (chainDown) S = dep('signature');
+    else S = obs('signature', 'signature.not_run', '');
+
+    if (repoDown) O = dep('original');
+    else if (notFound) O = obs('original', 'original.no_source', 'PROOF_NOT_FOUND');
+    else if (c.payload_hash === 'FAIL') O = obs('original', 'original.changed_unknown', codes);
+    else if (c.candidate_match === 'FAIL') {
+      O = has(rc, 'AMOUNT_MISMATCH') ? obs('original', 'original.changed', 'AMOUNT_MISMATCH', { '필드': '금액' }) : obs('original', 'original.changed_unknown', codes);
+    } else if (c.candidate_match === 'PASS') O = obs('original', 'original.same', '');
+    else O = obs('original', 'original.not_run', '');
+
+    // 4.4-1: checks.issuer 가 없으면 lifecycle_status 를 쓰지 않음(만료만 예외)
+    if (repoDown) St = dep('status');
+    else if (notFound) St = obs('status', 'status.no_source', 'PROOF_NOT_FOUND');
+    else if (c.expiry === 'EXPIRED') St = obs('status', 'status.expired', 'PROOF_EXPIRED');
+    else if (life === 'ISSUER_SUSPENDED') St = obs('status', 'status.issuer_suspended', 'ISSUER_SUSPENDED');
+    else if (life === 'ISSUER_KEY_REVOKED') St = obs('status', 'status.key_invalid', 'ISSUER_KEY_REVOKED');
+    else if (chainDown) St = dep('status');
+    else if (!('issuer' in c)) St = obs('status', 'status.not_run', '');
+    else if (life === 'ACTIVE' && c.issuer === 'ACTIVE') St = obs('status', 'status.active', 'ACTIVE');
+    else if (life) St = obs('status', 'status.held', str(life));
+    else St = obs('status', 'status.not_run', '');
+    return { ledger: L, signature: S, original: O, status: St };
+  }
+
+  /* ---------------- 응답 -> 직원 말풍선 (v3) ---------------- */
+  function mapV3(r) {
+    var rc = Array.isArray(r.reason_codes) ? r.reason_codes : [];
+    var vs = r.verification_status;
+    var doc = r.document && typeof r.document === 'object' ? r.document : null;
+    var chk = {};
+    (Array.isArray(r.checks) ? r.checks : []).forEach(function (x) { if (x && x.name) chk[x.name] = x; });
+    var st = function (n) { return chk[n] ? chk[n].status : 'NOT_RUN'; };
+    var reasonOf = function (n) { return chk[n] && chk[n].reason_code ? chk[n].reason_code : ''; };
+    var dep = has(rc, 'CHAIN_SNAPSHOT_UNAVAILABLE') || has(rc, 'CHAIN_UNAVAILABLE');
+    var noDoc = vs === 'NOT_REGISTERED' || has(rc, 'DOCUMENT_NOT_REGISTERED');
+    var depCode = has(rc, 'CHAIN_SNAPSHOT_UNAVAILABLE') ? 'CHAIN_SNAPSHOT_UNAVAILABLE' : 'CHAIN_UNAVAILABLE';
+    // NOT_RUN 인 직원: 장애 > 엔진 보류(INCONCLUSIVE) > 앞 단계 중단 (4.1 우선순위)
+    var notRun = function (s, heldKey) {
+      if (dep) return obs(s, 'common.held_dependency', depCode);
+      if (noDoc) return obs(s, s + '.no_source', 'DOCUMENT_NOT_REGISTERED');
+      if (vs === 'INCONCLUSIVE' && heldKey) return obs(s, heldKey, rc.join(' · '));
+      return obs(s, s + '.not_run', '');
+    };
+    var extra = rc.filter(function (x) { return /^(METADATA_|CHAIN_RECORD_MISMATCH)/.test(x); });
+
+    var L;
+    if (noDoc) L = obs('ledger', 'ledger.not_found', 'DOCUMENT_NOT_REGISTERED');
+    else if (dep) L = obs('ledger', 'ledger.unreachable', depCode);
+    else if (doc) L = obs('ledger', r.block_number ? 'ledger.recorded' : 'ledger.recorded_noblock', [r.block_number ? '블록 #' + r.block_number : ''].concat(extra).filter(Boolean).join(' · '));
+    else L = obs('ledger', 'ledger.not_run', '');
+
+    var S;
+    var sig = st('signature');
+    // G1: 서명자 주소는 응답에 없음 → key_id 만 보여 주고 주소는 연결 전(추가 호출 안 함)
+    if (sig === 'PASSED') S = obs('signature', 'signature.match', 'key_id ' + (doc && doc.key_id ? doc.key_id : '없음') + ' · 서명자 주소 연결 전');
+    else if (sig === 'FAILED') S = obs('signature', 'signature.mismatch', reasonOf('signature'));
+    else if (sig === 'UNAVAILABLE') S = obs('signature', 'signature.held', reasonOf('signature'));
+    else S = notRun('signature', 'signature.held');
+
+    var O;
+    var parts = ['protected_fields', 'content', 'original_hash'];
+    var failed = parts.filter(function (n) { return st(n) === 'FAILED'; });
+    if (failed.length) {
+      var pf = chk.protected_fields;
+      var codes = failed.map(reasonOf).filter(Boolean).join(' · ');
+      O = pf && pf.status === 'FAILED' && pf.reason_code === 'PROTECTED_FIELDS_MISMATCH' && pf.field_path
+        ? obs('original', 'original.changed', codes, { '필드': pf.field_path })
+        : obs('original', 'original.changed_unknown', codes);
+    } else if (st('protected_fields') === 'PASSED' || st('content') === 'PASSED') {
+      O = obs('original', 'original.same', has(rc, 'CONTENT_PARTIALLY_COMPARED') ? 'CONTENT_PARTIALLY_COMPARED' : '');
+    } else if (parts.some(function (n) { return st(n) === 'UNAVAILABLE'; })) {
+      O = obs('original', 'original.held', rc.join(' · '));
+    } else O = notRun('original', 'original.held');
+
+    var Stt;
+    var w = doc && Array.isArray(doc.warnings) ? doc.warnings : [];
+    var state = doc ? doc.state : null;
+    var cs = st('current_state');
+    if (dep) Stt = obs('status', 'status.held', depCode);
+    else if (!doc) Stt = notRun('status', 'status.held');
+    else if (has(w, 'KEY_COMPROMISED')) Stt = obs('status', 'status.key_compromised', 'KEY_COMPROMISED');
+    else if (state === 'REVOKED') Stt = obs('status', 'status.revoked', 'REVOKED');
+    else if (has(w, 'ISSUER_SUSPENDED')) Stt = obs('status', 'status.issuer_suspended', 'ISSUER_SUSPENDED');
+    else if (state === 'EXPIRED') Stt = obs('status', 'status.expired', 'EXPIRED');
+    else if (state === 'SUPERSEDED') Stt = obs('status', 'status.superseded', 'state=SUPERSEDED · latestVersion=' + str(doc.latest_version), { latest_version: str(doc.latest_version) });
+    else if (w.length) Stt = obs('status', 'status.held', w.join(' · '));     // 4.4-6
+    else if (state === 'ACTIVE' && cs === 'PASSED') Stt = obs('status', 'status.active', 'ACTIVE');                                 // 4.4-2
+    else if (cs === 'UNAVAILABLE' || vs === 'INCONCLUSIVE') Stt = obs('status', 'status.held', reasonOf('current_state') || 'current_state=' + cs);
+    else Stt = obs('status', 'status.not_run', '');
+    return { ledger: L, signature: S, original: O, status: Stt };
+  }
+
+  /* ---------------- 분석 결과 -> AI 말풍선 ---------------- */
+  /* AnalysisJob.error_code 전부(계약: OP-AI연결-준비 apps/api/src/originproof_api/wallet_analyses.py process()·finish()·cleanup()).
+     [말풍선 키, 쉬운 말(문구안 — 대표 확정 필요)]. 표에 없는 코드는 common.held_error + 코드 그대로(지어내지 않음). */
+  var AI_FAIL = {
+    ANALYZER_UNAVAILABLE: ['common.not_connected', '서버에 분석 처리기가 없어요.'],
+    ANALYSIS_TIMEOUT: ['ai.timeout', '접수 후 180초 안에 끝나지 않았어요.'],
+    TIMEOUT: ['ai.timeout', 'AI 제공처가 제한 시간 안에 답하지 않았어요.'],
+    INPUT_EXPIRED: ['common.held_expired', ''],
+    WORKER_STOPPED: ['common.held_dependency', '서버의 분석 작업이 중간에 멈췄어요.'],
+    PROCESS_RESTARTED: ['common.held_dependency', '분석 중에 서버가 다시 시작됐어요.'],
+    PROVIDER_UNAVAILABLE: ['common.held_dependency', 'AI 제공처에 연결하지 못했어요.'],
+    RATE_LIMIT: ['ai.failed', 'AI 제공처의 요청 한도에 걸렸어요. 잠시 뒤 다시 해 보세요.'],
+    REFUSAL: ['ai.failed', 'AI가 이 글의 분석을 거절했어요.'],
+    INCOMPLETE_OUTPUT: ['ai.failed', 'AI 답이 끝까지 오지 않았어요.'],
+    SCHEMA_MISMATCH: ['ai.failed', 'AI 답이 약속한 형식과 달라 쓰지 않았어요.'],
+    ANALYZER_SCHEMA_MISMATCH: ['ai.failed', 'AI 답이 약속한 형식과 달라 쓰지 않았어요.'],
+    GROUNDING_MISMATCH: ['ai.failed', 'AI가 든 근거 문장이 받은 글에서 확인되지 않아 결과를 쓰지 않았어요.'],
+    ANALYZER_AUTHORITY_VIOLATION: ['ai.failed', 'AI 답에 발행 진위 판정 값이 들어 있어 결과를 쓰지 않았어요.'],
+    LOW_CONFIDENCE: ['ai.failed', 'AI가 확신이 낮다고 답해 결과를 내지 않았어요.'],
+    UNSUPPORTED_INPUT: ['ai.failed', '이 입력 형식은 AI 분석이 지원하지 않아요.'],
+    MALFORMED_INPUT: ['ai.failed', '입력 형식이 올바르지 않아 분석하지 못했어요.']
+  };
+  function mapAnalysisJob(job) {
+    if (!job || typeof job !== 'object') return { obs: obs('ai', 'common.held_error', 'UPSTREAM_SCHEMA_MISMATCH') };
+    var s = job.status;
+    var ec = typeof job.error_code === 'string' ? job.error_code : '';
+    if (s === 'COMPLETED' && job.report && typeof job.report === 'object') return mapReport(job.report);
+    if (s === 'FAILED') {
+      var f = Object.prototype.hasOwnProperty.call(AI_FAIL, ec) ? AI_FAIL[ec] : null;
+      if (f) return { obs: obs('ai', f[0], ec), why: f[1] };
+      return { obs: obs('ai', 'common.held_error', ec || 'FAILED'), why: ec ? '화면이 모르는 실패 코드예요. 자세히에서 코드를 확인하세요.' : '' };
+    }
+    if (s === 'EXPIRED') return { obs: obs('ai', 'ai.result_expired', 'EXPIRED') };
+    if (s === 'CANCELLED') return { obs: obs('ai', 'ai.cancelled', 'CANCELLED') };
+    return { obs: obs('ai', 'common.held_error', 'status=' + str(s)) };
+  }
+  /* 계약 AnalysisReport(wallet_contract.py 425-438)·AnalysisEvidence(407-422) 중 화면이 쓰는 것만 골라 옮김.
+     모양이 틀린 근거 항목은 버리고(화면이 깨지지 않게), 몇 개 버렸는지 dropped 에 남김. 값은 바꾸지 않음. */
+  function cleanReport(rep) {
+    var dropped = 0;
+    var ev = (Array.isArray(rep.evidence) ? rep.evidence : []).slice(0, 50).filter(function (e) {
+      var ok = e && typeof e === 'object' && typeof e.quote === 'string' && e.quote.length > 0;
+      if (!ok) dropped++;
+      return ok;
+    }).map(function (e) {
+      return { rule_id: str(e.rule_id), quote: e.quote, start_offset: e.start_offset == null ? null : e.start_offset, end_offset: e.end_offset == null ? null : e.end_offset, source: str(e.source) };
+    });
+    return {
+      risk_level: str(rep.risk_level), evidence: ev, dropped: dropped,
+      limitations: (Array.isArray(rep.limitations) ? rep.limitations : []).slice(0, 20).map(str),
+      verification_not_run_reason: rep.verification_not_run_reason == null ? null : str(rep.verification_not_run_reason)
+    };
+  }
+  /* 개인정보 가림 자리만 근거인 '주의': 이 화면은 AI 에 보내기 전에 계좌·전화·주민번호를 '(계좌번호 가림)' 등으로 바꾼다.
+     AI 가 그 가림 자리(예: "입금계좌 (계좌번호 가림)")만 보고 '출처를 알 수 없는 계좌'라며 주의를 내면, 우리가 가린 탓이지 문자의 위험이 아님.
+     근거 문장에서 가림 표시와 계좌 이름표(입금계좌·납부 계좌 등)·문장부호를 빼면 남는 것이 없을 때만 그 근거를 뺀다.
+     HIGH 는 건드리지 않음. 원래 값은 자세히(detail)에 그대로 남김(감추지 않음). */
+  var MASK_ONLY_RE = /\((?:계좌번호|전화번호|주민번호) 가림\)|(?:입금|납부|송금|이체|가상|받는|결제)?\s*계좌(?:번호)?|예금주|은행|[\s.,:;：·()\[\]"'“”‘’-]/g;
+  function maskOnly(quote) { return /\((?:계좌번호|전화번호|주민번호) 가림\)/.test(quote) && !quote.replace(MASK_ONLY_RE, '').trim(); }
+  function mapReport(raw) {
+    var rep = cleanReport(raw);
+    var original = rep.risk_level, masked = 0;
+    if (rep.risk_level === 'CAUTION' && rep.evidence.length) {
+      var kept = rep.evidence.filter(function (e) { return !maskOnly(e.quote); });
+      masked = rep.evidence.length - kept.length;
+      if (masked) rep = { risk_level: kept.length ? rep.risk_level : 'NO_CLEAR_INDICATORS', evidence: kept, dropped: rep.dropped, limitations: rep.limitations, verification_not_run_reason: rep.verification_not_run_reason };
+    }
+    var lim = rep.limitations;
+    var rules = lim.filter(function (x) { return /^phishing-rules-/.test(x); })[0] || '';      // G4
+    var unran = lim.some(function (x) { return /^LLM_ANALYSIS_UNAVAILABLE/.test(x); });
+    var mock = has(lim, 'MOCK_REPLAY_NOT_MODEL_PERFORMANCE');
+    var ev = rep.evidence[0] || null;
+    var quote = ev ? T().maskPersonal(ev.quote).slice(0, 80) : '';
+    var key = { NO_CLEAR_INDICATORS: 'ai.no_clear', CAUTION: 'ai.caution', HIGH: 'ai.high', UNDETERMINED: 'ai.undetermined' }[rep.risk_level];
+    if (!key) return { obs: obs('ai', 'common.held_error', 'risk_level=' + rep.risk_level) };
+    if ((key === 'ai.caution' || key === 'ai.high') && !quote) quote = '(근거 문장 없음)';
+    var line3 = unran ? 'AI 상세 분석 미실행' : (mock ? '모의 응답' : '');
+    return {
+      obs: obs('ai', key, [rep.risk_level, rules].filter(Boolean).join(' · '), { quote: quote }, line3),
+      quote: quote, unran: unran, report: rep,
+      why: masked ? '(개인정보 보호로 가린 계좌번호 자리만 근거로 든 주의 ' + masked + '건은 뺐어요.)' : '',
+      detail: (masked ? 'AI 원래 판단 ' + original + ' · 가림 자리만 근거인 ' + masked + '건 제외 · ' : '') + 'risk_level=' + rep.risk_level + ' · evidence ' + rep.evidence.length + '건' + (rep.dropped ? '(모양 틀린 ' + rep.dropped + '건 버림)' : '') +
+        rep.evidence.map(function (e, i) { return ' · [' + (i + 1) + '] source=' + e.source + ' rule_id=' + e.rule_id + ' offset=' + (e.start_offset == null ? '-' : e.start_offset + '~' + e.end_offset); }).join('') +
+        (lim.length ? ' · limitations: ' + lim.join(' | ') : '') + (rep.verification_not_run_reason ? ' · verification_not_run_reason=' + rep.verification_not_run_reason : '')
+    };
+  }
+
+  /* ---------------- AI 근거 위치(형광펜) ----------------
+     계약: AnalysisEvidence.start_offset·end_offset 은 서버가 받은 글(이 화면이 보낸 '개인정보 가린 글' = 답의 input.text)의
+     파이썬 str 위치 = 유니코드 코드포인트 단위, end 미포함, text[start:end] == quote (wallet_analyses.py ground_report 82줄).
+     JS 문자열은 UTF-16 이라 코드포인트 → UTF-16 위치로 바꿔 씀. 두 값 다 없으면 서버와 같은 규칙(글 안에 딱 한 번 나올 때만)으로 찾음.
+     한쪽만 있음·정수 아님·음수·역순·범위 밖·quote 불일치·겹침이면 칠하지 않고 skipped 에 사유를 남김(오류를 던지지 않음). */
+  function cpTable(text) {      // 코드포인트 위치 i → UTF-16 위치. 길이 = 코드포인트 수 + 1
+    var t = [0];
+    for (var i = 0; i < text.length; i++) {
+      var c = text.charCodeAt(i);
+      if (c >= 0xd800 && c <= 0xdbff && i + 1 < text.length) { var d = text.charCodeAt(i + 1); if (d >= 0xdc00 && d <= 0xdfff) i++; }
+      t.push(i + 1);
+    }
+    return t;
+  }
+  function evidenceSpans(text, evidence) {
+    text = typeof text === 'string' ? text : '';
+    var list = Array.isArray(evidence) ? evidence.slice(0, 50) : [];
+    var table = null, found = [], skipped = [];
+    list.forEach(function (e, i) {
+      var q = e && typeof e.quote === 'string' ? e.quote : '';
+      if (!q) return skipped.push({ index: i, reason: 'NO_QUOTE' });
+      var s = e.start_offset, n = e.end_offset, a, b;
+      if (s == null && n == null) {
+        a = text.indexOf(q);
+        if (a < 0) return skipped.push({ index: i, reason: 'QUOTE_NOT_FOUND' });
+        if (text.indexOf(q, a + 1) >= 0) return skipped.push({ index: i, reason: 'QUOTE_NOT_UNIQUE' });
+        b = a + q.length;
+      } else {
+        if (!Number.isInteger(s) || !Number.isInteger(n) || s < 0 || n < 0) return skipped.push({ index: i, reason: 'BAD_RANGE' });
+        if (s >= n) return skipped.push({ index: i, reason: 'REVERSED' });
+        table = table || cpTable(text);
+        if (n > table.length - 1) return skipped.push({ index: i, reason: 'OUT_OF_RANGE' });
+        a = table[s]; b = table[n];
+        if (text.slice(a, b) !== q) return skipped.push({ index: i, reason: 'QUOTE_MISMATCH' });
+      }
+      found.push({ index: i, start: a, end: b, source: str(e.source), rule_id: str(e.rule_id) });
+    });
+    found.sort(function (x, y) { return x.start - y.start || x.index - y.index; });
+    var spans = [], at = 0;
+    found.forEach(function (sp) {
+      if (sp.start < at) return skipped.push({ index: sp.index, reason: 'OVERLAP' });
+      spans.push(sp); at = sp.end;
+    });
+    skipped.sort(function (x, y) { return x.index - y.index; });
+    return { spans: spans, skipped: skipped };
+  }
+  var SPAN_WHY = { NO_QUOTE: '근거 문장 없음', QUOTE_NOT_FOUND: '받은 글에 없는 문장', QUOTE_NOT_UNIQUE: '같은 문장이 여러 번 있어 위치를 못 정함', BAD_RANGE: '위치 값 형식이 틀림', REVERSED: '위치 앞뒤가 바뀜', OUT_OF_RANGE: '위치가 글 길이를 넘음', QUOTE_MISMATCH: '위치의 글과 근거 문장이 다름', OVERLAP: '다른 근거와 위치가 겹침' };
+
+  /* 분석 경로의 HTTP 오류 detail(계약: wallet_analyses.py input_text·analysis·job·report 의 HTTPException) → 쉬운 말(문구안).
+     INPUT_SUPPORT_UNDECIDED 는 아래 fromErr 에서 '연결 전', INPUT_EXPIRED(410)은 errorInfo 에서 입력 보관 시간 보류로 감. */
+  var AI_HTTP = {
+    EMPTY_INPUT: '빈 글은 분석할 수 없어요.',
+    INPUT_NOT_FOUND: '서버가 보낸 입력을 찾지 못했어요.',
+    ANALYSIS_NOT_FOUND: '서버가 이 분석 기록을 찾지 못했어요.',
+    INPUT_ALREADY_ANALYZED: '이미 분석을 맡긴 입력이에요.',
+    REQUEST_ID_CONFLICT: '같은 요청 번호로 다른 내용이 들어왔어요.',
+    ANALYSIS_LIMIT: '분석은 계정당 동시에 1건, 10분에 5건까지 받아요.',
+    INPUT_LIMIT: '글·사진 올리기는 계정당 10분에 20건까지 받아요.',
+    VERIFICATION_SESSION_NOT_FOUND: '연결할 검증 기록을 찾지 못했어요.',
+    VERIFICATION_SESSION_EXPIRED: '연결할 검증 기록의 보관 시간이 지났어요.',
+    RESULT_EXPIRED: '분석 결과 보관 시간이 지났어요.',
+    INPUT_NOT_IMAGE: '사진으로 올린 입력만 글자를 읽을 수 있어요.',
+    IMAGE_TEXT_ALREADY_READ: '이 사진은 이미 글자를 읽었어요. 다시 올려 주세요.'
+  };
+
+  /* ---------------- 오류 응답 -> 말풍선 ---------------- */
+  // res: call() 결과. 돌려줌: { key, line2, why(쉬운 말) }
+  function errorInfo(res) {
+    if (res.error === 'timeout') return { key: 'common.held_timeout', line2: 'UPSTREAM_TIMEOUT', why: '' };
+    if (res.error === 'no_proxy') return { key: 'common.held_error', line2: 'NO_PROXY · HTTP ' + res.status, why: '이 페이지는 중계 프로그램 없이 열려 있어 서버에 보낼 수 없어요.' };
+    if (res.error === 'proxy_unreachable') return { key: 'common.held_error', line2: 'UPSTREAM_UNAVAILABLE', why: '서버가 꺼져 있거나 주소가 틀렸어요.' };
+    if (res.error === 'bad_url') return { key: 'common.held_error', line2: 'BAD_SERVER_URL', why: '서버 주소 형식이 맞지 않아요.' };
+    if (res.error === 'target_not_allowed') return { key: 'common.held_error', line2: 'TARGET_NOT_ALLOWED', why: '이 컴퓨터(127.0.0.1·localhost) 주소로만 보낼 수 있어요.' };
+    if (res.error === 'network') return { key: 'common.held_error', line2: 'NETWORK_ERROR · ' + str(res.detail), why: '서버에 닿지 못했어요. 서버가 꺼져 있거나, 브라우저가 다른 주소로 보내는 요청을 막았어요.' };
+    var detail = res.data && (res.data.detail || res.data.error) ? str(res.data.detail || res.data.error) : '';
+    var line2 = 'HTTP ' + res.status + (detail ? ' · ' + detail : '');
+    if (res.status === 429) {
+      var ra = res.retryAfter;
+      return { key: 'common.held_error', line2: line2 + (ra ? ' · ' + ra + '초 뒤 가능' : ''), why: '요청이 많아 잠시 막혔어요.' + (ra ? ' ' + ra + '초 뒤에 다시 해 보세요.' : '') };
+    }
+    if (res.status === 410 && detail === 'INPUT_EXPIRED') return { key: 'common.held_expired', line2: line2, why: '' };
+    if (res.status === 422) return { key: 'common.held_error', line2: line2, why: '보낸 항목 형식을 서버가 받지 않았어요.' };
+    if (res.status >= 500) return { key: 'common.held_error', line2: line2, why: '서버가 지금 처리하지 못했어요.' };
+    return { key: 'common.held_error', line2: line2 || 'UPSTREAM_SCHEMA_MISMATCH', why: '' };
+  }
+
+  /* ---------------- 주소·연결 ---------------- */
+  function isLoopback(url) {
+    var m = /^https?:\/\/([^/:]+|\[[^\]]+\])(:\d+)?$/.exec(url || '');
+    return !!m && LOOPBACK.indexOf(m[1]) >= 0;
+  }
+
+  /* opts: { fetch, serverUrl, viaProxy, timeoutMs, healthTimeoutMs, pollMs, pollLimitMs, sleep, now } */
+  function makeCaller(opts) {
+    var fetchFn = opts.fetch;
+    var serverUrl = T().normalizeServerUrl(opts.serverUrl || '');
+    var sleep = opts.sleep || function (ms) { return new Promise(function (r) { setTimeout(r, ms); }); };
+
+    var base = typeof opts.base === 'string' ? opts.base : null;   // 5안 확장
+    function call(method, path, body, ms) {
+      if (base != null) return callBase(method, path, body, ms);
+      if (!serverUrl) return Promise.resolve({ error: 'bad_url' });
+      if (!isLoopback(serverUrl)) return Promise.resolve({ error: 'target_not_allowed' });
+      var url = opts.viaProxy ? '/api' + path : serverUrl + path;
+      var headers = { Accept: 'application/json' };
+      if (body != null) headers['Content-Type'] = 'application/json';
+      if (opts.viaProxy) headers['X-Jjin-Target'] = serverUrl;
+      var ctl = typeof AbortController === 'function' ? new AbortController() : null;
+      var timer = null;
+      var timedOut = false;
+      var timeout = new Promise(function (resolve) {
+        timer = setTimeout(function () { timedOut = true; if (ctl) ctl.abort(); resolve({ error: 'timeout' }); }, ms);
+      });
+      var req = Promise.resolve().then(function () {
+        return fetchFn(url, { method: method, headers: headers, body: body == null ? undefined : JSON.stringify(body), signal: ctl ? ctl.signal : undefined, credentials: 'omit', redirect: 'error', cache: 'no-store' });
+      }).then(function (res) {
+        return Promise.resolve(res.text()).then(function (txt) {
+          var data = null;
+          try { data = JSON.parse(txt); } catch (e) { data = null; }
+          var get = function (h) { try { return res.headers.get(h); } catch (e) { return null; } };
+          var out = { status: res.status, data: data, retryAfter: get('Retry-After'), requestId: get('X-Request-ID') };
+          if (opts.viaProxy && get('X-Jjin-Proxy') !== '1') { out.error = 'no_proxy'; return out; }
+          var pe = data && data.proxy_error;
+          if (pe === 'UPSTREAM_UNREACHABLE') out.error = 'proxy_unreachable';
+          else if (pe === 'UPSTREAM_TIMEOUT') out.error = 'timeout';
+          else if (pe === 'TARGET_NOT_ALLOWED') out.error = 'target_not_allowed';
+          return out;
+        });
+      }, function (e) {
+        return timedOut ? { error: 'timeout' } : { error: 'network', detail: e && e.name ? e.name : 'Error' };
+      });
+      return Promise.race([req, timeout]).then(function (r) { clearTimeout(timer); return r; });
+    }
+    /* 5안 확장: 같은 출처 /api(또는 이 컴퓨터 주소)로 로그인 쿠키와 함께 보냄. 쓰기(POST·DELETE)는 opts.csrf() 로 받은
+       X-CSRF-Token 을 붙임(로그인·공개 검증 경로 제외). 토큰이 없으면(로그인 안 함) 보내지 않고 401 로 돌려줌. */
+    function callBase(method, path, body, ms) {
+      var headers = { Accept: 'application/json' };
+      if (body != null) headers['Content-Type'] = 'application/json';
+      var needCsrf = method !== 'GET' && path !== '/v1/auth/login' && path !== '/v3/verifications' && path !== '/v1/mvp/card-notices/verify';
+      var pre = needCsrf && typeof opts.csrf === 'function' ? Promise.resolve().then(opts.csrf) : Promise.resolve(null);
+      return pre.then(function (token) {
+        if (needCsrf && typeof opts.csrf === 'function' && !token) return { status: 401, data: { detail: 'AUTH_REQUIRED' }, local: true };
+        if (token) headers['X-CSRF-Token'] = token;
+        var ctl = typeof AbortController === 'function' ? new AbortController() : null;
+        var timer = null;
+        var timedOut = false;
+        var timeout = new Promise(function (resolve) {
+          timer = setTimeout(function () { timedOut = true; if (ctl) ctl.abort(); resolve({ error: 'timeout' }); }, ms);
+        });
+        var req = Promise.resolve().then(function () {
+          return fetchFn(base + path, { method: method, headers: headers, body: body == null ? undefined : JSON.stringify(body), signal: ctl ? ctl.signal : undefined, credentials: /^\//.test(base) ? 'same-origin' : 'include', redirect: 'error', cache: 'no-store' });
+        }).then(function (res) {
+          return Promise.resolve(res.text()).then(function (txt) {
+            var data = null;
+            try { data = JSON.parse(txt); } catch (e) { data = null; }
+            var get = function (h) { try { return res.headers.get(h); } catch (e) { return null; } };
+            return { status: res.status, data: data, text: typeof txt === 'string' ? txt : '', contentType: get('Content-Type'), retryAfter: get('Retry-After'), requestId: get('X-Request-ID') };
+          });
+        }, function (e) {
+          return timedOut ? { error: 'timeout' } : { error: 'network', detail: e && e.name ? e.name : 'Error' };
+        });
+        return Promise.race([req, timeout]).then(function (r) { clearTimeout(timer); return r; });
+      });
+    }
+    return { call: call, serverUrl: base != null ? base : serverUrl, sleep: sleep, opts: opts };
+  }
+
+  /* 연결 확인: GET /health/ready. 돌려줌 { kind, ok, message, detail } */
+  var READY_MSG = {
+    ready: '연결됐어요. 검증 서버가 준비돼 있어요.',
+    not_ready: '서버는 켜져 있지만 아직 준비가 안 됐어요. 준비 항목(장부 연결·계정 등)이 남아 있어요. 꺼진 것과는 달라요.',
+    ready_failed: '서버는 응답했지만 준비 확인에 실패했어요. 서버 쪽 데이터베이스 등을 확인해 주세요.',
+    unexpected: '서버가 예상과 다른 답을 보냈어요. 주소가 검증 서버가 맞는지 확인해 주세요.',
+    slow: '서버가 제한 시간 안에 답하지 않았어요. 서버가 느리거나 멈춰 있을 수 있어요. 잠시 뒤 다시 눌러 보세요.',
+    down: '서버에 연결하지 못했어요. 서버가 꺼져 있거나 주소가 틀렸어요. 주소와 서버 실행 여부를 확인해 주세요.',
+    cors: '서버는 켜져 있지만 브라우저가 답을 읽지 못하게 막았어요(다른 주소 요청 차단). 중계 프로그램(tools/local_proxy.py)으로 이 페이지를 열어 주세요.',
+    blocked_or_down: '서버에 닿지 못했어요. 서버가 꺼져 있거나, 브라우저가 다른 주소로 보내는 요청을 막았어요. 중계 프로그램(tools/local_proxy.py)으로 페이지를 열어 주세요.',
+    no_proxy: '이 페이지는 중계 프로그램 없이 열려 있어요. tools/local_proxy.py 로 페이지를 열어 주세요.',
+    target_not_allowed: '지금은 이 컴퓨터 주소(127.0.0.1·localhost)로만 연결할 수 있어요.',
+    bad_url: '서버 주소 형식이 맞지 않아요. 예: http://127.0.0.1:8000'
+  };
+  /* 직접 연결에서 fetch 가 실패하면(TypeError) 꺼진 서버와 CORS 차단을 구별할 수 없음.
+     그래서 같은 주소를 mode:'no-cors' 로 한 번 더 부름: 답(읽을 수 없는 응답)이 오면 서버는 켜져 있고
+     브라우저가 막은 것(cors), 그것도 실패하면 꺼짐·주소 틀림(down). 본문은 읽지 않음. */
+  function probeNoCors(opts, ms) {
+    var url = T().normalizeServerUrl(opts.serverUrl || '') + '/health/ready';
+    var timer = null;
+    var timeout = new Promise(function (r) { timer = setTimeout(function () { r('down'); }, ms); });
+    var req = Promise.resolve().then(function () {
+      return opts.fetch(url, { method: 'GET', mode: 'no-cors', credentials: 'omit', cache: 'no-store' });
+    }).then(function () { return 'cors'; }, function () { return 'down'; });
+    return Promise.race([req, timeout]).then(function (k) { clearTimeout(timer); return k; });
+  }
+
+  function checkConnection(opts) {
+    var c = makeCaller(opts);
+    var ms = opts.healthTimeoutMs || HEALTH_TIMEOUT_MS;
+    return c.call('GET', '/health/ready', null, ms).then(function (res) {
+      if (res.error === 'network' && !opts.viaProxy) {
+        return probeNoCors(opts, ms).then(function (k) { res.probe = k; return res; });
+      }
+      return res;
+    }).then(function (res) {
+      var k;
+      if (res.error === 'timeout') k = 'slow';
+      else if (res.error === 'network') k = res.probe || 'blocked_or_down';
+      else if (res.error === 'proxy_unreachable') k = 'down';
+      else if (res.error) k = res.error;
+      else if (res.status === 200 && res.data && res.data.status === 'ready') k = 'ready';
+      else if (res.status === 503 && res.data && res.data.detail === 'RUNTIME_NOT_READY') k = 'not_ready';     // G9
+      else if (res.status === 500) k = 'ready_failed';
+      else k = 'unexpected';
+      var detail = res.error ? str(res.error) + (res.detail ? ' · ' + res.detail : '') + (res.probe ? ' · no-cors 재시도 ' + res.probe : '') : 'HTTP ' + res.status + (res.data && res.data.detail ? ' · ' + res.data.detail : '');
+      return { kind: k, ok: k === 'ready', message: READY_MSG[k] || READY_MSG.unexpected, detail: detail, url: (opts.viaProxy ? '/api' : c.serverUrl) + '/health/ready' };
+    });
+  }
+
+  function rid() {
+    var s = '';
+    try {
+      var a = new Uint8Array(8);
+      (self.crypto || window.crypto).getRandomValues(a);
+      for (var i = 0; i < a.length; i++) s += ('0' + a[i].toString(16)).slice(-2);
+    } catch (e) { s = Math.random().toString(36).slice(2, 14); }
+    return 'req_jjin_' + s;
+  }
+
+  /* Track B(#88): 검증 코드 없는 문자에서 기관·금액·계좌(또는 공문 번호)를 읽어 POST /v3/document-lookups 본문을 만든다.
+     기관 ID = identifier_hash("iss_…")(keccak256). 합성 명부(wallet_onboarding.ROSTER) 다섯 곳만 안다. 못 읽으면 null(보내지 않음).
+     A2: 같은 기관의 한글 표기(오리진 목 은행·오리진목은행, 오리진 목 오피스 등)와 붙임표·점·가운뎃점 변형만 더함. */
+  var LOOKUP_SEP = '[\\s\\-‐-―._·]*';
+  function lookupIssuer(en, ko, id) {
+    return { re: new RegExp('origin' + LOOKUP_SEP + 'mock' + LOOKUP_SEP + en + '|iss_origin_mock_' + en + '|오리진' + LOOKUP_SEP + '목' + LOOKUP_SEP + '(?:' + ko + ')', 'i'), id: id };
+  }
+  var LOOKUP_ISSUERS = [
+    lookupIssuer('bank', '은행|뱅크', '0x9d6e623a821f35508c0c970540013aa75041537806d71a2e318ac7ca5358a217'),
+    lookupIssuer('office', '오피스', '0xa079131abb1c9fafcee45cedda0cb5ae9a0aa8d8e2f3112e1ad0e85da89a9bbe'),
+    lookupIssuer('card', '카드', '0x8e756c656fb48c6667945cebc2819ce86f089f00c6fc23f16e61d1d8db5f41e7'),
+    lookupIssuer('telecom', '텔레콤|통신', '0x7974fdce1b77668401fd7aca8821a33e94652785f10b13fbb79f489cf4da68ad'),
+    lookupIssuer('clinic', '클리닉|병원', '0x917f5207a5859e82a3c5ff9d012de1fcc1fc08eafcf61a508c9d3018df8074b2')
+  ];
+  /* 값을 고를 수 없으면 null(조회 안 함). 맞을 것 같은 일부 숫자를 보내지 않음: 틀린 값의 UNVERIFIED·다른 값의 MATCHED 모두 사실과 달라짐. */
+  var LOOKUP_UNIT = '십백천만억조';
+  var LOOKUP_RE = {
+    hidden: /[­​-‏‪-‮⁠-⁤﻿]/,
+    // 한글 숫자 금액(오십만원·백만원)은 읽지 않음. 아라비아 숫자 바로 뒤 단위(43만원)는 lookupHangulWon 이 따로 셈
+    hangulAmount: new RegExp('(?:^|[^가-힣0-9])[일이삼사오육칠팔구' + LOOKUP_UNIT + ']*[' + LOOKUP_UNIT + '][ \\t]?원'),
+    wonSign: /[₩￦][ \t]*$/,
+    foreignBefore: /(?:\$|€|¥|£|KRW|USD|EUR|JPY)[ \t]*$/i,
+    foreignAfter: /^[ \t]*(?:KRW|USD|EUR|JPY|달러|유로|위안|파운드|엔(?![가-힣]))/i,
+    unitStart: new RegExp('^[ \\t]?[' + LOOKUP_UNIT + ']'),
+    unitAfter: new RegExp('^[ \\t]?[' + LOOKUP_UNIT + '][0-9,.' + LOOKUP_UNIT + ' \\t]*원'),
+    unitBefore: new RegExp('[' + LOOKUP_UNIT + '][ \\t]?$'),
+    signBefore: /(?:[-−–—+△▲±~∼〜～]|\([-−+]\))[ \t]*$/,
+    gluedBefore: /[A-Za-z_,.\/#]$/,
+    approxBefore: /(?:약|최대|최소|최고|최저|대략|평균)[ \t]*$/,
+    rangeAfter: /^[ \t]*(?:이상|이하|미만|초과|내외|가량|정도|상당|안팎|부터|까지|[-~∼〜～])/,
+    wonEnd: /^(?:정|을|이|은|의|으로|입니다|이며|이고|이니|이므로|이에요|예요|임)?(?![가-힣A-Za-z0-9])/,
+    won: /^[ \t ]*원/,
+    amount: /^(?:[1-9][0-9]*|[1-9][0-9]{0,2}(?:,[0-9]{3})+)$/,
+    payLabel: /(?:납부|납입|결제|청구|입금|이체|송금)[ \t]*(?:금액|액)[ \t]*(?:은|는|이|:|：|=)?[ \t]*$/,
+    // A6: '이자'는 뺌(대출이자·이자 납입은 내야 할 본금액). 덧붙는 이자만 '연체이자'로 남김
+    feeLabel: /(?:수수료|부가세|부가가치세|할인|연체료|연체[ \t]*이자|가산금|배송비)(?:[ \t]*(?:금액|액))?[ \t]*(?:은|는|이|:|：|=)?[ \t]*$/,
+    accountLabel: /계좌(?:[ \t]*번호)?([^0-9]{0,15})$/,
+    // A4: 입금·이체·송금·입금처·받는 계좌 + (선택) 은행 이름, 또는 은행 이름 바로 뒤 숫자
+    depositLabel: /(?:입금처|납부처|입금|이체|송금|받는[ \t]*(?:분[ \t]*)?계좌)[ \t]*[:：]?[ \t]*(?:[가-힣A-Za-z]{1,12}[ \t]?(?:은행|뱅크))?[ \t]*[:：]?[ \t]*$/,
+    bankLabel: /(?:은행|뱅크|bank)[ \t]*[:：]?[ \t]*$/i,
+    // 계좌가 아닌 번호라고 적힌 숫자는 후보에서 뺌(고객번호 123456789 때문에 계좌를 포기하지 않게)
+    otherIdLabel: /(?:고객|회원|주문|사업자(?:[ \t]*등록)?|가맹점|승인|접수|확인|관리|납부자|전자[ \t]*납부|고지서?|문서|공문|발송|시행|우편|사건|등록|예약|운송장|송장)[ \t]*(?:번호|No\.?)[ \t]*[:：]?[ \t]*$/i,
+    notAccountGap: /문의|상담|연락|전화|콜센터|고객|아님|아닌|말고|이전|변경|잔액|만료|기한|일자/,
+    gluedLeft: /[A-Za-z0-9_\-−–—－.,\/#]$/,
+    gluedRight: /^(?:[A-Za-z_\-−–—－\/#]|[.,][0-9])/,
+    url: /(?:https?:\/\/|www\.)[^\s<>"']+/gi
+  };
+  function lookupDistinct(list) { return list.filter(function (x, i) { return list.indexOf(x) === i; }); }
+  /* 한글 단위 금액: 아라비아 숫자 + 단위가 큰 단위부터 한 번씩만 나올 때만 셈(예: 43만원=430000, 3만2천5백원=32500, 3만5000원=35000).
+     거부(null): 소수점(1.5만원)·쉼표 섞임(1,000만원)·한글 숫자(오십만원)·단위 순서가 뒤섞임·끝 숫자가 가장 작은 단위 이상(3만2천5000원)·
+     억 뒤에 만 없이 작은 값(1억5000원 = 1억5000만원을 줄여 쓴 것일 수 있음). 그 밖의 해석 여지가 있는 표기는 모두 보내지 않음. */
+  function lookupHangulWon(str) {
+    var m = /^(?:([1-9][0-9]{0,3})억)?[ \t]?(?:([1-9][0-9]{0,3})만)?[ \t]?(?:([1-9])천)?[ \t]?(?:([1-9])백)?[ \t]?(?:([1-9])십)?[ \t]?([1-9][0-9]{0,3})?[ \t]?원/.exec(str);
+    if (!m || !(m[1] || m[2] || m[3] || m[4] || m[5])) return null;
+    var small = m[5] ? 10 : m[4] ? 100 : m[3] ? 1000 : m[2] ? 10000 : 0;
+    if (m[1] && !m[2] && (m[3] || m[4] || m[5] || m[6])) return null;
+    if (m[6] && (!small || +m[6] >= small)) return null;
+    var n = (+m[1] || 0) * 100000000 + (+m[2] || 0) * 10000 + (+m[3] || 0) * 1000 + (+m[4] || 0) * 100 + (+m[5] || 0) * 10 + (+m[6] || 0);
+    return { value: n, len: m[0].length };
+  }
+  // 돌려줌: 금액(원) · 고를 수 없으면 null. found: 금액처럼 보이는 것이 하나라도 있으면 true
+  function lookupAmount(s) {
+    var R = LOOKUP_RE, re = /[0-9](?:[0-9,.]*[0-9])?/g, m, bad = R.hangulAmount.test(s), pay = [], fee = [], other = [];
+    while ((m = re.exec(s))) {
+      var before = s.slice(0, m.index), after = s.slice(m.index + m[0].length), n, rest;
+      // ₩·￦ 은 원화 기호라 '원'과 같이 봄(₩48,000 = 48000원). 다른 통화 기호·단위는 계속 거부
+      var krw = R.wonSign.exec(before);
+      if (R.unitStart.test(after)) {
+        var h = lookupHangulWon(s.slice(m.index));
+        if (!h || krw) { if (krw || R.unitAfter.test(after)) bad = true; continue; }   // '3만 명'처럼 돈이 아닌 단위는 건너뜀
+        re.lastIndex = m.index + h.len; n = h.value; rest = s.slice(m.index + h.len);
+      } else {
+        if (R.foreignBefore.test(before) || R.foreignAfter.test(after)) { bad = true; continue; }
+        var won = R.won.exec(after);
+        if (!won && !krw) continue;
+        if (!R.amount.test(m[0])) { bad = true; continue; }
+        n = Number(m[0].replace(/,/g, '')); rest = won ? after.slice(won[0].length) : after;
+      }
+      if (krw) before = before.slice(0, krw.index);
+      if (!Number.isSafeInteger(n) || n <= 0 || R.unitBefore.test(before) || R.signBefore.test(before) || R.gluedBefore.test(before) ||
+        R.approxBefore.test(before) || R.rangeAfter.test(rest) || !R.wonEnd.test(rest)) { bad = true; continue; }
+      (R.payLabel.test(before) ? pay : R.feeLabel.test(before) ? fee : other).push(n);
+    }
+    var found = bad || pay.length + fee.length + other.length > 0;
+    pay = lookupDistinct(pay); other = lookupDistinct(other);
+    var value = null;
+    if (!bad) {
+      // 납부 표시가 하나면 수수료처럼 용도가 적힌 금액만 함께 허용, 표시가 없으면 금액이 한 가지이고 용도 금액이 없을 때만
+      if (pay.length === 1 && other.every(function (x) { return x === pay[0]; })) value = pay[0];
+      else if (!pay.length && !fee.length && other.length === 1) value = other[0];
+    }
+    return { value: value, found: found };
+  }
+  function lookupNotAccount(token, digits) {
+    var mm = +digits.slice(4, 6), dd = +digits.slice(6, 8);
+    if (/^(?:19|20)[0-9]{6}$/.test(digits) && /^[0-9]{4}-?[0-9]{1,2}-?[0-9]{1,2}$/.test(token) && mm >= 1 && mm <= 12 && dd >= 1 && dd <= 31) return true;   // 날짜
+    if (/^(?:19|20)[0-9]{2}-[0-9]{1,2}-[0-9]{1,2}$/.test(token)) return true;
+    if (/^01[016789][0-9]{7,8}$/.test(digits) || /^0(?:2|[3-6][1-5]|70|50[0-9])[0-9]{7,8}$/.test(digits) || /^1[5-9][0-9]{6}$/.test(digits)) return true;   // 전화
+    return /^[0-9]{6}-[1-8][0-9]{6}$/.test(token) || /^[0-9]{4}-[0-9]{4}-[0-9]{4}-[0-9]{4}$/.test(token);   // 주민번호·카드번호 모양은 보내지 않음
+  }
+  /* 숫자 덩어리 나누기. A4: '001 234 500008'·'001 - 234 - 500002'처럼 숫자 사이 공백을 허용하되,
+     한 덩어리 안 구분 방식이 한 가지일 때만 이음. 공백으로만 이을 때는 각 조각이 2~8자리여야 함('…500001 2회' 같은 뒤 숫자를 붙이지 않음).
+     구분이 섞이면('2026-10-31 300') 공백 자리에서 나눠 따로 봄. */
+  function lookupNumberTokens(s) {
+    var re = /[0-9]+(?:(?:[ \t]*-[ \t]*|[ \t])[0-9]+)*/g, m, out = [];
+    while ((m = re.exec(s))) {
+      var seps = m[0].match(/[^0-9]+/g) || [];
+      var kinds = lookupDistinct(seps.map(function (x) { return x === '-' ? 'h' : /-/.test(x) ? 'sh' : 's'; }));
+      var groups = m[0].split(/[^0-9]+/);
+      var spaced = kinds[0] === 's' || kinds[0] === 'sh';
+      if (kinds.length <= 1 && (!spaced || groups.every(function (g) { return g.length >= 2 && g.length <= 8; }))) { out.push({ i: m.index, t: m[0], groups: groups }); continue; }
+      var sub = /[0-9]+(?:-[0-9]+)*/g, x;
+      while ((x = sub.exec(m[0]))) out.push({ i: m.index + x.index, t: x[0], groups: x[0].split('-') });
+    }
+    return out;
+  }
+  // 돌려줌: { value: 계좌 숫자 또는 null, count: 계좌 후보 수, broken: 표시어 뒤 숫자가 계좌로 쓸 수 없는 모양 }
+  function lookupAccount(s) {
+    var R = LOOKUP_RE, labelled = [], all = [], broken = false;
+    lookupNumberTokens(s).forEach(function (tk) {
+      var digits = tk.groups.join(''), norm = tk.groups.join('-'), before = s.slice(0, tk.i), after = s.slice(tk.i + tk.t.length);
+      if (digits.length < 6 || R.won.test(after)) return;
+      if (R.otherIdLabel.test(before)) return;
+      var a = R.accountLabel.exec(before);
+      var isLabel = (a && !R.notAccountGap.test(a[1])) || R.depositLabel.test(before) || R.bankLabel.test(before);
+      var notAcc = lookupNotAccount(norm, digits);
+      var glued = R.gluedLeft.test(before) || R.gluedRight.test(after);
+      if (isLabel && (notAcc || glued || digits.length > 32)) { broken = true; return; }
+      if (notAcc) return;
+      all.push(digits);
+      if (isLabel) labelled.push(digits);
+    });
+    labelled = lookupDistinct(labelled); all = lookupDistinct(all);
+    return { value: !broken && labelled.length === 1 && all.length === 1 ? labelled[0] : null, count: all.length, broken: broken };
+  }
+  /* 공문 번호 정규화(A5): 끝의 '호'와 조사를 떼고, 기관 번호 형식([A-Z]{2,}-YYYY-N)만 대문자로 맞춤.
+     합성 기관은 번호를 대문자로 발행함(bulk-docs OMO-2026-0101…). 다른 모양 번호의 대소문자는 원래 값일 수 있어 바꾸지 않음. */
+  function lookupDocToken(raw) {
+    var token = raw.replace(/\.$/, '').replace(/(?:입니다|이에요|이며|이고|으로|로|을|를|임)$/, '').replace(/([0-9])호$/, '$1');
+    return /^[A-Za-z]{2,}-[0-9]{4}-[0-9]+$/.test(token) ? token.toUpperCase() : token;
+  }
+  // 돌려줌: { value: undefined(공문 번호 없음) · null(표시는 있으나 값을 못 정함) · 문자열, spans: 번호가 있던 자리 }
+  var LOOKUP_DOC_LABEL = /(?:공문|문서|접수|발송|시행)[ \t]*번호|\bNo\.|\bNo(?=[ \t]*[:：])/g;
+  var LOOKUP_DOC_BRACKET = /[(\[（［][ \t]*([A-Za-z]{2,}-[0-9]{4}-[0-9]+)호?[ \t]*[)\]）］]/g;
+  function lookupDocNumber(s) {
+    var re = new RegExp(LOOKUP_DOC_LABEL.source, 'g'), m, out = [], spans = [];
+    while ((m = re.exec(s))) {
+      var lead = /^\s*(?:는|은|:|：|=)?\s*/.exec(s.slice(m.index + m[0].length))[0];
+      var start = m.index + m[0].length + lead.length, after = s.slice(start);
+      var raw = /^[^\s,;()\[\]{}<>"'「」『』]*/.exec(after)[0];
+      var token = lookupDocToken(raw);
+      if (!/^[A-Za-z0-9가-힣][A-Za-z0-9가-힣_\-\/.]{0,119}$/.test(token) || !/[0-9]/.test(token)) return { value: null, spans: [] };
+      // '문서번호 2026 17' 처럼 띄어 쓴 번호일 수 있으면 앞 조각만 쓰지 않음(날짜는 제외)
+      var next = /^\s+([0-9A-Za-z][0-9A-Za-z_\-\/.]*)(?=\s|$)/.exec(after.slice(raw.length));
+      if (next && !/^(?:19|20)[0-9]{2}[-.\/][0-9]{1,2}[-.\/][0-9]{1,2}$/.test(next[1])) return { value: null, spans: [] };
+      out.push(token); spans.push([start, start + raw.length]);
+    }
+    // 표시어 없이 괄호 안에만 있는 기관 번호(확인서(OMO-2026-0105))는 형식이 정확할 때만 씀
+    if (!out.length) {
+      var b = new RegExp(LOOKUP_DOC_BRACKET.source, 'g');
+      while ((m = b.exec(s))) { out.push(lookupDocToken(m[1])); spans.push([m.index, m.index + m[0].length]); }
+    }
+    if (!out.length) return { value: undefined, spans: [] };
+    out = lookupDistinct(out);
+    return { value: out.length === 1 ? out[0] : null, spans: spans };
+  }
+  /* 돌려줌: { key: 요청 본문 또는 null, why: 못 읽은 이유 코드(LOOKUP_SKIP), fields: 읽은 항목 이름 } */
+  function lookupExplain(text) {
+    var s = String(text || '').replace(LOOKUP_RE.url, ' ');   // 링크 주소 안 숫자·이름은 문자 내용이 아님(A3: 링크만 있는 문자도 원본 찾기)
+    var iss = LOOKUP_ISSUERS.filter(function (x) { return x.re.test(s); });
+    if (!iss.length) return { key: null, why: 'NO_ISSUER' };
+    if (iss.length > 1) return { key: null, why: 'MANY_ISSUERS' };
+    if (LOOKUP_RE.hidden.test(s) || /\p{Nd}/u.test(s.replace(/[0-9]/g, ''))) return { key: null, why: 'HIDDEN_CHARS' };   // 전각·보이지 않는 글자가 숫자를 가르면 일부만 읽게 됨
+    var doc = lookupDocNumber(s);
+    if (doc.value !== undefined) {
+      if (doc.value === null) return { key: null, why: 'DOC_UNCLEAR' };
+      /* A8: 공문 번호가 있으면 번호로 먼저 찾음(고지서의 금액은 화면 참고). 결론은 '공문번호만 맞춰 봄·나머지 문구는 비교 안 함'으로 한정됨.
+         다만 계좌번호로 보이는 숫자가 함께 있으면 찾지 않음: 진짜 공문 번호에 다른 입금 계좌를 붙인 문자가 '번호 일치'로 보이면 위험하기 때문.
+         '지정 계좌로 납부'처럼 숫자 없는 말만 있으면 보낼 곳이 문자에 없어 번호로 찾음. */
+      var rest = s;
+      doc.spans.forEach(function (p) { rest = rest.slice(0, p[0]) + ' '.repeat(p[1] - p[0]) + rest.slice(p[1]); });
+      var acc0 = lookupAccount(rest);
+      if (acc0.count || acc0.broken) return { key: null, why: 'DOC_WITH_ACCOUNT' };
+      return { key: { issuer_id: iss[0].id, key: { notice_type: 'OFFICIAL_DOCUMENT', document_number: doc.value } }, fields: '공문번호' };
+    }
+    var amount = lookupAmount(s), acc = lookupAccount(s);
+    if (amount.value === null) return { key: null, why: amount.found ? 'AMOUNT_UNCLEAR' : 'NO_AMOUNT' };
+    if (acc.value === null) return { key: null, why: acc.count || acc.broken ? 'ACCOUNT_UNCLEAR' : 'NO_ACCOUNT' };
+    return { key: { issuer_id: iss[0].id, key: { notice_type: 'PAYMENT_REQUEST', amount_minor: amount.value, currency: 'KRW', payee_account_number: acc.value } }, fields: '금액·계좌' };
+  }
+  function lookupKey(text) { return lookupExplain(text).key || null; }
+  // A7: 원본 찾기를 하지 않은 이유(무엇을 못 읽었는지). 문자를 서버로 보내지 않았음을 함께 알림
+  var LOOKUP_SKIP_END = ' 그래서 원본 찾기를 하지 않았어요. 기관 공식 번호로 직접 확인해 주세요.';
+  var LOOKUP_SKIP = {
+    NO_ISSUER: '문자에서 기관 이름을 찾지 못했어요(지금 찾을 수 있는 기관: Origin Mock Bank·Office·Card·Telecom·Clinic, 오리진 목 은행·오피스·카드·통신·병원).',
+    MANY_ISSUERS: '기관 이름이 둘 이상 있어 어느 기관의 기록을 찾을지 정하지 않았어요.',
+    HIDDEN_CHARS: '숫자 사이에 보이지 않는 글자나 전각 숫자가 있어 값을 정확히 읽을 수 없었어요.',
+    DOC_UNCLEAR: '공문번호를 하나로 정확히 읽지 못했어요.',
+    DOC_WITH_ACCOUNT: '공문번호와 계좌번호가 함께 있어요. 번호만 맞춰 보면 다른 입금 계좌를 놓칠 수 있어요.',
+    NO_AMOUNT: '납부 금액(예: 32,500원)을 찾지 못했어요.',
+    AMOUNT_UNCLEAR: '금액이 여러 개이거나 표기가 애매해 하나로 고를 수 없었어요.',
+    NO_ACCOUNT: '입금 계좌번호를 찾지 못했어요.',
+    ACCOUNT_UNCLEAR: '계좌번호로 보이는 숫자가 여러 개이거나 모양이 애매해 하나로 고를 수 없었어요.'
+  };
+  /* 원본을 못 찾은 이유(서버 reason_codes, 저장된 값은 알려 주지 않음). 금액·계좌 중 무엇이 기관 기록과 다른지 쉬운 말로. */
+  var LOOKUP_MISS = {
+    AMOUNT_DIFFERS_FOR_ACCOUNT: '이 기관이 이 계좌로 발행한 안내문은 있지만 금액이 달라요. 금액이 바뀐 문자일 수 있어요. 돈을 보내지 말고 기관 공식 번호로 직접 확인해 주세요.',
+    ACCOUNT_NOT_IN_RECORDS: '이 기관이 발행한 안내문 중에 이 계좌로 돈을 받는 것은 없어요. 기관 공식 계좌가 아닐 수 있어요. 이 계좌로 돈을 보내지 마세요.',
+    DOCUMENT_NUMBER_NOT_IN_RECORDS: '이 기관이 이 공문번호로 발행한 기록이 없어요. 번호가 바뀌었거나 꾸며낸 공문일 수 있어요. 기관 공식 번호로 직접 확인해 주세요.',
+    ISSUER_HAS_NO_RETAINED_RECORDS: '이 기관이 지금 블록체인에 남긴 발행 기록이 없어 맞춰 볼 수 없어요. 가짜라는 뜻은 아니에요. 기관 공식 번호로 직접 확인해 주세요.'
+  };
+  // 기관 기록과 실제로 다른 점이 있는 경우(요약 박스 '기록과 다름'). 나머지 이유는 '확인할 수 없음'
+  var LOOKUP_DIFF_HEAD = {
+    AMOUNT_DIFFERS_FOR_ACCOUNT: '기관 기록과 금액이 달라요',
+    ACCOUNT_NOT_IN_RECORDS: '기관 기록에 없는 계좌예요',
+    DOCUMENT_NUMBER_NOT_IN_RECORDS: '기관 기록에 없는 공문번호예요'
+  };
+  function lookupMiss(d) {
+    return (Array.isArray(d.reason_codes) ? d.reason_codes : []).filter(function (k) { return Object.prototype.hasOwnProperty.call(LOOKUP_MISS, k); })[0] || '';
+  }
+  function lookupWhy(d) {
+    var k = lookupMiss(d);
+    return k ? LOOKUP_MISS[k] : LOOKUP_WHY[d.lookup_status];
+  }
+  var LOOKUP_WHY = {
+    UNVERIFIED: '등록된 기관의 발행 기록 중 문자에서 읽은 값과 맞는 것이 없어요. 가짜라고 단정할 수는 없지만, 돈을 보내기 전에 기관 공식 번호로 직접 확인해 주세요.',
+    AMBIGUOUS: '문자에서 읽은 값과 맞는 발행 기록이 여러 개라 하나로 정하지 않았어요. 기관 공식 번호나 검증 링크로 다시 확인해 주세요.'
+  };
+  // 요약 박스: 우리 서비스 기록으로 확인할 수 없는 문자(가짜 의심이 아님). v = lookup 결과(kind 'none')
+  function noneVerdict(v) {
+    if (LOOKUP_DIFF_HEAD[v.miss]) return { tone: 'caution', chip: '기록과 다름', head: '! ' + LOOKUP_DIFF_HEAD[v.miss], sub: v.why };
+    var head = v.reason === 'NO_ISSUER' ? 'OriginProof에 등록된 기관의 문자가 아니에요'
+      : v.login ? '로그인하면 기관 기록과 맞춰 볼 수 있어요'
+      : v.miss === 'ISSUER_HAS_NO_RETAINED_RECORDS' ? '이 기관이 남긴 발행 기록이 없어요'
+      : v.lookup === 'AMBIGUOUS' ? '맞는 기록이 여러 개라 하나로 정하지 못했어요'
+      : v.lookup ? '등록된 기관의 기록에서 찾지 못했어요'
+      : v.reason ? '문자에서 기관 기록과 맞춰 볼 값을 읽지 못했어요' : '';
+    return { tone: 'none', chip: '확인 불가', head: '· 확인할 수 없어요' + (head ? ' · ' + head : ''), sub: v.why };
+  }
+
+  /* ---------------- 시연용 AI 지연 대체 응답 (5차 멘토 피드백, 기본 꺼짐) ----------------
+     켜는 법: 주소에 ?demo_ai_fallback=5 (op5_connect.js 가 읽어 opts.demoAiFallbackSec 로 넘김). 없으면 꺼짐 = 기존 동작 그대로.
+     켜져 있고 실서버 AI 분석이 N초 안에 끝나지 않으면, 입력 글이 멘토 시나리오 예시 문자 3개(data/sample_data.js 의
+     normal·tamper·unregistered)와 같을 때만 아래 준비 응답을 AI 칸에 먼저 보여 준다. 다른 글은 기존처럼 계속 기다린다.
+     - 준비 응답은 '준비된 시연 응답 · 실제 AI 결과 아님'을 AI 칸·직원 칩·자세히·기록에 남긴다. 발행 검증 4칸은 건드리지 않는다.
+     - 준비 응답을 보여 준 뒤에도 폴링은 계속하고, 실제 결과(끝난 작업)가 pollLimit 안에 오면 opts.onAiLater 로 교체 답을 넘긴다.
+     - 문구는 합성 시나리오 설명만 담는다(개인정보·실제 기관 없음). */
+  var DEMO_FALLBACK = { min: 3, max: 10, def: 5 };
+  // 실서버 시연 입력(시연 버튼 RC 문자, 개발/시연_문자_모음.md 의 A1~A3·C1). 합성 계좌라 준비 응답 문구(PREPARED) 밖에 둠
+  var RC_TEXT = '[Origin Mock Bank] 합성 지방세 납부 안내입니다. 납부 금액: 120,000원, 입금 계좌: 합성 은행 001234567890(예금주 합성 기관).';
+  var DEMO_TEXTS = {   // op5_presets.js 시연 버튼도 이 글을 씀(한 곳에서만 고침)
+    rc_normal: RC_TEXT + ' 기한 내 납부해 주세요.',
+    // 위험 요구는 분석기 단어 규칙(phishing.py _RULES)에 걸리지 않는 수법으로 골라 AI가 문맥으로 잡는 장면을 보여 줌(11-05 실제 AI 확인)
+    rc_risky: RC_TEXT + ' 납부가 늦어지면 내일 오전 담당 수사관이 직접 연락드립니다. 통화 내용은 수사 자료로 쓰이니 다른 곳에는 문의하지 마세요.',
+    bank_genuine: '[Web발신]\n[오리진 목 은행] 카드 대금 85,000원 청구 안내입니다. 납부 계좌 001-234-500003 으로 11/10까지 입금 바랍니다.',
+    bank_amount: '[Web발신]\n[오리진 목 은행] 카드 대금 86,000원 청구 안내입니다. 납부 계좌 001-234-500003 으로 11/10까지 입금 바랍니다.',
+    bank_account: '[Web발신]\n[오리진 목 은행] 긴급! 카드 대금 85,000원 미납으로 오늘 정지 예정. 즉시 아래 계좌로 입금하세요. 입금계좌 001-234-599999',
+    other_issuer: '[국민건강보험] 건강검진 환급금 48,000원이 있습니다. 본인 확인 후 수령하세요 http://nhis-refund.example.com'
+  };
+  var PREPARED_LABEL = '준비된 시연 응답 · 실제 AI 결과 아님';
+  var PREPARED_LIMIT = 'DEMO_PREPARED_RESPONSE_NOT_AI_RESULT';
+  var PREPARED = {
+    normal: { risk_level: 'NO_CLEAR_INDICATORS', evidence: [], extra: '' },
+    tamper: { risk_level: 'NO_CLEAR_INDICATORS', evidence: [], extra: '금액이 바뀌었는지는 AI가 아니라 블록체인 기록 대조(원본 일치 칸)가 판정해요.' },
+    unregistered: { risk_level: 'HIGH', evidence: [{ rule_id: 'demo-prepared-remote-app', quote: '원격 지원 앱을 설치해 주세요', source: 'DEMO_PREPARED' }], extra: '고위험: 원격 지원 앱 설치를 유도하는 문장이 있어요.' },
+    // 실서버 시연 입력(시연 버튼 RC 문자, 개발/시연_문자_모음.md 의 A1~A3·C1). 글은 DEMO_TEXTS 에 있음
+    rc_normal: { risk_level: 'NO_CLEAR_INDICATORS', evidence: [], extra: '' },
+    rc_risky: { risk_level: 'HIGH', evidence: [{ rule_id: 'demo-prepared-isolation', quote: '다른 곳에는 문의하지 마세요', source: 'DEMO_PREPARED' }], extra: '고위험: 수사관을 내세워 다른 곳에 확인하지 못하게 막아요. 발행 기록이 맞아도 이 요구는 따르지 마세요.' },
+    bank_genuine: { risk_level: 'NO_CLEAR_INDICATORS', evidence: [], extra: '' },
+    // 위험 수준은 실제 AI(11-04 로컬 RC, OpenAI)가 같은 글에 준 값에 맞춤: 교체될 때 판단이 뒤집혀 보이지 않게
+    bank_amount: { risk_level: 'CAUTION', evidence: [{ rule_id: 'demo-prepared-payment', quote: '11/10까지 입금 바랍니다', source: 'DEMO_PREPARED' }], extra: '주의: 입금을 요청하는 문자예요. 금액이 바뀌었는지는 AI가 아니라 블록체인 기록 대조가 판정해요.' },
+    bank_account: { risk_level: 'HIGH', evidence: [{ rule_id: 'demo-prepared-urgency', quote: '오늘 정지 예정', source: 'DEMO_PREPARED' }, { rule_id: 'demo-prepared-pay-now', quote: '즉시 아래 계좌로 입금하세요', source: 'DEMO_PREPARED' }], extra: '고위험: 정지를 내세워 바로 다른 계좌로 입금하라고 재촉해요.' },
+    other_issuer: { risk_level: 'CAUTION', evidence: [{ rule_id: 'demo-prepared-refund-bait', quote: '본인 확인 후 수령하세요', source: 'DEMO_PREPARED' }], extra: '주의: 환급금을 미끼로 링크에서 본인 확인을 하라고 해요.' }
+  };
+  /* 시연 버튼이 누를 때마다 도는 다른 기관 장면(카드사·통신사·병원). 금액·계좌는 scripts/fixtures/wallet_demo_bulk.py SCENES 의 v2와 같음.
+     rc_normal_*·rc_risky_*: 등록 기관 원본 그대로 / 규칙에 없는 위험 요구를 덧붙임(금액·계좌 숫자를 더 넣으면 원본 찾기를 못 하므로 넣지 않음).
+     unreg_*: 등록되지 않은 기관 이름 + 원격 앱 유도(합성 문구) */
+  var RISKY = {
+    card: [' 연체 기록이 신용평가사에 넘어가기 전에 오늘 중으로 담당자 개인 계좌로 먼저 보내 주시면 기록을 지워 드려요.', 'HIGH', '담당자 개인 계좌로 먼저 보내 주시면', '고위험: 연체 기록을 지워 준다며 담당자 개인 계좌로 돈을 보내라고 해요.'],
+    telecom: [" 이번 달부터는 결제 대행 앱 '페이헬퍼'를 받아 로그인하시면 자동으로 납부돼요.", 'CAUTION', "결제 대행 앱 '페이헬퍼'를 받아 로그인하시면", '주의: 공식 앱이 아닌 결제 대행 앱 설치와 로그인을 권해요. 기관 공식 앱인지 먼저 확인하세요.'],
+    clinic: [' 검사 결과와 관련된 내용이니 가족이나 은행에는 알리지 말고, 담당자가 전화로 안내하는 대로만 진행해 주세요.', 'HIGH', '가족이나 은행에는 알리지 말고', '고위험: 가족·은행에 알리지 못하게 하고 전화 지시만 따르라고 해요.']
+  };
+  [['card', 'Origin Mock Card', '합성 카드 이용 대금 청구 안내', '386,400', '002345600001', '합성 카드사'],
+    ['telecom', 'Origin Mock Telecom', '합성 통신 요금 납부 안내', '68,250', '003456700001', '합성 통신사'],
+    ['clinic', 'Origin Mock Clinic', '합성 진료비 납부 안내', '152,300', '004567800001', '합성 병원']].forEach(function (s) {
+    var t = '[' + s[1] + '] ' + s[2] + '입니다. 납부 금액: ' + s[3] + '원, 입금 계좌: 합성 은행 ' + s[4] + '(예금주 ' + s[5] + ').';
+    var k = RISKY[s[0]];
+    DEMO_TEXTS['rc_normal_' + s[0]] = t + ' 기한 내 납부해 주세요.';
+    DEMO_TEXTS['rc_risky_' + s[0]] = t + k[0];
+    PREPARED['rc_normal_' + s[0]] = PREPARED.rc_normal;
+    PREPARED['rc_risky_' + s[0]] = { risk_level: k[1], evidence: [{ rule_id: 'demo-prepared-' + s[0], quote: k[2], source: 'DEMO_PREPARED' }], extra: k[3] };
+  });
+  DEMO_TEXTS.unreg_card = '[카드 보안센터] 고객님 카드로 해외 결제 1,980,000원 승인이 대기 중입니다. 본인 결제가 아니면 상담원 안내에 따라 지금 원격 지원 앱을 설치해 주세요.';
+  DEMO_TEXTS.unreg_telecom = '[통신요금 환급센터] 고객님께 과오납 통신 요금 47,800원이 환급 대기 중입니다. 오늘 안에 원격 지원 앱을 설치하고 본인 확인을 해 주세요.';
+  DEMO_TEXTS.unreg_clinic = '[병원 원무과] 지난 진료비 312,000원이 미납되어 내일 법적 조치가 진행됩니다. 원격 지원 앱을 설치하면 바로 납부를 도와 드려요.';
+  ['unreg_card', 'unreg_telecom', 'unreg_clinic'].forEach(function (id) {
+    PREPARED[id] = { risk_level: 'HIGH', evidence: [{ rule_id: 'demo-prepared-remote-app', quote: '원격 지원 앱을 설치', source: 'DEMO_PREPARED' }], extra: '고위험: 등록되지 않은 기관 이름으로 원격 지원 앱 설치를 유도해요.' };
+  });
+  // 주소 값 → 초(0 = 꺼짐). 값 없음(?demo_ai_fallback)이면 5초, 숫자면 3~10으로 제한, 0·숫자 아닌 값·없음은 꺼짐
+  function demoFallbackSec(raw) {
+    if (raw == null) return 0;
+    var s = String(raw).trim();
+    if (s === '') return DEMO_FALLBACK.def;
+    if (!/^\d{1,4}$/.test(s)) return 0;
+    var n = Number(s);
+    if (n === 0) return 0;
+    return Math.min(DEMO_FALLBACK.max, Math.max(DEMO_FALLBACK.min, n));
+  }
+  function normText(s) { return String(s == null ? '' : s).replace(/^\s*\[Web발신\]/, '').replace(/\s+/g, ' ').trim(); }
+  // 입력 글이 시나리오 예시 문자와 (공백 차이만 빼고) 같으면 그 시나리오 id
+  function preparedScenario(text) {
+    var data = Array.isArray(window.SAMPLE_DATA) ? window.SAMPLE_DATA : [];
+    var t = normText(text);
+    if (!t) return '';
+    var hit = '';
+    Object.keys(PREPARED).forEach(function (id) {
+      var s = data.filter(function (x) { return x && x.id === id; })[0];
+      if (!hit && s && s.input && typeof s.input.text === 'string' && normText(s.input.text) === t) hit = id;
+    });
+    Object.keys(DEMO_TEXTS).forEach(function (id) { if (!hit && normText(DEMO_TEXTS[id]) === t) hit = id; });
+    return hit;
+  }
+  function preparedAi(id, sec) {
+    var pr = PREPARED[id];
+    var m = mapReport({ risk_level: pr.risk_level, evidence: pr.evidence, limitations: [PREPARED_LIMIT], verification_not_run_reason: null });
+    m.obs.line1 = '[준비된 시연 응답] ' + m.obs.line1;
+    m.obs.line2 = 'DEMO_PREPARED · ' + pr.risk_level;
+    m.obs.line3 = PREPARED_LABEL;
+    m.prepared = { scenario: id, sec: sec, extra: pr.extra };
+    return m;
+  }
+
+  /* ---------------- ApiAdapter ---------------- */
+  function createApiAdapter(opts) {
+    var c = makeCaller(opts);
+    var ms = opts.timeoutMs || VERIFY_TIMEOUT_MS;
+    var pollMs = opts.pollMs || POLL_MS;
+    var pollLimit = opts.pollLimitMs || POLL_LIMIT_MS;
+    var now = opts.now || function () { return Date.now(); };
+    var sample = Hk.sampleAdapter;
+    var fallbackSec = demoFallbackSec(opts.demoAiFallbackSec);   // 기본 꺼짐(0)
+
+    // 검증: v3(문서 ID가 있을 때) -> 연결 전 신호면 v1 -> 그래도 없으면 연결 전
+    function verify(p, log) {
+      var tryV1 = function (v3note, chainDown) {
+        if (!p.proofId) return Promise.resolve({ kind: 'offline', why: v3note || '', reason: chainDown ? 'CHAIN_UNAVAILABLE' : v3note ? 'V3_NOT_CONNECTED' : 'NO_PROOF_ID', chainDown: !!chainDown });
+        // confidence: 필수 칸(0~1), 판정에는 쓰이지 않음(verification.py). 항목 입력은 사람이 직접 넣은 값이라 1,
+        // 자유 문자는 항목을 뽑지 않아 0 + missing_fields 에 7개 항목 전부(models.py CardPaymentNoticeCandidate)
+        var cand = p.structured ? { confidence: 1 } : { confidence: 0, missing_fields: V1_FIELDS.slice() };
+        Object.keys(p.candidate).forEach(function (k) { cand[k] = p.candidate[k]; });
+        var body = { proof_id: p.proofId, request_id: rid(), candidate: cand };
+        var sentKeys = Object.keys(p.candidate);
+        log.push({ label: '보낸 요청', value: 'POST /v1/mvp/card-notices/verify · request_id ' + body.request_id + ' · proof_id ' + p.proofId + ' · 후보 항목 ' + (sentKeys.length ? sentKeys.join(', ') : '없음(비교 근거 없음)') });
+        return c.call('POST', '/v1/mvp/card-notices/verify', body, ms).then(function (res) {
+          if (!res.error && res.status === 200 && res.data && typeof res.data.verification_status === 'string') {
+            return { kind: 'result', api: 'v1', data: res.data, res: res, v3note: v3note };
+          }
+          if (!res.error && res.status === 200) return { kind: 'error', err: { key: 'common.held_error', line2: 'UPSTREAM_SCHEMA_MISMATCH', why: '서버 응답 모양이 예상과 달라요.' }, res: res };
+          return { kind: 'error', err: errorInfo(res), res: res };
+        });
+      };
+      if (!p.documentId) return tryV1('');
+      var body = { request_id: rid(), document_id: p.documentId, scope: p.protectedFields ? 'PROTECTED_FIELDS' : 'ID_ONLY' };
+      if (p.version) body.version = p.version;
+      if (p.protectedFields) body.candidate = p.protectedFields;
+      log.push({ label: '보낸 요청', value: 'POST /v3/verifications · request_id ' + body.request_id + ' · scope ' + body.scope });
+      return c.call('POST', '/v3/verifications', body, ms).then(function (res) {
+        var d = res.data || {};
+        if (!res.error && res.status === 503 && d.detail === 'WALLET_REGISTRY_NOT_CONFIGURED') {
+          log.push({ label: 'v3 검증', value: '연결 전 · HTTP 503 WALLET_REGISTRY_NOT_CONFIGURED' });
+          return tryV1('v3 검증은 장부 설정이 없어 연결 전이에요.');
+        }
+        if (!res.error && res.status === 200 && d.verification_status === 'INCONCLUSIVE' && has(d.reason_codes, 'CHAIN_UNAVAILABLE')) {
+          log.push({ label: 'v3 검증', value: '체인 연결 실패 · INCONCLUSIVE + CHAIN_UNAVAILABLE · session ' + str(d.session_id) });
+          return tryV1('체인에 연결하지 못해 공식 기록을 확인하지 못했어요. 일시적인 장애일 수 있으니 잠시 뒤 다시 확인해 주세요.', true);
+        }
+        if (!res.error && (res.status === 404 || res.status === 405)) {
+          log.push({ label: 'v3 검증', value: '경로 없음 · HTTP ' + res.status });
+          return tryV1('이 서버에는 v3 검증 경로가 없어요.');
+        }
+        if (!res.error && res.status === 200 && typeof d.verification_status === 'string') return { kind: 'result', api: 'v3', data: d, res: res };
+        return { kind: 'error', err: errorInfo(res), res: res };
+      });
+    }
+
+    // Track B: 코드 없는 문자 → POST /v3/document-lookups. 읽을 값이 없거나 경로가 없으면 기존처럼 'none'
+    function lookup(text, log) {
+      var x = lookupExplain(text), k = x.key;
+      if (!k) {
+        log.push({ label: '원본 찾기', value: '보내지 않음 · ' + x.why });
+        return Promise.resolve({ kind: 'none', reason: x.why, why: LOOKUP_SKIP[x.why] + LOOKUP_SKIP_END });
+      }
+      var body = { request_id: rid(), issuer_id: k.issuer_id, key: k.key };
+      return c.call('POST', '/v3/document-lookups', body, ms).then(function (res) {
+        // 원본 찾기는 회원만: 로그인이 확인되지 않으면 요청을 보내지 않음(callBase 의 CSRF 확인). 서버는 공개 경로라 이 화면에서 막음
+        if (res.local) { log.push({ label: '원본 찾기', value: '로그인 필요 · 보내지 않음' }); return { kind: 'none', login: true, why: '원본 찾기는 로그인한 회원만 쓸 수 있어요. 문자는 서버로 보내지 않았어요.' }; }
+        log.push({ label: '보낸 요청', value: 'POST /v3/document-lookups · request_id ' + body.request_id + ' · ' + k.key.notice_type });
+        var d = res.data || {};
+        if (!res.error && (res.status === 404 || res.status === 405)) { log.push({ label: '원본 찾기', value: '경로 없음 · HTTP ' + res.status }); return { kind: 'none', why: '이 서버에는 원본 찾기 경로가 없어 공식 기록과 맞춰 보지 못했어요.' }; }
+        if (res.error || res.status !== 200 || typeof d.lookup_status !== 'string') return { kind: 'error', err: errorInfo(res), res: res };
+        log.push({ label: '원본 찾기', value: d.lookup_status + ' · 일치 ' + str(d.match_count) + '건' + (d.reason_codes && d.reason_codes.length ? ' · ' + d.reason_codes.join(', ') : '') });
+        if (d.lookup_status === 'MATCHED' && d.verification && typeof d.verification.verification_status === 'string') return { kind: 'result', api: 'v3', data: d.verification, res: res, lookup: d.lookup_status, fields: x.fields };
+        if (!Object.prototype.hasOwnProperty.call(LOOKUP_WHY, d.lookup_status)) return { kind: 'error', err: { key: 'common.held_error', line2: 'UPSTREAM_SCHEMA_MISMATCH', why: '서버 응답 모양이 예상과 달라요.' }, res: res };
+        return { kind: 'none', lookup: d.lookup_status, why: lookupWhy(d), miss: lookupMiss(d), key: k.key };
+      });
+    }
+
+    // AI: POST /v3/inputs -> POST /v3/analyses -> GET /v3/analyses/{id} 폴링. 로그인 없이 부르면 401 → 연결 전
+    // onIntake: /v3/inputs 답이 오는 순간 접수 직원 말풍선을 넘김(직원 패널은 도착 순서대로 갱신)
+    // image: { media_type, base64 } 이면 글 대신 문서 사진(DOCUMENT_IMAGE, #92)으로 접수
+    function analyze(text, log, onIntake, image, presend) {
+      var offline = function (code, why) {
+        return { ai: { obs: obs('ai', 'common.not_connected', code), why: why }, intake: obs('intake', 'common.not_connected', code) };
+      };
+      var fromErr = function (res, step) {
+        var d = res.data || {};
+        log.push({ label: 'AI ' + step, value: res.error ? str(res.error) : 'HTTP ' + res.status + (d.detail ? ' · ' + d.detail : '') });
+        if (!res.error && (res.status === 401 || res.status === 403)) return offline(str(d.detail || res.status), opts.loginWhy || '분석은 로그인이 필요한데 이 화면은 로그인하지 않아요.');
+        var known = !res.error && typeof d.detail === 'string' && Object.prototype.hasOwnProperty.call(AI_HTTP, d.detail);
+        if (!res.error && (res.status === 404 || res.status === 405) && !known) return offline('ROUTE_MISSING', '이 서버에는 분석 경로가 없어요.');
+        if (!res.error && res.status === 409 && d.detail === 'INPUT_SUPPORT_UNDECIDED') return offline('INPUT_SUPPORT_UNDECIDED', '서버가 입력 받기를 아직 켜지 않았어요.');
+        var e = errorInfo(res);
+        if (known) e.why = AI_HTTP[d.detail] + (res.status === 429 && res.retryAfter ? ' ' + res.retryAfter + '초 뒤에 다시 해 보세요.' : '');
+        return { ai: { obs: obs('ai', e.key, e.line2), why: e.why }, intake: step === '입력' ? obs('intake', e.key, e.line2) : null };
+      };
+      var input;
+      if (image) {
+        input = { kind: 'DOCUMENT_IMAGE', image_media_type: image.media_type, image_base64: image.base64 };
+        log.push({ label: '보낸 요청', value: 'POST /v3/inputs · 문서 사진 ' + image.media_type + ' ' + Math.round(image.base64.length * 3 / 4 / 1024) + 'KB' });
+      } else {
+        var masked = T().maskPersonal(text);
+        input = { kind: 'TEXT', text: masked };
+        log.push({ label: '보낸 요청', value: 'POST /v3/inputs · 개인정보를 가린 글 ' + masked.length + '자' });
+      }
+      // 글자 읽기용으로 이미 올린 사진이면 그 접수 결과(성공이면 번호, 실패면 그 실패)를 그대로 씀: 사진을 두 번 올리지 않음
+      var sent = presend ? Promise.resolve(presend) : c.call('POST', '/v3/inputs', input, ms);
+      return sent.then(function (res) {
+        if (res.error || res.status !== 201 || !res.data || !res.data.input_ref) {
+          var x0 = fromErr(res, '입력');
+          if (onIntake) onIntake(x0.intake);
+          return x0;
+        }
+        var intake = obs('intake', 'intake.received', 'input_ref ' + str(res.data.input_ref));
+        if (onIntake) onIntake(intake);
+        var keep = typeof opts.retain === 'function' ? (opts.retain() || {}) : {};   // 5안 확장: 보관 선택
+        var body = { request_id: rid(), input_ref: res.data.input_ref, retain_report: keep.report === true, retain_original: keep.original === true, verification_session_id: null };
+        return c.call('POST', '/v3/analyses', body, ms).then(function (r2) {
+          if (r2.error || r2.status !== 202 || !r2.data) { var x = fromErr(r2, '접수'); x.intake = intake; return x; }
+          var id = str(r2.data.analysis_id);
+          if (!/^ana_[A-Za-z0-9_-]{1,128}$/.test(id)) return { ai: { obs: obs('ai', 'common.held_error', 'UPSTREAM_SCHEMA_MISMATCH') }, intake: intake };
+          if (typeof opts.onAnalysis === 'function') { try { opts.onAnalysis(id, body); } catch (e) { /* 화면 오류가 요청을 멈추지 않게 */ } }
+          // 5안 확장: 사용자가 지운 분석이면 늦게 온 응답은 쓰지 않음(서버도 CANCELLED 를 먼저 저장)
+          var gone = function () { return typeof opts.isDeleted === 'function' && opts.isDeleted(id); };
+          var dropped = function () {
+            log.push({ label: 'AI 결과', value: 'analysis_id ' + id + ' · 사용자가 지움 · 늦은 응답 무시' });
+            return { ai: { obs: obs('ai', 'ai.cancelled', 'DELETED_BY_USER'), why: '내가 지운 분석이라 늦게 온 결과는 쓰지 않았어요.' }, intake: intake, analysisId: id, deleted: true };
+          };
+          var deadline = now() + pollLimit;
+          var done = function (job) {
+            var m = mapAnalysisJob(job);
+            log.push({ label: 'AI 결과', value: 'analysis_id ' + id + ' · status=' + str(job.status) + (job.error_code ? ' · ' + job.error_code : '') + (m.detail ? ' · ' + m.detail : '') });
+            return { ai: m, intake: intake };
+          };
+          var loop = function (job) {
+            if (gone()) return dropped();
+            if (job && ['COMPLETED', 'FAILED', 'CANCELLED', 'EXPIRED'].indexOf(job.status) >= 0) { var out = done(job); out.analysisId = id; out.analysisStatus = String(job.status); return out; }
+            if (now() >= deadline) {
+              log.push({ label: 'AI 결과', value: 'analysis_id ' + id + ' · ANALYSIS_POLL_TIMEOUT' });
+              return { ai: { obs: obs('ai', 'ai.timeout', 'ANALYSIS_POLL_TIMEOUT') }, intake: intake };
+            }
+            return c.sleep(pollMs).then(function () { return gone() ? null : c.call('GET', '/v3/analyses/' + id, null, ms); }).then(function (r3) {
+              if (r3 === null || gone()) return dropped();
+              if (r3.error || r3.status !== 200 || !r3.data) { var y = fromErr(r3, '조회'); y.intake = intake; return y; }
+              return loop(r3.data);
+            });
+          };
+          var real = Promise.resolve(loop(r2.data));
+          var scenario = fallbackSec && !image ? preparedScenario(text) : '';
+          if (!scenario) return real;          // 꺼짐·시나리오 아님: 기존 동작 그대로
+          // 시연 대체: N초 안에 실제 결과가 없으면 준비 응답을 먼저 돌려주고, 실제 폴링은 그대로 이어서 later 로 넘김
+          var WAIT = {};
+          var lastStatus = str(r2.data.status) || null;
+          return Promise.race([real, c.sleep(fallbackSec * 1000).then(function () { return WAIT; })]).then(function (first) {
+            if (first !== WAIT || gone()) return real;
+            log.push({ label: 'AI 결과', value: 'analysis_id ' + id + ' · ' + fallbackSec + '초 안에 끝나지 않아 준비된 시연 응답(' + scenario + ') 표시 · 실제 AI 결과 아님 · 실제 결과를 계속 기다림' });
+            return { ai: preparedAi(scenario, fallbackSec), intake: intake, analysisId: id, analysisStatus: lastStatus, later: real };
+          });
+        });
+      });
+    }
+
+    function lookupPartialMatch(v, four) {
+      var d = v.data || {};
+      if (v.lookup !== 'MATCHED' || v.api !== 'v3' || !v.fields || d.verification_status !== 'INCONCLUSIVE') return false;
+      if (d.comparison_scope !== 'PARTIAL_COMPARISON' && !has(d.reason_codes, 'CONTENT_PARTIALLY_COMPARED')) return false;
+      if ((d.checks || []).some(function (c) { return c && c.status === 'FAILED'; })) return false;
+      var st = four.status.bubble_key;
+      return /^ledger\.recorded/.test(four.ledger.bubble_key) && four.signature.bubble_key === 'signature.match' &&
+        (four.original.bubble_key === 'original.held' || four.original.bubble_key === 'original.not_run') &&
+        !HOLD_RANK[st] && kind(st) === 'result';
+    }
+
+    // 검증 결과 -> 기록관·감정사·대조관·상태 확인관 말풍선 (응답 값을 표대로 옮기기만 함)
+    function fourOf(v, p) {
+      var four;
+      if (v.kind === 'result') {
+        four = v.api === 'v1' ? mapV1(v.data) : mapV3(v.data);
+        /* 비교 근거 없음: v1 은 비교할 후보 항목이 0개여도 candidate_match=PASS 를 줌(verification.py:76-80,
+           _candidate_mismatch 는 모든 값이 None 이면 None). 응답에 무엇을 비교했는지가 없으므로 이 PASS 는
+           근거가 아님 → 4.1 표의 기존 키 common.not_connected("연결 전")로 둠. verification_status 등 판정 값은 그대로. */
+        if (v.api === 'v1' && !Object.keys(p.candidate || {}).length && four.original.bubble_key === 'original.same') {
+          four.original = obs('original', 'common.not_connected', 'NO_COMPARISON_BASIS · candidate_match=' + str(v.data.checks && v.data.checks.candidate_match) + ' · 보낸 비교 항목 0개');
+          four.original.noBasis = true;
+        }
+        /* A1: 원본 찾기 MATCHED 인데 서버가 읽은 키만 맞춰 INCONCLUSIVE·PARTIAL_COMPARISON 을 준 경우.
+           서명·발행 기록·현재 상태가 확인되고 실패한 검사가 없을 때만 원본 칸을 '읽은 항목 일치'로 둠(표시만 바꿈, verification_status 는 그대로). */
+        if (lookupPartialMatch(v, four)) {
+          four.original = obs('original', 'original.lookup_match', 'PARTIAL_COMPARISON · ' + str(v.fields) + ' · ' + (v.data.reason_codes || []).join(' · '));
+          four.original.fields = v.fields;
+        }
+      }
+      else if (v.kind === 'error') {
+        four = {};
+        ['ledger', 'signature', 'original', 'status'].forEach(function (s) { four[s] = obs(s, v.err.key, v.err.line2); });
+      } else if (v.kind === 'none') {
+        four = {
+          ledger: obs('ledger', 'ledger.not_run', ''), signature: obs('signature', 'signature.no_source', ''),
+          original: obs('original', 'original.no_source', ''), status: obs('status', 'status.no_source', '')
+        };
+      } else {
+        four = {};
+        ['ledger', 'signature', 'original', 'status'].forEach(function (s) { four[s] = obs(s, 'common.not_connected', v.reason); });
+      }
+      return four;
+    }
+
+    /* 금액 비교 카드: 응답이 준 금액만 씀. v1·v3 응답 스키마에는 원본 금액도 받은 금액도 없음
+       (v1 VerificationResult: models.py:107-116, v3 VerificationResult: wallet_contract.py:369-396).
+       그래서 두 칸 모두 "확인 불가". 보낸 후보 값은 서버가 확인해 준 값이 아니라 넣지 않고,
+       필드 이름을 짐작해 읽지도 않음(응답에 금액 필드가 생기면 그 스키마 근거로 여기만 고침). */
+    var COMPARE_NONE = '확인 불가 (응답에 금액이 없어요)';
+    function compareOf() {
+      return [
+        { label: '원본 금액', value: COMPARE_NONE },
+        { label: '받은 안내 금액', value: COMPARE_NONE, changed: true }
+      ];
+    }
+
+    function build(text, p, v, four, a, log, order) {
+      var holdExtra = v.kind === 'error' ? v.err.why : '';
+      var ai = a.ai.obs;
+      // 원본 찾기로 금액·계좌가 기관 기록과 같다고 확인되면, 가린 계좌로 입금하라는 문장만 근거로 든 AI '주의'는 위험으로 치지 않음
+      // (계좌는 개인정보라 AI 에는 가려서 보내므로 AI 는 계좌가 맞는지 모름. 대표 지시 2026-11-04)
+      // 계좌 없이 '11/10까지 입금 바랍니다'처럼 납부만 안내하는 문장도 같음(11-05 리허설: 진짜 A1이 '주의'로 보임). 링크·앱·재촉 등이 섞이면 그대로 둠
+      var payOnly = function (q) { return /(?:입금|납부|이체)\s*(?:바랍니다|해\s*주(?:세요|십시오)|하시기\s*바랍니다)[.!]?\s*$/.test(q) && !/링크|앱|설치|인증|비밀번호|OTP|개인|즉시|긴급|당장|오늘|정지|압류|수사|새|변경|다른|http/i.test(q); };
+      var evs = a.ai.report && Array.isArray(a.ai.report.evidence) ? a.ai.report.evidence : [];
+      if (v.lookup === 'MATCHED' && ai && ai.bubble_key === 'ai.caution' && evs.length && evs.every(function (e) { var q = String(e.quote || ''); return /\((?:계좌번호|전화번호) 가림\)/.test(q) || payOnly(q); })) {
+        Object.assign(ai, obs('ai', 'ai.no_clear', 'CAUTION→ACCOUNT_MATCHED_RECORD'));
+        a.ai.why = '(입금 계좌·금액이 기관 발행 기록과 같아서, 그 계좌로 입금하라는 문장은 위험으로 보지 않았어요.)';
+        a.ai.quote = '';
+        a.ai.report = Object.assign({}, a.ai.report, { risk_level: 'NO_CLEAR_INDICATORS', evidence: [] });   // 형광펜·근거 줄도 그리지 않음
+      }
+      var report = obs('report', 'report.ready', v.kind === 'result' ? str(v.data.verification_status) : '');
+      nameOf(report);
+      // 직원 순서 = 답이 도착한 순서(order). 빠진 직원이 있으면(있으면 안 됨) 정해진 순서로 뒤에 붙임
+      var staff = order.slice();
+      [a.intake || obs('intake', p.structured ? 'intake.fixture' : 'common.not_connected', ''), four.ledger, four.signature, four.original, four.status, ai].forEach(function (o) {
+        if (!staff.some(function (x) { return x.staff === o.staff; })) staff.push(nameOf(o));
+      });
+      staff.push(report);
+
+      var compare = null;
+      if (four.original.bubble_key === 'original.changed' && four.original.line2.indexOf('AMOUNT_MISMATCH') >= 0) compare = compareOf(v);
+      var sent = p.structured ? Object.keys(p.candidate).length : 0;
+      var axes = [
+        officialAxis(four.ledger, four.signature, holdExtra),
+        originalAxis(four.original, compare, v.kind === 'result' && v.api === 'v1' ? sent : 0, holdExtra),
+        statusAxis(four.status, holdExtra),
+        aiAxis(ai, a.ai.quote || '', a.ai.unran, a.ai.why || '')
+      ];
+      // 시연 대체(기본 꺼짐): AI 칸에만 '준비된 시연 응답 · 실제 AI 결과 아님'을 앞에 붙임. 발행 검증 3칸(axes[0..2])은 그대로
+      var prep = a.ai.prepared || null;
+      if (prep) {
+        var aiAx = axes[3];
+        aiAx.prepared = true;
+        aiAx.status = '준비된 시연 응답 · ' + aiAx.status;
+        aiAx.body = '[' + PREPARED_LABEL + '] 실서버 AI 분석이 ' + prep.sec + '초 안에 끝나지 않아 미리 준비한 시연 설명을 먼저 보여 줘요. ' + aiAx.body + (prep.extra ? ' ' + prep.extra : '') + ' 실제 결과가 오면 교체해요.';
+        aiAx.note = PREPARED_LABEL + '. ' + aiAx.note;
+      }
+      if (a.replaced) axes[3].note = '준비된 시연 응답을 서버 분석 결과로 교체했어요. ' + axes[3].note;
+      // 원본 찾기 MATCHED 는 문자에서 읽은 항목만 맞춘 것(서버 PARTIAL_COMPARISON): 문자 전체가 그 안내문이라고 말하지 않음
+      if (v.lookup === 'MATCHED') {
+        if (axes[0].tone === 'ok') axes[0].body = '문자에서 읽은 항목과 맞는 발행 기록과 기관 서명이 있어요. 문자 전체가 그 안내문이라는 뜻은 아니에요.';
+        if (axes[2].tone === 'ok') axes[2].body = '찾은 발행 기록은 지금 유효해요. 문자의 나머지 내용은 확인하지 않았어요.';
+      }
+      if (four.original.noBasis) axes[1].body = '이 확인 기능은 아직 연결 전이에요. 받은 문자에서 비교할 항목을 뽑지 않아 원본과 맞춰 볼 근거가 없어요.';
+      // 서버 DB에 저장된 내용·원본이 기관 서명(체인 기록)과 다름 = 받은 글이 아니라 서버 기록이 바뀐 것(DB 직접 조작 장면)
+      var storedBad = v.kind === 'result' && Array.isArray(v.data.checks) && v.data.checks.some(function (c) { return c && /^STORED_(CONTENT|ORIGINAL)_MISMATCH$/.test(String(c.reason_code || '')); });
+      if (storedBad) axes[1].body = '서버 DB에 저장된 내용이 기관이 서명해 블록체인에 남긴 기록과 달라요. 서버 기록이 바뀐 것으로 보여요.';
+      if (v.kind === 'offline') axes.slice(0, 3).forEach(function (x) {
+        if (v.chainDown) { x.status = '확인 불가'; x.tone = 'none'; x.icon = 'dash'; x.body = v.why; return; }
+        x.body = '이 확인 기능은 아직 연결 전이에요.' + (v.why ? ' ' + v.why : '');
+      });
+      if (v.kind === 'none') axes.slice(0, 3).forEach(function (x) {
+        x.status = '확인할 수 없음'; x.tone = 'none'; x.icon = 'dash';
+        x.body = v.why || (p.image ? '사진에서는 검증 링크를 읽지 않아 공식 기록과 맞춰 볼 수 없어요.' : '문자에서 공식 기록과 맞춰 볼 값을 읽지 못했어요.');
+      });
+
+      var conclusion;
+      var next = NEXT_DEFAULT;
+      var vs = v.kind === 'result' ? v.data.verification_status : null;
+      if (v.kind === 'result') {
+        var m = VS[vs];
+        conclusion = m ? { badge: m.badge, text: m.text } : { badge: { tone: 'none', icon: 'dash', text: '쉬운 설명 없음' }, text: '쉬운 설명이 없는 결과예요. 자세히에서 값을 확인하세요.' };
+        // 1.8 합성 규칙 1: 발행 기록이 확인돼도 현재 상태 칸에 문제가 있으면 그 칸 배지를 앞에
+        var sAx = axes[2];
+        if (vs === 'VERIFIED' && (sAx.tone === 'fail' || sAx.tone === 'caution')) conclusion.badge = { tone: sAx.tone, icon: sAx.icon, text: sAx.status };
+        // A1: 읽은 항목 일치(원본 찾기). 긍정 결론 + 한계를 한 문장에. 현재 상태 칸에 문제가 있으면 그 배지를 앞에(합성 규칙 1과 같음)
+        if (four.original.bubble_key === 'original.lookup_match') {
+          conclusion = { badge: { tone: 'ok', icon: 'check', text: '읽은 항목 일치' }, text: '문자에서 읽은 항목(' + four.original.fields + ')이 기관 발행 기록과 일치해요 · 나머지 문구는 비교하지 않았어요.' };
+          if (sAx.tone === 'fail' || sAx.tone === 'caution') conclusion.badge = { tone: sAx.tone, icon: sAx.icon, text: sAx.status };
+        }
+        if (vs === 'TAMPERED' || vs === 'NOT_REGISTERED' || axes.some(function (x) { return x.axis !== 'ai' && x.tone === 'fail'; })) next = NEXT_BAD;
+      } else if (v.kind === 'error') {
+        conclusion = { badge: { tone: 'pending', icon: 'question', text: '판단 보류' }, text: '서버 응답을 받지 못해 판단을 보류했어요.' + (v.err.why ? ' ' + v.err.why : '') };
+      } else if (v.kind === 'none') {
+        // 우리 서비스 기록으로 확인할 수 없는 문자: '가짜 의심'이라 하지 않고 이유(미등록 기관·기록 없음·못 읽음)를 말함.
+        // 기관 기록과 다른 점(금액·계좌·공문번호)이 있을 때만 '기록과 다름'
+        var nv = noneVerdict(v);
+        conclusion = { badge: { tone: nv.tone, icon: nv.tone === 'caution' ? 'warn' : 'dash', text: nv.chip === '기록과 다름' ? '기록과 다름' : '확인할 수 없음' }, text: nv.sub || '등록된 기관의 발행 기록과 맞춰 볼 수 없었어요.', verdict: nv };
+        // 사진만 받은 경우: 사진에서 금액·계좌를 꺼내 원본을 찾지 못하므로(대조 자체를 안 함)
+        if (p.image && !v.lookup && !v.reason) conclusion = { badge: { tone: 'none', icon: 'dash', text: '확인 못 함' }, text: '사진만으로는 기관 발행 기록과 맞춰 보지 못했어요. 문자 글을 길게 눌러 복사해 붙여 넣으면 진짜인지 확인해요.' };
+      } else if (v.chainDown) {
+        conclusion = { badge: { tone: 'pending', icon: 'question', text: '판단 보류' }, text: v.why };
+      } else {
+        conclusion = { badge: { tone: 'offline', icon: 'plug', text: '연결 전' }, text: v.reason === 'NO_PROOF_ID_IN_LINK'
+          ? '검증 링크는 찾았지만 링크 안에 Proof ID가 없어 공식 기록을 확인하지 못했어요.' + (v.lookupWhy ? ' ' + v.lookupWhy : '')
+          : '검증 엔진이 아직 연결 전이라 공식 기록을 확인하지 못했어요.' };
+        // 링크가 OriginProof 검증 링크가 아닌 것(연결 장애 아님): 요약 박스는 확인할 수 없음 + 이유
+        if (v.reason === 'NO_PROOF_ID_IN_LINK') conclusion.verdict = { tone: 'none', chip: '확인 불가', head: '· 확인할 수 없어요 · ' + (v.lookupReason === 'NO_ISSUER' ? 'OriginProof에 등록된 기관의 문자가 아니에요' : 'OriginProof 검증 링크가 아니에요'), sub: conclusion.text };
+      }
+
+      var details = [{ label: '연결 방식', value: typeof c.opts.base === 'string' ? '5안 연결 ' + c.opts.base + ' (로그인 쿠키·CSRF)' : (c.opts.viaProxy ? '중계 프로그램 /api → ' : '직접 → ') + c.serverUrl }];
+      if (storedBad) conclusion.verdict = { tone: 'fail', chip: '가짜·변조', head: '✕ 서버 기록이 바뀌었어요 · 블록체인 기록과 달라요', sub: '서버 DB의 내용이 기관이 서명해 블록체인에 남긴 기록과 맞지 않아요. 바뀐 서버 기록은 믿지 말고 기관 공식 번호로 직접 확인하세요.' };
+      details.push({ label: '입력 종류', value: p.image ? '문서 사진' : p.structured ? '항목 입력(JSON)' : (p.first ? (p.first.type === 'proof' ? 'Proof ID 가 든 문자' : '검증 링크가 든 문자') + (v.lookup ? ' · Proof ID 없어 원본 찾기 ' + v.lookup : '') : (v.lookup ? '코드 없는 문자(원본 찾기 ' + v.lookup + ')' : '문자')) });
+      if (p.structured && p.ignored.length) details.push({ label: '보내지 않은 키', value: p.ignored.join(', ') });
+      // 찾은 링크·Proof ID: 첫 번째만 쓰고, 나머지는 '더 찾은 … (쓰지 않음)'으로 자세히에만(adapter.js refDetails)
+      if (!p.structured && p.refs.length) details = details.concat(Hk.refDetails({ refs: p.refs }));
+      if (!p.structured && !p.refs.length) details.push({ label: '찾은 검증 링크·Proof ID', value: '없음' });
+      if (v.kind === 'offline') details.push({ label: '검증 연결 상태', value: 'common.not_connected · ' + v.reason + (v.why ? ' · ' + v.why : '') });
+      if (four.original.noBasis) details.push({ label: '원본 일치 근거', value: '없음 · ' + four.original.line2 + ' · 비교 없이 나온 값이라 일치로 보지 않음' });
+      details = details.concat(log);
+      if (v.kind === 'result') {
+        var d = v.data;
+        details.push({ label: '검증 엔진 결과', value: str(vs) + (v.api === 'v3' ? ' · ' + str(d.comparison_scope) : '') + ' (' + v.api + ')' });
+        details.push({ label: 'reason_codes', value: (d.reason_codes || []).join(', ') || '없음' });
+        if (v.api === 'v1') {
+          details.push({ label: 'lifecycle_status', value: str(d.lifecycle_status) || '없음' });
+          details.push({ label: 'checks', value: Object.keys(d.checks || {}).map(function (k) { return k + '=' + d.checks[k]; }).join(', ') });
+        } else {
+          details.push({ label: 'checks', value: (d.checks || []).map(function (x) { return x.name + '=' + x.status + (x.reason_code ? '(' + x.reason_code + ')' : ''); }).join(', ') });
+          if (d.document) details.push({ label: 'document', value: 'state=' + str(d.document.state) + ' · warnings=' + (d.document.warnings || []).join('|') + ' · key_id=' + str(d.document.key_id) + ' · version=' + str(d.document.version) + '/' + str(d.document.latest_version) });
+          details.push({ label: 'block_number', value: str(d.block_number) || '없음' });
+        }
+        details.push({ label: 'session_id · request_id', value: str(d.session_id) + ' · ' + str(d.request_id || (v.res && v.res.requestId) || '') });
+        if (v.v3note) details.push({ label: 'v3 검증', value: v.v3note + ' 그래서 v1 결과를 씀' });
+        details.push({ label: '쉬운 설명', value: VS[vs] ? VS[vs].text : '쉬운 설명 없음' });
+        if (four.original.bubble_key === 'original.lookup_match') details.push({ label: '화면 결론', value: '읽은 항목 일치(' + four.original.fields + ') · 원본 찾기 MATCHED 를 화면에서만 이렇게 표시 · 검증 엔진 값 ' + str(vs) + ' · ' + str(v.data.comparison_scope) + ' 은 그대로' });
+      }
+      if (v.kind === 'error') details.push({ label: '오류', value: v.err.line2 });
+      if (prep) details.push({ label: '준비된 시연 응답', value: PREPARED_LABEL + ' · 시나리오 ' + prep.scenario + ' · 대체 기준 ' + prep.sec + '초 · ' + PREPARED_LIMIT });
+      if (a.replaced) details.push({ label: '준비된 시연 응답', value: '서버 분석 결과로 교체함 · 처음 보인 AI 칸은 준비된 시연 응답이었음' });
+
+      return {
+        id: 'api_' + Date.now().toString(36),
+        analysis_id: a.analysisId || null,          // 5안 확장: 보관/삭제 단추용
+        analysis_deleted: a.deleted === true,
+        analysis_status: a.analysisStatus || null,
+        label: prep ? '실제 서버 응답 · AI 칸은 ' + PREPARED_LABEL : '실제 서버 응답',
+        sample: false,
+        ai_prepared: prep ? prep.scenario : null,      // 시연 대체(기본 꺼짐)일 때만 값. AI 칸이 준비된 시연 응답임
+        ai_replaced: a.replaced === true,              // 준비 응답을 실제 AI 결과로 바꾼 교체 답
+        assumption: 'OriginProof 서버 응답을 웹_설계.md 4.1·1.8 표대로 옮겼어요. 판정 값은 서버가 준 그대로이고, 응답에 없는 값은 지어내지 않았어요.',
+        verification_status: vs,
+        input: p.image ? { kind: 'image', text: '' } : { kind: 'message', text: T().maskPersonal(text) },     // = 서버에 보낸 글(근거 위치의 기준 글)
+        ai_report: a.ai.report || null,                                // 계약 AnalysisReport 중 화면용(cleanReport). 형광펜·근거 줄에 씀
+        ref: p.first || null,
+        // 체인에서 직접 확인(js/chain_check.js)이 비교할 서버 값: v3 응답의 document·chain_id·verifying_contract 만. 없으면 null
+        chain_claim: v.kind === 'result' && v.api === 'v3' && Hk.chain ? Hk.chain.claimFrom(v.data) : null,
+        // 블록체인 증거 한 줄(공식 발행 칸 아래): 응답의 확인 블록·Registry 계약·기관 키. v3 결과에 블록이 있을 때만
+        chain_proof: v.kind === 'result' && v.api === 'v3' && v.data.block_number != null
+          ? { chain_id: v.data.chain_id, contract: v.data.verifying_contract, block: v.data.block_number, key_id: v.data.document ? v.data.document.key_id : null } : null,
+        // 원본 찾기에서 기관 기록과 다른 값(받은 글에 밑줄): 이유 코드와 문자에서 읽은 값만
+        lookup_diff: v.kind === 'none' && LOOKUP_DIFF_HEAD[v.miss] ? { miss: v.miss, key: v.key } : null,
+        conclusion: conclusion,
+        axes: axes,
+        next_action: { text: next },
+        details: details,
+        staff: staff
+      };
+    }
+
+    /* opts.onStaff(obs): 직원 한 명의 결과가 정해지는 순간(응답이 도착한 순간) 부름.
+       직원 패널은 이 순서대로 갱신하고, 돌려주는 답의 staff 도 같은 순서(기록 다시 보기도 그 순서). */
+    /* 문서 사진: 서버가 사진 글자를 먼저 읽어 주면(POST /v3/inputs/{ref}/text, 사진 한 장에 한 번) 그 글로
+       문자 붙여 넣기와 똑같이 확인(원본 찾기 + AI). 못 읽으면 예전처럼 사진 그대로 AI 분석만(최종 판단은 '확인 못 함'). */
+    function readImage(image, log) {
+      var body = { kind: 'DOCUMENT_IMAGE', image_media_type: image.media_type, image_base64: image.base64 };
+      return c.call('POST', '/v3/inputs', body, ms).then(function (r1) {
+        if (r1.error || r1.status !== 201 || !r1.data || !r1.data.input_ref) { log.push({ label: '사진 글자 읽기', value: '사진 접수 못 함 · ' + (r1.error ? str(r1.error) : 'HTTP ' + r1.status) }); return { text: null, sent: r1 }; }
+        return c.call('POST', '/v3/inputs/' + encodeURIComponent(str(r1.data.input_ref)) + '/text', {}, Math.max(ms, 70000)).then(function (r2) {
+          var d = r2.data || {};
+          var ref = str(r1.data.input_ref);
+          if (r2.error || r2.status !== 200 || typeof d.text !== 'string' || !d.text.trim()) {
+            log.push({ label: '사진 글자 읽기', value: '못 읽음 · ' + (r2.error ? str(r2.error) : 'HTTP ' + r2.status + (d.detail ? ' · ' + d.detail : '')) });
+            return { text: null, sent: { status: 201, data: { input_ref: ref } } };
+          }
+          return { text: d.text.trim(), complete: d.complete === true };
+        });
+      });
+    }
+    /* 사진에서 읽은 글만: 맨 앞 [ ] 안 보낸 곳 이름이 등록 기관 한글 이름과 글자 3개 이내로 다르면 그 기관으로 맞춰 봄
+       (예: 사진 읽기가 '오리진 목 은행'을 '오렌지 몰 은행'으로 읽음). 진짜 판정은 여전히 금액·계좌(공문번호)가 기관 기록과 같아야만 나옴. */
+    var IMG_ISSUERS = ['오리진 목 은행', '오리진 목 오피스'];
+    function editDistance(a, b) {
+      var d = [];
+      for (var i = 0; i <= a.length; i++) { d[i] = [i]; for (var j = 1; j <= b.length; j++) d[i][j] = i ? Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)) : j; }
+      return d[a.length][b.length];
+    }
+    function fixImageIssuer(text) {
+      if (lookupKey(text)) return { text: text };
+      var m = /\[([^\[\]\n]{2,20})\]/.exec(text.replace(/^\s*\[Web발신\]\s*/, ''));
+      if (!m) return { text: text };
+      var seen = m[1].trim();
+      var best = IMG_ISSUERS.map(function (n) { return { n: n, d: editDistance(seen.replace(/\s+/g, ''), n.replace(/\s+/g, '')) }; })
+        .filter(function (x) { return x.d <= 3 && x.n.slice(-2) === seen.replace(/\s+/g, '').slice(-2); })
+        .sort(function (a, b) { return a.d - b.d; })[0];
+      if (!best) return { text: text };
+      return { text: text.replace('[' + m[1] + ']', '[' + best.n + ']'), from: seen, to: best.n };
+    }
+    function check(text, opts) {
+      opts = opts || {};
+      if (opts.image && !opts.imageRead) {
+        var rlog = [];
+        var t0 = now();   // 사진 글자 읽기는 AI(사진 판독) 시간에 넣음
+        return readImage(opts.image, rlog).then(function (got) {
+          var readMs = now() - t0;
+          var addRead = function (res) { if (res.timing) res.timing.ai_ms = (res.timing.ai_ms || 0) + readMs; return res; };
+          if (!got || !got.text) return checkCore(text, Object.assign({}, opts, { imageRead: true, imageSent: got ? got.sent : null })).then(function (res) { res.details = res.details.concat(rlog); return addRead(res); });
+          var fx = fixImageIssuer(got.text);
+          return checkCore(fx.text, Object.assign({}, opts, { image: null, imageRead: true })).then(function (res) {
+            res.from_image = true;
+            var head = [{ label: '입력 종류(원래)', value: '문서 사진 · 서버가 사진 글자를 읽어 그 글로 확인' + (got.complete ? '' : ' · 일부만 읽음') }];
+            if (fx.from) head.push({ label: '사진 속 기관 이름', value: "'" + fx.from + "'(으)로 읽혀 등록 기관 '" + fx.to + "'(으)로 맞춰 봤어요 · 금액·계좌가 같아야만 진짜" });
+            res.details = head.concat(res.details);
+            return addRead(res);
+          });
+        }, function () { return checkCore(text, Object.assign({}, opts, { imageRead: true })); });
+      }
+      return checkCore(text, opts);
+    }
+    function checkCore(text, opts) {
+      opts = opts || {};
+      var p;
+      if (opts.image) p = { structured: false, first: null, refs: [], image: true };   // 문서 사진: 검증 링크를 읽을 글이 없음
+      else try { p = parse(text); } catch (e) { return Promise.reject(e); }
+      var log = [];
+      var order = [];
+      var emit = function (o) {
+        if (!o || order.some(function (x) { return x.staff === o.staff; })) return;
+        order.push(nameOf(o));
+        if (typeof opts.onStaff === 'function') { try { opts.onStaff(o); } catch (e) { /* 화면 오류가 요청을 멈추지 않게 */ } }
+      };
+      var vP;
+      var t0 = now(), chainMs = null, aiMs = null;
+      if (p.structured) { emit(obs('intake', 'intake.fixture', '')); vP = verify(p, log); }
+      else if (p.first && p.first.proofId) {
+        // 자유 문자: 첫 참조(Proof ID 또는 링크 안 Proof ID) 하나만 v1 검증에 보냄. 두 번째 이후 참조는 보내지 않고 자세히에만.
+        // 문자에서 비교 항목은 뽑지 않음 → 후보 항목 0개, 원본 일치 칸은 fourOf 에서 "연결 전"(근거 없음)
+        vP = verify({ structured: false, proofId: p.first.proofId, documentId: '', candidate: {} }, log);
+      }
+      else if (p.first) {
+        // A3: Proof ID 없는 링크만 있으면 문자 내용으로 원본 찾기를 이어서 함. 읽을 값이 없으면 예전처럼 '연결 전'(이유를 덧붙임)
+        vP = lookup(text, log).then(function (v) {
+          if (v.kind !== 'none' || v.lookup || v.login) return v;
+          return { kind: 'offline', reason: 'NO_PROOF_ID_IN_LINK', why: '첫 번째 링크 안에 Proof ID가 없어 검증을 요청하지 않았어요.' + (v.why ? ' ' + v.why : ''), lookupWhy: v.why || '', lookupReason: v.reason || '' };
+        });
+      }
+      else if (p.image) vP = Promise.resolve({ kind: 'none' });
+      else vP = lookup(text, log);
+      var aP = p.structured
+        ? Promise.resolve({ ai: { obs: obs('ai', 'ai.none', 'NO_TEXT'), why: '항목 입력에는 문자 원문이 없어 AI 분석은 하지 않았어요.' } })
+        : analyze(text, log, emit, opts.image, opts.imageSent);
+      var vDone = vP.then(function (v) {
+        // 블록체인 검증 시간: 서버에 검증·원본 찾기를 보낸 경우만(보내지 않았으면 null)
+        if (v.kind === 'result' || v.kind === 'error' || (v.kind === 'none' && v.lookup)) chainMs = now() - t0;
+        var four = fourOf(v, p.structured ? p : { candidate: {} });
+        ['ledger', 'signature', 'original', 'status'].forEach(function (s) { emit(four[s]); });
+        return { v: v, four: four };
+      });
+      var aDone = aP.then(function (a) { if (!p.structured) aiMs = now() - t0; emit(a.intake); emit(a.ai.obs); return a; });
+      return Promise.all([vDone, aDone]).then(function (r) {
+        var answer = build(text, p, r[0].v, r[0].four, r[1], log, order);
+        answer.timing = { chain_ms: chainMs, ai_ms: aiMs, ai_prepared: !!r[1].ai.prepared };
+        if (r[1].later) later(r[1].later, r[0]);
+        return answer;
+      });
+      /* 시연 대체 뒤 실제 폴링 결과: 끝난 작업(완료·실패·취소·만료)이면 AI 칸만 바꾼 교체 답을 opts.onAiLater 로 넘김.
+         검증 결과(v·four)는 처음 것을 그대로 씀. 시간 초과·조회 오류는 교체하지 않고(준비 응답 표시 유지) 사유만 알림. 지운 분석은 그대로 버림. */
+      function later(realP, vr) {
+        var tell = function (ev) { if (typeof opts.onAiLater === 'function') { try { opts.onAiLater(ev); } catch (e) { /* 화면 오류가 요청을 멈추지 않게 */ } } };
+        realP.then(function (ra) {
+          if (ra.deleted) return tell({ replaced: false, reason: 'deleted' });
+          if (!ra.analysisStatus) {
+            log.push({ label: 'AI 결과', value: '서버 분석 결과를 받지 못해 준비된 시연 응답을 교체하지 않음 · ' + str(ra.ai && ra.ai.obs && ra.ai.obs.line2) });
+            return tell({ replaced: false, reason: ra.ai && ra.ai.obs && ra.ai.obs.bubble_key === 'ai.timeout' ? 'timeout' : 'error' });
+          }
+          log.push({ label: 'AI 결과', value: '준비된 시연 응답을 서버 분석 결과로 교체 · status=' + ra.analysisStatus });
+          ra.replaced = true;
+          var ord = order.map(function (o) { return o.staff === 'ai' ? nameOf(ra.ai.obs) : o; });
+          var answer2 = build(text, p, vr.v, vr.four, ra, log, ord);
+          answer2.timing = { chain_ms: chainMs, ai_ms: now() - t0, ai_prepared: false };
+          tell({ replaced: true, reason: 'result', answer: answer2, obs: ra.ai.obs });
+        }, function () { tell({ replaced: false, reason: 'error' }); });
+      }
+    }
+
+    return {
+      mode: 'api',
+      serverUrl: c.serverUrl,
+      list: function () { return sample ? sample.list() : []; },
+      get: function (id) { return sample ? sample.get(id) : null; },
+      check: check
+    };
+  }
+
+  Hk.createApiAdapter = createApiAdapter;
+  Hk.checkConnection = checkConnection;
+  Hk.DEMO_TERM = DEMO_TERM;
+  Hk.demoTermRows = demoTermRows;
+  Hk.api = { mapV1: mapV1, mapV3: mapV3, mapAnalysisJob: mapAnalysisJob, isLoopback: isLoopback, READY_MSG: READY_MSG, errorInfo: errorInfo, makeCaller: makeCaller, rid: rid,
+    lookupKey: lookupKey, lookupExplain: lookupExplain, LOOKUP_SKIP: LOOKUP_SKIP, evidenceSpans: evidenceSpans, SPAN_WHY: SPAN_WHY, AI_FAIL: AI_FAIL, AI_HTTP: AI_HTTP,
+    demoFallbackSec: demoFallbackSec, preparedScenario: preparedScenario, PREPARED_LABEL: PREPARED_LABEL, DEMO_FALLBACK: DEMO_FALLBACK, DEMO_TEXTS: DEMO_TEXTS };
+})();

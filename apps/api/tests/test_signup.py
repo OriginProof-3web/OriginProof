@@ -1,0 +1,172 @@
+"""Opt-in synthetic sign-up (blocks 14): personal .invalid mail only, then normal login."""
+
+import pytest
+from httpx import ASGITransport, AsyncClient
+from originproof_api.main import create_app
+
+pytest_plugins = ("test_wallet_runtime",)
+
+PERSONAL = {
+    "kind": "personal",
+    "email": "Someone@Example.invalid",
+    "password": "synthetic1pass",
+    "terms_accepted": True,
+}
+
+
+@pytest.fixture
+async def client(wallet):
+    def build(enabled=True):
+        settings = wallet.app.state.settings.model_copy(update={"signup_enabled": enabled})
+        app = create_app(database=wallet.app.state.database, settings=settings)
+        return AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
+
+    return build
+
+
+async def test_personal_signup_then_login(client):
+    async with client() as api:
+        personal = await api.post("/v1/auth/register", json=PERSONAL)
+        assert personal.status_code == 201, personal.text
+        assert personal.json()["role"] == "recipient"
+        assert personal.json()["username"] == "someone@example.invalid"
+        assert "password" not in personal.text and "set-cookie" not in personal.headers
+        login = await api.post(
+            "/v1/auth/login",
+            json={"username": "SOMEONE@example.invalid", "password": PERSONAL["password"]},
+        )
+        assert login.status_code == 200, login.text
+        assert login.json()["role"] == "recipient"
+        again = await api.post("/v1/auth/register", json=PERSONAL | {"password": "other1pass"})
+        assert (again.status_code, again.json()["detail"]) == (409, "ACCOUNT_EXISTS")
+        relogin = await api.post(
+            "/v1/auth/login",
+            json={"username": "someone@example.invalid", "password": PERSONAL["password"]},
+        )
+        assert relogin.status_code == 200  # the duplicate attempt changed nothing
+
+
+@pytest.mark.parametrize(
+    "change,status,code",
+    [
+        ({"email": "real.person@gmail.com"}, 422, "SYNTHETIC_EMAIL_REQUIRED"),
+        ({"email": "a@example.invalid.evil.com"}, 422, "SYNTHETIC_EMAIL_REQUIRED"),
+        ({"email": "a@@example.invalid"}, 422, "SYNTHETIC_EMAIL_REQUIRED"),
+        ({"email": "a@b@example.invalid"}, 422, "SYNTHETIC_EMAIL_REQUIRED"),
+        ({"email": "\u0000a@example.invalid"}, 422, "SYNTHETIC_EMAIL_REQUIRED"),
+        ({"role": "operator"}, 422, None),
+        ({"password": "onlyletters"}, 422, "WEAK_PASSWORD"),
+        ({"issuer_id": "iss_origin_mock_bank"}, 422, "MALFORMED_INPUT"),
+        ({"terms_accepted": False}, 422, None),
+        ({"password": "short1"}, 422, None),
+    ],
+)
+async def test_signup_rejections(client, change, status, code):
+    async with client() as api:
+        response = await api.post("/v1/auth/register", json=PERSONAL | change)
+        assert response.status_code == status, response.text
+        if code:
+            assert response.json()["detail"] == code
+
+
+@pytest.mark.parametrize(
+    "issuer_id,email",
+    [
+        ("iss_origin_mock_bank", "staff2@bank.example.invalid"),
+        ("iss_origin_mock_office", "staff2@office.example.invalid"),
+        (None, "staff2@bank.example.invalid"),
+        ("iss_unknown", "someone@example.invalid"),
+    ],
+)
+async def test_business_signup_never_creates_an_issuer(client, issuer_id, email):
+    # Roster mail is not proof of employment: no approval means no issuer authority.
+    body = PERSONAL | {"kind": "business", "email": email, "issuer_id": issuer_id}
+    async with client() as api:
+        response = await api.post("/v1/auth/register", json=body)
+        assert (response.status_code, response.json()["detail"]) == (
+            403,
+            "BUSINESS_SIGNUP_DISABLED",
+        )
+        login = await api.post(
+            "/v1/auth/login", json={"username": email, "password": PERSONAL["password"]}
+        )
+        assert login.status_code == 401, login.text
+
+
+async def test_signup_is_off_by_default(client):
+    async with client(enabled=False) as api:
+        response = await api.post("/v1/auth/register", json=PERSONAL)
+        assert (response.status_code, response.json()["detail"]) == (409, "SIGNUP_DISABLED")
+
+
+async def test_login_rejects_control_characters_before_the_query(client):
+    async with client() as api:
+        response = await api.post(
+            "/v1/auth/login", json={"username": "a\u0000b", "password": "synthetic1pass"}
+        )
+        assert response.status_code == 422
+
+
+async def test_casefold_growth_and_unicode_forms(client):
+    async with client() as api:
+        long = PERSONAL | {"email": "ß" * 100 + "@example.invalid"}
+        response = await api.post("/v1/auth/register", json=long)
+        assert (response.status_code, response.json()["detail"]) == (
+            422,
+            "SYNTHETIC_EMAIL_REQUIRED",
+        )
+        nfd = PERSONAL | {"email": "jose\u0301@example.invalid"}
+        assert (await api.post("/v1/auth/register", json=nfd)).status_code == 201
+        nfc = PERSONAL | {"email": "jos\u00e9@example.invalid"}
+        assert (await api.post("/v1/auth/register", json=nfc)).status_code == 409
+        login = await api.post(
+            "/v1/auth/login",
+            json={"username": "jos\u00e9@example.invalid", "password": PERSONAL["password"]},
+        )
+        assert login.status_code == 200, login.text
+
+
+def test_settings_repr_hides_database_password():
+    from originproof_api.settings import Settings
+
+    assert "originproof:originproof" not in repr(Settings(_env_file=None))
+
+
+async def test_signup_cannot_claim_a_limit_exempt_name(wallet):
+    settings = wallet.app.state.settings.model_copy(
+        update={
+            "signup_enabled": True,
+            "analysis_limit_exempt_usernames": ["rc-ai-tester@example.invalid"],
+        }
+    )
+    app = create_app(database=wallet.app.state.database, settings=settings)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as api:
+        body = PERSONAL | {"email": "RC-AI-Tester@example.invalid"}
+        response = await api.post("/v1/auth/register", json=body)
+        assert (response.status_code, response.json()["detail"]) == (409, "ACCOUNT_EXISTS")
+
+
+async def test_personal_member_id_login_by_id_or_mail(client):
+    async with client() as api:
+        body = PERSONAL | {"email": "yellow@example.invalid", "username": "노랑이_01"}
+        made = await api.post("/v1/auth/register", json=body)
+        assert made.status_code == 201, made.text
+        assert made.json()["username"] == "노랑이_01"
+        for name in ("노랑이_01", "YELLOW@example.invalid"):
+            login = await api.post(
+                "/v1/auth/login", json={"username": name, "password": PERSONAL["password"]}
+            )
+            assert login.status_code == 200, (name, login.text)
+            assert login.json()["username"] == "노랑이_01"
+        same_id = await api.post(
+            "/v1/auth/register", json=body | {"email": "other@example.invalid"}
+        )
+        same_mail = await api.post("/v1/auth/register", json=body | {"username": "other_id"})
+        assert same_id.json()["detail"] == same_mail.json()["detail"] == "ACCOUNT_EXISTS"
+
+
+@pytest.mark.parametrize("bad", ["ab", "has space", "a@b.invalid", "x" * 41, "dash-no"])
+async def test_member_id_rules(client, bad):
+    async with client() as api:
+        response = await api.post("/v1/auth/register", json=PERSONAL | {"username": bad})
+        assert (response.status_code, response.json()["detail"]) == (422, "INVALID_USERNAME")

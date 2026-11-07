@@ -1,0 +1,563 @@
+{
+  "source": "synthetic",
+  "fixture_version": "1.0.0",
+  "target_schema_version": "2.0.0",
+  "basis_sha": "3295a71c10a1a99c523d3cfefde91b5737b737ac",
+  "purpose": "W1-D2 unsigned QA inputs; not generated v2 Schema, signed Golden or live results",
+  "preconditions": [
+    "valid owner-generated signature",
+    "active issuer and key",
+    "registered Proof on matching deployment",
+    "authorized actor",
+    "valid session and CSRF for mutations",
+    "clock inside validity unless overridden"
+  ],
+  "profiles": {
+    "PAYMENT_REQUEST": {
+      "issuer_name": "Origin Mock Bank",
+      "binding_input": {
+        "binding_domain": "originproof.recipient.v1",
+        "app_domain": "originproof.finals",
+        "chain_id": 31337,
+        "proof_id": "prf_synthetic_payment_001",
+        "recipient_token": "SYNTHETIC_PUBLIC_TEST_TOKEN",
+        "salt": "abababababababababababababababababababababababababababababababab"
+      },
+      "envelope_fields": {
+        "proof_id": "prf_synthetic_payment_001",
+        "issuer_id": "iss_origin_mock_bank",
+        "key_id": "key_origin_mock_bank_001",
+        "proof_type": "PAYMENT_REQUEST",
+        "schema_version": "2.0.0",
+        "signature_scheme": "ECDSA_SECP256K1_KECCAK256_V1",
+        "chain_id": 31337,
+        "app_domain": "originproof.finals",
+        "payload": {
+          "amount_minor": 154000,
+          "currency": "KRW",
+          "payer_binding": "0xec3ccb784070cc49fc007d8eb948f5aa1d3fa641cd72b5e9570eadc88914b726",
+          "beneficiary_binding": "0xbe45e756c692187f4a2e69b3da19b1503a56239f404eea038493d251a621ae53",
+          "target_hash": "0x2b354b8293807c8215a3a5875c076a479596a82a1eafe77aabdab4b4066e7810"
+        },
+        "payload_hash": "0xd13ae548e7cca62139c3890c02d776602dcbdfb58df01b715b294f0fc0501e28",
+        "subject_binding_hash": "0xec3ccb784070cc49fc007d8eb948f5aa1d3fa641cd72b5e9570eadc88914b726",
+        "issued_at": "2026-10-01T00:00:00Z",
+        "expires_at": "2026-10-02T00:00:00Z",
+        "nonce": "SYNTHETIC_NONCE_PAYMENT_REQUEST",
+        "single_use": true,
+        "metadata_hash": null
+      }
+    },
+    "OFFICIAL_DOCUMENT": {
+      "issuer_name": "Origin Mock Office",
+      "binding_input": {
+        "binding_domain": "originproof.recipient.v1",
+        "app_domain": "originproof.finals",
+        "chain_id": 31337,
+        "proof_id": "prf_synthetic_document_001",
+        "recipient_token": "SYNTHETIC_PUBLIC_TEST_TOKEN",
+        "salt": "abababababababababababababababababababababababababababababababab"
+      },
+      "envelope_fields": {
+        "proof_id": "prf_synthetic_document_001",
+        "issuer_id": "iss_origin_mock_office",
+        "key_id": "key_origin_mock_office_001",
+        "proof_type": "OFFICIAL_DOCUMENT",
+        "schema_version": "2.0.0",
+        "signature_scheme": "ECDSA_SECP256K1_KECCAK256_V1",
+        "chain_id": 31337,
+        "app_domain": "originproof.finals",
+        "payload": {
+          "institution_code": "SYNTHETIC_OFFICE",
+          "document_type": "SYNTHETIC_NOTICE",
+          "document_number": "SYNTHETIC_DOC_001",
+          "subject_token": "0xa9647fb23444da58eaba63d4af967da49be1a2570e4f41c4445fdf98be52a8c8",
+          "version": 1
+        },
+        "payload_hash": "0xf9c333c050837609f003bae328a9740df73883a7a786003fe71dfff3dfd92659",
+        "subject_binding_hash": "0xa9647fb23444da58eaba63d4af967da49be1a2570e4f41c4445fdf98be52a8c8",
+        "issued_at": "2026-10-01T00:00:00Z",
+        "expires_at": "2026-10-02T00:00:00Z",
+        "nonce": "SYNTHETIC_NONCE_OFFICIAL_DOCUMENT",
+        "single_use": false,
+        "metadata_hash": null
+      }
+    }
+  },
+  "cases": [
+    {
+      "id": "PAYMENT_REQUEST_normal",
+      "acceptance": "F01",
+      "profile": "PAYMENT_REQUEST",
+      "actor": "designated_recipient",
+      "action": "full_comparison",
+      "changes": {},
+      "expected": {
+        "verification_status": "VERIFIED",
+        "lifecycle_status": "ACTIVE"
+      },
+      "basis": "ADR 0001 §4",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "PAYMENT_REQUEST_tampered",
+      "acceptance": "F02",
+      "profile": "PAYMENT_REQUEST",
+      "actor": "designated_recipient",
+      "action": "full_comparison",
+      "changes": {
+        "observed_patch": {
+          "amount_minor": 1540000
+        }
+      },
+      "expected": {
+        "verification_status": "TAMPERED",
+        "reason_codes": [
+          "AMOUNT_MISMATCH"
+        ]
+      },
+      "basis": "ADR 0001 §4",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "PAYMENT_REQUEST_missing",
+      "acceptance": "F02",
+      "profile": "PAYMENT_REQUEST",
+      "actor": "designated_recipient",
+      "action": "partial_comparison",
+      "changes": {
+        "omitted_observed_fields": [
+          "amount_minor"
+        ]
+      },
+      "expected": {
+        "verification_status": "INCONCLUSIVE",
+        "reason_codes": [
+          "INPUT_INCOMPLETE"
+        ]
+      },
+      "basis": "ADR 0001 §4: no mismatch, missing required comparison",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "PAYMENT_REQUEST_at_issue",
+      "acceptance": "F03",
+      "profile": "PAYMENT_REQUEST",
+      "actor": "designated_recipient",
+      "action": "full_comparison",
+      "changes": {
+        "clock": "2026-10-01T00:00:00Z"
+      },
+      "expected": {
+        "verification_status": "VERIFIED",
+        "lifecycle_status": "ACTIVE",
+        "usable": true
+      },
+      "basis": "ADR 0001 §1/4: [issued_at, expires_at)",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "PAYMENT_REQUEST_before_expiry",
+      "acceptance": "F03",
+      "profile": "PAYMENT_REQUEST",
+      "actor": "designated_recipient",
+      "action": "full_comparison",
+      "changes": {
+        "clock": "2026-10-01T23:59:59Z"
+      },
+      "expected": {
+        "verification_status": "VERIFIED",
+        "lifecycle_status": "ACTIVE",
+        "usable": true
+      },
+      "basis": "ADR 0001 §1/4: [issued_at, expires_at)",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "PAYMENT_REQUEST_at_expiry",
+      "acceptance": "F03",
+      "profile": "PAYMENT_REQUEST",
+      "actor": "designated_recipient",
+      "action": "full_comparison",
+      "changes": {
+        "clock": "2026-10-02T00:00:00Z"
+      },
+      "expected": {
+        "verification_status": "VERIFIED",
+        "lifecycle_status": "EXPIRED",
+        "usable": false
+      },
+      "basis": "ADR 0001 §1/4: [issued_at, expires_at)",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "OFFICIAL_DOCUMENT_normal",
+      "acceptance": "F01",
+      "profile": "OFFICIAL_DOCUMENT",
+      "actor": "designated_recipient",
+      "action": "full_comparison",
+      "changes": {},
+      "expected": {
+        "verification_status": "VERIFIED",
+        "lifecycle_status": "ACTIVE"
+      },
+      "basis": "ADR 0001 §4",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "OFFICIAL_DOCUMENT_tampered",
+      "acceptance": "F02",
+      "profile": "OFFICIAL_DOCUMENT",
+      "actor": "designated_recipient",
+      "action": "full_comparison",
+      "changes": {
+        "observed_patch": {
+          "document_number": "SYNTHETIC_DOC_002"
+        }
+      },
+      "expected": {
+        "verification_status": "TAMPERED",
+        "reason_codes": [
+          "FIELD_MISMATCH"
+        ]
+      },
+      "basis": "ADR 0001 §4",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "OFFICIAL_DOCUMENT_missing",
+      "acceptance": "F02",
+      "profile": "OFFICIAL_DOCUMENT",
+      "actor": "designated_recipient",
+      "action": "partial_comparison",
+      "changes": {
+        "omitted_observed_fields": [
+          "document_number"
+        ]
+      },
+      "expected": {
+        "verification_status": "INCONCLUSIVE",
+        "reason_codes": [
+          "INPUT_INCOMPLETE"
+        ]
+      },
+      "basis": "ADR 0001 §4: no mismatch, missing required comparison",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "OFFICIAL_DOCUMENT_at_issue",
+      "acceptance": "F03",
+      "profile": "OFFICIAL_DOCUMENT",
+      "actor": "designated_recipient",
+      "action": "full_comparison",
+      "changes": {
+        "clock": "2026-10-01T00:00:00Z"
+      },
+      "expected": {
+        "verification_status": "VERIFIED",
+        "lifecycle_status": "ACTIVE",
+        "usable": true
+      },
+      "basis": "ADR 0001 §1/4: [issued_at, expires_at)",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "OFFICIAL_DOCUMENT_before_expiry",
+      "acceptance": "F03",
+      "profile": "OFFICIAL_DOCUMENT",
+      "actor": "designated_recipient",
+      "action": "full_comparison",
+      "changes": {
+        "clock": "2026-10-01T23:59:59Z"
+      },
+      "expected": {
+        "verification_status": "VERIFIED",
+        "lifecycle_status": "ACTIVE",
+        "usable": true
+      },
+      "basis": "ADR 0001 §1/4: [issued_at, expires_at)",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "OFFICIAL_DOCUMENT_at_expiry",
+      "acceptance": "F03",
+      "profile": "OFFICIAL_DOCUMENT",
+      "actor": "designated_recipient",
+      "action": "full_comparison",
+      "changes": {
+        "clock": "2026-10-02T00:00:00Z"
+      },
+      "expected": {
+        "verification_status": "VERIFIED",
+        "lifecycle_status": "EXPIRED",
+        "usable": false
+      },
+      "basis": "ADR 0001 §1/4: [issued_at, expires_at)",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "unknown_proof",
+      "acceptance": "F06",
+      "profile": "PAYMENT_REQUEST",
+      "actor": "anonymous",
+      "action": "public_lookup",
+      "changes": {
+        "missing_registry_record": "proof"
+      },
+      "expected": {
+        "verification_status": "NOT_REGISTERED"
+      },
+      "basis": "Plan §16 F06; do not label as forgery",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "unknown_issuer",
+      "acceptance": "F06",
+      "profile": "PAYMENT_REQUEST",
+      "actor": "anonymous",
+      "action": "public_lookup",
+      "changes": {
+        "missing_registry_record": "issuer"
+      },
+      "expected": {
+        "verification_status": "NOT_REGISTERED"
+      },
+      "basis": "Plan §16 F06; do not label as forgery",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "cross_issuer_write",
+      "acceptance": "F05",
+      "profile": "OFFICIAL_DOCUMENT",
+      "actor": "bank_issuer",
+      "action": "revoke",
+      "changes": {},
+      "expected": {
+        "decision": "DENY",
+        "target_state_unchanged": true
+      },
+      "basis": "ADR 0001 §5/6",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "pending_issue",
+      "acceptance": "F09",
+      "profile": "PAYMENT_REQUEST",
+      "actor": "bank_issuer",
+      "action": "issue",
+      "changes": {
+        "application_state": "PENDING"
+      },
+      "expected": {
+        "decision": "DENY"
+      },
+      "basis": "Plan §16 F09",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "pending_register_key",
+      "acceptance": "F09",
+      "profile": "PAYMENT_REQUEST",
+      "actor": "bank_issuer",
+      "action": "register_key",
+      "changes": {
+        "application_state": "PENDING"
+      },
+      "expected": {
+        "decision": "DENY"
+      },
+      "basis": "Plan §16 F09",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "anonymous_approve",
+      "acceptance": "F10",
+      "profile": "PAYMENT_REQUEST",
+      "actor": "anonymous",
+      "action": "approve",
+      "changes": {
+        "untrusted_request": {
+          "role": "operator",
+          "issuer_id": "iss_origin_mock_office"
+        }
+      },
+      "expected": {
+        "decision": "DENY",
+        "target_state_unchanged": true
+      },
+      "basis": "ADR 0001 §2/6",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "recipient_approve",
+      "acceptance": "F10",
+      "profile": "PAYMENT_REQUEST",
+      "actor": "recipient",
+      "action": "approve",
+      "changes": {
+        "untrusted_request": {
+          "role": "operator",
+          "issuer_id": "iss_origin_mock_office"
+        }
+      },
+      "expected": {
+        "decision": "DENY",
+        "target_state_unchanged": true
+      },
+      "basis": "ADR 0001 §2/6",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "issuer_self_approve",
+      "acceptance": "F10",
+      "profile": "PAYMENT_REQUEST",
+      "actor": "issuer_self",
+      "action": "approve",
+      "changes": {
+        "untrusted_request": {
+          "role": "operator",
+          "issuer_id": "iss_origin_mock_office"
+        }
+      },
+      "expected": {
+        "decision": "DENY",
+        "target_state_unchanged": true
+      },
+      "basis": "ADR 0001 §2/6",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "anonymous_consume",
+      "acceptance": "F10",
+      "profile": "PAYMENT_REQUEST",
+      "actor": "anonymous",
+      "action": "consume",
+      "changes": {
+        "untrusted_request": {
+          "role": "operator",
+          "issuer_id": "iss_origin_mock_office"
+        }
+      },
+      "expected": {
+        "decision": "DENY",
+        "target_state_unchanged": true
+      },
+      "basis": "ADR 0001 §2/6",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "wrong_recipient",
+      "acceptance": "F14",
+      "profile": "PAYMENT_REQUEST",
+      "actor": "designated_recipient",
+      "action": "full_comparison",
+      "changes": {
+        "authenticated_recipient": "different_recipient"
+      },
+      "expected": {
+        "must_not_be_verified": true,
+        "reason_basis": "SUBJECT_BINDING_MISMATCH"
+      },
+      "basis": "ADR 0001 §4/5; permission rejection may precede verification response",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "wrong_domain",
+      "acceptance": "F14",
+      "profile": "PAYMENT_REQUEST",
+      "actor": "designated_recipient",
+      "action": "full_comparison",
+      "changes": {
+        "envelope_patch": {
+          "app_domain": "originproof.mvp"
+        }
+      },
+      "expected": {
+        "must_not_be_verified": true,
+        "reason_basis": "DOMAIN_MISMATCH"
+      },
+      "basis": "ADR 0001 §4/5; permission rejection may precede verification response",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "wrong_network",
+      "acceptance": "F14",
+      "profile": "PAYMENT_REQUEST",
+      "actor": "designated_recipient",
+      "action": "full_comparison",
+      "changes": {
+        "envelope_patch": {
+          "chain_id": 31338
+        }
+      },
+      "expected": {
+        "must_not_be_verified": true,
+        "reason_basis": "NETWORK_MISMATCH"
+      },
+      "basis": "ADR 0001 §4/5; permission rejection may precede verification response",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "expired_session",
+      "acceptance": "F10",
+      "profile": "PAYMENT_REQUEST",
+      "actor": "bank_issuer",
+      "action": "create_application",
+      "changes": {
+        "session_age_seconds": 28800
+      },
+      "expected": {
+        "decision": "DENY",
+        "target_state_unchanged": true
+      },
+      "basis": "ADR 0001 §2",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "logged_out",
+      "acceptance": "F10",
+      "profile": "PAYMENT_REQUEST",
+      "actor": "bank_issuer",
+      "action": "create_application",
+      "changes": {
+        "session_revoked": true
+      },
+      "expected": {
+        "decision": "DENY",
+        "target_state_unchanged": true
+      },
+      "basis": "ADR 0001 §2",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "missing_csrf",
+      "acceptance": "F10",
+      "profile": "PAYMENT_REQUEST",
+      "actor": "bank_issuer",
+      "action": "create_application",
+      "changes": {
+        "csrf_present": false
+      },
+      "expected": {
+        "decision": "DENY",
+        "target_state_unchanged": true
+      },
+      "basis": "ADR 0001 §2",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "document_consume",
+      "acceptance": "F04",
+      "profile": "OFFICIAL_DOCUMENT",
+      "actor": "designated_recipient",
+      "action": "consume",
+      "changes": {},
+      "expected": {
+        "decision": "DENY",
+        "target_state_unchanged": true
+      },
+      "basis": "ADR 0001 §1/6",
+      "execution_status": "NOT_RUN"
+    }
+  ]
+}

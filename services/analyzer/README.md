@@ -1,11 +1,8 @@
-# OriginProof M2 Analyzer
+# OriginProof Analyzer
 
-M2는 합성 카드 알림을 `originproof_core.CardPaymentNoticeCandidate`로 구조화한다.
-진위 판정, Signed Proof 조회, 서명 검증, Registry 접근은 하지 않는다.
-개발 시작 기준은 `origin/mvp/integration@3bbaba025acd9d692ab484232f778a12a7579702`와
-`docs/handoffs/m2_execution_brief.md`였다. 현재 병합 기준은
-`origin/mvp/integration@f029e76b310de30cb27731be08c18a4360dc281c`이다.
-[통합 handoff](HANDOFF.md)에 검증 결과와 남은 조건을 기록한다.
+현재 담당은 D이며 기존 카드 알림을 `originproof_core.CardPaymentNoticeCandidate`로 구조화합니다. 진위 판정·Proof 조회·Registry 접근은 검증 코어/API가 담당합니다. 5.0의 발행/내용 검증은 AI 없이 동작하며, AI 위험·근거 분석은 별도 필수 기능입니다. 입력 종류·우선순위는 팀 회의 후 확정하고 선정된 입력의 변환/분석을 구현합니다. 신규 범위는 [ADR 0004](../../docs/adr/0004-v5-governance-wallet-versioning.md)를 따르며 Decisions API는 후속 검토입니다.
+
+현재 작업 기준은 [개발 계획서](../../docs/development_plan.md)와 [해당 경로 지침](AGENTS.md)입니다. [MVP handoff](HANDOFF.md)는 당시 개발·검사 기록이며 현재 병합 기준이나 남은 작업 목록이 아닙니다. 아래는 지금 존재하는 카드 추출 endpoint의 사용 안내입니다.
 
 ## 빠른 실행 (저장소 루트에서)
 
@@ -82,7 +79,7 @@ OpenAI provider는 검증된 이미지 bytes를 Responses API의 이미지 입�
 | 환경변수 | 기본값 |
 | --- | --- |
 | `LLM_PROVIDER` | `mock` |
-| `OPENAI_MODEL` | `gpt-5.6-luna` |
+| `OPENAI_MODEL` | `gpt-6-luna` |
 | `OPENAI_REASONING_EFFORT` | `low` |
 | `OPENAI_API_KEY` | 없음, OpenAI 호출에만 필요 |
 | `LLM_TIMEOUT_SECONDS` | `20` (각 SDK 요청의 timeout) |
@@ -92,7 +89,7 @@ OpenAI provider는 검증된 이미지 bytes를 Responses API의 이미지 입�
 SDK만 재시도를 수행한다. 재시도/백오프 때문에 전체 경과 시간은 timeout보다 길 수 있다.
 OpenAI 실패나 키 누락 시 Mock로 자동 대체하지 않는다.
 
-Prompt 버전은 `card_payment_notice_v3`이며 wheel에 포함한다.
+Prompt 버전은 `card_payment_notice_v4`이며 wheel에 포함한다.
 `originproof_analyzer.service` logger는 INFO 수준의 `analyzer.extraction` 이벤트에
 provider/model/prompt_version/input_kind/duration_ms/error_code만 전달한다.
 배포 로깅에서 이 logger의 INFO 레벨과 `record.analyzer` 필드를 수집하도록 설정한다.
@@ -119,6 +116,25 @@ message는 고정된 안전한 문자열이다.
 시간대 없는 합성 한국 알림의 승인시각만 문서화된 KST 규칙을 적용한다.
 모든 응답에서 승인시각은 UTC로 정규화한다.
 
+## 미확인 후보와 기존 안전성 자산
+
+고정 원본 #43 `c16de660914389ba8821612aa3d6c64708085185`의 D 소유 코드·검사만
+선별 재사용했습니다. 응답 본문은 기존 공통 모델의 10개 필드를 유지합니다.
+
+| 응답 헤더 | 의미 |
+| --- | --- |
+| `X-OriginProof-Candidate-Source` | `ai` 또는 `mock`; 사용자 확인값이 아닙니다. |
+| `X-OriginProof-Confirmation-Required` | 항상 `true`; confidence와 무관합니다. |
+| `X-OriginProof-Artifact-Comparison` | 항상 `not-performed`; 내용·진위 검사를 수행하지 않았습니다. |
+| `X-OriginProof-Missing-Comparison-Fields` | null payload 필드 목록 또는 `none`. 값의 정확성을 증명하지 않습니다. |
+
+헤더는 안내이며 서버 확인·grounding을 강제하는 보안 장치가 아닙니다. Python 직접 호출도
+미확인 후보를 반환합니다. 프롬프트 보완과 Mock/SDK 모의 응답 검사는 실제 모델 성능이나
+신규 5.0 분석기 완성을 뜻하지 않습니다. 기존 v1 판정과 Golden은 변경하지 않았습니다.
+
+5.0 근거·결과 소비의 현재 검사와 입력 회의 전/후 D 작업은
+[D 작업·소비 인계](../../docs/handoffs/v5_d_workplan.md)를 확인합니다.
+
 ## 재현 가능한 테스트와 평가
 
 ```bash
@@ -133,7 +149,19 @@ uv run --package originproof-analyzer python -m originproof_analyzer.evaluation 
 평가는 합성 Text 8건과 메모리 이미지 replay 2건이다. 예상 후보는 별도 Fixture 값과 비교하며,
 기존 두 Golden JSON은 변경하지 않는다. null 포함 전체 필드 비교와 실제 값이 있는 필드 비교의
 분모를 별도로 기록한다. `live_model_evaluated=false`, `confidence_is_calibrated=false`다.
+평가에는 `candidate_outputs_are_unconfirmed=true`, `artifact_comparison_performed=false`도
+기록합니다. 합성 오추출 6개는 provider에 주입하는 회귀이며 실제 오추출률이 아닙니다.
 
 SDK 테스트는 실제 OpenAI 클라이언트와 `httpx.MockTransport`를 사용한다.
 Analyzer 테스트에서는 socket 연결을 차단하여 외부 네트워크/개인 API Key에 의존하지 않는다.
-`make mvp-test`에는 다른 역할의 Foundry 테스트가 포함되므로 Foundry 설치도 필요하다.
+`make mvp-test`의 Contract 검사는 Docker Compose의 고정 Foundry 컨테이너를 사용합니다. 호스트 Foundry 설치는 필수가 아니며 Docker 실행 환경이 필요합니다.
+
+## 5.0 분석 콜백·평가 준비
+
+`originproof_analyzer.phishing.PhishingAnalyzer`는 C의 async `analysis_processor(text)`에
+주입할 공통 `AnalysisReport`를 반환합니다. 규칙·LLM 근거는 원문과 대조하고 발행 판정은
+생성하지 않습니다. 기본 mock은 LLM 분석 미실행을 표시하며 규칙 없는 경우 판단 보류합니다.
+새 사용자 입력 경로나 HTTP endpoint는 활성화하지 않았습니다.
+
+입력/모델은 아직 미정이며 60개 원본·24/36 분할은 리뷰 전 초안입니다.
+[분석기·평가 인계](../../docs/handoffs/v5_d_analysis.md)의 실행법·실측값·한계를 확인합니다.

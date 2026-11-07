@@ -1,0 +1,45 @@
+{
+  "source": "synthetic",
+  "fixture_version": "1.0.0",
+  "base_fixture": "analyzer_cases.json#normal",
+  "scope": "Injected schema-valid extraction errors. Mock replay, not measured model accuracy.",
+  "cases": [
+    {
+      "id": "invented_proof_id",
+      "source": "synthetic",
+      "candidate_changes": {"proof_id": "prf_plausible_invented_001"},
+      "legacy_comparison_reason": "FIELD_MISMATCH"
+    },
+    {
+      "id": "invented_transaction_id",
+      "source": "synthetic",
+      "candidate_changes": {"transaction_id": "txn_plausible_invented_001"},
+      "legacy_comparison_reason": "FIELD_MISMATCH"
+    },
+    {
+      "id": "incorrect_amount",
+      "source": "synthetic",
+      "candidate_changes": {"amount_minor": 1540000},
+      "legacy_comparison_reason": "AMOUNT_MISMATCH"
+    },
+    {
+      "id": "wrong_currency",
+      "source": "synthetic",
+      "candidate_changes": {"currency": "USD"},
+      "legacy_comparison_reason": "FIELD_MISMATCH"
+    },
+    {
+      "id": "ambiguous_date_interpretation",
+      "source": "synthetic",
+      "text_replacements": [["2026-09-03 12:14 KST", "03/09/2026 12:14"]],
+      "candidate_changes": {"approved_at": "2026-03-09T03:14:00Z"},
+      "legacy_comparison_reason": "FIELD_MISMATCH"
+    },
+    {
+      "id": "high_confidence_wrong_merchant",
+      "source": "synthetic",
+      "candidate_changes": {"merchant": "ORIGIN MARKET"},
+      "legacy_comparison_reason": "FIELD_MISMATCH"
+    }
+  ]
+}

@@ -1,0 +1,448 @@
+{
+  "report_version": "v5-d-live-holdout-0.1",
+  "date_kst": "2026-10-27",
+  "authorization": {
+    "source": "Direct user reply in this chat",
+    "statement": "최종 36회 실행 승인",
+    "approved_calls": 36,
+    "prior_development_calls": 48,
+    "total_text_calls": 84
+  },
+  "source_revision": "72dad7e2d9a5af1cd27379e6985dc9c4ee96e281",
+  "phase_basis": "e29fa8ef6fbbe502cf248499167dbf74d75f8efc",
+  "frozen_candidate_reference": "docs/qa/v5-d-holdout-candidate-20261025.json",
+  "frozen_source_and_runtime_match": true,
+  "source_and_runtime_identity": {
+    "policy_sha256": "c402803f0a3059dd4ed4c3678938ace6e7bb6af00ed9f39bd9b70216f948156a",
+    "source_sha256": {
+      "live_evaluation.py": "45e03ec1d1cb4b24d8b5b79526aac5b07acc548670e8e31c8bfe997196ec25c4",
+      "phishing_evaluation.py": "fed9e3af38a5850e4403610ce7081ec172407233a1fd9c0d34d8f9c94a19aba1",
+      "providers.py": "812976a421ad59571b11070c335eb538622efa405d01f8bd4b89a7e97c61a38c",
+      "phishing.py": "52f9e1103799310e03216894bad12f558432975dbcb1cab6d5d9f2db8844580f",
+      "evidence_evaluation.py": "a1750c4e2d6eab976f56e5288f3f9ae648f1d99dd228d1abdfd911f909738eac",
+      "settings.py": "2bc5c4b6362e38873e5eaa2885f40f59e7f7402b02c5bd8958702223e681649b",
+      "errors.py": "a07e6acdbc4bd3eaee309c5836c66d6f2711d12c2cf53b13a099c4dec489a4bd",
+      "inputs.py": "8d93c17f4987c9c412ed3c83f39e60d66b2307a979b08fc7207d8f3872a78ae2",
+      "wallet_contract.py": "0c7b93a781e6e8a645f2f4d6f59f6f0d55aea72bbd8af18d7f9692488b5c9613",
+      "models.py": "f85b6c766b562470855a13b8d6903a7a6fe57cc09b03ba43fc89801034dbe284",
+      "phishing_analysis_v2.md": "73af1364a3476dfaeb1e6c1968268e9ae6520dfac1d4e2aaefb7d308e4e3aa43"
+    },
+    "transport_scope": "OPENAI_HTTPS",
+    "output_cap": 1024,
+    "analysis_prompt_version": "phishing_analysis_v2",
+    "provider_offset_mode": "QUOTE_ONLY_DETERMINISTIC_UNIQUE_MATCH",
+    "dependencies": {
+      "openai": "2.54.0",
+      "httpx": "0.28.1",
+      "pydantic": "2.13.5",
+      "pydantic-settings": "2.15.0"
+    },
+    "python": "3.13.7"
+  },
+  "actual_execution_policy": {
+    "schema_version": "v5-d-live-policy-0.1",
+    "approved_for_paid_calls": true,
+    "corpus_sha256": "3c3b0c66fd3c4f851dce01255855f6a5db5f28397f9ade20469ec27918522199",
+    "model": "gpt-6-luna",
+    "split": "holdout",
+    "review_reference": "https://github.com/OriginProof-3web/OriginProof/issues/92#issuecomment-6336600505",
+    "budget_reference": "https://github.com/OriginProof-3web/OriginProof/issues/92",
+    "input_selection": "TEXT",
+    "max_calls": 36,
+    "max_output_tokens": 1024,
+    "output_token_budget": 36864,
+    "max_input_characters": 200
+  },
+  "operational_policy_after_execution_approved": false,
+  "execution": {
+    "status": "COMPLETE",
+    "evaluation_version": "v5-d-live-evaluation-0.2",
+    "scope": "OPENAI_HTTPS",
+    "live_model_evaluated": true,
+    "requested_cases": 36,
+    "processed_cases": 36,
+    "prompt_version": "phishing_analysis_v2",
+    "provider_offset_mode": "QUOTE_ONLY_DETERMINISTIC_UNIQUE_MATCH",
+    "candidate_location_note": "RAW_OFFSETS_NOT_REQUESTED; use separately validated LLM locations",
+    "validated_llm_locations": {
+      "scope": "POST_VALIDATION_LLM_ONLY; NOT_RAW_MODEL_OFFSETS_OR_RULE_FALLBACK",
+      "quote_count": 18,
+      "covered_expected_spans": 13,
+      "exact_expected_spans": 0,
+      "expected_span_count": 18
+    },
+    "unknown_outcomes": 0,
+    "http_attempts": 36,
+    "reserved_calls": 36,
+    "reserved_output_tokens": 36864,
+    "known_usage_only": {
+      "input_tokens": 32980,
+      "output_tokens": 5673,
+      "total_tokens": 38653
+    },
+    "usage_missing_cases": 0,
+    "output_cap_violation": false,
+    "combined_pipeline_classification": {
+      "confusion_matrix": {
+        "HIGH": {
+          "HIGH": 9,
+          "CAUTION": 0,
+          "NO_CLEAR_INDICATORS": 0,
+          "UNDETERMINED": 0,
+          "ERROR": 0
+        },
+        "CAUTION": {
+          "HIGH": 1,
+          "CAUTION": 6,
+          "NO_CLEAR_INDICATORS": 2,
+          "UNDETERMINED": 0,
+          "ERROR": 0
+        },
+        "NO_CLEAR_INDICATORS": {
+          "HIGH": 0,
+          "CAUTION": 0,
+          "NO_CLEAR_INDICATORS": 9,
+          "UNDETERMINED": 0,
+          "ERROR": 0
+        },
+        "UNDETERMINED": {
+          "HIGH": 0,
+          "CAUTION": 0,
+          "NO_CLEAR_INDICATORS": 0,
+          "UNDETERMINED": 9,
+          "ERROR": 0
+        }
+      },
+      "per_class": {
+        "HIGH": {
+          "support": 9,
+          "precision": 0.9,
+          "recall": 1.0,
+          "f1": 0.9473684210526315
+        },
+        "CAUTION": {
+          "support": 9,
+          "precision": 1.0,
+          "recall": 0.6666666666666666,
+          "f1": 0.8
+        },
+        "NO_CLEAR_INDICATORS": {
+          "support": 9,
+          "precision": 0.8181818181818182,
+          "recall": 1.0,
+          "f1": 0.9
+        },
+        "UNDETERMINED": {
+          "support": 9,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0
+        }
+      },
+      "macro_f1": 0.9118421052631579,
+      "high_recall": 1.0
+    },
+    "model_unavailable_or_rejected": 0,
+    "candidate_grounding": {
+      "status": "COMPLETE",
+      "scope": "PRE_GROUNDING_PROVIDER_EVIDENCE_NOT_RAW_WIRE_OR_MODEL_ACCURACY",
+      "candidate_quote_count": 18,
+      "matched_candidate_quote_count": 18,
+      "located_candidate_count": 0,
+      "invalid_candidate_count": 0,
+      "duplicate_candidate_count": 0,
+      "covered_span_count": 0,
+      "exact_span_match_count": 0,
+      "observed_cases": 36,
+      "unreadable_reports": 0,
+      "total_cases": 36,
+      "grounding_ratio": 1.0,
+      "location_accuracy": 0.0,
+      "expected_span_count": 18,
+      "missing_span_count": 18,
+      "missing_rate": 1.0,
+      "annotation_location_recall": 0.0
+    },
+    "pipeline_latency_seconds_completed_only": {
+      "timed_cases": 36,
+      "p50": 2.8187086664838716,
+      "p95": 6.550955666927621
+    },
+    "acceptance_status": "REQUIRES_HUMAN_REVIEW_NOT_INPUT_OR_MODEL_ACCEPTANCE",
+    "paid_cost": null
+  },
+  "correct": 33,
+  "total": 36,
+  "cases": [
+    {
+      "id": "DP-H07",
+      "expected": "HIGH",
+      "predicted": "HIGH",
+      "error_code": null
+    },
+    {
+      "id": "DP-H08",
+      "expected": "HIGH",
+      "predicted": "HIGH",
+      "error_code": null
+    },
+    {
+      "id": "DP-H09",
+      "expected": "HIGH",
+      "predicted": "HIGH",
+      "error_code": null
+    },
+    {
+      "id": "DP-H10",
+      "expected": "HIGH",
+      "predicted": "HIGH",
+      "error_code": null
+    },
+    {
+      "id": "DP-H11",
+      "expected": "HIGH",
+      "predicted": "HIGH",
+      "error_code": null
+    },
+    {
+      "id": "DP-H12",
+      "expected": "HIGH",
+      "predicted": "HIGH",
+      "error_code": null
+    },
+    {
+      "id": "DP-H13",
+      "expected": "HIGH",
+      "predicted": "HIGH",
+      "error_code": null
+    },
+    {
+      "id": "DP-H14",
+      "expected": "HIGH",
+      "predicted": "HIGH",
+      "error_code": null
+    },
+    {
+      "id": "DP-H15",
+      "expected": "HIGH",
+      "predicted": "HIGH",
+      "error_code": null
+    },
+    {
+      "id": "DP-C07",
+      "expected": "CAUTION",
+      "predicted": "CAUTION",
+      "error_code": null
+    },
+    {
+      "id": "DP-C08",
+      "expected": "CAUTION",
+      "predicted": "CAUTION",
+      "error_code": null
+    },
+    {
+      "id": "DP-C09",
+      "expected": "CAUTION",
+      "predicted": "CAUTION",
+      "error_code": null
+    },
+    {
+      "id": "DP-C10",
+      "expected": "CAUTION",
+      "predicted": "CAUTION",
+      "error_code": null
+    },
+    {
+      "id": "DP-C11",
+      "expected": "CAUTION",
+      "predicted": "NO_CLEAR_INDICATORS",
+      "error_code": null
+    },
+    {
+      "id": "DP-C12",
+      "expected": "CAUTION",
+      "predicted": "HIGH",
+      "error_code": null
+    },
+    {
+      "id": "DP-C13",
+      "expected": "CAUTION",
+      "predicted": "CAUTION",
+      "error_code": null
+    },
+    {
+      "id": "DP-C14",
+      "expected": "CAUTION",
+      "predicted": "NO_CLEAR_INDICATORS",
+      "error_code": null
+    },
+    {
+      "id": "DP-C15",
+      "expected": "CAUTION",
+      "predicted": "CAUTION",
+      "error_code": null
+    },
+    {
+      "id": "DP-N07",
+      "expected": "NO_CLEAR_INDICATORS",
+      "predicted": "NO_CLEAR_INDICATORS",
+      "error_code": null
+    },
+    {
+      "id": "DP-N08",
+      "expected": "NO_CLEAR_INDICATORS",
+      "predicted": "NO_CLEAR_INDICATORS",
+      "error_code": null
+    },
+    {
+      "id": "DP-N09",
+      "expected": "NO_CLEAR_INDICATORS",
+      "predicted": "NO_CLEAR_INDICATORS",
+      "error_code": null
+    },
+    {
+      "id": "DP-N10",
+      "expected": "NO_CLEAR_INDICATORS",
+      "predicted": "NO_CLEAR_INDICATORS",
+      "error_code": null
+    },
+    {
+      "id": "DP-N11",
+      "expected": "NO_CLEAR_INDICATORS",
+      "predicted": "NO_CLEAR_INDICATORS",
+      "error_code": null
+    },
+    {
+      "id": "DP-N12",
+      "expected": "NO_CLEAR_INDICATORS",
+      "predicted": "NO_CLEAR_INDICATORS",
+      "error_code": null
+    },
+    {
+      "id": "DP-N13",
+      "expected": "NO_CLEAR_INDICATORS",
+      "predicted": "NO_CLEAR_INDICATORS",
+      "error_code": null
+    },
+    {
+      "id": "DP-N14",
+      "expected": "NO_CLEAR_INDICATORS",
+      "predicted": "NO_CLEAR_INDICATORS",
+      "error_code": null
+    },
+    {
+      "id": "DP-N15",
+      "expected": "NO_CLEAR_INDICATORS",
+      "predicted": "NO_CLEAR_INDICATORS",
+      "error_code": null
+    },
+    {
+      "id": "DP-U07",
+      "expected": "UNDETERMINED",
+      "predicted": "UNDETERMINED",
+      "error_code": null
+    },
+    {
+      "id": "DP-U08",
+      "expected": "UNDETERMINED",
+      "predicted": "UNDETERMINED",
+      "error_code": null
+    },
+    {
+      "id": "DP-U09",
+      "expected": "UNDETERMINED",
+      "predicted": "UNDETERMINED",
+      "error_code": null
+    },
+    {
+      "id": "DP-U10",
+      "expected": "UNDETERMINED",
+      "predicted": "UNDETERMINED",
+      "error_code": null
+    },
+    {
+      "id": "DP-U11",
+      "expected": "UNDETERMINED",
+      "predicted": "UNDETERMINED",
+      "error_code": null
+    },
+    {
+      "id": "DP-U12",
+      "expected": "UNDETERMINED",
+      "predicted": "UNDETERMINED",
+      "error_code": null
+    },
+    {
+      "id": "DP-U13",
+      "expected": "UNDETERMINED",
+      "predicted": "UNDETERMINED",
+      "error_code": null
+    },
+    {
+      "id": "DP-U14",
+      "expected": "UNDETERMINED",
+      "predicted": "UNDETERMINED",
+      "error_code": null
+    },
+    {
+      "id": "DP-U15",
+      "expected": "UNDETERMINED",
+      "predicted": "UNDETERMINED",
+      "error_code": null
+    }
+  ],
+  "wrong_cases": [
+    {
+      "id": "DP-C11",
+      "expected": "CAUTION",
+      "predicted": "NO_CLEAR_INDICATORS",
+      "error_code": null
+    },
+    {
+      "id": "DP-C12",
+      "expected": "CAUTION",
+      "predicted": "HIGH",
+      "error_code": null
+    },
+    {
+      "id": "DP-C14",
+      "expected": "CAUTION",
+      "predicted": "NO_CLEAR_INDICATORS",
+      "error_code": null
+    }
+  ],
+  "similarity_caveat": {
+    "related_ids": [
+      "DP-H01",
+      "DP-H11"
+    ],
+    "basis": "A/C keep split and report H11 separately; shared request phrase; corpus public synthetic, not unseen domain data",
+    "h11_result": {
+      "id": "DP-H11",
+      "expected": "HIGH",
+      "predicted": "HIGH",
+      "error_code": null
+    }
+  },
+  "evidence_limits": {
+    "validated_llm_quoted_spans": "Offsets computed after exact unique-quote validation; not model-supplied positions",
+    "original_expected_spans_covered": 13,
+    "original_expected_spans_total": 18,
+    "exact_annotation_boundaries_matched": 0,
+    "raw_offset_metrics": "NOT_APPLICABLE_QUOTE_ONLY_MODE",
+    "model_only_classification": "NOT_RETAINED; combined pipeline score only"
+  },
+  "journal_sha256": "7c326f6f08b5293a61e19be507346ec04781e8195a3b6bd0bfdc8bd7a5271fcc",
+  "journal_mode": "0o600",
+  "prior_journals_unchanged": true,
+  "prior_journal_sha256": {
+    "v5-d-development-20261025.json": "587d04e1e4dde8c7f18fcff527da3df381fdc272ac2e599950502a8d34d59d03",
+    "v5-d-development-v2-20261025.json": "c32e04fa69ca3123bcd74aaa706ca96f44bfd82ed622b83f78ea1dd1af352214"
+  },
+  "raw_provider_response_or_input_in_report": false,
+  "image_model_calls": 0,
+  "audio_model_calls": 0,
+  "retries": 0,
+  "rerun_or_retune_after_holdout": false,
+  "acceptance_status": "REQUIRES_HUMAN_REVIEW; NOT_PRODUCT_OR_W6_ACCEPTANCE"
+}

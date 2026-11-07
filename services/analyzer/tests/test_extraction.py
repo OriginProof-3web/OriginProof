@@ -213,7 +213,7 @@ def test_metadata_does_not_record_input_or_candidate(caplog, normal_case):
     )
     metadata = next(record.analyzer for record in caplog.records if hasattr(record, "analyzer"))
     assert metadata["model"] == "deterministic-template-v3"
-    assert metadata["prompt_version"] == "card_payment_notice_v3"
+    assert metadata["prompt_version"] == "card_payment_notice_v4"
     assert metadata["input_kind"] == "text"
     assert metadata["duration_ms"] >= 0
     assert all(
@@ -259,3 +259,33 @@ def test_openai_without_key_keeps_health_but_does_not_fallback(normal_case):
         )
     assert response.status_code == 503
     assert response.json()["error"]["code"] == "PROVIDER_UNAVAILABLE"
+
+
+def test_exact_image_pixel_limit_and_byte_limit_are_accepted_without_loosening_limits():
+    import struct
+    import zlib
+
+    exact_pixels = image_bytes(size=(4000, 3000))
+    assert (
+        SemanticInput(
+            image_base64=base64.b64encode(exact_pixels).decode(), image_media_type="image/png"
+        ).kind
+        == "image"
+    )
+    data = image_bytes(size=(16, 16))
+    # Valid private ancillary PNG chunk before IEND; no compressed text or source data.
+    size = MAX_IMAGE_BYTES - len(data) - 12
+    kind, payload = b"npAD", b"x" * size
+    chunk = struct.pack(">I", size) + kind + payload + struct.pack(">I", zlib.crc32(kind + payload))
+    exact_bytes = data[:-12] + chunk + data[-12:]
+    assert len(exact_bytes) == MAX_IMAGE_BYTES
+    assert (
+        SemanticInput(
+            image_base64=base64.b64encode(exact_bytes).decode(), image_media_type="image/png"
+        ).kind
+        == "image"
+    )
+    with pytest.raises(ValidationError):
+        SemanticInput(
+            image_base64=base64.b64encode(exact_bytes + b"x").decode(), image_media_type="image/png"
+        )

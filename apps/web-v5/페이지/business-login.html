@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OriginProof — Business Sign In</title>
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg"><link rel="stylesheet" href="auth.css">
+</head>
+<body>
+<div class="auth-bg" aria-hidden="true"><canvas id="beyond-horizon-canvas"></canvas></div>
+<header class="auth-top"><a class="brand" href="index.html">OriginProof</a><a class="back-link" href="index.html">← 메인으로</a></header>
+<main class="auth-page"><section class="auth-card business-signin-card" aria-labelledby="page-title">
+  <p class="eyebrow">BUSINESS · ISSUER ACCOUNT</p><div class="signin-heading"><h1 id="page-title">Business Sign In</h1><a class="slide-fill-button status-link" href="application-status-login.html" aria-label="신청현황 로그인으로 이동"><span class="slide-fill-water" aria-hidden="true"><svg class="slide-wave slide-wave-back" viewBox="0 0 400 30" preserveAspectRatio="none"><path d="M 0 15 C 50 24, 150 6, 200 15 C 250 24, 350 6, 400 15 V 40 H 0 Z"/></svg><svg class="slide-wave slide-wave-front" viewBox="0 0 400 30" preserveAspectRatio="none"><path d="M 0 15 C 25 5, 75 25, 100 15 C 125 5, 175 25, 200 15 C 225 5, 275 25, 300 15 C 325 5, 375 25, 400 15 V 40 H 0 Z"/></svg></span><span class="slide-fill-label">신청현황</span></a></div><p class="intro">준비된 발행기관 테스트 계정으로 로그인하세요.</p>
+  <form data-auth-form data-preview-next="business.html" novalidate>
+    <div class="field"><label for="username">계정 이름</label><input id="username" name="username" autocomplete="username" placeholder="준비된 테스트 계정 이름" required></div>
+    <div class="field"><label for="password">비밀번호</label><input id="password" name="password" type="password" autocomplete="current-password" placeholder="비밀번호를 입력하세요" required></div>
+    <button class="primary-button" type="submit">Sign In</button>
+  </form>
+  <nav class="auth-options" aria-label="로그인 및 가입"><a href="user-login.html">Individual Sign In</a><a href="signup.html">Business Sign Up</a></nav>
+</section></main>
+<script src="beyond-horizon.js"></script><script type="module" src="auth.js"></script>
+</body></html>

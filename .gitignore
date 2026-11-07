@@ -1,4 +1,6 @@
 .env
+.env.*
+!.env.example
 .venv/
 __pycache__/
 *.egg-info/
@@ -23,3 +25,11 @@ packages/contracts/out/
 packages/contracts/cache/
 packages/contracts/broadcast/
 packages/contracts/deployments/*.local.json
+apps/web-v5/페이지/data/rc_presets.json
+
+# Local Graphify extraction/cache state (published graph remains tracked)
+graphify-out/cache/
+graphify-out/.graphify_*
+!graphify-out/.graphify_labels.json
+graphify-out/manifest.json
+graphify-out/cost.json

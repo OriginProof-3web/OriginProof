@@ -20,6 +20,7 @@ class SemanticInterface:
         self.minimum_confidence = minimum_confidence
 
     def analyze_card_payment_notice(self, artifact: SemanticInput) -> CardPaymentNoticeCandidate:
+        """Return unconfirmed fields; validation/confidence do not establish source grounding."""
         started = perf_counter()
         error_code = None
         try:

@@ -1,0 +1,318 @@
+{
+  "report_version": "v5-d-readiness-0.1",
+  "date_kst": "2026-10-16",
+  "plan_version": "5.1",
+  "merged_shared_contract": "v5-shared-0.1",
+  "branch": "codex/v5-d-independent-qa",
+  "source_sha": "40ab4da11c71d75d26b6b94145e53ee03e3d54a6",
+  "remote_baseline_sha": "33bc4f4e7456c5ef7c2df8c8bf09f8014e0169f8",
+  "c_candidate_sha": "eaa0d166269833cf7ee49675cfa777b0208c3725",
+  "c_candidate_state": "OPEN_DRAFT",
+  "c_shared_contract": "v5-shared-0.2 (unmerged)",
+  "corpus": {
+    "review_file": "fixtures/synthetic/phishing_sources_v1_review.json",
+    "source_sha256": "944e6e1ec87b24510c6d1cad2e1a6aac4f51e373230bc387e66f542b265595e9",
+    "cases_checked": 60,
+    "label_boundary_ids": [
+      "DP-H05",
+      "DP-H07",
+      "DP-H08",
+      "DP-C11",
+      "DP-C14"
+    ],
+    "placeholder_only_ids": [
+      "DP-U05",
+      "DP-U13",
+      "DP-U15"
+    ],
+    "split_groups_for_review": 3,
+    "original_changed": false,
+    "human_review": "PENDING",
+    "freeze": "NOT_DONE",
+    "holdout_predictions": "NOT_RUN"
+  },
+  "clean_reproduction": {
+    "source_sha": "40ab4da11c71d75d26b6b94145e53ee03e3d54a6",
+    "git_dirty_before": false,
+    "git_dirty_after": false,
+    "clone_mode": "git clone --no-hardlinks, no alternates",
+    "same_host": true,
+    "different_device": false,
+    "venv_reused": false,
+    "personal_env_copied": false,
+    "settings_source": ".env.example in clone",
+    "locked_packages_installed": 51,
+    "dependency_install": "uv sync --frozen, UV_LINK_MODE=copy; missing locked artifacts downloaded from original package servers",
+    "pytest": {
+      "passed": 292,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "warning": "existing anyio BlockingPortal deprecation"
+    },
+    "runtime_network": "socket.connect/connect_ex blocked; attempted calls fail teardown",
+    "development_evaluation": {
+      "total": 24,
+      "macro_f1": 0.4518633540372671,
+      "abstentions": 17,
+      "failures": 0,
+      "live_model_evaluated": false,
+      "matches_previous_case_predictions_and_metrics": true
+    },
+    "generate": "PASS_NO_DIFF",
+    "bootstrap_check": "PASS_AFTER_ENV_EXAMPLE_SETUP",
+    "fingerprint": {
+      "comparable": {
+        "git_sha": "40ab4da11c71d75d26b6b94145e53ee03e3d54a6",
+        "docker": "Docker version 29.7.2, build a7dcaa6",
+        "compose": "Docker Compose version v5.5.1",
+        "python": "Python 3.13.7",
+        "uv": "uv 0.8.17 (10960bc13 2025-09-10)",
+        "node": "v24.8.0",
+        "pnpm": "11.19.0",
+        "container_config": {
+          ".tool-versions": "9e238d2a904c0fe8d489505fbe1e6a51185ba327ada08d34db8cf8d7bd9f94e2",
+          "docker-compose.yml": "ac73f432998f87a7bf3d0dfd49dff743c31c7fa2627a082a76cccca183f9cb1a",
+          "infra/docker/deployer.Dockerfile": "b34edd32f46ea1cb2f05dc0fcbe42d3c7202a2f8c8c71b2f2e5867be53d5e5c7",
+          "packages/contracts/foundry.toml": "296fc0438fa08cf77a324b12b64850d5b12a1edd88d81cbb4ee7c82477b57d89"
+        },
+        "lockfiles": {
+          "uv.lock": "10ad0e9c32643eaba3405234ccf7fead6ef120f7f7626e3b69b1b2589760fa75",
+          "pnpm-lock.yaml": "25a2e4a6ddb95d4a22bee0c1d530aeb8efb0f1fce26856926c35477fa6af8110",
+          "contract_dependencies": "d602f87fe5dbb7bc482a851adf729d02249bc2774bd58cbe613c0a61d7d4d154"
+        },
+        "schema_tree": "825c23e2024de6b4761a940723ad8427d9ff4c581414a1f156f5f0fd7ff6d87e",
+        "abi_tree": "a4b2d8724768b936ea6fa3aafcf566b3e41acef46b51bbf581a2ade4065e3b54"
+      },
+      "informational": {
+        "host_platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+        "host_forge": "NOT_INSTALLED"
+      }
+    },
+    "ruff": "PASS",
+    "compileall": "PASS_NOT_STATIC_TYPING",
+    "tracked_diff_after": "NONE",
+    "setup_observations": [
+      "uv macOS sandbox system-configuration panic; same command retried in allowed execution context",
+      "offline wheel cache incomplete; frozen dependency download required",
+      "bootstrap initially missing .env; clone template setup required"
+    ]
+  },
+  "w2_w4": {
+    "passed": 30,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0,
+    "phase_counts": {
+      "W2": 12,
+      "W3": 13,
+      "W4": 5
+    },
+    "initial_run": {
+      "passed": 26,
+      "failed": 4,
+      "cause": "D test setup: duplicate approvals rejected during construction, official institution code mismatch twice, registered block after observed block"
+    },
+    "scope": "ASGI + in-memory SQLite + synthetic Registry snapshots; real ECDSA hash/signature calculations, no EVM/browser/atomicity claim",
+    "reused_helper_source": "eaa0d166269833cf7ee49675cfa777b0208c3725:apps/api/tests/test_wallet_runtime.py",
+    "cases": [
+      {
+        "phase": "W2",
+        "node": "fixtures.finals.v5_d_w2_governance_qa::test_internal_approval_rejects_ineligible_actor[W2-SELF-APPROVAL]",
+        "status": "PASS"
+      },
+      {
+        "phase": "W2",
+        "node": "fixtures.finals.v5_d_w2_governance_qa::test_internal_approval_rejects_ineligible_actor[W2-OTHER-INSTITUTION]",
+        "status": "PASS"
+      },
+      {
+        "phase": "W2",
+        "node": "fixtures.finals.v5_d_w2_governance_qa::test_email_failures_do_not_create_chain_authority[W2-EMAIL-DOMAIN]",
+        "status": "PASS"
+      },
+      {
+        "phase": "W2",
+        "node": "fixtures.finals.v5_d_w2_governance_qa::test_email_failures_do_not_create_chain_authority[W2-EMAIL-CODE]",
+        "status": "PASS"
+      },
+      {
+        "phase": "W2",
+        "node": "fixtures.finals.v5_d_w2_governance_qa::test_changed_governance_intent_is_rejected[W2-EXPIRED]",
+        "status": "PASS"
+      },
+      {
+        "phase": "W2",
+        "node": "fixtures.finals.v5_d_w2_governance_qa::test_changed_governance_intent_is_rejected[W2-STALE-NONCE]",
+        "status": "PASS"
+      },
+      {
+        "phase": "W2",
+        "node": "fixtures.finals.v5_d_w2_governance_qa::test_changed_governance_intent_is_rejected[W2-ISSUER-REPLACED]",
+        "status": "PASS"
+      },
+      {
+        "phase": "W2",
+        "node": "fixtures.finals.v5_d_w2_governance_qa::test_changed_governance_intent_is_rejected[W2-METADATA-REPLACED]",
+        "status": "PASS"
+      },
+      {
+        "phase": "W2",
+        "node": "fixtures.finals.v5_d_w2_governance_qa::test_consumed_chain_approvals_are_distinct[W2-ONE-APPROVER]",
+        "status": "PASS"
+      },
+      {
+        "phase": "W2",
+        "node": "fixtures.finals.v5_d_w2_governance_qa::test_consumed_chain_approvals_are_distinct[W2-TWO-DISTINCT-CONTROL]",
+        "status": "PASS"
+      },
+      {
+        "phase": "W2",
+        "node": "fixtures.finals.v5_d_w2_governance_qa::test_consumed_chain_approvals_are_distinct[W2-DUPLICATE-APPROVER]",
+        "status": "PASS"
+      },
+      {
+        "phase": "W2",
+        "node": "fixtures.finals.v5_d_w2_governance_qa::test_confirmed_approval_receipt_without_effect_remains_unknown",
+        "status": "PASS"
+      },
+      {
+        "phase": "W3",
+        "node": "fixtures.finals.v5_d_w3_content_qa::test_single_field_tampering_preserves_original[W3-AMOUNT]",
+        "status": "PASS"
+      },
+      {
+        "phase": "W3",
+        "node": "fixtures.finals.v5_d_w3_content_qa::test_single_field_tampering_preserves_original[W3-ACCOUNT]",
+        "status": "PASS"
+      },
+      {
+        "phase": "W3",
+        "node": "fixtures.finals.v5_d_w3_content_qa::test_single_field_tampering_preserves_original[W3-PAYMENT-URL]",
+        "status": "PASS"
+      },
+      {
+        "phase": "W3",
+        "node": "fixtures.finals.v5_d_w3_content_qa::test_single_field_tampering_preserves_original[W3-TITLE]",
+        "status": "PASS"
+      },
+      {
+        "phase": "W3",
+        "node": "fixtures.finals.v5_d_w3_content_qa::test_single_field_tampering_preserves_original[W3-OFFICIAL-URL]",
+        "status": "PASS"
+      },
+      {
+        "phase": "W3",
+        "node": "fixtures.finals.v5_d_w3_content_qa::test_copied_id_or_partial_candidate_does_not_prove_complete_content[W3-ID-ONLY]",
+        "status": "PASS"
+      },
+      {
+        "phase": "W3",
+        "node": "fixtures.finals.v5_d_w3_content_qa::test_copied_id_or_partial_candidate_does_not_prove_complete_content[W3-PARTIAL]",
+        "status": "PASS"
+      },
+      {
+        "phase": "W3",
+        "node": "fixtures.finals.v5_d_w3_content_qa::test_database_tampering_is_not_treated_as_authority[W3-DB-BYTES]",
+        "status": "PASS"
+      },
+      {
+        "phase": "W3",
+        "node": "fixtures.finals.v5_d_w3_content_qa::test_database_tampering_is_not_treated_as_authority[W3-DB-CONTENT]",
+        "status": "PASS"
+      },
+      {
+        "phase": "W3",
+        "node": "fixtures.finals.v5_d_w3_content_qa::test_database_tampering_is_not_treated_as_authority[W3-DB-METADATA]",
+        "status": "PASS"
+      },
+      {
+        "phase": "W3",
+        "node": "fixtures.finals.v5_d_w3_content_qa::test_database_tampering_is_not_treated_as_authority[W3-DB-NAME]",
+        "status": "PASS"
+      },
+      {
+        "phase": "W3",
+        "node": "fixtures.finals.v5_d_w3_content_qa::test_database_tampering_is_not_treated_as_authority[W3-DB-VERSION]",
+        "status": "PASS"
+      },
+      {
+        "phase": "W3",
+        "node": "fixtures.finals.v5_d_w3_content_qa::test_missing_original_is_unavailable_rather_than_tampered",
+        "status": "PASS"
+      },
+      {
+        "phase": "W4",
+        "node": "fixtures.finals.v5_d_w4_lifecycle_qa::test_old_version_does_not_revive_after_latest_revocation",
+        "status": "PASS"
+      },
+      {
+        "phase": "W4",
+        "node": "fixtures.finals.v5_d_w4_lifecycle_qa::test_competing_draft_reservation_is_not_two_successful_publications",
+        "status": "PASS"
+      },
+      {
+        "phase": "W4",
+        "node": "fixtures.finals.v5_d_w4_lifecycle_qa::test_suspended_institution_can_revoke_but_cannot_publish",
+        "status": "PASS"
+      },
+      {
+        "phase": "W4",
+        "node": "fixtures.finals.v5_d_w4_lifecycle_qa::test_key_rotation_preserves_history_and_rejects_old_signer",
+        "status": "PASS"
+      },
+      {
+        "phase": "W4",
+        "node": "fixtures.finals.v5_d_w4_lifecycle_qa::test_expired_signature_is_rejected_without_sending",
+        "status": "PASS"
+      }
+    ],
+    "environment": {
+      "python": "3.13.7",
+      "packages": {
+        "pytest": "9.1.1",
+        "pytest-asyncio": "1.4.0",
+        "fastapi": "0.142.2",
+        "starlette": "1.7.0",
+        "openai": "2.54.0",
+        "pydantic": "2.13.5",
+        "sqlalchemy": "2.0.52"
+      },
+      "uv_lock_sha256": "e5122f523c7bc1e1bedf6795244cbdd2baaaeec9dc9c7f3fb088e2f064806dd6"
+    },
+    "verified_c_sources_sha256": {
+      "apps/api/tests/test_wallet_runtime.py": "fb1cc2ae02abd21d9788b2e2067858409381134794a29d3376664cbe5a03819f",
+      "apps/api/src/originproof_api/wallet_governance.py": "e1b2b6792a3c658ab1d75032b91f0cffe9abb67bac22ba23b0c63632cd007908",
+      "apps/api/src/originproof_api/wallet_documents.py": "de633c7a941fa3ff7828a134bf8ea0eb26f5a75bed8f59b0ed8cd701e34c838e",
+      "packages/python/originproof_core/wallet_contract.py": "0c7b93a781e6e8a645f2f4d6f59f6f0d55aea72bbd8af18d7f9692488b5c9613"
+    }
+  },
+  "source_sha256": {
+    "fixtures/synthetic/phishing_sources_v1.json": "944e6e1ec87b24510c6d1cad2e1a6aac4f51e373230bc387e66f542b265595e9",
+    "fixtures/synthetic/phishing_sources_v1_review.json": "932d3f850d8c782a833144809f4f92a8927c445fc35ab2f2b4be30135f36e8b7",
+    "fixtures/finals/v5_d_w2_governance_qa.py": "824b727ae041a08a4c5ff9422e817b4899a0d6c7896a76eeb4867932b165ecb4",
+    "fixtures/finals/v5_d_w3_content_qa.py": "715d23ffe7c332b97fa82fc881fe4df4b29dd867f29752c753ea57d3c0ff61e8",
+    "fixtures/finals/v5_d_w4_lifecycle_qa.py": "d3e3b340b50940469d328d9e32554335a8804c5be5e5758fadf0a12ba1aabc9a"
+  },
+  "open_findings": {
+    "DG12": "OPEN_C_FIX_REQUIRED_NOT_RERUN_THIS_STAGE",
+    "G07": "OPEN_B_C_DIAGNOSIS_REQUIRED_NOT_RERUN_THIS_STAGE"
+  },
+  "not_run": [
+    "live LLM",
+    "holdout36 model predictions",
+    "new actual PostgreSQL/Registry/browser wallet integration",
+    "concurrent chain version submission",
+    "different device",
+    "public network",
+    "human label/code review"
+  ],
+  "provider_direction": "OPENAI_ONLY",
+  "final_model": "UNDECIDED",
+  "input_selection": "UNDECIDED",
+  "paid_calls": 0,
+  "remote_push": false,
+  "pull_request_created": false,
+  "remote_merge": false,
+  "stage_complete": false
+}

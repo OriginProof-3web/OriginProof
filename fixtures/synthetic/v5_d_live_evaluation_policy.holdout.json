@@ -1,0 +1,14 @@
+{
+  "schema_version": "v5-d-live-policy-0.1",
+  "approved_for_paid_calls": false,
+  "corpus_sha256": "3c3b0c66fd3c4f851dce01255855f6a5db5f28397f9ade20469ec27918522199",
+  "model": "gpt-6-luna",
+  "split": "holdout",
+  "review_reference": "https://github.com/OriginProof-3web/OriginProof/issues/92#issuecomment-6336600505",
+  "budget_reference": "https://github.com/OriginProof-3web/OriginProof/issues/92",
+  "input_selection": "TEXT",
+  "max_calls": 36,
+  "max_output_tokens": 1024,
+  "output_token_budget": 36864,
+  "max_input_characters": 200
+}

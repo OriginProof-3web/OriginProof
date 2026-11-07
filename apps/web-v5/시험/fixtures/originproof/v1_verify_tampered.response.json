@@ -1,0 +1,15 @@
+{
+  "_source": "OriginProof-감사 origin/integration(1d9b349) apps/web/e2e/demo.spec.ts 10~23줄 route.fulfill 본문 (e2e 모의 응답, 실서버 응답 아님)",
+  "session_id": "vsn_demo_e2e",
+  "verification_status": "TAMPERED",
+  "lifecycle_status": "ACTIVE",
+  "reason_codes": ["AMOUNT_MISMATCH"],
+  "checks": {
+    "proof_repository": "FOUND",
+    "payload_hash": "PASS",
+    "expiry": "PASS",
+    "candidate_match": "FAIL"
+  },
+  "verified_at": "2026-09-03T03:14:00Z",
+  "request_id": "req_demo_amount_tampered"
+}

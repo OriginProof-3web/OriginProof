@@ -1,5 +1,7 @@
 # M2 실행 문서 카드 알림 후보 추출
 
+> **MVP 과거 기록 — 현재 작업 지시로 사용하지 마세요.** 당시 역할·브랜치·미완료 상태·설정값을 보존한 문서입니다. 현재 개발은 [시작 안내](../../START_HERE.md)와 [개발 계획서](../development_plan.md)를 따르며, 아래의 실행/병합 지시는 자동으로 적용하지 않습니다.
+
 ## 시작 기준
 
 이 작업은 최신 `origin/mvp/integration`에서 시작합니다. M1 Backend PR은
@@ -52,7 +54,7 @@ M2의 소유 경로는 `services/analyzer`와 `fixtures/mvp`입니다. 공통 Py
 
 1. `LLMProvider` 추상화와 `MockLLMProvider`를 구현합니다. 기본 테스트는 Mock만 사용해야 합니다.
 2. `OpenAILLMProvider`는 설정값을 통해 OpenAI Responses API와 Pydantic Structured Outputs를
-   사용합니다. 모델 기본값은 `OPENAI_MODEL` 또는 `gpt-5.6-luna`입니다.
+   사용합니다. 모델 기본값은 `OPENAI_MODEL` 또는 `gpt-6-luna`입니다.
 3. provider, model, reasoning effort, timeout, retry는 설정에서 읽습니다. API key, 원문 이미지,
    원문 메시지, 제한 없는 provider 응답을 로그에 남기지 않습니다.
 4. text와 image 입력에서 같은 정보가 주어지면 같은 정규화 후보를 반환하도록 구현합니다.

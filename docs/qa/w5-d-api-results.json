@@ -1,0 +1,804 @@
+{
+  "schema_version": 1,
+  "as_of": "2026-10-04",
+  "owner": {
+    "role": "D",
+    "github": "yijun0330"
+  },
+  "fresh_clean_clone": {
+    "product_sha": "9651062c9f36e124b76796278c996764678e1c77",
+    "qa_git_head": "a3f55c6991061ac445d2223f19ff1b2a48acab0e",
+    "qa_source_sha256": "0682523df99e308dd57f6ed267c55d76ced6c08865406d20c71708cc3906c602",
+    "projection_source_sha256": "223e77b6f71fc95b71009a6cbf03395d7052c40a5506084d82331dab057e3dc0",
+    "qa_git_dirty": false,
+    "browser_e2e": "NOT_RUN",
+    "lifecycle_fixture_mode": "FRESH",
+    "results": [
+      {
+        "id": "two_types_comparison",
+        "f_ids": [
+          "F01",
+          "F02"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "states": [
+            {
+              "type": "bank",
+              "scope": "FULL_COMPARISON",
+              "normal": "VERIFIED/ACTIVE",
+              "changed": "TAMPERED"
+            },
+            {
+              "type": "office",
+              "scope": "FULL_COMPARISON",
+              "normal": "VERIFIED/ACTIVE",
+              "changed": "TAMPERED"
+            }
+          ],
+          "reads_unchanged": true,
+          "issuance_layer": "API seed, not browser"
+        }
+      },
+      {
+        "id": "mutation_permission_matrix",
+        "f_ids": [
+          "F05",
+          "F10",
+          "F12",
+          "F15"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "mutation_paths": 10,
+          "anonymous": 401,
+          "management_wrong_role": 403,
+          "consume_nonowner": 404,
+          "missing_csrf": 403,
+          "actor_injection": 422,
+          "operation_recovery_nonowner": 404,
+          "changed_same_request": 409,
+          "db_and_chain_unchanged": true
+        }
+      },
+      {
+        "id": "unregistered",
+        "f_ids": [
+          "F06"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "get": 404,
+          "verify": "NOT_REGISTERED/null",
+          "issuer_reader": null,
+          "counts_unchanged": true
+        }
+      },
+      {
+        "id": "ownership",
+        "f_ids": [
+          "F05",
+          "F10",
+          "F14",
+          "F15"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "anonymous": 401,
+          "nonowners": 404,
+          "denied_mutation_unchanged": true
+        }
+      },
+      {
+        "id": "operation_audit_reconciliation",
+        "f_ids": [
+          "F05",
+          "F13",
+          "F15"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "confirmed_guidance": "NONE",
+          "institution_isolated": true,
+          "reconciliation": true,
+          "projection_authority": "HISTORICAL_EVENTS_ONLY",
+          "reads_unchanged": true
+        }
+      },
+      {
+        "id": "suspended_new_issuance",
+        "f_ids": [
+          "F11"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "institutions": [
+            {
+              "type": "bank",
+              "new_issue": "409 ISSUER_NOT_ACTIVE",
+              "existing": "VERIFIED/ISSUER_SUSPENDED",
+              "restored": "ACTIVE",
+              "denial_unchanged": true
+            },
+            {
+              "type": "office",
+              "new_issue": "409 ISSUER_NOT_ACTIVE",
+              "existing": "VERIFIED/ISSUER_SUSPENDED",
+              "restored": "ACTIVE",
+              "denial_unchanged": true
+            }
+          ]
+        }
+      },
+      {
+        "id": "rpc_outage_recovery",
+        "f_ids": [
+          "F13"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "down": "INCONCLUSIVE/null",
+          "reconciliation": null,
+          "recovered": "VERIFIED/ACTIVE",
+          "counts_unchanged": true
+        }
+      },
+      {
+        "id": "same_operation_recovery",
+        "f_ids": [
+          "F12",
+          "F13"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "before": "UNKNOWN/RECOVER_SAME_OPERATION",
+          "after": "CONFIRMED/NONE",
+          "same_operation_and_tx": true,
+          "actual_submissions": 1,
+          "injection": "in-process returned hash loss after actual Anvil submit; not socket response loss or process restart"
+        }
+      },
+      {
+        "id": "private_fields",
+        "f_ids": [
+          "F15"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "public_proof_and_key_fields": "selected_forbidden_fields_absent",
+          "signer_files": "0600",
+          "signer_directory": "0700",
+          "read_only": true,
+          "known_synthetic_secret_scan": {
+            "public_responses": 4,
+            "chain_transactions": 20,
+            "chain_logs": 26,
+            "tracked_files": 180,
+            "leaks": 0
+          },
+          "scope": "selected API responses, signer modes, owned chain input/log and tracked files for this run's known secrets; no whole browser/log audit claim"
+        }
+      },
+      {
+        "id": "approval_chain_boundary",
+        "f_ids": [
+          "F09"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "states": [
+            {
+              "application_status": "PENDING_REVIEW",
+              "key_http": 409,
+              "proof_http": 409,
+              "denial_unchanged": true
+            },
+            {
+              "application_status": "APPROVED_PENDING_CHAIN",
+              "key_http": 409,
+              "proof_http": 409,
+              "denial_unchanged": true
+            },
+            {
+              "application_status": "REJECTED",
+              "key_http": 409,
+              "proof_http": 409,
+              "denial_unchanged": true
+            }
+          ],
+          "layer": "socket HTTP/actual PostgreSQL/Anvil"
+        }
+      },
+      {
+        "id": "default_request_limit",
+        "f_ids": [
+          "F15"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "configured_default": 120,
+          "first_120": 401,
+          "next_request": 429,
+          "xff_does_not_bypass": true,
+          "health_live": 200
+        }
+      },
+      {
+        "id": "default_login_limit",
+        "f_ids": [
+          "F15"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "configured_default": 10,
+          "first_10": 401,
+          "next_login": 429
+        }
+      },
+      {
+        "id": "origin_body_boundaries",
+        "f_ids": [
+          "F15"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "origin_and_cross_site": 403,
+          "default_max_bytes": 65536,
+          "declared_and_chunked_oversize": 413,
+          "default_body_timeout_seconds": 10,
+          "slow_body": 408
+        }
+      },
+      {
+        "id": "different_rpc_chain",
+        "f_ids": [
+          "F14"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "observed_rpc_chain_id": 31338,
+          "deployment_block_hash_matches": false,
+          "alternate_environment": "fresh empty Anvil; no Contract redeployment",
+          "known_original_signed_proof": "INCONCLUSIVE/null/DEPENDENCY_UNAVAILABLE",
+          "scope": "real RPC identity/deployment guard; not signature submission to another Contract",
+          "owned_alternate_container_absent": true
+        }
+      },
+      {
+        "id": "same_chain_fresh_rpc_guard",
+        "f_ids": [
+          "F14"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "observed_rpc_chain_id": 31337,
+          "deployment_block_hash_matches": false,
+          "alternate_environment": "fresh empty Anvil; no Contract redeployment",
+          "known_original_signed_proof": "INCONCLUSIVE/null/DEPENDENCY_UNAVAILABLE",
+          "scope": "real RPC identity/deployment guard; not signature submission to another Contract",
+          "owned_alternate_container_absent": true
+        }
+      },
+      {
+        "id": "projection_replay_process_restart_reorg",
+        "f_ids": [
+          "F13"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "poll_seconds": 1,
+          "layer": "actual PostgreSQL/Anvil and socket HTTP with separate API process",
+          "replay_returned": false,
+          "replay_table_counts_unchanged": true,
+          "api_pid_changed": true,
+          "persisted_checkpoint_and_counts_preserved": true,
+          "continued_checkpoint": 21,
+          "reorg": {
+            "orphan_block": 23,
+            "orphan_hash": "0xf53c5ab80879115ba50c7f9c91f8c6de91347aacb70516bf59647143bd909d51",
+            "canonical_hash": "0xe6ae0ae78c6fde2ca72500fd10199149fa62c35054fe647c6060910427114d92",
+            "tip_rollback": "RECOVERING",
+            "recovered_checkpoint": 23,
+            "orphan_events_removed": true,
+            "historical_status": "ACTIVE",
+            "two_proofs_canonical_reader": "VERIFIED/ACTIVE",
+            "scope": "direct issuer gateway revoke; no API Operation/Audit rollback claim",
+            "application_counts_unchanged": true
+          },
+          "owned_api_processes_closed": true
+        }
+      },
+      {
+        "id": "current_candidate_lifecycle_regression",
+        "f_ids": [
+          "F01",
+          "F03",
+          "F04",
+          "F05",
+          "F07",
+          "F08",
+          "F10",
+          "F14"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "core_vector_function_calls": 20,
+          "ordered_asgi_function_calls": 1,
+          "layer": "ASGI transport with actual PostgreSQL/ECDSA/Reader/Writer/Anvil",
+          "environment_scope": "FRESH",
+          "functional_requests_per_minute": 1000,
+          "functional_logins_per_minute": 100,
+          "owned_lifecycle_resources_absent": true,
+          "source": "0bb5da42d64b9ce298cb2de2951b327da6bc4fc7:fixtures/finals/test_w4_lifecycle_qa.py",
+          "time_control": "trusted API clock and owned EVM timestamp only; OS clock unchanged",
+          "not_additive": "one report group contains 20 core calls and one long integration function; not 21 browser tests"
+        }
+      },
+      {
+        "id": "legacy_v1_expiry",
+        "f_ids": [
+          "F03"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "pytest_passed": 1,
+          "expected": "INCONCLUSIVE/EXPIRED/PROOF_EXPIRED",
+          "layer": "deterministic v1 core; not finals-v2 or browser"
+        }
+      }
+    ],
+    "resources_closed": true,
+    "reused_qa_sources": {
+      "fixtures/finals/test_w4_lifecycle_qa.py": {
+        "sha": "0bb5da42d64b9ce298cb2de2951b327da6bc4fc7",
+        "sha256": "4000a177a8bc96a4308715efe5e9b9d250348ec3be4977f244d0a608e37b79e4"
+      },
+      "fixtures/finals/w4_cases.json": {
+        "sha": "0bb5da42d64b9ce298cb2de2951b327da6bc4fc7",
+        "sha256": "9a1a69ff2a849217ce6e9695a06952db6537dffd840bac650d01b6a26b94cf8a"
+      },
+      "fixtures/finals/prepare_w4_d3.py": {
+        "sha": "78cce405357ae1f509a9bfebdbb07af4b02b2411",
+        "sha256": "07c54b01aa94456162d1a2b66a39bbf514511e69c41325318e9ad370cce7a842"
+      }
+    },
+    "environment": {
+      "python": "3.13.7",
+      "required_python": "3.13.0",
+      "llm_provider": "mock",
+      "openai_model": "gpt-6-luna",
+      "paid_calls": 0,
+      "foundry_image": "ghcr.io/foundry-rs/foundry:v1.4.4@sha256:9584dfbb0e2e9bda80332b66a7cebed635fc9786638871df6b7594e39e678578",
+      "source_config_sha256": {
+        "uv.lock": "10ad0e9c32643eaba3405234ccf7fead6ef120f7f7626e3b69b1b2589760fa75",
+        ".tool-versions": "9e238d2a904c0fe8d489505fbe1e6a51185ba327ada08d34db8cf8d7bd9f94e2",
+        "docker-compose.yml": "ec2dd83ba35a0e2df0aa6d7dbe6086774034721561fd127101a73eebd0117c0d",
+        "infra/docker/api.Dockerfile": "0efa69ea5bc8bdec0061588014ea2bcb8ff5ba0899e7e97f06f0faa0abea80ed",
+        "infra/docker/deployer.Dockerfile": "b34edd32f46ea1cb2f05dc0fcbe42d3c7202a2f8c8c71b2f2e5867be53d5e5c7"
+      }
+    },
+    "functional_budget_override": {
+      "requests_per_minute": 1000,
+      "logins_per_minute": 100
+    },
+    "resource_absence": {
+      "owned_containers_absent": true,
+      "owned_network_absent": true
+    }
+  },
+  "mixed_diagnostic": {
+    "product_sha": "9651062c9f36e124b76796278c996764678e1c77",
+    "qa_git_head": "a3f55c6991061ac445d2223f19ff1b2a48acab0e",
+    "qa_source_sha256": "0682523df99e308dd57f6ed267c55d76ced6c08865406d20c71708cc3906c602",
+    "projection_source_sha256": "223e77b6f71fc95b71009a6cbf03395d7052c40a5506084d82331dab057e3dc0",
+    "qa_git_dirty": false,
+    "browser_e2e": "NOT_RUN",
+    "lifecycle_fixture_mode": "MIXED_DIAGNOSTIC",
+    "results": [
+      {
+        "id": "two_types_comparison",
+        "f_ids": [
+          "F01",
+          "F02"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "states": [
+            {
+              "type": "bank",
+              "scope": "FULL_COMPARISON",
+              "normal": "VERIFIED/ACTIVE",
+              "changed": "TAMPERED"
+            },
+            {
+              "type": "office",
+              "scope": "FULL_COMPARISON",
+              "normal": "VERIFIED/ACTIVE",
+              "changed": "TAMPERED"
+            }
+          ],
+          "reads_unchanged": true,
+          "issuance_layer": "API seed, not browser"
+        }
+      },
+      {
+        "id": "mutation_permission_matrix",
+        "f_ids": [
+          "F05",
+          "F10",
+          "F12",
+          "F15"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "mutation_paths": 10,
+          "anonymous": 401,
+          "management_wrong_role": 403,
+          "consume_nonowner": 404,
+          "missing_csrf": 403,
+          "actor_injection": 422,
+          "operation_recovery_nonowner": 404,
+          "changed_same_request": 409,
+          "db_and_chain_unchanged": true
+        }
+      },
+      {
+        "id": "unregistered",
+        "f_ids": [
+          "F06"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "get": 404,
+          "verify": "NOT_REGISTERED/null",
+          "issuer_reader": null,
+          "counts_unchanged": true
+        }
+      },
+      {
+        "id": "ownership",
+        "f_ids": [
+          "F05",
+          "F10",
+          "F14",
+          "F15"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "anonymous": 401,
+          "nonowners": 404,
+          "denied_mutation_unchanged": true
+        }
+      },
+      {
+        "id": "operation_audit_reconciliation",
+        "f_ids": [
+          "F05",
+          "F13",
+          "F15"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "confirmed_guidance": "NONE",
+          "institution_isolated": true,
+          "reconciliation": true,
+          "projection_authority": "HISTORICAL_EVENTS_ONLY",
+          "reads_unchanged": true
+        }
+      },
+      {
+        "id": "suspended_new_issuance",
+        "f_ids": [
+          "F11"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "institutions": [
+            {
+              "type": "bank",
+              "new_issue": "409 ISSUER_NOT_ACTIVE",
+              "existing": "VERIFIED/ISSUER_SUSPENDED",
+              "restored": "ACTIVE",
+              "denial_unchanged": true
+            },
+            {
+              "type": "office",
+              "new_issue": "409 ISSUER_NOT_ACTIVE",
+              "existing": "VERIFIED/ISSUER_SUSPENDED",
+              "restored": "ACTIVE",
+              "denial_unchanged": true
+            }
+          ]
+        }
+      },
+      {
+        "id": "rpc_outage_recovery",
+        "f_ids": [
+          "F13"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "down": "INCONCLUSIVE/null",
+          "reconciliation": null,
+          "recovered": "VERIFIED/ACTIVE",
+          "counts_unchanged": true
+        }
+      },
+      {
+        "id": "same_operation_recovery",
+        "f_ids": [
+          "F12",
+          "F13"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "before": "UNKNOWN/RECOVER_SAME_OPERATION",
+          "after": "CONFIRMED/NONE",
+          "same_operation_and_tx": true,
+          "actual_submissions": 1,
+          "injection": "in-process returned hash loss after actual Anvil submit; not socket response loss or process restart"
+        }
+      },
+      {
+        "id": "private_fields",
+        "f_ids": [
+          "F15"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "public_proof_and_key_fields": "selected_forbidden_fields_absent",
+          "signer_files": "0600",
+          "signer_directory": "0700",
+          "read_only": true,
+          "known_synthetic_secret_scan": {
+            "public_responses": 4,
+            "chain_transactions": 20,
+            "chain_logs": 26,
+            "tracked_files": 180,
+            "leaks": 0
+          },
+          "scope": "selected API responses, signer modes, owned chain input/log and tracked files for this run's known secrets; no whole browser/log audit claim"
+        }
+      },
+      {
+        "id": "approval_chain_boundary",
+        "f_ids": [
+          "F09"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "states": [
+            {
+              "application_status": "PENDING_REVIEW",
+              "key_http": 409,
+              "proof_http": 409,
+              "denial_unchanged": true
+            },
+            {
+              "application_status": "APPROVED_PENDING_CHAIN",
+              "key_http": 409,
+              "proof_http": 409,
+              "denial_unchanged": true
+            },
+            {
+              "application_status": "REJECTED",
+              "key_http": 409,
+              "proof_http": 409,
+              "denial_unchanged": true
+            }
+          ],
+          "layer": "socket HTTP/actual PostgreSQL/Anvil"
+        }
+      },
+      {
+        "id": "default_request_limit",
+        "f_ids": [
+          "F15"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "configured_default": 120,
+          "first_120": 401,
+          "next_request": 429,
+          "xff_does_not_bypass": true,
+          "health_live": 200
+        }
+      },
+      {
+        "id": "default_login_limit",
+        "f_ids": [
+          "F15"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "configured_default": 10,
+          "first_10": 401,
+          "next_login": 429
+        }
+      },
+      {
+        "id": "origin_body_boundaries",
+        "f_ids": [
+          "F15"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "origin_and_cross_site": 403,
+          "default_max_bytes": 65536,
+          "declared_and_chunked_oversize": 413,
+          "default_body_timeout_seconds": 10,
+          "slow_body": 408
+        }
+      },
+      {
+        "id": "different_rpc_chain",
+        "f_ids": [
+          "F14"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "observed_rpc_chain_id": 31338,
+          "deployment_block_hash_matches": false,
+          "alternate_environment": "fresh empty Anvil; no Contract redeployment",
+          "known_original_signed_proof": "INCONCLUSIVE/null/DEPENDENCY_UNAVAILABLE",
+          "scope": "real RPC identity/deployment guard; not signature submission to another Contract",
+          "owned_alternate_container_absent": true
+        }
+      },
+      {
+        "id": "same_chain_fresh_rpc_guard",
+        "f_ids": [
+          "F14"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "observed_rpc_chain_id": 31337,
+          "deployment_block_hash_matches": false,
+          "alternate_environment": "fresh empty Anvil; no Contract redeployment",
+          "known_original_signed_proof": "INCONCLUSIVE/null/DEPENDENCY_UNAVAILABLE",
+          "scope": "real RPC identity/deployment guard; not signature submission to another Contract",
+          "owned_alternate_container_absent": true
+        }
+      },
+      {
+        "id": "projection_replay_process_restart_reorg",
+        "f_ids": [
+          "F13"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "poll_seconds": 1,
+          "layer": "actual PostgreSQL/Anvil and socket HTTP with separate API process",
+          "replay_returned": false,
+          "replay_table_counts_unchanged": true,
+          "api_pid_changed": true,
+          "persisted_checkpoint_and_counts_preserved": true,
+          "continued_checkpoint": 21,
+          "reorg": {
+            "orphan_block": 23,
+            "orphan_hash": "0xa0044c547d9a518749bedaf3f7dcff56826a2dabaac69916620ec5150a24de58",
+            "canonical_hash": "0x9f7bce0771322bc4f25c3f7d99f84fb3207fc428661562c63d5619ddecfead02",
+            "tip_rollback": "RECOVERING",
+            "recovered_checkpoint": 23,
+            "orphan_events_removed": true,
+            "historical_status": "ACTIVE",
+            "two_proofs_canonical_reader": "VERIFIED/ACTIVE",
+            "scope": "direct issuer gateway revoke; no API Operation/Audit rollback claim",
+            "application_counts_unchanged": true
+          },
+          "owned_api_processes_closed": true
+        }
+      },
+      {
+        "id": "current_candidate_lifecycle_regression",
+        "status": "FAIL",
+        "error_type": "AssertionError",
+        "failure_line": 395,
+        "observed_issue_errors": [
+          {
+            "verification_status": "INCONCLUSIVE",
+            "lifecycle_status": null,
+            "reason_codes": [
+              "DEPENDENCY_UNAVAILABLE"
+            ],
+            "checks": {
+              "contract": "PASS",
+              "payload_hash": "PASS",
+              "issuer": "UNAVAILABLE",
+              "issuer_key": "NOT_RUN",
+              "signature": "NOT_RUN",
+              "proof_status": "NOT_RUN",
+              "candidate_match": "NOT_RUN"
+            }
+          },
+          {
+            "verification_status": "INCONCLUSIVE",
+            "lifecycle_status": null,
+            "reason_codes": [
+              "DEPENDENCY_UNAVAILABLE"
+            ],
+            "checks": {
+              "contract": "PASS",
+              "payload_hash": "PASS",
+              "issuer": "UNAVAILABLE",
+              "issuer_key": "NOT_RUN",
+              "signature": "NOT_RUN",
+              "proof_status": "NOT_RUN",
+              "candidate_match": "NOT_RUN"
+            }
+          }
+        ]
+      },
+      {
+        "id": "legacy_v1_expiry",
+        "f_ids": [
+          "F03"
+        ],
+        "status": "PASS",
+        "evidence": {
+          "pytest_passed": 1,
+          "expected": "INCONCLUSIVE/EXPIRED/PROOF_EXPIRED",
+          "layer": "deterministic v1 core; not finals-v2 or browser"
+        }
+      }
+    ],
+    "resources_closed": true,
+    "reused_qa_sources": {
+      "fixtures/finals/test_w4_lifecycle_qa.py": {
+        "sha": "0bb5da42d64b9ce298cb2de2951b327da6bc4fc7",
+        "sha256": "4000a177a8bc96a4308715efe5e9b9d250348ec3be4977f244d0a608e37b79e4"
+      },
+      "fixtures/finals/w4_cases.json": {
+        "sha": "0bb5da42d64b9ce298cb2de2951b327da6bc4fc7",
+        "sha256": "9a1a69ff2a849217ce6e9695a06952db6537dffd840bac650d01b6a26b94cf8a"
+      },
+      "fixtures/finals/prepare_w4_d3.py": {
+        "sha": "78cce405357ae1f509a9bfebdbb07af4b02b2411",
+        "sha256": "07c54b01aa94456162d1a2b66a39bbf514511e69c41325318e9ad370cce7a842"
+      }
+    },
+    "environment": {
+      "python": "3.13.7",
+      "required_python": "3.13.0",
+      "llm_provider": "mock",
+      "openai_model": "gpt-6-luna",
+      "paid_calls": 0,
+      "foundry_image": "ghcr.io/foundry-rs/foundry:v1.4.4@sha256:9584dfbb0e2e9bda80332b66a7cebed635fc9786638871df6b7594e39e678578",
+      "source_config_sha256": {
+        "uv.lock": "10ad0e9c32643eaba3405234ccf7fead6ef120f7f7626e3b69b1b2589760fa75",
+        ".tool-versions": "9e238d2a904c0fe8d489505fbe1e6a51185ba327ada08d34db8cf8d7bd9f94e2",
+        "docker-compose.yml": "ec2dd83ba35a0e2df0aa6d7dbe6086774034721561fd127101a73eebd0117c0d",
+        "infra/docker/api.Dockerfile": "0efa69ea5bc8bdec0061588014ea2bcb8ff5ba0899e7e97f06f0faa0abea80ed",
+        "infra/docker/deployer.Dockerfile": "b34edd32f46ea1cb2f05dc0fcbe42d3c7202a2f8c8c71b2f2e5867be53d5e5c7"
+      }
+    },
+    "functional_budget_override": {
+      "requests_per_minute": 1000,
+      "logins_per_minute": 100
+    },
+    "resource_absence": {
+      "owned_containers_absent": true,
+      "owned_network_absent": true
+    }
+  },
+  "standard_regression": {
+    "product_sha": "9651062c9f36e124b76796278c996764678e1c77",
+    "command": "UV_NO_SYNC=1 UV_FROZEN=1 UV_OFFLINE=1 make bootstrap-check env-check test UV_ENV=\"$QA_VENV\"",
+    "python_passed": 284,
+    "python_skipped": 4,
+    "skip_reason": "4 existing opt-in live tests; no live flags enabled in default suite",
+    "contract_command": "make test-contracts COMPOSE='docker compose --project-name originproof-w5-d-contract-20261004'",
+    "contracts_passed": 22,
+    "contracts_failed": 0,
+    "contracts_skipped": 0,
+    "scope": "candidate exported from immutable Git object; dedicated pinned Foundry container; no browser acceptance"
+  },
+  "web_e2e": "NOT_RUN",
+  "human_review": "PENDING",
+  "limits": [
+    "API seed is not browser issuance/management",
+    "fresh empty alternate Anvil is RPC identity/deployment guard, not redeploy or signature submission to another Contract",
+    "known synthetic secret scan covers selected API responses, owned chain inputs/logs and tracked files; not full browser/log audit",
+    "mixed-stack lifecycle recovery failure remains for B/C diagnosis; no product fix or stage completion claim"
+  ]
+}

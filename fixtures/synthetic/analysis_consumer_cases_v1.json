@@ -1,0 +1,1118 @@
+{
+  "source": "synthetic",
+  "fixture_version": "d-analysis-consumer-0.1",
+  "purpose": "Independent shared analysis contract and source grounding QA. Model output is injected, not inferred.",
+  "scope": "Ten valid and twenty invalid model-output replays; separate from the 60-source risk evaluation corpus.",
+  "baseline_contract": "v5-shared-0.1",
+  "candidate_contract": "v5-shared-0.2",
+  "candidate_sha": "eaa0d166269833cf7ee49675cfa777b0208c3725",
+  "cases": [
+    {
+      "id": "DG01-unique-llm",
+      "source": "synthetic",
+      "text": "합성 안내: 인증번호를 알려주세요.",
+      "report": {
+        "risk_level": "HIGH",
+        "evidence": [
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "인증번호를 알려주세요",
+            "source": "LLM"
+          }
+        ],
+        "limitations": [
+          "Synthetic output replay; not a model accuracy measurement."
+        ],
+        "verification": null,
+        "verification_not_run_reason": "NO_DOCUMENT_REFERENCE"
+      },
+      "expected": {
+        "accepted": true,
+        "ranges": [
+          [
+            7,
+            18
+          ]
+        ]
+      },
+      "basis": "Exact unique quote; offsets are Unicode code points.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "DG02-rule-source",
+      "source": "synthetic",
+      "text": "합성 안내: 새 계좌를 확인하세요.",
+      "report": {
+        "risk_level": "CAUTION",
+        "evidence": [
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "새 계좌를 확인하세요",
+            "source": "RULE"
+          }
+        ],
+        "limitations": [
+          "Synthetic output replay; not a model accuracy measurement."
+        ],
+        "verification": null,
+        "verification_not_run_reason": "NO_DOCUMENT_REFERENCE"
+      },
+      "expected": {
+        "accepted": true,
+        "ranges": [
+          [
+            7,
+            18
+          ]
+        ]
+      },
+      "basis": "Exact unique quote; offsets are Unicode code points.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "DG03-emoji-prefix",
+      "source": "synthetic",
+      "text": "🧪 합성 안내: 지금 송금하세요.",
+      "report": {
+        "risk_level": "HIGH",
+        "evidence": [
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "지금 송금하세요",
+            "source": "LLM"
+          }
+        ],
+        "limitations": [
+          "Synthetic output replay; not a model accuracy measurement."
+        ],
+        "verification": null,
+        "verification_not_run_reason": "NO_DOCUMENT_REFERENCE"
+      },
+      "expected": {
+        "accepted": true,
+        "ranges": [
+          [
+            9,
+            17
+          ]
+        ]
+      },
+      "basis": "Exact unique quote; offsets are Unicode code points.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "DG04-decomposed-unicode",
+      "source": "synthetic",
+      "text": "원문: 가나 확인",
+      "report": {
+        "risk_level": "HIGH",
+        "evidence": [
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "가나",
+            "source": "LLM"
+          }
+        ],
+        "limitations": [
+          "Synthetic output replay; not a model accuracy measurement."
+        ],
+        "verification": null,
+        "verification_not_run_reason": "NO_DOCUMENT_REFERENCE"
+      },
+      "expected": {
+        "accepted": true,
+        "ranges": [
+          [
+            4,
+            8
+          ]
+        ]
+      },
+      "basis": "Exact unique quote; offsets are Unicode code points.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "DG05-whitespace-preserved",
+      "source": "synthetic",
+      "text": "앞문장\n  합성 인용  \n뒤문장",
+      "report": {
+        "risk_level": "HIGH",
+        "evidence": [
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "\n  합성 인용  \n",
+            "source": "LLM"
+          }
+        ],
+        "limitations": [
+          "Synthetic output replay; not a model accuracy measurement."
+        ],
+        "verification": null,
+        "verification_not_run_reason": "NO_DOCUMENT_REFERENCE"
+      },
+      "expected": {
+        "accepted": true,
+        "ranges": [
+          [
+            3,
+            14
+          ]
+        ]
+      },
+      "basis": "Exact unique quote; offsets are Unicode code points.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "DG06-explicit-second-occurrence",
+      "source": "synthetic",
+      "text": "확인 후 확인",
+      "report": {
+        "risk_level": "HIGH",
+        "evidence": [
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM",
+            "start_offset": 5,
+            "end_offset": 7
+          }
+        ],
+        "limitations": [
+          "Synthetic output replay; not a model accuracy measurement."
+        ],
+        "verification": null,
+        "verification_not_run_reason": "NO_DOCUMENT_REFERENCE"
+      },
+      "expected": {
+        "accepted": true,
+        "ranges": [
+          [
+            5,
+            7
+          ]
+        ]
+      },
+      "basis": "Repeated quotes require an explicit, matching occurrence.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "DG07-emoji-in-quote",
+      "source": "synthetic",
+      "text": "합성 문구: 🧪 확인",
+      "report": {
+        "risk_level": "HIGH",
+        "evidence": [
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "🧪 확인",
+            "source": "LLM"
+          }
+        ],
+        "limitations": [
+          "Synthetic output replay; not a model accuracy measurement."
+        ],
+        "verification": null,
+        "verification_not_run_reason": "NO_DOCUMENT_REFERENCE"
+      },
+      "expected": {
+        "accepted": true,
+        "ranges": [
+          [
+            7,
+            11
+          ]
+        ]
+      },
+      "basis": "Exact unique quote; offsets are Unicode code points.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "DG08-no-clear-is-not-verification",
+      "source": "synthetic",
+      "text": "합성 일상 안내",
+      "report": {
+        "risk_level": "NO_CLEAR_INDICATORS",
+        "evidence": [],
+        "limitations": [
+          "Synthetic output replay; not a model accuracy measurement."
+        ],
+        "verification": null,
+        "verification_not_run_reason": "NO_DOCUMENT_REFERENCE"
+      },
+      "expected": {
+        "accepted": true,
+        "ranges": []
+      },
+      "basis": "No clear indicators is separate from issuance verification.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "DG09-undetermined-is-not-verification",
+      "source": "synthetic",
+      "text": "합성 판독 부족",
+      "report": {
+        "risk_level": "UNDETERMINED",
+        "evidence": [],
+        "limitations": [
+          "Synthetic output replay; not a model accuracy measurement."
+        ],
+        "verification": null,
+        "verification_not_run_reason": "NO_DOCUMENT_REFERENCE"
+      },
+      "expected": {
+        "accepted": true,
+        "ranges": []
+      },
+      "basis": "Abstention does not create a verification result.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "DG10-warning-quote-preserved",
+      "source": "synthetic",
+      "text": "합성 예방 안내: 인증번호를 알려주지 마세요.",
+      "report": {
+        "risk_level": "NO_CLEAR_INDICATORS",
+        "evidence": [
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "인증번호를 알려주지 마세요",
+            "source": "RULE"
+          }
+        ],
+        "limitations": [
+          "Synthetic output replay; not a model accuracy measurement."
+        ],
+        "verification": null,
+        "verification_not_run_reason": "NO_DOCUMENT_REFERENCE"
+      },
+      "expected": {
+        "accepted": true,
+        "ranges": [
+          [
+            10,
+            24
+          ]
+        ]
+      },
+      "basis": "Exact unique quote; offsets are Unicode code points.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "DG11-absent-quote",
+      "source": "synthetic",
+      "text": "합성 정상 안내",
+      "report": {
+        "risk_level": "HIGH",
+        "evidence": [
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "인증번호 요청",
+            "source": "LLM"
+          }
+        ],
+        "limitations": [
+          "Synthetic output replay; not a model accuracy measurement."
+        ],
+        "verification": null,
+        "verification_not_run_reason": "NO_DOCUMENT_REFERENCE"
+      },
+      "expected": {
+        "accepted": false,
+        "error": "GROUNDING_MISMATCH"
+      },
+      "basis": "A plausible quote absent from the source is rejected.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "DG12-overlapping-ambiguous-quote",
+      "source": "synthetic",
+      "text": "하하하",
+      "report": {
+        "risk_level": "HIGH",
+        "evidence": [
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "하하",
+            "source": "LLM"
+          }
+        ],
+        "limitations": [
+          "Synthetic output replay; not a model accuracy measurement."
+        ],
+        "verification": null,
+        "verification_not_run_reason": "NO_DOCUMENT_REFERENCE"
+      },
+      "expected": {
+        "accepted": false,
+        "error": "GROUNDING_MISMATCH"
+      },
+      "basis": "Occurrences at code-point offsets 0 and 1 are ambiguous, even though str.count is 1.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "DG13-repeated-ambiguous-quote",
+      "source": "synthetic",
+      "text": "확인 후 확인",
+      "report": {
+        "risk_level": "HIGH",
+        "evidence": [
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          }
+        ],
+        "limitations": [
+          "Synthetic output replay; not a model accuracy measurement."
+        ],
+        "verification": null,
+        "verification_not_run_reason": "NO_DOCUMENT_REFERENCE"
+      },
+      "expected": {
+        "accepted": false,
+        "error": "GROUNDING_MISMATCH"
+      },
+      "basis": "Non-overlapping repeated quotes also require explicit offsets.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "DG14-wrong-offset",
+      "source": "synthetic",
+      "text": "앞 확인",
+      "report": {
+        "risk_level": "HIGH",
+        "evidence": [
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM",
+            "start_offset": 0,
+            "end_offset": 2
+          }
+        ],
+        "limitations": [
+          "Synthetic output replay; not a model accuracy measurement."
+        ],
+        "verification": null,
+        "verification_not_run_reason": "NO_DOCUMENT_REFERENCE"
+      },
+      "expected": {
+        "accepted": false,
+        "error": "GROUNDING_MISMATCH"
+      },
+      "basis": "A real quote with an incorrect supplied range is rejected.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "DG15-out-of-bounds",
+      "source": "synthetic",
+      "text": "확인",
+      "report": {
+        "risk_level": "HIGH",
+        "evidence": [
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM",
+            "start_offset": 0,
+            "end_offset": 99
+          }
+        ],
+        "limitations": [
+          "Synthetic output replay; not a model accuracy measurement."
+        ],
+        "verification": null,
+        "verification_not_run_reason": "NO_DOCUMENT_REFERENCE"
+      },
+      "expected": {
+        "accepted": false,
+        "error": "GROUNDING_MISMATCH"
+      },
+      "basis": "A range cannot extend beyond the source.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "DG16-utf16-is-not-codepoint",
+      "source": "synthetic",
+      "text": "🧪 확인",
+      "report": {
+        "risk_level": "HIGH",
+        "evidence": [
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM",
+            "start_offset": 3,
+            "end_offset": 5
+          }
+        ],
+        "limitations": [
+          "Synthetic output replay; not a model accuracy measurement."
+        ],
+        "verification": null,
+        "verification_not_run_reason": "NO_DOCUMENT_REFERENCE"
+      },
+      "expected": {
+        "accepted": false,
+        "error": "GROUNDING_MISMATCH"
+      },
+      "basis": "JavaScript UTF-16 offsets differ from code-point offsets after an astral character.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "DG17-page-on-text",
+      "source": "synthetic",
+      "text": "확인",
+      "report": {
+        "risk_level": "HIGH",
+        "evidence": [
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM",
+            "page": 1
+          }
+        ],
+        "limitations": [
+          "Synthetic output replay; not a model accuracy measurement."
+        ],
+        "verification": null,
+        "verification_not_run_reason": "NO_DOCUMENT_REFERENCE"
+      },
+      "expected": {
+        "accepted": false,
+        "error": "GROUNDING_MISMATCH"
+      },
+      "basis": "The TEXT boundary cannot substantiate a PDF page.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "DG18-time-on-text",
+      "source": "synthetic",
+      "text": "확인",
+      "report": {
+        "risk_level": "HIGH",
+        "evidence": [
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM",
+            "start_ms": 0,
+            "end_ms": 100
+          }
+        ],
+        "limitations": [
+          "Synthetic output replay; not a model accuracy measurement."
+        ],
+        "verification": null,
+        "verification_not_run_reason": "NO_DOCUMENT_REFERENCE"
+      },
+      "expected": {
+        "accepted": false,
+        "error": "GROUNDING_MISMATCH"
+      },
+      "basis": "The TEXT boundary cannot substantiate audio timestamps.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "DG19-one-bound-only",
+      "source": "synthetic",
+      "text": "확인",
+      "report": {
+        "risk_level": "HIGH",
+        "evidence": [
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM",
+            "start_offset": 0
+          }
+        ],
+        "limitations": [
+          "Synthetic output replay; not a model accuracy measurement."
+        ],
+        "verification": null,
+        "verification_not_run_reason": "NO_DOCUMENT_REFERENCE"
+      },
+      "expected": {
+        "accepted": false,
+        "error": "SCHEMA_MISMATCH"
+      },
+      "basis": "Both bounds are required together.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "DG20-negative-offset",
+      "source": "synthetic",
+      "text": "확인",
+      "report": {
+        "risk_level": "HIGH",
+        "evidence": [
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM",
+            "start_offset": -1,
+            "end_offset": 1
+          }
+        ],
+        "limitations": [
+          "Synthetic output replay; not a model accuracy measurement."
+        ],
+        "verification": null,
+        "verification_not_run_reason": "NO_DOCUMENT_REFERENCE"
+      },
+      "expected": {
+        "accepted": false,
+        "error": "SCHEMA_MISMATCH"
+      },
+      "basis": "Negative positions are invalid.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "DG21-empty-quote",
+      "source": "synthetic",
+      "text": "확인",
+      "report": {
+        "risk_level": "HIGH",
+        "evidence": [
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "",
+            "source": "LLM"
+          }
+        ],
+        "limitations": [
+          "Synthetic output replay; not a model accuracy measurement."
+        ],
+        "verification": null,
+        "verification_not_run_reason": "NO_DOCUMENT_REFERENCE"
+      },
+      "expected": {
+        "accepted": false,
+        "error": "SCHEMA_MISMATCH"
+      },
+      "basis": "Shared 0.2 rejects an empty quote.",
+      "execution_status": "NOT_RUN",
+      "minimum_contract_revision": "v5-shared-0.2"
+    },
+    {
+      "id": "DG22-empty-rule-id",
+      "source": "synthetic",
+      "text": "확인",
+      "report": {
+        "risk_level": "HIGH",
+        "evidence": [
+          {
+            "rule_id": "",
+            "quote": "확인",
+            "source": "LLM"
+          }
+        ],
+        "limitations": [
+          "Synthetic output replay; not a model accuracy measurement."
+        ],
+        "verification": null,
+        "verification_not_run_reason": "NO_DOCUMENT_REFERENCE"
+      },
+      "expected": {
+        "accepted": false,
+        "error": "SCHEMA_MISMATCH"
+      },
+      "basis": "Shared 0.2 requires a nonempty rule identifier.",
+      "execution_status": "NOT_RUN",
+      "minimum_contract_revision": "v5-shared-0.2"
+    },
+    {
+      "id": "DG23-provider-forges-verification",
+      "source": "synthetic",
+      "text": "확인",
+      "report": {
+        "risk_level": "HIGH",
+        "evidence": [
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          }
+        ],
+        "limitations": [
+          "Synthetic output replay; not a model accuracy measurement."
+        ],
+        "verification": {
+          "session_id": "vsn_synthetic",
+          "verification_status": "INCONCLUSIVE",
+          "comparison_scope": "NONE",
+          "document": null,
+          "checks": [],
+          "reason_codes": [],
+          "checked_at": 1792108800,
+          "chain_id": "31337",
+          "verifying_contract": "0x1212121212121212121212121212121212121212"
+        },
+        "verification_not_run_reason": null
+      },
+      "expected": {
+        "accepted": false,
+        "error": "ANALYZER_AUTHORITY_VIOLATION"
+      },
+      "basis": "Even a schema-valid inconclusive issuance result cannot originate from the analyzer.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "DG24-unknown-report-field",
+      "source": "synthetic",
+      "text": "확인",
+      "report": {
+        "risk_level": "HIGH",
+        "evidence": [
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          }
+        ],
+        "limitations": [
+          "Synthetic output replay; not a model accuracy measurement."
+        ],
+        "verification": null,
+        "verification_not_run_reason": "NO_DOCUMENT_REFERENCE",
+        "provider_raw": "SYNTHETIC_PRIVATE_OUTPUT"
+      },
+      "expected": {
+        "accepted": false,
+        "error": "SCHEMA_MISMATCH"
+      },
+      "basis": "Provider-only payload fields must not cross the shared contract.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "DG25-too-many-evidence-items",
+      "source": "synthetic",
+      "text": "확인",
+      "report": {
+        "risk_level": "HIGH",
+        "evidence": [
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          },
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          }
+        ],
+        "limitations": [
+          "Synthetic output replay; not a model accuracy measurement."
+        ],
+        "verification": null,
+        "verification_not_run_reason": "NO_DOCUMENT_REFERENCE"
+      },
+      "expected": {
+        "accepted": false,
+        "error": "SCHEMA_MISMATCH"
+      },
+      "basis": "Shared 0.2 caps evidence at 50 items.",
+      "execution_status": "NOT_RUN",
+      "minimum_contract_revision": "v5-shared-0.2"
+    },
+    {
+      "id": "DG26-too-many-limitations",
+      "source": "synthetic",
+      "text": "확인",
+      "report": {
+        "risk_level": "HIGH",
+        "evidence": [
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          }
+        ],
+        "limitations": [
+          "합성 제한",
+          "합성 제한",
+          "합성 제한",
+          "합성 제한",
+          "합성 제한",
+          "합성 제한",
+          "합성 제한",
+          "합성 제한",
+          "합성 제한",
+          "합성 제한",
+          "합성 제한",
+          "합성 제한",
+          "합성 제한",
+          "합성 제한",
+          "합성 제한",
+          "합성 제한",
+          "합성 제한",
+          "합성 제한",
+          "합성 제한",
+          "합성 제한",
+          "합성 제한"
+        ],
+        "verification": null,
+        "verification_not_run_reason": "NO_DOCUMENT_REFERENCE"
+      },
+      "expected": {
+        "accepted": false,
+        "error": "SCHEMA_MISMATCH"
+      },
+      "basis": "Shared 0.2 caps limitations at 20 items.",
+      "execution_status": "NOT_RUN",
+      "minimum_contract_revision": "v5-shared-0.2"
+    },
+    {
+      "id": "DG27-oversize-quote",
+      "source": "synthetic",
+      "text": "가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가",
+      "report": {
+        "risk_level": "HIGH",
+        "evidence": [
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가",
+            "source": "LLM"
+          }
+        ],
+        "limitations": [
+          "Synthetic output replay; not a model accuracy measurement."
+        ],
+        "verification": null,
+        "verification_not_run_reason": "NO_DOCUMENT_REFERENCE"
+      },
+      "expected": {
+        "accepted": false,
+        "error": "SCHEMA_MISMATCH"
+      },
+      "basis": "Quotes are capped at 500 code points.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "DG28-missing-verification-scope",
+      "source": "synthetic",
+      "text": "확인",
+      "report": {
+        "risk_level": "HIGH",
+        "evidence": [
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          }
+        ],
+        "limitations": [
+          "Synthetic output replay; not a model accuracy measurement."
+        ],
+        "verification": null,
+        "verification_not_run_reason": null
+      },
+      "expected": {
+        "accepted": false,
+        "error": "SCHEMA_MISMATCH"
+      },
+      "basis": "An unperformed issuance check requires an explicit reason.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "DG29-obsolete-risk-enum",
+      "source": "synthetic",
+      "text": "확인",
+      "report": {
+        "risk_level": "NO_CLEAR_SIGNAL",
+        "evidence": [
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "확인",
+            "source": "LLM"
+          }
+        ],
+        "limitations": [
+          "Synthetic output replay; not a model accuracy measurement."
+        ],
+        "verification": null,
+        "verification_not_run_reason": "NO_DOCUMENT_REFERENCE"
+      },
+      "expected": {
+        "accepted": false,
+        "error": "SCHEMA_MISMATCH"
+      },
+      "basis": "Consume the shared enum; do not invent a second result vocabulary.",
+      "execution_status": "NOT_RUN"
+    },
+    {
+      "id": "DG30-normalization-is-not-source-match",
+      "source": "synthetic",
+      "text": "원문 가",
+      "report": {
+        "risk_level": "HIGH",
+        "evidence": [
+          {
+            "rule_id": "D_SYNTHETIC_REPLAY",
+            "quote": "가",
+            "source": "LLM"
+          }
+        ],
+        "limitations": [
+          "Synthetic output replay; not a model accuracy measurement."
+        ],
+        "verification": null,
+        "verification_not_run_reason": "NO_DOCUMENT_REFERENCE"
+      },
+      "expected": {
+        "accepted": false,
+        "error": "GROUNDING_MISMATCH"
+      },
+      "basis": "NFC normalization must not turn a different original quote into source evidence.",
+      "execution_status": "NOT_RUN"
+    }
+  ]
+}

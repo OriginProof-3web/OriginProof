@@ -1,0 +1,19 @@
+{
+  "_source": "OriginProof-감사 origin/integration(1d9b349) fixtures/synthetic/analysis_consumer_cases_v1.json cases[id=DG01-unique-llm].report (주입한 합성 모델 출력, 실서버 응답 아님)",
+  "text": "합성 안내: 인증번호를 알려주세요.",
+  "report": {
+    "risk_level": "HIGH",
+    "evidence": [
+      {
+        "rule_id": "D_SYNTHETIC_REPLAY",
+        "quote": "인증번호를 알려주세요",
+        "source": "LLM"
+      }
+    ],
+    "limitations": [
+      "Synthetic output replay; not a model accuracy measurement."
+    ],
+    "verification": null,
+    "verification_not_run_reason": "NO_DOCUMENT_REFERENCE"
+  }
+}

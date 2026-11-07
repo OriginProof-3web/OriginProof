@@ -1,0 +1,221 @@
+{
+  "version": "v5-d-service-readiness-0.1",
+  "date_kst": "2026-10-27",
+  "phase_basis": "e29fa8ef6fbbe502cf248499167dbf74d75f8efc",
+  "plan_version": "5.1",
+  "shared_contract_version": "v5-shared-0.2",
+  "branch": "codex/v5-w6-d-service-readiness",
+  "tested_source_revision": "bfd115329d71e0c4600f0184284d33e812c67611",
+  "clean_source": {
+    "method": "git archive; no .git/.env/key, paid/live env removed",
+    "same_physical_machine": true,
+    "same_existing_venv_dependencies": true,
+    "new_os_or_other_machine": false
+  },
+  "default_regression": {
+    "passed": 1310,
+    "skipped": 19,
+    "failures": 0,
+    "errors": 0,
+    "junit_sha256": "46b000e8acf9f2a3bcd46c4995cfbd9d9b29299712ebe1c71abe1ef6e492cd83",
+    "existing_starlette_warning": 1,
+    "skipped_cases": [
+      {
+        "case": "test_live_two_types_signing_storage_and_comparison",
+        "reason": "disposable PostgreSQL/Anvil not configured"
+      },
+      {
+        "case": "test_postgres_login_application_and_operation_flow",
+        "reason": "test DB not configured"
+      },
+      {
+        "case": "test_postgres_chain_lock_releases_on_cancellation",
+        "reason": "test DB not configured"
+      },
+      {
+        "case": "test_live_approval_keys_failure_and_restart",
+        "reason": "disposable DB/Anvil not configured"
+      },
+      {
+        "case": "test_broadcast_records_one_create_and_wrapper_writes_matching_manifest",
+        "reason": "disposable wallet EVM opt-in"
+      },
+      {
+        "case": "test_real_postgres_serializes_publication_and_analysis_requests",
+        "reason": "requires a fresh disposable PostgreSQL database"
+      },
+      {
+        "case": "test_reactivation_uses_abi_encodable_zero_proof_and_empty_signature",
+        "reason": "Foundry cast is required for ABI encoding"
+      },
+      {
+        "case": "test_v5_backup_restore_preserves_original_signature_analysis_and_legacy",
+        "reason": "v5 disposable live opt-in"
+      },
+      {
+        "case": "test_v5_postgres_direct_receipts_cannot_overwrite_confirmed_operation",
+        "reason": "v5 disposable live opt-in"
+      },
+      {
+        "case": "test_v5_actual_kill_unknown_and_receipt_db_failure_never_resend",
+        "reason": "v5 disposable live opt-in"
+      },
+      {
+        "case": "test_v5_actual_worker_restart_resume_and_late_result_deletion",
+        "reason": "v5 disposable live opt-in"
+      },
+      {
+        "case": "test_v5_postgres_competing_next_versions_and_http_security",
+        "reason": "v5 disposable live opt-in"
+      },
+      {
+        "case": "test_v5_rpc_outage_analysis_and_expiry_are_independent",
+        "reason": "v5 disposable live opt-in"
+      },
+      {
+        "case": "test_v5_postgres_retention_preserves_legacy_and_unresolved_audit",
+        "reason": "v5 disposable live opt-in"
+      },
+      {
+        "case": "test_actual_process_restart_unknown_submission_and_consume",
+        "reason": "disposable C live opt-in"
+      },
+      {
+        "case": "test_actual_backup_restore_migration_and_signer_preservation",
+        "reason": "disposable C live opt-in"
+      },
+      {
+        "case": "test_same_chain_id_redeployment_invalidates_old_manifest",
+        "reason": "local EVM opt-in"
+      },
+      {
+        "case": "test_live_reader_and_m1_api",
+        "reason": "local EVM opt-in"
+      },
+      {
+        "case": "test_disposable_wallet_registry_recovery_and_reorg",
+        "reason": "disposable wallet EVM opt-in"
+      }
+    ]
+  },
+  "d_stage_same_source": {
+    "passed": 43,
+    "skipped": 0,
+    "failures": 0,
+    "errors": 0,
+    "junit_sha256": "fb0f0dc226e6efe88c69c3c22eceea9eb31286ac9d7d8de094238493bf123834"
+  },
+  "d_consumer_same_source": {
+    "passed": 31,
+    "skipped": 0,
+    "failures": 0,
+    "errors": 0,
+    "junit_sha256": "c1ac9dbf952548b53e8da5c29a193abe641c3399040ef9bb192950519d07d29f"
+  },
+  "d_independent_fixed_c63": {
+    "passed": 71,
+    "skipped": 0,
+    "failures": 0,
+    "errors": 0,
+    "junit_sha256": "f3b1028eeff342c76eaaa6531f1b5dd3721f46277705bbe9bf5de2d68f1cab3d",
+    "c_source": "68ea0c20718937cd0c93d683e3cfa9b3995a9666",
+    "scope": "SDK synthetic RPC; no service API or actual chain"
+  },
+  "actual_c_recovery": {
+    "passed": 7,
+    "skipped": 0,
+    "failures": 0,
+    "errors": 0,
+    "junit_sha256": "27211b840e9c118fd5576ff39245bba5c1549875977e705452992ce39493a73f",
+    "scope": "Actual disposable PostgreSQL and separate API processes; synthetic Registry/processor",
+    "execution_source_revision": "72dad7e",
+    "existing_database_or_chain_changed": false,
+    "test_containers_remaining": 0
+  },
+  "actual_http_performance_100": {
+    "sample_count": 100,
+    "p50_ms": 15.02729149069637,
+    "p95_ms": 16.167707974091172,
+    "path": "POST /v3/verifications; PROTECTED_FIELDS, version 1; unique request IDs",
+    "scope": "real local HTTP/PostgreSQL; synthetic Registry, no model latency"
+  },
+  "reused_a_http_baseline": {
+    "passed": 4,
+    "skipped": 0,
+    "failures": 0,
+    "errors": 0,
+    "junit_sha256": "7e0d7c14850e9a32f07053da7cbfea3494bd9f5be0d914f1e70d468329525215",
+    "source_pr": 99,
+    "source_revision": "b0b77e26eaa93ee1a8b078e906a9130635e90f74",
+    "source_path": "apps/api/tests/test_ai_connect_readiness.py",
+    "source_sha256": "da2833f17cda621457eb237e38f9b9a5896f9bab60c559b465bb8b6a03f7ae9a",
+    "execution_target_phase": "e29fa8ef6fbbe502cf248499167dbf74d75f8efc",
+    "scope": "ASGI SQLite synthetic auth/MockLLM; no lifespan/TCP/paid provider",
+    "initial_attempt": "4 setup errors outside project: pytest asyncio_mode not found",
+    "resolution": "Use -c pyproject.toml; no fixture/assertion change; 4 passed"
+  },
+  "document_evaluator": {
+    "focused_tests_passed": 16,
+    "included_in_default_total": true,
+    "default_planned_images": 23,
+    "actual_image_model_calls": 0,
+    "actual_ocr_quality": "NOT_EVALUATED",
+    "human_modality_review": "PENDING",
+    "pixel_ground_truth": "NOT_CREATED",
+    "scope": "Explicit callbacks; default no provider/client/key lookup; no upload route"
+  },
+  "generators_and_consistency": {
+    "source_revision": "bfd115329d71e0c4600f0184284d33e812c67611",
+    "five_generators_passed": true,
+    "generated_tracked_diff": [],
+    "review_and_asset_check": "PASS"
+  },
+  "ruff": "PASS apps packages/python services scripts",
+  "paid_text_evaluation": {
+    "holdout_source_revision": "72dad7e2d9a5af1cd27379e6985dc9c4ee96e281",
+    "holdout_actual_calls": 36,
+    "prior_development_calls": 48,
+    "cumulative_calls": 84,
+    "correct": 33,
+    "total": 36,
+    "macro_f1": 0.9118421052631579,
+    "high_recall": "9/9",
+    "wrong_case_ids": [
+      "DP-C11",
+      "DP-C12",
+      "DP-C14"
+    ],
+    "validated_expected_spans": "13/18",
+    "exact_annotation_boundaries": "0/18",
+    "grounding_rejected": 0,
+    "prompt_or_labels_or_rules_changed_after_holdout": false,
+    "report": "docs/qa/v5-d-live-holdout-20261027.json"
+  },
+  "operational_paid_policies": {
+    "v5_d_live_evaluation_policy.development.pending.json": false,
+    "v5_d_live_evaluation_policy.development.json": false,
+    "v5_d_live_evaluation_policy.example.json": false,
+    "v5_d_live_evaluation_policy.holdout.pending.json": false,
+    "v5_d_live_evaluation_policy.holdout.json": false
+  },
+  "prior_actual_journals_unchanged": true,
+  "corpus_labels_evidence_split_unchanged": true,
+  "no_new_dependencies": true,
+  "shared_generated_files_or_other_owner_implementation_changed": false,
+  "team_messages_or_review_requests_sent": false,
+  "remote_merge_performed": false,
+  "not_done": [
+    "production API processor/packaging/settings/lifespan integration",
+    "actual image provider evaluation and upload/storage/grounding contract",
+    "D actual integrated web/Registry/Sepolia independent acceptance",
+    "other physical laptop reproduction",
+    "same RC full rehearsal3",
+    "human code/model acceptance"
+  ],
+  "not_current_scope": [
+    "AUDIO/STT",
+    "Claude adapter or RAG proposal pending separate decision",
+    "Decisions API"
+  ],
+  "stage_complete": false
+}

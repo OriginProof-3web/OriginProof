@@ -1,0 +1,33 @@
+{
+  "envelope": {
+    "app_domain": "originproof.finals",
+    "chain_id": 31337,
+    "expires_at": "2026-10-02T00:00:00Z",
+    "issued_at": "2026-10-01T00:00:00Z",
+    "issuer_id": "iss_origin_mock_office",
+    "key_id": "key_golden_v2",
+    "metadata_hash": null,
+    "nonce": "33333333333333333333333333333333",
+    "payload": {
+      "document_number": "SYNTHETIC-001",
+      "document_type": "CERTIFICATE",
+      "institution_code": "ORIGIN_MOCK_OFFICE",
+      "subject_token": "0x469e4c47af1757b9a341d9541bfcff4ac73a78260659779517b1f92d34647617",
+      "version": 1
+    },
+    "payload_hash": "0x488289e932a3fc720200884a3745f04f6791bda88083650a62aedeae508dbf9d",
+    "proof_id": "prf_golden_official_document",
+    "proof_type": "OFFICIAL_DOCUMENT",
+    "schema_version": "2.0.0",
+    "signature": "0xca10dae3370805ad67c9f9d4be45e6c6568d5b1c74d69ff93f6762bd881af1316691af5d98c7107bd49d2387c9ef858da01798ee369c3b0a4ecd947a9596f89900",
+    "signature_scheme": "ECDSA_SECP256K1_KECCAK256_V1",
+    "single_use": false,
+    "subject_binding_hash": "0x469e4c47af1757b9a341d9541bfcff4ac73a78260659779517b1f92d34647617"
+  },
+  "generated_by": "scripts/generate_finals_golden.py",
+  "payload_canonical_json": "{\"document_number\":\"SYNTHETIC-001\",\"document_type\":\"CERTIFICATE\",\"institution_code\":\"ORIGIN_MOCK_OFFICE\",\"subject_token\":\"0x469e4c47af1757b9a341d9541bfcff4ac73a78260659779517b1f92d34647617\",\"version\":1}",
+  "purpose": "synthetic public signing interoperability vector; not production",
+  "signer": "0x19E7E376E7C213B7E7e7e46cc70A5dD086DAff2A",
+  "signing_canonical_json": "{\"app_domain\":\"originproof.finals\",\"chain_id\":31337,\"expires_at\":\"2026-10-02T00:00:00Z\",\"issued_at\":\"2026-10-01T00:00:00Z\",\"issuer_id\":\"iss_origin_mock_office\",\"key_id\":\"key_golden_v2\",\"metadata_hash\":null,\"nonce\":\"33333333333333333333333333333333\",\"payload_hash\":\"0x488289e932a3fc720200884a3745f04f6791bda88083650a62aedeae508dbf9d\",\"proof_id\":\"prf_golden_official_document\",\"proof_type\":\"OFFICIAL_DOCUMENT\",\"schema_version\":\"2.0.0\",\"signature_scheme\":\"ECDSA_SECP256K1_KECCAK256_V1\",\"single_use\":false,\"subject_binding_hash\":\"0x469e4c47af1757b9a341d9541bfcff4ac73a78260659779517b1f92d34647617\"}",
+  "signing_digest": "0x370794f760bddd7d2684d65f23f05b68bc1b9d2d0726a33092c47f3949e0a895"
+}

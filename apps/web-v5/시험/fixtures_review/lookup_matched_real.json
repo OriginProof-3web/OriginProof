@@ -1,0 +1,75 @@
+{
+ "lookup_status": "MATCHED",
+ "match_count": 1,
+ "document_ids": [
+  "0x09a7b4e3a892556606601829f0b4886dc59ec256058435589e73fd116276bbb9"
+ ],
+ "verification": {
+  "session_id": "vsn_26629243b51342b4a4b7d0952a50c943",
+  "verification_status": "INCONCLUSIVE",
+  "comparison_scope": "PARTIAL_COMPARISON",
+  "document": {
+   "document_id": "0x09a7b4e3a892556606601829f0b4886dc59ec256058435589e73fd116276bbb9",
+   "issuer_id": "0x9d6e623a821f35508c0c970540013aa75041537806d71a2e318ac7ca5358a217",
+   "doc_key": "0x3f8b9c0b790938bec409a34a4db3161fd75de9a7acdc99a3fd58bf3960327824",
+   "key_id": "0x3501b109524b3ddf3f70bd077404165b8e9e192b8ab55acc365580b351d2b840",
+   "version": 1,
+   "latest_version": 1,
+   "state": "ACTIVE",
+   "warnings": [],
+   "original_hash": "0x670a44b7932914e926e0a1ce043d3983d94f0ab2c21685b6823820394aaaf3d0",
+   "protected_hash": "0x6f9d04c3fb8828613e4c188f2dee301396bfa9f307aa68f99274fcd7058e15ef",
+   "content_schema": "0x6d5e6ba9932463c01f2e104c5a6938d42a1452acd79b9f6581760dc400206886",
+   "issued_at": 1793436866,
+   "expires_at": 1793523266,
+   "original_available": true
+  },
+  "checks": [
+   {
+    "name": "signature",
+    "status": "PASSED",
+    "field_path": null,
+    "reason_code": null
+   },
+   {
+    "name": "original_hash",
+    "status": "PASSED",
+    "field_path": null,
+    "reason_code": null
+   },
+   {
+    "name": "protected_fields",
+    "status": "NOT_RUN",
+    "field_path": null,
+    "reason_code": null
+   },
+   {
+    "name": "current_state",
+    "status": "PASSED",
+    "field_path": null,
+    "reason_code": null
+   },
+   {
+    "name": "content",
+    "status": "NOT_RUN",
+    "field_path": null,
+    "reason_code": null
+   },
+   {
+    "name": "issuer_metadata",
+    "status": "PASSED",
+    "field_path": null,
+    "reason_code": null
+   }
+  ],
+  "reason_codes": [
+   "CONTENT_PARTIALLY_COMPARED"
+  ],
+  "checked_at": 1793436866,
+  "chain_id": "31337",
+  "verifying_contract": "0x1212121212121212121212121212121212121212",
+  "block_number": "10",
+  "block_hash": "0xabababababababababababababababababababababababababababababababab"
+ },
+ "reason_codes": []
+}

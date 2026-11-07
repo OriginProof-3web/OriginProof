@@ -1,12 +1,20 @@
+import asyncio
 import re
 from contextlib import asynccontextmanager
 from datetime import datetime
 from uuid import uuid4
 
+import httpx
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from infrastructure.blockchain import JsonRpcBlockchainReader
+from infrastructure.blockchain.wallet_deployment import WalletRegistryConnector
+from openai import AsyncOpenAI
+from originproof_analyzer.errors import AnalyzerError, AnalyzerErrorCode
+from originproof_analyzer.media_converters import document_image_to_text
+from originproof_analyzer.phishing import PhishingAnalyzer
+from originproof_analyzer.settings import AnalyzerSettings
 from originproof_core import (
     BlockchainReader,
     DependencyUnavailableError,
@@ -16,9 +24,32 @@ from originproof_core import (
 )
 from originproof_core.ports import IssuerRecord, KeyRecord
 
+from .accounts import router as auth_router
+from .applications import router as applications_router
+from .chain_management import router as chain_router
+from .chain_network import router as chain_network_router
 from .database import Database
+from .demo_attacks import router as demo_attacks_router
+from .finals_proofs import router as finals_router
+from .issuer_views import router as issuer_views_router
+from .operations import router as operations_router
+from .projection import (
+    SyncView,
+    WalletScan,
+    legacy_projection_enabled,
+    run_projection,
+    wallet_projection_enabled,
+)
+from .projection import router as projection_router
 from .repositories import SqlAlchemyProofRepository
+from .security import RequestSecurity
 from .settings import Settings
+from .wallet_analyses import cleanup, launch, maintenance
+from .wallet_analyses import router as wallet_analyses_router
+from .wallet_documents import router as wallet_documents_router
+from .wallet_governance import router as wallet_governance_router
+from .wallet_onboarding import router as wallet_onboarding_router
+from .wallet_runtime import WalletRuntime
 
 
 class UnavailableBlockchainReader(BlockchainReader):
@@ -36,8 +67,9 @@ def configured_blockchain_reader(settings: Settings) -> BlockchainReader:
     if not settings.blockchain_rpc_url or not settings.blockchain_manifest_path:
         return UnavailableBlockchainReader()
     try:
+        # CHAIN_TARGET picks chain ID and RPC rules; reads fail over primary -> fallback.
         return JsonRpcBlockchainReader(
-            settings.blockchain_rpc_url,
+            settings.blockchain_rpc_urls,
             settings.blockchain_manifest_path,
             issuer_ids=[settings.blockchain_issuer_id],
             expected_chain_id=settings.blockchain_chain_id,
@@ -48,7 +80,7 @@ def configured_blockchain_reader(settings: Settings) -> BlockchainReader:
 
 def _request_id(request: Request) -> str:
     supplied = request.headers.get("X-Request-ID")
-    if supplied is not None and re.fullmatch(r"req_[A-Za-z0-9_-]+", supplied):
+    if supplied is not None and re.fullmatch(r"req_[A-Za-z0-9_-]{1,124}", supplied):
         return supplied
     return f"req_{uuid4().hex}"
 
@@ -57,25 +89,139 @@ def create_app(
     verification_service: VerificationService | None = None,
     database: Database | None = None,
     settings: Settings | None = None,
+    wallet_chain=None,
+    analysis_processor=None,
+    image_converter=None,
 ) -> FastAPI:
     app_settings = settings or Settings()
     app_database = database or Database(app_settings.database_url)
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
-        yield
-        await app_database.dispose()
+        stop = asyncio.Event()
+        wallet_enabled = (
+            app_settings.wallet_registry_address
+            or app_settings.wallet_text_input_enabled
+            or app_settings.wallet_image_input_enabled
+            or app_settings.wallet_demo_email_enabled
+        )
+        maintenance_task = wallet_client = None
+        tasks = []
+        try:
+            # 지갑 Registry 생산 연결: 주입된 chain 이 없고 주소·RPC 가 있을 때만.
+            # 배포 기록(manifest)으로 체인 위 배포를 검증한 뒤에만 연결한다.
+            runtime = app.state.wallet_runtime
+            if (
+                runtime.chain is None
+                and app_settings.wallet_registry_address
+                and app_settings.blockchain_rpc_urls
+            ):
+                # 요청당 10초 안에 주 RPC 시간 초과 뒤 보조 RPC 재시도까지 끝나도록 짧게 둔다.
+                wallet_client = httpx.AsyncClient(timeout=4, trust_env=False)
+                runtime.connect = WalletRegistryConnector(wallet_client, app_settings)
+                runtime.chain = await runtime.connect()
+            if wallet_enabled:
+                for analysis_id in await cleanup(app, restart=True):
+                    launch(app, analysis_id)
+                maintenance_task = asyncio.create_task(maintenance(app, stop))
+            # 기존 ProofStatusRegistry projection 은 그대로 돌고, 지갑 Registry 가 설정되면
+            # 신규 이벤트 projection(연결된 전환 RPC 사용)을 따로 함께 돌린다.
+            if legacy_projection_enabled(app_settings):
+                tasks.append(asyncio.create_task(run_projection(app, stop)))
+            if wallet_projection_enabled(app_settings):
+                tasks.append(
+                    asyncio.create_task(
+                        run_projection(app, stop, WalletScan(app), "wallet_projection")
+                    )
+                )
+            yield
+        finally:
+            stop.set()
+            for task in tasks:
+                await task
+            if maintenance_task:
+                await maintenance_task
+            pending = list(app.state.analysis_tasks)
+            for worker in pending:
+                worker.cancel()
+            if pending:
+                await asyncio.gather(*pending, return_exceptions=True)
+            await app_database.dispose()
+            if wallet_client is not None:
+                await wallet_client.aclose()
 
-    app = FastAPI(title="OriginProof API", version="0.1.0", lifespan=lifespan)
+    app = FastAPI(
+        title="OriginProof API",
+        version="0.1.0",
+        lifespan=lifespan,
+        responses={
+            # Replaces FastAPI's default 422 schema: the handler below returns these bodies.
+            422: {
+                "description": "MALFORMED_INPUT. /v3: {detail, request_id, field_paths}; "
+                "others: {error, request_id}",
+                "content": {
+                    "application/json": {
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "detail": {"type": "string"},
+                                "error": {"type": "string"},
+                                "request_id": {"type": "string"},
+                                "field_paths": {"type": "array", "items": {"type": "string"}},
+                            },
+                        }
+                    }
+                },
+            },
+            413: {"description": "REQUEST_TOO_LARGE: request body exceeds configured limit"},
+            429: {"description": "RATE_LIMITED: retry after Retry-After seconds"},
+        },
+    )
+    app.add_middleware(RequestSecurity, settings=app_settings)
     app.state.database = app_database
+    app.state.settings = app_settings
+    app.state.wallet_runtime = WalletRuntime(app_database, app_settings, wallet_chain)
+    app.state.analysis_processor = analysis_processor
+    app.state.image_converter = image_converter
+    app.state.analysis_tasks = set()
+    app.state.analysis_worker_error = None
+    app.state.projection = SyncView(
+        status="STARTING" if legacy_projection_enabled(app_settings) else "DISABLED"
+    )
+    app.state.wallet_projection = SyncView(
+        status="STARTING" if wallet_projection_enabled(app_settings) else "DISABLED"
+    )
+    app.include_router(projection_router)
+    app.include_router(auth_router)
+    app.include_router(applications_router)
+    app.include_router(operations_router)
+    app.include_router(chain_router)
+    app.include_router(chain_network_router)
+    app.include_router(finals_router)
+    app.include_router(wallet_onboarding_router)
+    app.include_router(wallet_governance_router)
+    app.include_router(wallet_documents_router)
+    app.include_router(wallet_analyses_router)
+    app.include_router(demo_attacks_router)
+    app.include_router(issuer_views_router)
     app.state.verification_service = verification_service or VerificationService(
         SqlAlchemyProofRepository(app_database.session_factory),
         configured_blockchain_reader(app_settings),
     )
 
     @app.exception_handler(RequestValidationError)
-    async def invalid_request(request: Request, _: RequestValidationError) -> JSONResponse:
+    async def invalid_request(request: Request, error: RequestValidationError) -> JSONResponse:
         request_id = _request_id(request)
+        if request.url.path.startswith("/v3/"):
+            return JSONResponse(
+                status_code=422,
+                content={
+                    "detail": "MALFORMED_INPUT",
+                    "request_id": request_id,
+                    "field_paths": [".".join(str(x) for x in e["loc"][1:]) for e in error.errors()],
+                },
+                headers={"X-Request-ID": request_id},
+            )
         return JSONResponse(
             status_code=422,
             content={"error": "MALFORMED_INPUT", "request_id": request_id},
@@ -88,7 +234,9 @@ def create_app(
 
     @app.get("/health/ready", tags=["health"])
     async def ready() -> dict[str, str]:
-        await app.state.database.ping()
+        from .readiness import check_ready
+
+        await check_ready(app)
         return {"status": "ready"}
 
     @app.post(
@@ -105,4 +253,26 @@ def create_app(
     return app
 
 
-app = create_app()
+async def openai_document_converter(artifact, remaining):
+    """D's opt-in photo reader; mock or a missing key fails closed instead of guessing text."""
+    settings = AnalyzerSettings()
+    if settings.llm_provider != "openai" or settings.openai_api_key is None:
+        raise AnalyzerError(AnalyzerErrorCode.PROVIDER_UNAVAILABLE)
+    async with (
+        httpx.AsyncClient(trust_env=False, follow_redirects=False) as http,
+        AsyncOpenAI(
+            api_key=settings.openai_api_key.get_secret_value(),
+            base_url="https://api.openai.com/v1",
+            max_retries=0,
+            http_client=http,
+        ) as client,
+    ):
+        return await document_image_to_text(
+            artifact, settings=settings, client=client, enabled=True, remaining_seconds=remaining
+        )
+
+
+# Production composition: LLM_PROVIDER picks the provider (default mock: rules only, no paid call).
+app = create_app(
+    analysis_processor=PhishingAnalyzer(), image_converter=openai_document_converter
+)

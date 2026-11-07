@@ -1,0 +1,203 @@
+{
+  "report_version": "v5-d-independent-qa-0.1",
+  "date_kst": "2026-10-16",
+  "plan_version": "5.1",
+  "merged_shared_contract": "v5-shared-0.1",
+  "branch": "codex/v5-d-independent-qa",
+  "d_analysis_source_sha": "98d2c5400aa0e3e398dbb8df720b6d1445fae6db",
+  "d_integration_qa_source_sha": "55431546711fa25fd77d7bebf3c05b63e5a6326d",
+  "c_candidate_sha": "eaa0d166269833cf7ee49675cfa777b0208c3725",
+  "c_candidate_shared_contract": "v5-shared-0.2 (unmerged candidate)",
+  "not_additive": true,
+  "checks": {
+    "d_python_regression": {
+      "passed": 292,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "unit, ASGI, mock, core; prior analysis source run"
+    },
+    "d_analyzer_with_c_environment": {
+      "passed": 251,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "unit and mock SDK; overlaps D regression"
+    },
+    "d_callback_c_analysis_storage": {
+      "passed": 12,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "ASGI, in-memory SQLite, synthetic Registry, mock LLM; sockets blocked",
+      "initial_harness_assertion_failures": 3,
+      "initial_failure_correction": "Two result-scope assertions now follow FULL_COMPARISON; deletion tests late-result fencing instead of requiring task cancellation. No product change."
+    },
+    "generate": {
+      "status": "PASS",
+      "generated_diff": false
+    },
+    "ruff": "PASS",
+    "compileall": "PASS (not static typing)",
+    "diff_check": "PASS"
+  },
+  "g07": {
+    "status": "NOT_REPRODUCED_OPEN",
+    "product_sha": "9651062c9f36e124b76796278c996764678e1c77",
+    "qa_sha": "5c06d26da2cfc91a93963a390938af3145d16179",
+    "qa_dirty": false,
+    "fixture_mode": "MIXED_DIAGNOSTIC",
+    "passed_groups": 18,
+    "failed_groups": 0,
+    "previous_observation": {
+      "passed_groups": 17,
+      "failed_groups": 1,
+      "status": "RETAINED"
+    },
+    "cause_identified": false,
+    "product_fix": false,
+    "owner_followup": "B/C diagnosis and fixed-candidate handoff, then D recheck",
+    "source_asset_sha": "a3f55c6991061ac445d2223f19ff1b2a48acab0e",
+    "reused_sources": {
+      "fixtures/finals/test_w4_lifecycle_qa.py": {
+        "sha": "0bb5da42d64b9ce298cb2de2951b327da6bc4fc7",
+        "sha256": "4000a177a8bc96a4308715efe5e9b9d250348ec3be4977f244d0a608e37b79e4"
+      },
+      "fixtures/finals/w4_cases.json": {
+        "sha": "0bb5da42d64b9ce298cb2de2951b327da6bc4fc7",
+        "sha256": "9a1a69ff2a849217ce6e9695a06952db6537dffd840bac650d01b6a26b94cf8a"
+      },
+      "fixtures/finals/prepare_w4_d3.py": {
+        "sha": "78cce405357ae1f509a9bfebdbb07af4b02b2411",
+        "sha256": "07c54b01aa94456162d1a2b66a39bbf514511e69c41325318e9ad370cce7a842"
+      }
+    },
+    "environment": {
+      "python": "3.13.7",
+      "required_python": "3.13.0",
+      "llm_provider": "mock",
+      "openai_model": "gpt-6-luna",
+      "paid_calls": 0,
+      "foundry_image": "ghcr.io/foundry-rs/foundry:v1.4.4@sha256:9584dfbb0e2e9bda80332b66a7cebed635fc9786638871df6b7594e39e678578",
+      "source_config_sha256": {
+        "uv.lock": "10ad0e9c32643eaba3405234ccf7fead6ef120f7f7626e3b69b1b2589760fa75",
+        ".tool-versions": "9e238d2a904c0fe8d489505fbe1e6a51185ba327ada08d34db8cf8d7bd9f94e2",
+        "docker-compose.yml": "ec2dd83ba35a0e2df0aa6d7dbe6086774034721561fd127101a73eebd0117c0d",
+        "infra/docker/api.Dockerfile": "0efa69ea5bc8bdec0061588014ea2bcb8ff5ba0899e7e97f06f0faa0abea80ed",
+        "infra/docker/deployer.Dockerfile": "b34edd32f46ea1cb2f05dc0fcbe42d3c7202a2f8c8c71b2f2e5867be53d5e5c7"
+      }
+    },
+    "resources_closed": true,
+    "resource_absence": {
+      "owned_containers_absent": true,
+      "owned_network_absent": true
+    },
+    "groups": [
+      {
+        "id": "two_types_comparison",
+        "status": "PASS"
+      },
+      {
+        "id": "mutation_permission_matrix",
+        "status": "PASS"
+      },
+      {
+        "id": "unregistered",
+        "status": "PASS"
+      },
+      {
+        "id": "ownership",
+        "status": "PASS"
+      },
+      {
+        "id": "operation_audit_reconciliation",
+        "status": "PASS"
+      },
+      {
+        "id": "suspended_new_issuance",
+        "status": "PASS"
+      },
+      {
+        "id": "rpc_outage_recovery",
+        "status": "PASS"
+      },
+      {
+        "id": "same_operation_recovery",
+        "status": "PASS"
+      },
+      {
+        "id": "private_fields",
+        "status": "PASS"
+      },
+      {
+        "id": "approval_chain_boundary",
+        "status": "PASS"
+      },
+      {
+        "id": "default_request_limit",
+        "status": "PASS"
+      },
+      {
+        "id": "default_login_limit",
+        "status": "PASS"
+      },
+      {
+        "id": "origin_body_boundaries",
+        "status": "PASS"
+      },
+      {
+        "id": "different_rpc_chain",
+        "status": "PASS"
+      },
+      {
+        "id": "same_chain_fresh_rpc_guard",
+        "status": "PASS"
+      },
+      {
+        "id": "projection_replay_process_restart_reorg",
+        "status": "PASS"
+      },
+      {
+        "id": "current_candidate_lifecycle_regression",
+        "status": "PASS"
+      },
+      {
+        "id": "legacy_v1_expiry",
+        "status": "PASS"
+      }
+    ],
+    "scope": "Legacy product: socket HTTP, PostgreSQL, Anvil, projection/API restart and reorg; no browser or new wallet Registry acceptance"
+  },
+  "open_c_grounding_finding": {
+    "id": "DG12-overlapping-ambiguous-quote",
+    "candidate_sha": "eaa0d166269833cf7ee49675cfa777b0208c3725",
+    "status": "OPEN",
+    "previous_same_candidate_consumer_run": {
+      "passed": 30,
+      "failed": 1
+    },
+    "d_callback_rejects_overlap": true,
+    "c_product_fixed": false
+  },
+  "source_sha256": {
+    "fixtures/finals/v5_d_analysis_integration_qa.py": "5954fffc35538b2bb4215a9760bc0fbda8a3f0ef31cba7b083c01a606cf6a54d",
+    "fixtures/finals/w5_p0_api_qa.py": "0682523df99e308dd57f6ed267c55d76ced6c08865406d20c71708cc3906c602",
+    "fixtures/finals/w5_projection_qa.py": "223e77b6f71fc95b71009a6cbf03395d7052c40a5506084d82331dab057e3dc0"
+  },
+  "input_selection": "UNDECIDED",
+  "final_model_selection": "UNDECIDED",
+  "paid_calls": 0,
+  "not_run": [
+    "live LLM",
+    "holdout 36 model predictions",
+    "new same-candidate A/B/C browser-wallet-Registry E2E",
+    "public network",
+    "alternate device",
+    "clean clone of new analyzer",
+    "human label and code review"
+  ],
+  "original_workspace_preserved": {
+    "matching_file_hashes": 4551,
+    "includes_followed_symlinks": 3
+  },
+  "remote_push": false,
+  "pull_request_created": false,
+  "remote_merge": false
+}

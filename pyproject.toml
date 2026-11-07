@@ -1,28 +1,35 @@
 [project]
 name = "originproof-workspace"
 version = "0.1.0"
-description = "OriginProof two-day MVP workspace"
+description = "OriginProof verification platform workspace"
 requires-python = ">=3.13,<3.14"
 dependencies = []
 
 [dependency-groups]
 dev = [
   "httpx>=0.28,<0.29",
-  "pytest>=8.3,<9",
-  "pytest-asyncio>=0.25,<0.26",
+  "pytest>=9.1.1,<10",
+  "pytest-asyncio>=1.4,<1.5",
   "ruff>=0.9,<0.10",
+  "respx>=0.22,<1",
 ]
 
 [tool.uv.workspace]
 members = ["apps/api", "services/analyzer", "packages/python"]
 
 [tool.pytest.ini_options]
-testpaths = ["apps/api/tests", "packages/python/tests", "services/analyzer/tests"]
+pythonpath = ["apps/api/src", "packages/python", "services/analyzer/src", "services/indexer/src"]
+testpaths = ["apps/api/tests", "packages/python/tests", "services/analyzer/tests", "scripts/ci", "services/indexer/tests"]
 asyncio_mode = "auto"
 
 [tool.ruff]
 target-version = "py313"
 line-length = 100
+# apps/web-v5: A 정적 웹(5안) — 파이썬은 로컬 실행 보조 도구뿐이라 제품 린트 대상에서 뺌
+extend-exclude = ["apps/web-v5", "packages/contracts/lib"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+
+[tool.uv]
+constraint-dependencies = ["starlette>=1.7,<1.8"]

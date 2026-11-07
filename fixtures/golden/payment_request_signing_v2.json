@@ -1,0 +1,33 @@
+{
+  "envelope": {
+    "app_domain": "originproof.finals",
+    "chain_id": 31337,
+    "expires_at": "2026-10-02T00:00:00Z",
+    "issued_at": "2026-10-01T00:00:00Z",
+    "issuer_id": "iss_origin_mock_bank",
+    "key_id": "key_golden_v2",
+    "metadata_hash": null,
+    "nonce": "33333333333333333333333333333333",
+    "payload": {
+      "amount_minor": 154000,
+      "beneficiary_binding": "0xbe45e756c692187f4a2e69b3da19b1503a56239f404eea038493d251a621ae53",
+      "currency": "KRW",
+      "payer_binding": "0xcf91280745a74280aa0d1a850e05cd18f23a488360db42c847b988e453e9b2b1",
+      "target_hash": "0x945b44efc5634b77a5283102f56fabdb19d7a17ff3db5322967be69038e4060e"
+    },
+    "payload_hash": "0x28ba3f93f49e2ede56fc98af5c625071e6d736c3a4797096560eabb85c8c5063",
+    "proof_id": "prf_golden_payment_request",
+    "proof_type": "PAYMENT_REQUEST",
+    "schema_version": "2.0.0",
+    "signature": "0x2d15c957ad23f3553beea7efc8887ec30c0a5bdaa5af428b7fb2941c80eb98b80aa3a3d9e776f7f6956cca21a84c4da64c1ed05c35b71410485c71f91da2303601",
+    "signature_scheme": "ECDSA_SECP256K1_KECCAK256_V1",
+    "single_use": true,
+    "subject_binding_hash": "0xcf91280745a74280aa0d1a850e05cd18f23a488360db42c847b988e453e9b2b1"
+  },
+  "generated_by": "scripts/generate_finals_golden.py",
+  "payload_canonical_json": "{\"amount_minor\":154000,\"beneficiary_binding\":\"0xbe45e756c692187f4a2e69b3da19b1503a56239f404eea038493d251a621ae53\",\"currency\":\"KRW\",\"payer_binding\":\"0xcf91280745a74280aa0d1a850e05cd18f23a488360db42c847b988e453e9b2b1\",\"target_hash\":\"0x945b44efc5634b77a5283102f56fabdb19d7a17ff3db5322967be69038e4060e\"}",
+  "purpose": "synthetic public signing interoperability vector; not production",
+  "signer": "0x19E7E376E7C213B7E7e7e46cc70A5dD086DAff2A",
+  "signing_canonical_json": "{\"app_domain\":\"originproof.finals\",\"chain_id\":31337,\"expires_at\":\"2026-10-02T00:00:00Z\",\"issued_at\":\"2026-10-01T00:00:00Z\",\"issuer_id\":\"iss_origin_mock_bank\",\"key_id\":\"key_golden_v2\",\"metadata_hash\":null,\"nonce\":\"33333333333333333333333333333333\",\"payload_hash\":\"0x28ba3f93f49e2ede56fc98af5c625071e6d736c3a4797096560eabb85c8c5063\",\"proof_id\":\"prf_golden_payment_request\",\"proof_type\":\"PAYMENT_REQUEST\",\"schema_version\":\"2.0.0\",\"signature_scheme\":\"ECDSA_SECP256K1_KECCAK256_V1\",\"single_use\":true,\"subject_binding_hash\":\"0xcf91280745a74280aa0d1a850e05cd18f23a488360db42c847b988e453e9b2b1\"}",
+  "signing_digest": "0xd1e7070cb88ad466e989f57b5de6b960277d9d05229398487bf8b4e89aa9a605"
+}

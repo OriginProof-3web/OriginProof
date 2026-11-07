@@ -96,7 +96,9 @@ async def main() -> None:
     finally:
         await database.dispose()
 
-    async with httpx.AsyncClient(base_url="http://127.0.0.1:8000", timeout=10) as client:
+    async with httpx.AsyncClient(
+        base_url=os.environ.get("MVP_API_URL", "http://127.0.0.1:8000"), timeout=10
+    ) as client:
         response = await client.post(
             "/v1/mvp/card-notices/verify",
             json=VerificationRequest(
@@ -107,8 +109,11 @@ async def main() -> None:
         )
     response.raise_for_status()
     body = response.json()
-    if body["verification_status"] != "INCONCLUSIVE":
-        raise RuntimeError("API must be INCONCLUSIVE until the M4 blockchain reader is connected")
+    expected = os.environ.get("STORAGE_SMOKE_EXPECTED_STATUS", "INCONCLUSIVE")
+    if body["verification_status"] != expected:
+        raise RuntimeError(
+            f"expected API status {expected}; received {body['verification_status']}"
+        )
     if body["checks"].get("proof_repository") != "FOUND":
         raise RuntimeError("API did not read the seeded proof from PostgreSQL")
     print("Proof storage smoke check passed.")
